@@ -1,0 +1,18 @@
+{
+    "reloj": {
+        "dia": 1,
+        "dias_para_periodo": 20,
+        "fecha": {
+            "anio": 1476,
+            "calendario": "juliano",
+            "dia": 1,
+            "mes": 1
+        },
+        "fuera_de_periodo": false,
+        "pausado": true,
+        "periodo": 1,
+        "tick": 365,
+        "velocidad": 2
+    },
+    "tipo": "reloj"
+}

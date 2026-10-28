@@ -1,0 +1,50 @@
+{
+  "_nota": "Guion para la prueba de integración del cliente: presenta una situación el primer día.",
+  "tipos": [
+    "prueba"
+  ],
+  "situaciones": [
+    {
+      "id": "situacion_de_prueba",
+      "tipo": "prueba",
+      "enfriamiento": 1460,
+      "plazo": 400,
+      "fases": [],
+      "opciones": [
+        {
+          "id": "primera",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 1
+              },
+              "magnitud": "agravio",
+              "valor": "1"
+            }
+          ]
+        },
+        {
+          "id": "segunda",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 1
+              },
+              "magnitud": "agravio",
+              "valor": "-1"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "director": {
+    "espaciado": 0,
+    "prob_base": "0.9999",
+    "prob_max": "0.9999"
+  }
+}

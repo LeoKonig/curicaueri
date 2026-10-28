@@ -1,0 +1,4 @@
+{"tipo": "agente_plan", "tick": 0, "comandos": [{"tipo": "fijar_impuesto_interno", "valor": 5}], "nota": "tesoro bajo (1000)"}
+{"tipo": "agente_plan", "tick": 0, "comandos": [{"tipo": "fijar_impuesto_interno", "valor": 3}], "nota": "equilibrio"}
+{"tipo": "agente_plan", "tick": 0, "comandos": [{"tipo": "fijar_impuesto_interno", "valor": 1}], "nota": "agravio alto (61.5)"}
+{"tipo": "agente_plan", "tick": 40, "comandos": [{"tipo": "fijar_impuesto_interno", "valor": 1}], "nota": "agravio alto (60)"}

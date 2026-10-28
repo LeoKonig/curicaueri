@@ -1,0 +1,23 @@
+{
+    "diferencias": [
+        {
+            "antes": {
+                "t": "fijo",
+                "v": "52"
+            },
+            "clase": "magnitud",
+            "despues": {
+                "t": "fijo",
+                "v": "57"
+            },
+            "nombre": "descontento",
+            "ref": {
+                "clase": "aldea",
+                "id": 1
+            }
+        }
+    ],
+    "horizonte": 20,
+    "secuencia": 8,
+    "tipo": "prediccion"
+}

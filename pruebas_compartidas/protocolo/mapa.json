@@ -1,0 +1,88 @@
+{
+    "alto": 4,
+    "ancho": 5,
+    "celdas": [
+        {
+            "id": 0,
+            "terreno": "bosque"
+        },
+        {
+            "id": 1,
+            "terreno": "sierra"
+        },
+        {
+            "id": 2,
+            "terreno": "lago"
+        },
+        {
+            "id": 3,
+            "terreno": "llano"
+        },
+        {
+            "id": 4,
+            "terreno": "bosque"
+        },
+        {
+            "id": 5,
+            "terreno": "sierra"
+        },
+        {
+            "id": 6,
+            "terreno": "bosque"
+        },
+        {
+            "id": 7,
+            "terreno": "llano"
+        },
+        {
+            "id": 8,
+            "terreno": "lago"
+        },
+        {
+            "id": 9,
+            "terreno": "sierra"
+        },
+        {
+            "id": 10,
+            "terreno": "lago"
+        },
+        {
+            "id": 11,
+            "terreno": "llano"
+        },
+        {
+            "id": 12,
+            "terreno": "bosque"
+        },
+        {
+            "id": 13,
+            "terreno": "sierra"
+        },
+        {
+            "id": 14,
+            "terreno": "lago"
+        },
+        {
+            "id": 15,
+            "terreno": "llano"
+        },
+        {
+            "id": 16,
+            "terreno": "lago"
+        },
+        {
+            "id": 17,
+            "terreno": "sierra"
+        },
+        {
+            "id": 18,
+            "terreno": "bosque"
+        },
+        {
+            "id": 19,
+            "terreno": "llano"
+        }
+    ],
+    "proveedor": "hexagonal",
+    "tipo": "mapa"
+}

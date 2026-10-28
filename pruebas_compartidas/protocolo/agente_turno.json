@@ -1,0 +1,62 @@
+{
+    "entidades": [
+        {
+            "campos": {},
+            "magnitudes": {
+                "descontento": {
+                    "aportes": [],
+                    "base": "51",
+                    "efectivo": "51"
+                },
+                "poblacion": {
+                    "aportes": [],
+                    "base": "101",
+                    "efectivo": "101"
+                }
+            },
+            "ref": {
+                "clase": "aldea",
+                "id": 1
+            }
+        },
+        {
+            "campos": {},
+            "magnitudes": {
+                "descontento": {
+                    "aportes": [],
+                    "base": "51",
+                    "efectivo": "51"
+                },
+                "poblacion": {
+                    "aportes": [],
+                    "base": "201",
+                    "efectivo": "201"
+                }
+            },
+            "ref": {
+                "clase": "aldea",
+                "id": 2
+            }
+        }
+    ],
+    "faccion": 2,
+    "reloj": {
+        "dia": 20,
+        "dias_para_periodo": 1,
+        "fecha": {
+            "anio": 1475,
+            "calendario": "juliano",
+            "dia": 20,
+            "mes": 1
+        },
+        "fuera_de_periodo": false,
+        "pausado": false,
+        "periodo": 1,
+        "tick": 19,
+        "velocidad": 3
+    },
+    "semilla": 1015861,
+    "tick": 20,
+    "tipo": "agente_turno",
+    "version": 1
+}

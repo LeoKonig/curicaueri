@@ -1,0 +1,9 @@
+{
+    "comando": {
+        "aldea": 1,
+        "tipo": "subir_impuesto",
+        "valor": 5
+    },
+    "secuencia": 8,
+    "tipo": "consulta"
+}

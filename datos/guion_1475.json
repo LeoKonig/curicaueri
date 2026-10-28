@@ -1,0 +1,341 @@
+{
+  "_nota": "Guion ILUSTRATIVO del escenario 1475: muestra la forma (actos como fases, situaciones etiquetadas, director). El contenido real sale del hito 0.",
+  "tipos": [
+    "sucesion",
+    "tierra",
+    "senorio",
+    "frontera",
+    "tributo",
+    "culto",
+    "noticias"
+  ],
+  "fases": [
+    {
+      "id": "acto_i_consolidacion"
+    },
+    {
+      "id": "acto_ii_frontera",
+      "desde_fecha": "1485-01-01"
+    },
+    {
+      "id": "acto_iii_crisis",
+      "desde_fecha": "1519-01-01"
+    }
+  ],
+  "situaciones": [
+    {
+      "id": "sucesion_en_zacapu",
+      "tipo": "sucesion",
+      "enfriamiento": 1460,
+      "plazo": 40,
+      "fases": [
+        "acto_i_consolidacion",
+        "acto_ii_frontera"
+      ],
+      "opciones": [
+        {
+          "id": "confirmar_al_heredero",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "3"
+            }
+          ]
+        },
+        {
+          "id": "imponer_a_un_noble_de_tzintzuntzan",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "8"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 1
+              },
+              "magnitud": "agravio",
+              "valor": "-3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "presion_sobre_la_tierra",
+      "tipo": "tierra",
+      "enfriamiento": 1460,
+      "plazo": 40,
+      "fases": [],
+      "opciones": [
+        {
+          "id": "roturar_monte",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "2"
+            }
+          ]
+        },
+        {
+          "id": "enviar_colonos_a_la_frontera",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "-2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "peticion_de_senorio_local",
+      "tipo": "senorio",
+      "enfriamiento": 1460,
+      "plazo": 40,
+      "fases": [
+        "acto_ii_frontera"
+      ],
+      "opciones": [
+        {
+          "id": "concederlo",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "-10"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 1
+              },
+              "magnitud": "agravio",
+              "valor": "3"
+            }
+          ]
+        },
+        {
+          "id": "negarlo",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "6"
+            }
+          ]
+        }
+      ],
+      "condicion": {
+        "tipo": "mayor",
+        "entidad": {
+          "clase": "pop",
+          "id": 4
+        },
+        "magnitud": "agravio",
+        "valor": "50"
+      }
+    },
+    {
+      "id": "frontera_chichimeca",
+      "tipo": "frontera",
+      "enfriamiento": 1460,
+      "plazo": 40,
+      "fases": [
+        "acto_ii_frontera"
+      ],
+      "opciones": [
+        {
+          "id": "guarnicion",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "3"
+            }
+          ]
+        },
+        {
+          "id": "tregua_con_regalos",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 1
+              },
+              "magnitud": "agravio",
+              "valor": "2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tributo_mexica_exigido",
+      "tipo": "tributo",
+      "enfriamiento": 1460,
+      "plazo": 40,
+      "fases": [
+        "acto_ii_frontera"
+      ],
+      "opciones": [
+        {
+          "id": "negarse",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 1
+              },
+              "magnitud": "agravio",
+              "valor": "-2"
+            }
+          ]
+        },
+        {
+          "id": "pagar_en_especie",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fiesta_de_curicaueri",
+      "tipo": "culto",
+      "enfriamiento": 1460,
+      "plazo": 40,
+      "fases": [],
+      "opciones": [
+        {
+          "id": "celebrarla_con_esplendor",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "-4"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "-4"
+            }
+          ]
+        },
+        {
+          "id": "celebrarla_sobria",
+          "efectos": []
+        }
+      ]
+    },
+    {
+      "id": "noticias_del_oriente",
+      "tipo": "noticias",
+      "enfriamiento": 365,
+      "plazo": 40,
+      "fases": [
+        "acto_iii_crisis"
+      ],
+      "opciones": [
+        {
+          "id": "enviar_espias",
+          "efectos": []
+        },
+        {
+          "id": "consultar_a_los_sacerdotes",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 1
+              },
+              "magnitud": "agravio",
+              "valor": "-2"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "director": {
+    "espaciado": 60,
+    "prob_base": "0.01",
+    "tension": "0.002",
+    "prob_max": "0.2",
+    "ventana_variedad": 4,
+    "penal_variedad": "1",
+    "bono_novedad": "1",
+    "dias_decada": 3650
+  }
+}

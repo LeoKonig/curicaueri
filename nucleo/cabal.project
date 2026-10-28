@@ -1,0 +1,5 @@
+packages: .
+          reglas
+          app
+
+tests: True

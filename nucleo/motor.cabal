@@ -1,0 +1,44 @@
+cabal-version:      3.0
+name:               motor
+version:            0.1.0.0
+build-type:         Simple
+synopsis:           Motor de simulación (sin reglas del juego)
+
+library
+  exposed-modules:  Motor.Base
+                    Motor.Azar
+                    Motor.Magnitudes
+                    Motor.Hechos
+                    Motor.Mapa
+                    Motor.Estado
+                    Motor.Sistema
+                    Motor.Juego
+                    Motor.Vista
+                    Motor.Proyeccion
+                    Motor.Carga
+                    Motor.Efectos
+                    Motor.Agentes
+                    Motor.Guardado
+                    Motor.Poblacion
+                    Motor.Calendario
+                    Motor.Protocolo
+                    Motor.Guion
+                    Motor.Director
+                    Motor.Autoridad
+  hs-source-dirs:   src
+  default-language: Haskell2010
+  default-extensions:
+    StrictData OverloadedStrings TypeFamilies
+    DeriveGeneric DeriveAnyClass LambdaCase
+  build-depends:    base >=4.14 && <5, containers, text, aeson, scientific, bytestring
+  ghc-options:      -Wall -Werror -Wincomplete-patterns
+
+test-suite spec
+  type:             exitcode-stdio-1.0
+  main-is:          Spec.hs
+  hs-source-dirs:   test
+  default-language: Haskell2010
+  default-extensions:
+    StrictData OverloadedStrings TypeFamilies
+  build-depends:    base, motor, containers, text, aeson, aeson-pretty, bytestring, hspec, QuickCheck
+  ghc-options:      -Wall -Wincomplete-patterns

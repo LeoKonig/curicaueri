@@ -1,0 +1,11 @@
+{
+  "_nota": "Ejes de poder (V5, Facciones, poder y autoridad). En el prototipo ningún comando los requiere y ninguna fórmula los lee; cambiar de cinco a cuatro o seis ejes es editar este archivo.",
+  "version": 1,
+  "ejes": [
+    {"id": "coercion",       "magnitud": "faccion.autoridad.coercion",       "referencia": "100"},
+    {"id": "extraccion",     "magnitud": "faccion.autoridad.extraccion",     "referencia": "100"},
+    {"id": "legitimidad",    "magnitud": "faccion.legitimidad",              "referencia": "50", "base": "50"},
+    {"id": "administracion", "magnitud": "faccion.autoridad.administracion", "referencia": "100"},
+    {"id": "red",            "magnitud": "faccion.autoridad.red",            "referencia": "100"}
+  ]
+}

@@ -1,0 +1,12 @@
+{
+    "comandos": [
+        {
+            "aldea": 1,
+            "tipo": "subir_impuesto",
+            "valor": 2
+        }
+    ],
+    "nota": "tesoro bajo",
+    "tick": 20,
+    "tipo": "agente_plan"
+}

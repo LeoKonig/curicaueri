@@ -1,0 +1,14 @@
+; Cliente del juego: dibuja y captura la entrada; las reglas viven en el núcleo.
+
+config_version=5
+
+[application]
+
+config/name="Curicaueri: Flor y Canto"
+run/main_scene="res://principal.tscn"
+config/features=PackedStringArray("4.3")
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=760

@@ -1,0 +1,13 @@
+dist/
+dist-newstyle/
+build/
+cliente/.godot/
+*.o
+*.hi
+cabal.project.local*
+partidas/
+nucleo/partidas/
+agentes/mercury/agente
+agentes/mercury/Mercury/
+agentes/mercury/*.mh
+agentes/mercury/*.err

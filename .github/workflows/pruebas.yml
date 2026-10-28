@@ -1,0 +1,125 @@
+# Integración continua: compila el núcleo y corre todas las pruebas en cada
+# cambio. Tres trabajos:
+#
+#   nucleo   motor y reglas con cabal, en Linux y macOS y con dos versiones de
+#            GHC. Las pruebas incluyen los valores dorados del azar y del estado,
+#            así que este trabajo comprueba también las leyes de estabilidad
+#            entre plataformas y compiladores (documento funcional, sección 19).
+#   agentes  probar_agentes.sh con el agente de Python (Mercury se salta si no
+#            hay compilador; el script lo dice).
+#   cliente  probar_cliente.sh sin interfaz gráfica, con Godot 4.3 (la versión
+#            mínima) y con la más reciente probada.
+name: pruebas
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+jobs:
+  nucleo:
+    name: núcleo (${{ matrix.os }}, GHC ${{ matrix.ghc }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, ghc: "9.4" }
+          - { os: ubuntu-latest, ghc: "9.8" }
+          - { os: macos-latest,  ghc: "9.4" }
+    defaults:
+      run:
+        working-directory: nucleo
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Locale UTF-8 en macOS
+        if: runner.os == 'macOS'
+        run: |
+          echo "LANG=en_US.UTF-8" >> "$GITHUB_ENV"
+          echo "LC_ALL=en_US.UTF-8" >> "$GITHUB_ENV"
+
+      - uses: haskell-actions/setup@v2
+        id: haskell
+        with:
+          ghc-version: ${{ matrix.ghc }}
+          cabal-version: latest
+
+      - name: Plan de compilación
+        run: |
+          cabal update
+          cabal build all --enable-tests --dry-run
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.haskell.outputs.cabal-store }}
+          key: cabal-${{ runner.os }}-${{ matrix.ghc }}-${{ hashFiles('nucleo/dist-newstyle/cache/plan.json') }}
+          restore-keys: cabal-${{ runner.os }}-${{ matrix.ghc }}-
+
+      - name: Compilar
+        run: cabal build all --enable-tests
+
+      - name: Pruebas del motor y de las reglas
+        run: cabal test all --test-show-details=direct
+
+      - name: Guardar el ejecutable
+        if: matrix.os == 'ubuntu-latest' && matrix.ghc == '9.4'
+        run: cp "$(cabal list-bin nucleo)" ../nucleo-bin
+
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest' && matrix.ghc == '9.4'
+        with:
+          name: nucleo-linux
+          path: nucleo-bin
+          retention-days: 7
+
+  agentes:
+    needs: nucleo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: nucleo-linux
+      - name: Agentes externos
+        run: |
+          chmod +x nucleo-bin
+          NUCLEO="$PWD/nucleo-bin" ./probar_agentes.sh
+
+  cliente:
+    needs: nucleo
+    name: cliente (Godot ${{ matrix.godot }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        godot: ["4.3-stable", "4.7.2-stable"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: nucleo-linux
+
+      - uses: actions/cache@v4
+        id: cache-godot
+        with:
+          path: godot
+          key: godot-${{ matrix.godot }}
+
+      - name: Descargar Godot ${{ matrix.godot }}
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p godot
+          curl -fsSL -o godot.zip \
+            "https://github.com/godotengine/godot-builds/releases/download/${{ matrix.godot }}/Godot_v${{ matrix.godot }}_linux.x86_64.zip"
+          unzip -q godot.zip -d godot
+          mv godot/Godot_v*_linux.x86_64 godot/godot
+
+      - name: Pruebas del cliente (espejo, protocolo, integración, decisiones)
+        run: |
+          chmod +x nucleo-bin godot/godot
+          GODOT="$PWD/godot/godot" NUCLEO="$PWD/nucleo-bin" ./probar_cliente.sh

@@ -1,0 +1,126 @@
+{
+    "cambios": {
+        "actualizadas": [],
+        "eliminadas": [
+            {
+                "clase": "aldea",
+                "id": 2
+            }
+        ],
+        "hechos": [],
+        "reloj": {
+            "dia": 1,
+            "dias_para_periodo": 20,
+            "fecha": {
+                "anio": 1475,
+                "calendario": "juliano",
+                "dia": 1,
+                "mes": 1
+            },
+            "fuera_de_periodo": false,
+            "pausado": false,
+            "periodo": 1,
+            "tick": 0,
+            "velocidad": 3
+        },
+        "tipo": "cambios"
+    },
+    "esperado": {
+        "entidades": [
+            {
+                "campos": {},
+                "magnitudes": {
+                    "descontento": {
+                        "aportes": [],
+                        "base": "50",
+                        "efectivo": "50"
+                    },
+                    "poblacion": {
+                        "aportes": [],
+                        "base": "100",
+                        "efectivo": "100"
+                    }
+                },
+                "ref": {
+                    "clase": "aldea",
+                    "id": 1
+                }
+            }
+        ],
+        "reloj": {
+            "dia": 1,
+            "dias_para_periodo": 20,
+            "fecha": {
+                "anio": 1475,
+                "calendario": "juliano",
+                "dia": 1,
+                "mes": 1
+            },
+            "fuera_de_periodo": false,
+            "pausado": false,
+            "periodo": 1,
+            "tick": 0,
+            "velocidad": 3
+        },
+        "tipo": "instantanea"
+    },
+    "instantanea": {
+        "entidades": [
+            {
+                "campos": {},
+                "magnitudes": {
+                    "descontento": {
+                        "aportes": [],
+                        "base": "50",
+                        "efectivo": "50"
+                    },
+                    "poblacion": {
+                        "aportes": [],
+                        "base": "100",
+                        "efectivo": "100"
+                    }
+                },
+                "ref": {
+                    "clase": "aldea",
+                    "id": 1
+                }
+            },
+            {
+                "campos": {},
+                "magnitudes": {
+                    "descontento": {
+                        "aportes": [],
+                        "base": "50",
+                        "efectivo": "50"
+                    },
+                    "poblacion": {
+                        "aportes": [],
+                        "base": "200",
+                        "efectivo": "200"
+                    }
+                },
+                "ref": {
+                    "clase": "aldea",
+                    "id": 2
+                }
+            }
+        ],
+        "reloj": {
+            "dia": 1,
+            "dias_para_periodo": 20,
+            "fecha": {
+                "anio": 1475,
+                "calendario": "juliano",
+                "dia": 1,
+                "mes": 1
+            },
+            "fuera_de_periodo": false,
+            "pausado": false,
+            "periodo": 1,
+            "tick": 0,
+            "velocidad": 3
+        },
+        "tipo": "instantanea"
+    },
+    "nombre": "05_entidad_eliminada"
+}

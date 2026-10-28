@@ -1,0 +1,141 @@
+{
+    "calendario": {
+        "desfase": 0,
+        "dias_fuera": 5,
+        "dias_por_periodo": 20,
+        "nombre_fuera": "nemontemi",
+        "nombre_periodo": "veintena",
+        "periodos_por_anio": 18
+    },
+    "comandos": [
+        {
+            "clave": "c.subir_impuesto",
+            "implementado": true,
+            "parametros": [
+                {
+                    "max": 2,
+                    "min": 1,
+                    "nombre": "aldea",
+                    "tipo": "entero"
+                },
+                {
+                    "max": 20,
+                    "min": 0,
+                    "nombre": "valor",
+                    "tipo": "entero"
+                }
+            ],
+            "requiere": {
+                "clase": "exclusivo",
+                "eje": "todo"
+            },
+            "tipo": "subir_impuesto"
+        },
+        {
+            "clave": "c.celebrar_fiesta",
+            "implementado": true,
+            "parametros": [
+                {
+                    "max": 2,
+                    "min": 1,
+                    "nombre": "aldea",
+                    "tipo": "entero"
+                }
+            ],
+            "requiere": {
+                "clase": "concurrente",
+                "eje": "fe"
+            },
+            "tipo": "celebrar_fiesta"
+        },
+        {
+            "clave": "c.responder_sequia",
+            "implementado": true,
+            "parametros": [
+                {
+                    "max": 99,
+                    "min": 1,
+                    "nombre": "decision",
+                    "tipo": "entero"
+                },
+                {
+                    "max": 100,
+                    "min": 0,
+                    "nombre": "grano",
+                    "tipo": "entero"
+                }
+            ],
+            "requiere": {
+                "clase": "exclusivo",
+                "eje": "todo"
+            },
+            "tipo": "responder_sequia"
+        },
+        {
+            "clave": "c.elegir_politica",
+            "implementado": false,
+            "parametros": [
+                {
+                    "nombre": "politica",
+                    "opciones": [
+                        "tributo",
+                        "comercio"
+                    ],
+                    "tipo": "opcion"
+                }
+            ],
+            "requiere": {
+                "clase": "exclusivo",
+                "eje": "todo"
+            },
+            "tipo": "elegir_politica"
+        }
+    ],
+    "ejes": [
+        {
+            "base": "100",
+            "clave": "eje.fuerza",
+            "id": "fuerza",
+            "magnitud": "aldea.fuerza",
+            "referencia": "100"
+        },
+        {
+            "base": "50",
+            "clave": "eje.fe",
+            "id": "fe",
+            "magnitud": "aldea.fe",
+            "referencia": "50"
+        }
+    ],
+    "magnitudes": [
+        {
+            "clave": "m.descontento",
+            "formato": null,
+            "id": "descontento",
+            "max": "100",
+            "min": "0"
+        },
+        {
+            "clave": "m.poblacion",
+            "formato": null,
+            "id": "poblacion",
+            "max": "100000",
+            "min": "0"
+        },
+        {
+            "clave": "m.presion",
+            "formato": null,
+            "id": "presion",
+            "max": "100",
+            "min": "0"
+        }
+    ],
+    "tipo": "catalogo",
+    "velocidades": [
+        3000,
+        1500,
+        1000,
+        500,
+        150
+    ]
+}

@@ -1,0 +1,14 @@
+{
+    "id": 3,
+    "plazo": 4100,
+    "pregunta": {
+        "opciones": [
+            "resistir",
+            "pagar_tributo"
+        ],
+        "tipo": "opcion"
+    },
+    "situacion": "incursion",
+    "tipo": "decision",
+    "tipo_situacion": "frontera"
+}

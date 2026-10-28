@@ -1,0 +1,504 @@
+{
+  "tipos": [
+    "sucesion",
+    "tierra",
+    "fiesta",
+    "frontera",
+    "tributo",
+    "alianza",
+    "epidemia",
+    "guerra",
+    "culto",
+    "defensa",
+    "diplomacia"
+  ],
+  "fases": [
+    {
+      "id": "consolidacion",
+      "sistemas": [
+        "cosecha",
+        "impuesto",
+        "migracion"
+      ]
+    },
+    {
+      "id": "frontera",
+      "desde_fecha": "1485-01-01",
+      "condicion": {
+        "tipo": "mayor",
+        "entidad": {
+          "clase": "aldea",
+          "id": 1
+        },
+        "magnitud": "poblacion",
+        "valor": "200"
+      },
+      "sistemas": [
+        "cosecha",
+        "impuesto",
+        "migracion",
+        "frontera"
+      ],
+      "intensidades": {
+        "frontera": "2"
+      }
+    },
+    {
+      "id": "crisis",
+      "desde_fecha": "1495-01-01",
+      "sistemas": [
+        "cosecha",
+        "impuesto",
+        "migracion"
+      ]
+    }
+  ],
+  "situaciones": [
+    {
+      "id": "heredero_disputado",
+      "tipo": "sucesion",
+      "peso": "1",
+      "enfriamiento": 730,
+      "plazo": 40,
+      "fases": [
+        "consolidacion"
+      ],
+      "opciones": [
+        {
+          "id": "nombrar_al_mayor",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "descontento",
+              "valor": "3"
+            }
+          ]
+        },
+        {
+          "id": "dividir_el_cargo",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "descontento",
+              "valor": "-2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "poblacion",
+              "valor": "-1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "linderos",
+      "tipo": "tierra",
+      "peso": "1",
+      "enfriamiento": 730,
+      "plazo": 40,
+      "fases": [
+        "consolidacion"
+      ],
+      "opciones": [
+        {
+          "id": "arbitrar",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "descontento",
+              "valor": "-1"
+            }
+          ]
+        },
+        {
+          "id": "favorecer_cabecera",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 2
+              },
+              "magnitud": "descontento",
+              "valor": "4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fiesta_patronal",
+      "tipo": "fiesta",
+      "peso": "1",
+      "enfriamiento": 730,
+      "plazo": 40,
+      "fases": [
+        "consolidacion"
+      ],
+      "opciones": [
+        {
+          "id": "pagarla",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "descontento",
+              "valor": "-3"
+            }
+          ]
+        },
+        {
+          "id": "posponerla",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "descontento",
+              "valor": "2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "incursion",
+      "tipo": "frontera",
+      "peso": "1",
+      "enfriamiento": 730,
+      "plazo": 40,
+      "fases": [
+        "frontera"
+      ],
+      "opciones": [
+        {
+          "id": "resistir",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "poblacion",
+              "valor": "-2"
+            }
+          ]
+        },
+        {
+          "id": "pagar_tributo",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "descontento",
+              "valor": "3"
+            }
+          ]
+        }
+      ],
+      "condicion": {
+        "tipo": "mayor",
+        "entidad": {
+          "clase": "frontera",
+          "id": 1
+        },
+        "magnitud": "presion",
+        "valor": "3"
+      }
+    },
+    {
+      "id": "tributo_atrasado",
+      "tipo": "tributo",
+      "peso": "1",
+      "enfriamiento": 730,
+      "plazo": 40,
+      "fases": [
+        "frontera"
+      ],
+      "opciones": [
+        {
+          "id": "perdonarlo",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "descontento",
+              "valor": "-2"
+            }
+          ]
+        },
+        {
+          "id": "exigirlo",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "descontento",
+              "valor": "5"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pacto_vecino",
+      "tipo": "alianza",
+      "peso": "1",
+      "enfriamiento": 730,
+      "plazo": 40,
+      "fases": [
+        "frontera"
+      ],
+      "opciones": [
+        {
+          "id": "aceptar",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "descontento",
+              "valor": "1"
+            }
+          ]
+        },
+        {
+          "id": "rechazar",
+          "efectos": []
+        }
+      ]
+    },
+    {
+      "id": "peste",
+      "tipo": "epidemia",
+      "peso": "1",
+      "enfriamiento": 730,
+      "plazo": 40,
+      "fases": [
+        "crisis"
+      ],
+      "opciones": [
+        {
+          "id": "cuarentena",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "descontento",
+              "valor": "4"
+            }
+          ]
+        },
+        {
+          "id": "nada",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "poblacion",
+              "valor": "-5"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "leva",
+      "tipo": "guerra",
+      "peso": "1",
+      "enfriamiento": 730,
+      "plazo": 40,
+      "fases": [
+        "crisis"
+      ],
+      "opciones": [
+        {
+          "id": "reclutar",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "poblacion",
+              "valor": "-3"
+            }
+          ]
+        },
+        {
+          "id": "negarse",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "descontento",
+              "valor": "3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "templo",
+      "tipo": "culto",
+      "peso": "1",
+      "enfriamiento": 730,
+      "plazo": 40,
+      "fases": [
+        "crisis"
+      ],
+      "opciones": [
+        {
+          "id": "ampliarlo",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "descontento",
+              "valor": "-2"
+            }
+          ]
+        },
+        {
+          "id": "no",
+          "efectos": []
+        }
+      ]
+    },
+    {
+      "id": "fortin",
+      "tipo": "defensa",
+      "peso": "1",
+      "enfriamiento": 730,
+      "plazo": 40,
+      "fases": [
+        "frontera"
+      ],
+      "condicion": {
+        "tipo": "desde_fecha",
+        "fecha": "1486-01-01"
+      },
+      "opciones": [
+        {
+          "id": "construirlo",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "poblacion",
+              "valor": "-2"
+            }
+          ]
+        },
+        {
+          "id": "esperar",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "descontento",
+              "valor": "2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "embajada",
+      "tipo": "diplomacia",
+      "peso": "1",
+      "enfriamiento": 730,
+      "plazo": 40,
+      "fases": [
+        "frontera"
+      ],
+      "condicion": {
+        "tipo": "desde_fecha",
+        "fecha": "1486-01-01"
+      },
+      "opciones": [
+        {
+          "id": "recibirla",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "aldea",
+                "id": 1
+              },
+              "magnitud": "descontento",
+              "valor": "-1"
+            }
+          ]
+        },
+        {
+          "id": "despedirla",
+          "efectos": []
+        }
+      ]
+    }
+  ],
+  "director": {
+    "espaciado": 60,
+    "prob_base": "0.01",
+    "tension": "0.002",
+    "prob_max": "0.2",
+    "ventana_variedad": 4,
+    "penal_variedad": "1",
+    "bono_novedad": "1",
+    "dias_decada": 3650
+  }
+}

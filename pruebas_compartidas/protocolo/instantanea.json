@@ -1,0 +1,71 @@
+{
+    "entidades": [
+        {
+            "campos": {},
+            "magnitudes": {
+                "descontento": {
+                    "aportes": [
+                        {
+                            "args": [
+                                {
+                                    "t": "texto",
+                                    "v": ""
+                                }
+                            ],
+                            "fuente": "fiesta",
+                            "porcentaje": "0",
+                            "sumando": "-10",
+                            "vence": 65
+                        }
+                    ],
+                    "base": "54",
+                    "efectivo": "44"
+                },
+                "poblacion": {
+                    "aportes": [],
+                    "base": "107",
+                    "efectivo": "107"
+                }
+            },
+            "ref": {
+                "clase": "aldea",
+                "id": 1
+            }
+        },
+        {
+            "campos": {},
+            "magnitudes": {
+                "descontento": {
+                    "aportes": [],
+                    "base": "54",
+                    "efectivo": "54"
+                },
+                "poblacion": {
+                    "aportes": [],
+                    "base": "201",
+                    "efectivo": "201"
+                }
+            },
+            "ref": {
+                "clase": "aldea",
+                "id": 2
+            }
+        }
+    ],
+    "reloj": {
+        "dia": 5,
+        "dias_para_periodo": 16,
+        "fecha": {
+            "anio": 1475,
+            "calendario": "juliano",
+            "dia": 6,
+            "mes": 3
+        },
+        "fuera_de_periodo": false,
+        "pausado": false,
+        "periodo": 4,
+        "tick": 64,
+        "velocidad": 3
+    },
+    "tipo": "instantanea"
+}

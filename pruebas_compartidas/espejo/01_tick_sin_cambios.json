@@ -1,0 +1,140 @@
+{
+    "cambios": {
+        "actualizadas": [],
+        "eliminadas": [],
+        "hechos": [],
+        "reloj": {
+            "dia": 2,
+            "dias_para_periodo": 19,
+            "fecha": {
+                "anio": 1475,
+                "calendario": "juliano",
+                "dia": 2,
+                "mes": 1
+            },
+            "fuera_de_periodo": false,
+            "pausado": false,
+            "periodo": 1,
+            "tick": 1,
+            "velocidad": 3
+        },
+        "tipo": "cambios"
+    },
+    "esperado": {
+        "entidades": [
+            {
+                "campos": {},
+                "magnitudes": {
+                    "descontento": {
+                        "aportes": [],
+                        "base": "51",
+                        "efectivo": "51"
+                    },
+                    "poblacion": {
+                        "aportes": [],
+                        "base": "101",
+                        "efectivo": "101"
+                    }
+                },
+                "ref": {
+                    "clase": "aldea",
+                    "id": 1
+                }
+            },
+            {
+                "campos": {},
+                "magnitudes": {
+                    "descontento": {
+                        "aportes": [],
+                        "base": "51",
+                        "efectivo": "51"
+                    },
+                    "poblacion": {
+                        "aportes": [],
+                        "base": "201",
+                        "efectivo": "201"
+                    }
+                },
+                "ref": {
+                    "clase": "aldea",
+                    "id": 2
+                }
+            }
+        ],
+        "reloj": {
+            "dia": 2,
+            "dias_para_periodo": 19,
+            "fecha": {
+                "anio": 1475,
+                "calendario": "juliano",
+                "dia": 2,
+                "mes": 1
+            },
+            "fuera_de_periodo": false,
+            "pausado": false,
+            "periodo": 1,
+            "tick": 1,
+            "velocidad": 3
+        },
+        "tipo": "instantanea"
+    },
+    "instantanea": {
+        "entidades": [
+            {
+                "campos": {},
+                "magnitudes": {
+                    "descontento": {
+                        "aportes": [],
+                        "base": "51",
+                        "efectivo": "51"
+                    },
+                    "poblacion": {
+                        "aportes": [],
+                        "base": "101",
+                        "efectivo": "101"
+                    }
+                },
+                "ref": {
+                    "clase": "aldea",
+                    "id": 1
+                }
+            },
+            {
+                "campos": {},
+                "magnitudes": {
+                    "descontento": {
+                        "aportes": [],
+                        "base": "51",
+                        "efectivo": "51"
+                    },
+                    "poblacion": {
+                        "aportes": [],
+                        "base": "201",
+                        "efectivo": "201"
+                    }
+                },
+                "ref": {
+                    "clase": "aldea",
+                    "id": 2
+                }
+            }
+        ],
+        "reloj": {
+            "dia": 1,
+            "dias_para_periodo": 20,
+            "fecha": {
+                "anio": 1475,
+                "calendario": "juliano",
+                "dia": 1,
+                "mes": 1
+            },
+            "fuera_de_periodo": false,
+            "pausado": false,
+            "periodo": 1,
+            "tick": 0,
+            "velocidad": 3
+        },
+        "tipo": "instantanea"
+    },
+    "nombre": "01_tick_sin_cambios"
+}
