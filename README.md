@@ -56,6 +56,24 @@ El diseño está en `docs/arquitectura-prototipoV5.md` (qué es el juego) y `doc
 
 Opciones del núcleo: `--ejes datos/ejes.json` (los ejes de poder activos viajan en el catálogo; en el prototipo no cambian el juego), `--guion ARCHIVO` (los actos, las situaciones y el director del escenario; ver *Actos modulares*), `--agente "programa"` (un agente externo decide por la facción; ver `agentes/README.md`), `--sin-cliente --ticks N --volcar ARCHIVO --metricas` (correr sin cliente; con `--metricas`, imprime el criterio de variedad del hito 0 sobre lo que presentó el director), `--puerto N`, `--partidas CARPETA`, `--mapa 60x45` (mapa grande para la prueba de rendimiento) y `--velocidades 3000,1500,1000,500,150` (milisegundos por día de la velocidad 1 a la 5, para calibrar sin recompilar).
 
+### Con Nix
+
+`flake.nix` trae un entorno completo y varios mínimos, por si hay poco espacio:
+
+| Orden | Qué trae | Para |
+| --- | --- | --- |
+| `nix develop` | GHC 9.4 con las bibliotecas, cabal, Godot, Python, Mercury, actionlint | Todo el proyecto |
+| `nix develop .#nucleo` | Solo GHC 9.4 con las bibliotecas | Compilar con `runghc Setup.hs` |
+| `nix develop .#haskell` | GHC 9.4 con las bibliotecas y cabal | `cabal build all` y `cabal test all` |
+| `nix develop .#cliente` | Solo Godot | `probar_cliente.sh` con un núcleo ya compilado |
+| `nix develop .#agentes` | Solo Python | `probar_agentes.sh` con un núcleo ya compilado |
+| `nix develop .#mercury` | Solo Mercury | Compilar el agente de Mercury |
+| `nix build` / `nix run . -- --puerto 4646` | El ejecutable del núcleo | Jugar sin preparar nada (sin pruebas: esas corren con cabal) |
+
+Nix solo ve los archivos que git conoce: después de crear o mover un archivo, `git add` antes de `nix develop`. La primera vez se crea `flake.lock`, que fija la versión de nixpkgs; conviene guardarlo en el repositorio.
+
+Fuera de NixOS, el Godot de Nix corre bien sin interfaz (las pruebas), pero para el editor con tarjeta gráfica suele hacer falta [nixGL](https://github.com/nix-community/nixGL) o usar el Godot del sistema: las pruebas toman el de `$GODOT` si está definido.
+
 ## Pruebas
 
 ```sh

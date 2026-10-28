@@ -11,3 +11,6 @@ agentes/mercury/agente
 agentes/mercury/Mercury/
 agentes/mercury/*.mh
 agentes/mercury/*.err
+result
+result-*
+.direnv/
