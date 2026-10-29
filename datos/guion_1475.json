@@ -4,9 +4,13 @@
     "sucesion",
     "tierra",
     "senorio",
+    "milicia",
     "frontera",
     "tributo",
+    "alianza",
+    "epidemia",
     "culto",
+    "rebelion",
     "noticias"
   ],
   "fases": [
@@ -166,13 +170,8 @@
         }
       ],
       "condicion": {
-        "tipo": "mayor",
-        "entidad": {
-          "clase": "pop",
-          "id": 4
-        },
-        "magnitud": "agravio",
-        "valor": "50"
+        "tipo": "desde_fecha",
+        "fecha": "1495-01-01"
       }
     },
     {
@@ -326,6 +325,258 @@
           ]
         }
       ]
+    },
+    {
+      "id": "reclutamiento_de_la_milicia",
+      "tipo": "milicia",
+      "enfriamiento": 1460,
+      "plazo": 40,
+      "fases": [
+        "acto_ii_frontera"
+      ],
+      "opciones": [
+        {
+          "id": "levantar_la_milicia",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 1
+              },
+              "magnitud": "agravio",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "-2"
+            }
+          ]
+        },
+        {
+          "id": "reclutar_con_pago",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "-2"
+            }
+          ]
+        }
+      ],
+      "condicion": {
+        "tipo": "desde_fecha",
+        "fecha": "1495-01-01"
+      }
+    },
+    {
+      "id": "alianza_con_el_senorio_vecino",
+      "tipo": "alianza",
+      "enfriamiento": 1460,
+      "plazo": 40,
+      "fases": [
+        "acto_ii_frontera"
+      ],
+      "opciones": [
+        {
+          "id": "aceptar",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "-2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "2"
+            }
+          ]
+        },
+        {
+          "id": "rechazar",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "2"
+            }
+          ]
+        }
+      ],
+      "condicion": {
+        "tipo": "desde_fecha",
+        "fecha": "1505-01-01"
+      }
+    },
+    {
+      "id": "mal_de_los_pueblos",
+      "tipo": "epidemia",
+      "enfriamiento": 1460,
+      "plazo": 40,
+      "fases": [
+        "acto_ii_frontera"
+      ],
+      "opciones": [
+        {
+          "id": "quemar_las_casas",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "4"
+            }
+          ]
+        },
+        {
+          "id": "esperar_a_que_pase",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "3"
+            }
+          ]
+        }
+      ],
+      "condicion": {
+        "tipo": "desde_fecha",
+        "fecha": "1505-01-01"
+      }
+    },
+    {
+      "id": "levantamiento_en_la_ribera",
+      "tipo": "rebelion",
+      "enfriamiento": 1460,
+      "plazo": 40,
+      "fases": [
+        "acto_ii_frontera"
+      ],
+      "opciones": [
+        {
+          "id": "sofocarlo",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            }
+          ]
+        },
+        {
+          "id": "negociar_con_los_principales",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "-3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 1
+              },
+              "magnitud": "agravio",
+              "valor": "2"
+            }
+          ]
+        }
+      ],
+      "condicion": {
+        "tipo": "desde_fecha",
+        "fecha": "1515-01-01"
+      }
+    },
+    {
+      "id": "tumulto_de_los_macehuales",
+      "tipo": "rebelion",
+      "enfriamiento": 1460,
+      "plazo": 40,
+      "fases": [
+        "acto_ii_frontera",
+        "acto_iii_crisis"
+      ],
+      "opciones": [
+        {
+          "id": "dispersarlo",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "4"
+            }
+          ]
+        },
+        {
+          "id": "atender_sus_quejas",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "-2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 1
+              },
+              "magnitud": "agravio",
+              "valor": "1"
+            }
+          ]
+        }
+      ],
+      "condicion": {
+        "tipo": "desde_fecha",
+        "fecha": "1515-01-01"
+      }
     }
   ],
   "director": {

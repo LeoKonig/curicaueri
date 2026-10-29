@@ -156,4 +156,4 @@ Para medir un guion sin cliente:
 nucleo --sin-cliente --ticks 18250 --guion datos/guion_1475.json --metricas
 ```
 
-Con el guion ilustrativo, en 50 años salen 61 situaciones. La parte máxima es 0,21, dentro del 25 %, pero la novedad por década es `[2,0,0,1]` y no cumple. Es a propósito: el acto II dura de 1485 a 1519 sin situaciones que se desbloqueen a mitad del acto, y el arnés lo detecta. Para que cumpla hacen falta situaciones con `"condicion": {"tipo": "desde_fecha", ...}` dentro de cada acto largo, como en el guion de juguete.
+Con el guion ilustrativo, en 50 años salen 85 situaciones. La parte máxima es 0,15, dentro del 25 %, y la novedad por década es `[2,2,2,2]`: cumple. El acto II, que dura de 1485 a 1519, escalona sus tipos con `"condicion": {"tipo": "desde_fecha", ...}` en 1495, 1505 y 1515, como el guion de juguete. Sin esas situaciones, la novedad de las décadas siguientes cae a 0 y el arnés lo detecta.
