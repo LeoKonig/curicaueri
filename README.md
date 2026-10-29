@@ -107,7 +107,7 @@ Mide 8 segundos con la partida a la velocidad máxima, sin vsync, redibujando to
 
 | Trabajo | Qué corre |
 | --- | --- |
-| núcleo | `cabal build all` y `cabal test all` en Linux con GHC 9.4 y 9.8, y en macOS con GHC 9.4. Como las pruebas comparan valores dorados del azar y del estado, este trabajo comprueba también que la partida sea la misma en otra plataforma y con otro compilador |
+| núcleo | `cabal build all` y `cabal test all` en Linux con GHC 9.4 y 9.8. Como las pruebas comparan valores dorados del azar y del estado, este trabajo comprueba también que la partida sea la misma con otro compilador. macOS queda fuera por ahora: el enlazador del runner rechaza las dependencias |
 | agentes | `probar_agentes.sh` con el agente de Python. El de Mercury se salta, porque no hay compilador de Mercury en la máquina de GitHub; se prueba a mano |
 | cliente | `probar_cliente.sh` sin interfaz gráfica con Godot 4.3 (la versión mínima) y 4.7.2, con el ejecutable del núcleo que compiló el primer trabajo |
 
