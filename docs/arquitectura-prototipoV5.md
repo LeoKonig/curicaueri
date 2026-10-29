@@ -1935,7 +1935,7 @@ El director es determinista: usa su propio generador de azar (`rng σ "director"
 **Las métricas del hito 0 son una prueba permanente.** El arnés sin cliente (`--sin-cliente --metricas`) mide lo que presentó el director: ningún tipo supera el 25 % del total y cada década trae al menos dos tipos nuevos. Corre sobre cada cambio del guion. Al probarlo salieron dos hallazgos:
 
 - **El 25 % solo no detecta la repetición.** Sin fases, un guion con muchos tipos reparte bien, con una parte máxima de 0.10, pero no trae ningún tipo nuevo después de la primera década.
-- **La novedad pide escalada dentro de cada acto.** Un acto que dura más de una década necesita situaciones que se desbloqueen a mitad del acto (con `desde_fecha` en su condición). Si no, la segunda década del acto no trae nada nuevo. El guion ilustrativo de 1475 lo muestra: su acto II dura de 1485 a 1519 sin escalada, y el arnés lo señala.
+- **La novedad pide escalada dentro de cada acto.** Un acto que dura más de una década necesita situaciones que se desbloqueen a mitad del acto (con `desde_fecha` en su condición). Si no, la segunda década del acto no trae nada nuevo. El guion ilustrativo de 1475 lo muestra: al principio su acto II dura de 1485 a 1519 sin escalada, y el arnés lo señala. Al escalonar sus tipos (milicia en 1495, alianza y epidemia en 1505, rebelión en 1515), la novedad sale `[2,2,2,2]` y la parte máxima 0,15.
 
 **Advertencia: no optimizar el director para las métricas.** Las métricas detectan un guion monótono; no definen uno bueno. Un guion que las cumple sorteando tipos al azar también aburre. El juicio final sale de las pruebas con personas (hitos 5b y 7). Las métricas son una red de seguridad, no el objetivo.
 
