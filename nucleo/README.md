@@ -19,7 +19,7 @@ Este código implementa dos documentos de diseño, que conviene leer antes de to
 
 **Agentes externos: verificados en Python y Mercury.** Los dos responden igual a los casos compartidos y la partida con cualquiera de ellos es idéntica.
 
-**Hito 1b (reglas): primer corte, adelantado.** El paquete `reglas` existe y compila, pero sus constantes, fórmulas y escenario son provisionales: según el plan, el 1b empieza cuando el hito 0a pasa su criterio, y eso aún no ocurre. Ver *Pendiente*.
+**Hito 1b (reglas): la parte del 0a que da las fórmulas está hecha.** Tesoro (ingreso por población, factor de tasas, gasto del presupuesto), tributo entre altépetl y agravio por tributo, impuesto, identidad y distancia salen del prototipo HTML. Sus fórmulas viven en `Reglas.Formulas` con los nombres del prototipo, y `hito_0/tablas/generar.mjs` las convierte en `test/tablas_hito0.json`, que las pruebas de Haskell comparan. Lo que sigue pendiente del 0a es la parte que no se automatiza: las partidas con la rúbrica de decisiones y la auditoría de qué decisiones cambian el rumbo. Ver *Pendiente*.
 
 ## Estructura
 
@@ -159,7 +159,8 @@ Vive en `test/Spec.hs`. Son aldeas con población y descontento, tres sistemas (
 ## Pendiente
 
 **Antes de seguir con las reglas:**
-- Hacer el hito 0a con el prototipo HTML y traer de ahí constantes y fórmulas, como especificaciones con tablas de casos.
+- Hacer la parte del 0a que no se automatiza: partidas jugadas con la rúbrica de decisiones y la auditoría de qué decisiones cambian el rumbo. Las fórmulas y sus tablas ya están (`hito_0/tablas/generar.mjs`).
+- Territorio y eficiencia: el ingreso por territorio, el gobernador y los edificios necesitan el mapa con rendimientos. Hasta entonces el tesoro solo cuenta la población.
 - Convertir tesoro, prestigio y legitimidad en magnitudes. Mientras el tesoro sea un campo, `validarOrdenSistemas` no ve que recaudación y pago lo escriben los dos.
 - Mover el escenario y las constantes a `escenarios/` y `constantes.json`.
 

@@ -48,4 +48,4 @@ cabal run nucleo -- --velocidades 3000,1500,1000,500,150
 3. **Días vacíos.** ¿Hubo tramos en los que solo mirabas la barra avanzar? Con las reglas actuales casi todo cambia en veintena, así que es esperable; es el riesgo que V5 pide vigilar, y se corrige con mecánicas diarias (ejércitos, obras, incursiones), no con el reloj.
 4. **Apunta** las cinco cifras finales y el porcentaje en pausa, y pásalas a `velocidadesPorOmision` en `nucleo/app/Main.hs` cuando te convenzan.
 
-Las reglas del paquete `reglas` todavía son provisionales (hasta el hito 0a), así que esta calibración es preliminar: conviene repetirla cuando las reglas salgan del prototipo de mesa.
+Las fórmulas económicas del paquete `reglas` ya salen del prototipo (hito 0a, con tablas de casos), pero sin territorio ni edificios: esta calibración sigue siendo preliminar, porque los tiempos y las cifras dependen de un tesoro que todavía no cuenta el territorio.

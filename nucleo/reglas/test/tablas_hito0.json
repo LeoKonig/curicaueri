@@ -1,0 +1,2173 @@
+{
+  "fuente": "hito_0/Hito 0 v4 - Reino purepecha.dc.html (métodos extraídos por nombre)",
+  "generador": "hito_0/tablas/generar.mjs",
+  "ticks_por_anio": 18,
+  "constantes": {
+    "ingreso_por_pop": 0.012,
+    "ingreso_por_territorio": 0.8,
+    "mantenimiento_por_soldado": 0.035,
+    "tesoro_por_punto_presupuesto": 6,
+    "tasa_base": 3,
+    "agravio_subir_impuesto": 4,
+    "agravio_bajar_impuesto": 2
+  },
+  "supuestos": {
+    "eficiencia": 1,
+    "territoryValue": 0,
+    "ejercito_en_campana": 0,
+    "obras": 0,
+    "gobernador_admin": 2
+  },
+  "casos": {
+    "tasas": [
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": true,
+        "taxM": 0.333333333,
+        "tShare": 0
+      },
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": false,
+        "taxM": 0.333333333,
+        "tShare": 0.5
+      },
+      {
+        "tributo": 1,
+        "impuesto": 2,
+        "capital": true,
+        "taxM": 0.666666667,
+        "tShare": 0
+      },
+      {
+        "tributo": 1,
+        "impuesto": 2,
+        "capital": false,
+        "taxM": 0.5,
+        "tShare": 0.333333333
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": true,
+        "taxM": 1,
+        "tShare": 0
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": false,
+        "taxM": 0.666666667,
+        "tShare": 0.25
+      },
+      {
+        "tributo": 1,
+        "impuesto": 4,
+        "capital": true,
+        "taxM": 1.333333333,
+        "tShare": 0
+      },
+      {
+        "tributo": 1,
+        "impuesto": 4,
+        "capital": false,
+        "taxM": 0.833333333,
+        "tShare": 0.2
+      },
+      {
+        "tributo": 1,
+        "impuesto": 5,
+        "capital": true,
+        "taxM": 1.666666667,
+        "tShare": 0
+      },
+      {
+        "tributo": 1,
+        "impuesto": 5,
+        "capital": false,
+        "taxM": 1,
+        "tShare": 0.166666667
+      },
+      {
+        "tributo": 2,
+        "impuesto": 1,
+        "capital": true,
+        "taxM": 0.333333333,
+        "tShare": 0
+      },
+      {
+        "tributo": 2,
+        "impuesto": 1,
+        "capital": false,
+        "taxM": 0.5,
+        "tShare": 0.666666667
+      },
+      {
+        "tributo": 2,
+        "impuesto": 2,
+        "capital": true,
+        "taxM": 0.666666667,
+        "tShare": 0
+      },
+      {
+        "tributo": 2,
+        "impuesto": 2,
+        "capital": false,
+        "taxM": 0.666666667,
+        "tShare": 0.5
+      },
+      {
+        "tributo": 2,
+        "impuesto": 3,
+        "capital": true,
+        "taxM": 1,
+        "tShare": 0
+      },
+      {
+        "tributo": 2,
+        "impuesto": 3,
+        "capital": false,
+        "taxM": 0.833333333,
+        "tShare": 0.4
+      },
+      {
+        "tributo": 2,
+        "impuesto": 4,
+        "capital": true,
+        "taxM": 1.333333333,
+        "tShare": 0
+      },
+      {
+        "tributo": 2,
+        "impuesto": 4,
+        "capital": false,
+        "taxM": 1,
+        "tShare": 0.333333333
+      },
+      {
+        "tributo": 2,
+        "impuesto": 5,
+        "capital": true,
+        "taxM": 1.666666667,
+        "tShare": 0
+      },
+      {
+        "tributo": 2,
+        "impuesto": 5,
+        "capital": false,
+        "taxM": 1.166666667,
+        "tShare": 0.285714286
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": true,
+        "taxM": 0.333333333,
+        "tShare": 0
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": false,
+        "taxM": 0.666666667,
+        "tShare": 0.75
+      },
+      {
+        "tributo": 3,
+        "impuesto": 2,
+        "capital": true,
+        "taxM": 0.666666667,
+        "tShare": 0
+      },
+      {
+        "tributo": 3,
+        "impuesto": 2,
+        "capital": false,
+        "taxM": 0.833333333,
+        "tShare": 0.6
+      },
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": true,
+        "taxM": 1,
+        "tShare": 0
+      },
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": false,
+        "taxM": 1,
+        "tShare": 0.5
+      },
+      {
+        "tributo": 3,
+        "impuesto": 4,
+        "capital": true,
+        "taxM": 1.333333333,
+        "tShare": 0
+      },
+      {
+        "tributo": 3,
+        "impuesto": 4,
+        "capital": false,
+        "taxM": 1.166666667,
+        "tShare": 0.428571429
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": true,
+        "taxM": 1.666666667,
+        "tShare": 0
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": false,
+        "taxM": 1.333333333,
+        "tShare": 0.375
+      },
+      {
+        "tributo": 4,
+        "impuesto": 1,
+        "capital": true,
+        "taxM": 0.333333333,
+        "tShare": 0
+      },
+      {
+        "tributo": 4,
+        "impuesto": 1,
+        "capital": false,
+        "taxM": 0.833333333,
+        "tShare": 0.8
+      },
+      {
+        "tributo": 4,
+        "impuesto": 2,
+        "capital": true,
+        "taxM": 0.666666667,
+        "tShare": 0
+      },
+      {
+        "tributo": 4,
+        "impuesto": 2,
+        "capital": false,
+        "taxM": 1,
+        "tShare": 0.666666667
+      },
+      {
+        "tributo": 4,
+        "impuesto": 3,
+        "capital": true,
+        "taxM": 1,
+        "tShare": 0
+      },
+      {
+        "tributo": 4,
+        "impuesto": 3,
+        "capital": false,
+        "taxM": 1.166666667,
+        "tShare": 0.571428571
+      },
+      {
+        "tributo": 4,
+        "impuesto": 4,
+        "capital": true,
+        "taxM": 1.333333333,
+        "tShare": 0
+      },
+      {
+        "tributo": 4,
+        "impuesto": 4,
+        "capital": false,
+        "taxM": 1.333333333,
+        "tShare": 0.5
+      },
+      {
+        "tributo": 4,
+        "impuesto": 5,
+        "capital": true,
+        "taxM": 1.666666667,
+        "tShare": 0
+      },
+      {
+        "tributo": 4,
+        "impuesto": 5,
+        "capital": false,
+        "taxM": 1.5,
+        "tShare": 0.444444444
+      },
+      {
+        "tributo": 5,
+        "impuesto": 1,
+        "capital": true,
+        "taxM": 0.333333333,
+        "tShare": 0
+      },
+      {
+        "tributo": 5,
+        "impuesto": 1,
+        "capital": false,
+        "taxM": 1,
+        "tShare": 0.833333333
+      },
+      {
+        "tributo": 5,
+        "impuesto": 2,
+        "capital": true,
+        "taxM": 0.666666667,
+        "tShare": 0
+      },
+      {
+        "tributo": 5,
+        "impuesto": 2,
+        "capital": false,
+        "taxM": 1.166666667,
+        "tShare": 0.714285714
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": true,
+        "taxM": 1,
+        "tShare": 0
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": false,
+        "taxM": 1.333333333,
+        "tShare": 0.625
+      },
+      {
+        "tributo": 5,
+        "impuesto": 4,
+        "capital": true,
+        "taxM": 1.333333333,
+        "tShare": 0
+      },
+      {
+        "tributo": 5,
+        "impuesto": 4,
+        "capital": false,
+        "taxM": 1.5,
+        "tShare": 0.555555556
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": true,
+        "taxM": 1.666666667,
+        "tShare": 0
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": false,
+        "taxM": 1.666666667,
+        "tShare": 0.5
+      }
+    ],
+    "ingreso_total": [
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "poblacion": [
+          {
+            "alt": "tzintzuntzan",
+            "pop": 30000,
+            "sujeta": false
+          },
+          {
+            "alt": "zacapu",
+            "pop": 12000,
+            "sujeta": true
+          },
+          {
+            "alt": "uruapan",
+            "pop": 18000,
+            "sujeta": true
+          }
+        ],
+        "totalIncome": 720
+      },
+      {
+        "tributo": 1,
+        "impuesto": 5,
+        "poblacion": [
+          {
+            "alt": "tzintzuntzan",
+            "pop": 30000,
+            "sujeta": false
+          },
+          {
+            "alt": "zacapu",
+            "pop": 12000,
+            "sujeta": true
+          },
+          {
+            "alt": "uruapan",
+            "pop": 18000,
+            "sujeta": true
+          }
+        ],
+        "totalIncome": 960
+      },
+      {
+        "tributo": 5,
+        "impuesto": 1,
+        "poblacion": [
+          {
+            "alt": "tzintzuntzan",
+            "pop": 30000,
+            "sujeta": false
+          },
+          {
+            "alt": "zacapu",
+            "pop": 12000,
+            "sujeta": true
+          },
+          {
+            "alt": "uruapan",
+            "pop": 18000,
+            "sujeta": true
+          }
+        ],
+        "totalIncome": 480
+      },
+      {
+        "tributo": 4,
+        "impuesto": 2,
+        "poblacion": [
+          {
+            "alt": "tzintzuntzan",
+            "pop": 30000,
+            "sujeta": false
+          },
+          {
+            "alt": "zacapu",
+            "pop": 12000,
+            "sujeta": true
+          },
+          {
+            "alt": "uruapan",
+            "pop": 18000,
+            "sujeta": true
+          }
+        ],
+        "totalIncome": 600
+      }
+    ],
+    "gastos": [
+      {
+        "ejercito": 30,
+        "administracion": 25,
+        "diplomacia": 15,
+        "totalExpenses": 420
+      },
+      {
+        "ejercito": 0,
+        "administracion": 0,
+        "diplomacia": 0,
+        "totalExpenses": 0
+      },
+      {
+        "ejercito": 10,
+        "administracion": 40,
+        "diplomacia": 5,
+        "totalExpenses": 330
+      },
+      {
+        "ejercito": 50,
+        "administracion": 0,
+        "diplomacia": 20,
+        "totalExpenses": 420
+      }
+    ],
+    "agravio_por_veintena": [
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0
+      },
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5
+      },
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.111111111
+      },
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.111111111
+      },
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0
+      },
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5
+      },
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.111111111
+      },
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.111111111
+      },
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0
+      },
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5
+      },
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.111111111
+      },
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.111111111
+      },
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0
+      },
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5
+      },
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.111111111
+      },
+      {
+        "tributo": 3,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.111111111
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.111111111
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.111111111
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.111111111
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.111111111
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 12,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.666666667
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 12,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.666666667
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 12,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.777777778
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 12,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.777777778
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 6,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.333333333
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 6,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.333333333
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 6,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.444444444
+      },
+      {
+        "tributo": 5,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 6,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.444444444
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.111111111
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.111111111
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.111111111
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.111111111
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": -4,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": -0.222222222
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": -4,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 4.777777778
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": -4,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": -0.111111111
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": -4,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 4.888888889
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": -2,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": -0.111111111
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": -2,
+          "Impuesto interno": 0,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 4.888888889
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": -2,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0
+      },
+      {
+        "tributo": 1,
+        "impuesto": 3,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": -2,
+          "Impuesto interno": 0,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 12,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.666666667
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 12,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.666666667
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 12,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.777777778
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 12,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.777777778
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 6,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.333333333
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 6,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.333333333
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 6,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.444444444
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 6,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.444444444
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 12,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.666666667
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 12,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.666666667
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 12,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.777777778
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 12,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.777777778
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 6,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.333333333
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 6,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.333333333
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 6,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.444444444
+      },
+      {
+        "tributo": 3,
+        "impuesto": 5,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 6,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.444444444
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -4,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": -0.222222222
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -4,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 4.777777778
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -4,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": -0.111111111
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -4,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 4.888888889
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -2,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": -0.111111111
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -2,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 4.888888889
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -2,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -2,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -4,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": -0.222222222
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -4,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 4.777777778
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -4,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": -0.111111111
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -4,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 4.888888889
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -2,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": -0.111111111
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -2,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 4.888888889
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -2,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0
+      },
+      {
+        "tributo": 3,
+        "impuesto": 1,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -2,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 12,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.666666667
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 12,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.666666667
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 12,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.777777778
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 12,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.777777778
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 6,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.333333333
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 6,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.333333333
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 6,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.444444444
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": 6,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.444444444
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 12,
+          "Impuesto interno": 12,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 1.333333333
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 12,
+          "Impuesto interno": 12,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 6.333333333
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 12,
+          "Impuesto interno": 12,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 1.444444444
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 12,
+          "Impuesto interno": 12,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 6.444444444
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 6,
+          "Impuesto interno": 6,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.666666667
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 6,
+          "Impuesto interno": 6,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.666666667
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 6,
+          "Impuesto interno": 6,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0.777777778
+      },
+      {
+        "tributo": 5,
+        "impuesto": 5,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 6,
+          "Impuesto interno": 6,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5.777777778
+      },
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -4,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": -0.222222222
+      },
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -4,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 4.777777778
+      },
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -4,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": -0.111111111
+      },
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": true,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -4,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 4.888888889
+      },
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -2,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": -0.111111111
+      },
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -2,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 4.888888889
+      },
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -2,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": 0
+      },
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": true,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": 0,
+          "Impuesto interno": -2,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 5
+      },
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": -4,
+          "Impuesto interno": -4,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": -0.444444444
+      },
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": -4,
+          "Impuesto interno": -4,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 4.555555556
+      },
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": -4,
+          "Impuesto interno": -4,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": -0.333333333
+      },
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": false,
+        "estrato": "comun",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": -4,
+          "Impuesto interno": -4,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 4.666666667
+      },
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": -2,
+          "Impuesto interno": -2,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": -0.222222222
+      },
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "purepecha",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": -2,
+          "Impuesto interno": -2,
+          "Identidad ajena": 0,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 4.777777778
+      },
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 0,
+        "componentes": {
+          "Tributo": -2,
+          "Impuesto interno": -2,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 0
+        },
+        "porVeintena": -0.111111111
+      },
+      {
+        "tributo": 1,
+        "impuesto": 1,
+        "capital": false,
+        "estrato": "nobleza",
+        "identidad": "nahua",
+        "distancia": 60,
+        "componentes": {
+          "Tributo": -2,
+          "Impuesto interno": -2,
+          "Identidad ajena": 2,
+          "Distancia a la capital": 90
+        },
+        "porVeintena": 4.888888889
+      }
+    ]
+  }
+}
