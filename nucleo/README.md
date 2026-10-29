@@ -161,8 +161,9 @@ Vive en `test/Spec.hs`. Son aldeas con población y descontento, tres sistemas (
 **Antes de seguir con las reglas:**
 - Hacer la parte del 0a que no se automatiza: partidas jugadas con la rúbrica de decisiones y la auditoría de qué decisiones cambian el rumbo. Las fórmulas y sus tablas ya están (`hito_0/tablas/generar.mjs`).
 - Territorio y eficiencia: el ingreso por territorio, el gobernador y los edificios necesitan el mapa con rendimientos. Hasta entonces el tesoro solo cuenta la población.
-- Convertir tesoro, prestigio y legitimidad en magnitudes. Mientras el tesoro sea un campo, `validarOrdenSistemas` no ve que recaudación y pago lo escriben los dos.
 - Mover el escenario y las constantes a `escenarios/` y `constantes.json`.
+- Reclutar ejército (`ReclutarEjercito`) sigue rechazado con `no_implementado`. El prototipo también lo tiene deshabilitado; no hay regla que copiar, así que queda para el hito 4, con la guerra.
+- Los rangos de prestigio y legitimidad son provisionales: el prototipo no los acota.
 
 **Huecos conocidos del motor**, que se cierran cuando una mecánica los pida:
 - Las condiciones de los modificadores no se evalúan (`vigentesEn` devuelve vacío hasta el hito 3).

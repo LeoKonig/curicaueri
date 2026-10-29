@@ -20,47 +20,33 @@ capitalDe :: Purepecha -> Pop -> Bool
 capitalDe p pop =
   maybe False (isNothing . altSujetoA) (Map.lookup (popAltepetl pop) (ppAltepetl p))
 
--- | El ingreso de la faccion por veintena: la suma de `ingresoPoblacion` de
--- cada poblador, dividida entre las veintenas del año. El tributo de las
--- sujetas pasa a la capital, así que el total no depende del reparto.
-recaudacion :: Constantes -> Sistema Purepecha
-recaudacion c = Sistema
-  { sisNombre   = NombreSistema "recaudacion"
+-- | La hacienda por veintena, igual que `step` del prototipo: el ingreso de
+-- la población menos el gasto del presupuesto, dividido entre las veintenas
+-- del año, y el tesoro no baja de cero. Es el único sistema que escribe el
+-- tesoro, así que el orden de sus sumas no importa.
+hacienda :: Constantes -> Sistema Purepecha
+hacienda c = Sistema
+  { sisNombre   = NombreSistema "hacienda"
   , sisCadencia = Periodo
   , sisLee      = Set.empty
-  , sisEscribe  = Set.empty   -- solo toca `ppFaccion`, no magnitudes
+  , sisEscribe  = Set.singleton magTesoro
   , sisEjecutar = \_ est ->
-      let p    = persistenteJuego (estadoPersistente est)
-          t    = ppTasas p
-          anual = foldl' (\acc pop ->
-                    acc .+. ingresoPoblacion c t (capitalDe p pop) (popTamano pop))
-                  (Fijo 0) (Map.elems (ppPops p))
-          fac  = ppFaccion p
-          fac' = fac { facTesoro = facTesoro fac .+. (anual ./. cTicksPorAnio c) }
-          p'   = p { ppFaccion = fac' }
-          est' = est { estadoPersistente = (estadoPersistente est)
-                        { persistenteJuego = p' } }
-      in (est', [])
-  }
-
--- | El gasto del presupuesto por veintena. Obras no cuesta nada todavía: en
--- el prototipo solo corre con edificios, y 1b no los tiene. El ejército
--- tampoco suma soldados (`mantenimiento_por_soldado`) porque 1b no los cuenta.
-pago :: Constantes -> Sistema Purepecha
-pago c = Sistema
-  { sisNombre   = NombreSistema "pago"
-  , sisCadencia = Periodo
-  , sisLee      = Set.empty
-  , sisEscribe  = Set.empty
-  , sisEjecutar = \_ est ->
-      let p    = persistenteJuego (estadoPersistente est)
-          pres = ppPresupuesto p
-          anual = gastoPunto c (pbEjercito pres + pbAdministracion pres + pbDiplomacia pres)
-          fac  = ppFaccion p
-          fac' = fac { facTesoro = max (Fijo 0) (facTesoro fac .-. (anual ./. cTicksPorAnio c)) }
-          p'   = p { ppFaccion = fac' }
-          est' = est { estadoPersistente = (estadoPersistente est)
-                        { persistenteJuego = p' } }
+      let p      = persistenteJuego (estadoPersistente est)
+          t      = ppTasas p
+          pres   = ppPresupuesto p
+          ingreso = foldl' (\acc pop ->
+                      acc .+. ingresoPoblacion c t (capitalDe p pop) (popTamano pop))
+                    (Fijo 0) (Map.elems (ppPops p))
+          gasto  = gastoPunto c (pbEjercito pres + pbAdministracion pres + pbDiplomacia pres)
+          neto   = (ingreso .-. gasto) ./. cTicksPorAnio c
+          com    = persistenteComun (estadoPersistente est)
+          ajustar x = x { almacenBase =
+                            rangoFijo (minMag rangoTesoro) (maxMag rangoTesoro)
+                                      (almacenBase x .+. neto) }
+          alm'   = Map.adjust ajustar (entFaccion, magTesoro) (comunMagnitudes com)
+          com'   = com { comunMagnitudes = alm' }
+          est'   = est { estadoPersistente = (estadoPersistente est)
+                          { persistenteComun = com' } }
       in (est', [])
   }
 

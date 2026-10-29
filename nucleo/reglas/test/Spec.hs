@@ -57,8 +57,7 @@ main = hspec $ do
   describe "reglas: subir el impuesto sube el ingreso y el agravio" $ do
     let j  = Reglas.Juego.juego constantesDefault
         s0 = estadoInicial1475
-        tesoro st =
-          facTesoro (ppFaccion (persistenteJuego (estadoPersistente st)))
+        tesoro = baseFaccion magTesoro
         agravioPop k st =
           case Map.lookup (entRefPop (PopId k), Magnitud "agravio")
                           (comunMagnitudes
@@ -94,8 +93,6 @@ main = hspec $ do
           b = traza estadoInicial1475
       comunMagnitudes (persistenteComun (estadoPersistente a))
         `shouldBe` comunMagnitudes (persistenteComun (estadoPersistente b))
-      ppFaccion (persistenteJuego (estadoPersistente a))
-        `shouldBe` ppFaccion (persistenteJuego (estadoPersistente b))
 
   describe "reglas: rechazo sin daño" $ do
     it "una tasa fuera de rango no toca el estado" $ do
@@ -109,10 +106,12 @@ main = hspec $ do
         `shouldBe` ppTasas (persistenteJuego (estadoPersistente estadoInicial1475))
 
   describe "reglas: cifras de la recaudación" $
-    it "tick 0 a tasas neutras: 1000 + (60 000 × 0,012) ÷ 18 − (70 puntos × 6) ÷ 18 = 1016,6667" $ do
+    -- El neto (720 − 420) se divide una sola vez entre 18: 1000 + 300 ÷ 18 =
+    -- 1016,6666… El punto fijo trunca a 1016,6666 (resolución 0,0001).
+    it "tick 0 a tasas neutras: 1000 + (60 000 × 0,012 − 70 × 6) ÷ 18 = 1016,6666" $ do
       let j = Reglas.Juego.juego constantesDefault
           (s1, _) = paso j (entornoSimple mapaVacio) (Semilla 1) (Tick 0) [] estadoInicial1475
-      facTesoro (ppFaccion (persistenteJuego (estadoPersistente s1))) `shouldBe` Fijo 10166667
+      baseFaccion magTesoro s1 `shouldBe` Fijo 10166666
 
   describe "reglas: tablas de casos del hito 0a (prototipo HTML)" $ do
     tablas <- runIO (fmap (>>= parseEither parseTablas)
