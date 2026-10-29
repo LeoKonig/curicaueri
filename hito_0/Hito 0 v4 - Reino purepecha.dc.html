@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Spectral:wght@500;600;700&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#0d0a07}*{box-sizing:border-box}a{color:#e0c48a}a:hover{color:#f3e8cf}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:#5a4426}input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;background:#3a2d1d;border:1px solid #5a4426;outline:none;cursor:pointer;margin:3px 0 0}input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#e0c48a;border:1px solid #6a4e24}input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:#e0c48a;border:1px solid #6a4e24}select{color-scheme:dark}button:disabled{cursor:not-allowed}</style>
+</helmet>
+<div style="height:100vh;min-width:1180px;display:flex;flex-direction:column;background:#0d0a07;color:#eadfc4;font:13px/1.35 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;overflow:auto">
+
+  <sc-if value="{{ notReady }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;font:600 16px Spectral,serif;color:#f3dfae">{{ loadMsg }}</div>
+  </sc-if>
+
+  <sc-if value="{{ ready }}" hint-placeholder-val="{{ true }}">
+  <div style="height:64px;flex:none;display:flex;align-items:center;gap:10px;padding:0 12px 0 0;background:linear-gradient(#3a2d1d,#1c150e 60%,#140f0a);border-bottom:2px solid #9a7a40;box-shadow:0 4px 16px #000c;position:relative;z-index:20">
+    <div style="display:flex;align-items:center;gap:9px;padding:0 10px 0 6px;height:100%;border-right:1px solid #5a4426;white-space:nowrap">
+      <div style="width:42px;height:42px;border-radius:50%;padding:2px;background:linear-gradient(#e0c48a,#7a5a2a)"><div style="width:100%;height:100%;border-radius:50%;background:repeating-linear-gradient(45deg,#3a3022 0 5px,#2a2218 5px 10px);display:flex;align-items:center;justify-content:center;font:400 8px 'IBM Plex Mono',monospace;color:#a89878;text-align:center;line-height:1.1">{{ hud.retCaz1 }}<br>{{ hud.retCaz2 }}</div></div>
+      <div><div style="font:700 14px Spectral,serif;letter-spacing:1.5px;text-transform:uppercase;color:#f3dfae">{{ hud.titulo }}</div><div style="font:500 12px Spectral,serif;color:#c8b48a">{{ rulerLine }}</div></div>
+    </div>
+    <div style="display:flex;flex:1;min-width:0">
+      <sc-for list="{{ chips }}" as="c" hint-placeholder-count="5">
+        <div title="{{ c.tip }}" style="display:flex;align-items:center;gap:6px;padding:4px 8px;border-right:1px solid #3a2d1d;white-space:nowrap;cursor:help">
+          <div style="width:20px;height:20px;flex:none;border-radius:50%;background:radial-gradient(circle at 35% 30%,{{ c.color }},#1a140d 120%);border:1px solid #9a7a40;display:flex;align-items:center;justify-content:center;font:700 10px Spectral,serif;color:#14110d">{{ c.l }}</div>
+          <div style="line-height:1.1"><div style="font-weight:600;font-size:14px;color:{{ c.vc }}">{{ c.value }}</div><div style="font-size:10px;color:{{ c.tc }}">{{ c.trend }}</div></div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;padding:0 10px;height:100%;border-left:1px solid #5a4426;border-right:1px solid #5a4426;white-space:nowrap">
+      <div style="text-align:center;min-width:132px"><div style="font:600 14px Spectral,serif;color:#f3dfae">{{ hud.veintena }}</div><div style="font:500 12px Spectral,serif;color:#c8b48a">{{ hud.anio }}</div><div style="display:flex;gap:2px;justify-content:center;margin-top:3px"><sc-for list="{{ cells }}" as="c" hint-placeholder-count="18"><i style="width:7px;height:4px;background:{{ c }};display:block"></i></sc-for></div></div>
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <button onClick="{{ endTurn }}" title="{{ hud.avanzarT }}" style="padding:3px 10px;background:linear-gradient(#8a3322,#5a1e12);border:1px solid #e0c48a;color:#fff1d0;cursor:pointer;font:600 11px Spectral,serif;letter-spacing:1px;text-transform:uppercase" style-hover="background:#a8432c">{{ hud.avanzar }}</button>
+        <button onClick="{{ runUntil }}" title="{{ hud.hastaT }}" style="padding:3px 10px;background:linear-gradient(#3a2d1d,#221a11);border:1px solid #9a7a40;color:#f0d9a0;cursor:pointer;font:600 11px Spectral,serif;letter-spacing:1px;text-transform:uppercase" style-hover="background:#4a3a24">{{ hud.hasta }}</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;white-space:nowrap">
+      <div style="text-align:center;padding:0 3px"><div style="font-size:9px;color:#c8b48a;text-transform:uppercase;letter-spacing:1px">{{ hud.decis }}</div><div style="font:700 15px Spectral,serif;color:{{ decColor }}">{{ decTotal }}/{{ decGoal }}</div></div>
+      <div style="text-align:center;padding:0 3px"><div style="font-size:9px;color:#c8b48a;text-transform:uppercase;letter-spacing:1px">{{ hud.rumbo }}</div><div style="font:700 15px Spectral,serif;color:{{ chgColor }}">{{ decChanging }}/{{ chgGoal }}</div></div>
+      <button onClick="{{ openChron }}" style="width:34px;height:34px;border-radius:50%;border:1px solid #e0c48a;background:radial-gradient(circle at 40% 35%,#3a2d1d,#17120c);color:#f0d9a0;font:600 10px Spectral,serif;cursor:pointer" title="{{ hud.cronT }}">{{ hud.cron }}</button>
+      <button onClick="{{ exportLog }}" style="width:34px;height:34px;border-radius:50%;border:1px solid #e0c48a;background:radial-gradient(circle at 40% 35%,#3a2d1d,#17120c);color:#f0d9a0;font:600 10px Spectral,serif;cursor:pointer" title="{{ hud.logT }}">{{ hud.log }}</button>
+    </div>
+  </div>
+
+  <div style="flex:1;min-height:0;display:flex;overflow:auto;background:radial-gradient(ellipse at center,#2a2318,#0a0805 75%);position:relative">
+    <div data-map="1" onWheel="{{ mapWheel }}" onMouseDown="{{ mapDown }}" onMouseMove="{{ mapMove }}" onMouseUp="{{ mapUp }}" onMouseLeave="{{ mapUp }}" style="position:relative;flex:none;margin:auto;width:max(1180px,min(100%,calc((100vh - 64px) * 1.75)));aspect-ratio:7/4;overflow:hidden;cursor:grab;user-select:none">
+      <div style="position:absolute;inset:0;transform-origin:0 0;transform:{{ mapT }}"><svg viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid meet" style="position:absolute;inset:0;width:100%;height:100%">
+        <defs><radialGradient id="sh" cx="35%" cy="28%" r="85%"><stop offset="0%" style="stop-color:#fff6dc;stop-opacity:.18"></stop><stop offset="60%" style="stop-color:#000;stop-opacity:0"></stop><stop offset="100%" style="stop-color:#000;stop-opacity:.30"></stop></radialGradient></defs>
+        <sc-for list="{{ hexes }}" as="h" hint-placeholder-count="96">
+          <g onClick="{{ h.onClick }}" style="cursor:{{ h.cur }};opacity:{{ h.op }}">
+            <polygon points="{{ h.points }}" style="fill:{{ h.fill }};stroke:#00000030;stroke-width:1px"></polygon>
+            <polygon points="{{ h.points }}" style="fill:url(#sh);pointer-events:none"></polygon>
+          </g>
+        </sc-for>
+        <sc-for list="{{ tris }}" as="t" hint-placeholder-count="10"><polygon points="{{ t.p }}" style="fill:{{ t.f }};opacity:{{ t.o }};pointer-events:none"></polygon></sc-for>
+        <sc-for list="{{ dots }}" as="d" hint-placeholder-count="10"><circle cx="{{ d.x }}" cy="{{ d.y }}" r="{{ d.r }}" style="fill:{{ d.f }};pointer-events:none"></circle></sc-for>
+        <path d="M 920 252 C 900 320, 880 380, 860 420 S 830 470, 820 500" style="fill:none;stroke:#7fb2cf;stroke-width:3.5px;opacity:.85;pointer-events:none"></path>
+        <path d="M 470 330 C 500 420, 540 540, 600 640 S 660 730, 700 790" style="fill:none;stroke:#7fb2cf;stroke-width:3.5px;opacity:.85;pointer-events:none"></path>
+        <sc-for list="{{ shore }}" as="e" hint-placeholder-count="8"><line x1="{{ e.a }}" y1="{{ e.b }}" x2="{{ e.c }}" y2="{{ e.d }}" style="stroke:#d6ecf5;stroke-width:2px;opacity:.7;pointer-events:none"></line></sc-for>
+        <sc-for list="{{ inner }}" as="e" hint-placeholder-count="8"><line x1="{{ e.a }}" y1="{{ e.b }}" x2="{{ e.c }}" y2="{{ e.d }}" style="stroke:#f3dfae;stroke-width:1.6px;stroke-dasharray:3 4;opacity:.8;pointer-events:none"></line></sc-for>
+        <sc-for list="{{ outer }}" as="e" hint-placeholder-count="8"><line x1="{{ e.a }}" y1="{{ e.b }}" x2="{{ e.c }}" y2="{{ e.d }}" style="stroke:#00000070;stroke-width:6px;pointer-events:none"></line></sc-for>
+        <sc-for list="{{ outer }}" as="e" hint-placeholder-count="8"><line x1="{{ e.a }}" y1="{{ e.b }}" x2="{{ e.c }}" y2="{{ e.d }}" style="stroke:#c8452e;stroke-width:3px;stroke-dasharray:8 5;pointer-events:none"></line></sc-for>
+        <polyline points="{{ rutaPts }}" style="fill:none;stroke:#fff8e6;stroke-width:3;stroke-dasharray:6 5;opacity:.9;pointer-events:none"></polyline><sc-for list="{{ selEdges }}" as="e" hint-placeholder-count="8"><line x1="{{ e.a }}" y1="{{ e.b }}" x2="{{ e.c }}" y2="{{ e.d }}" style="stroke:#fff8e6;stroke-width:3.5px;stroke-linecap:round;pointer-events:none"></line></sc-for>
+      </svg>
+      <div style="display:{{ tacDisp }};position:fixed;inset:0;z-index:60;background:#0c0906e0;align-items:center;justify-content:center;flex-direction:column;gap:10px"><div style="font:700 18px Spectral,serif;color:#f0d9a0;letter-spacing:2px">{{ tacTitle }}</div><div style="font:400 13px 'IBM Plex Sans';color:#c8b48a">{{ tacInfo }}</div><svg viewBox="0 0 660 390" style="width:min(92vw,820px);height:auto;background:#120e09;border:1px solid #9a7a40"><sc-for list="{{ tacCells }}" as="c" hint-placeholder-count="198"><polygon points="{{ c.pts }}" fill="{{ c.fill }}" stroke="#0c0906" stroke-width="1" onClick="{{ c.onClick }}" style="cursor:pointer"></polygon></sc-for><sc-for list="{{ tacUnits }}" as="u" hint-placeholder-count="0"><g style="pointer-events:none"><circle cx="{{ u.x }}" cy="{{ u.y }}" r="13" fill="{{ u.fill }}" stroke="{{ u.stroke }}" stroke-width="3"></circle><text x="{{ u.x }}" y="{{ u.y }}" text-anchor="middle" dominant-baseline="central" style="font:700 12px Spectral,serif;fill:#120e09">{{ u.label }}</text></g></sc-for></svg><div style="font:600 14px Spectral,serif;color:#f3e8cf">{{ tacRes }}</div><button onClick="{{ tacCloseFn }}" style="padding:6px 16px;background:linear-gradient(#3a2d1c,#241c12);border:1px solid #9a7a40;color:#f3e8cf;font:600 13px Spectral,serif;cursor:pointer">{{ tacClose }}</button></div>
+      <div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 72% 70% at 50% 52%,transparent 62%,rgba(12,9,6,.82) 100%);z-index:1"></div>
+      <div style="position:absolute;left:46%;top:56%;transform:translate(-50%,-50%);font:600 13px Spectral,serif;letter-spacing:5px;color:#eef7fb;text-transform:uppercase;pointer-events:none;text-shadow:0 0 6px #123,0 1px 2px #000;z-index:2">{{ mapa.lago }}</div>
+      <div style="position:absolute;left:50%;top:5%;transform:translateX(-50%);font:600 15px Spectral,serif;letter-spacing:6px;color:#f3dfae;text-transform:uppercase;pointer-events:none;text-shadow:0 0 8px #000,0 1px 2px #000;z-index:2">{{ mapa.frontera }}</div>
+      <div style="position:absolute;right:22%;top:74%;font:600 13px Spectral,serif;letter-spacing:5px;color:#f3dfae;text-transform:uppercase;pointer-events:none;text-align:center;text-shadow:0 0 8px #000,0 1px 2px #000;z-index:2">{{ mapa.valle1 }}<br>{{ mapa.valle2 }}</div>
+      <sc-for list="{{ res }}" as="r" hint-placeholder-count="10"><div style="position:absolute;left:{{ r.x }}%;top:{{ r.y }}%;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff8,{{ r.c }} 60%);border:1px solid #2a1f12;font:700 9px Spectral,serif;color:#14110d;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:2">{{ r.l }}</div></sc-for>
+      <sc-for list="{{ marks }}" as="m" hint-placeholder-count="7">
+        <div onClick="{{ m.onClick }}" style="position:absolute;left:{{ m.x }}%;top:{{ m.y }}%;transform:translate(-14px,-60%);display:flex;align-items:center;cursor:pointer;z-index:5">
+          <div style="width:{{ m.w }}px;height:{{ m.h }}px;padding:2px;background:{{ m.ring }};clip-path:polygon(0 0,100% 0,100% 64%,50% 100%,0 64%);filter:drop-shadow(0 2px 3px #000)"><div style="width:100%;height:100%;background:{{ m.shield }};clip-path:polygon(0 0,100% 0,100% 64%,50% 100%,0 64%);display:flex;align-items:flex-start;justify-content:center;padding-top:5px"><i style="width:7px;height:7px;background:#f6e6c0;transform:rotate(45deg);display:block"></i></div></div>
+          <div style="margin-left:-3px;padding:2px 10px 2px 9px;background:{{ m.lbl }};border:1px solid #9a7a40;border-left:0;font:600 13px Spectral,serif;color:#f6e6c0;white-space:nowrap;box-shadow:0 2px 6px #000a">{{ m.name }}</div>
+        </div>
+      </sc-for>
+      <div style="position:absolute;left:{{ invX }}%;top:{{ invY }}%;transform:translate(-50%,-50%);display:{{ invDisp }};align-items:center;gap:5px;z-index:4;pointer-events:none"><div style="width:26px;height:30px;padding:2px;background:#e8876c;clip-path:polygon(0 0,100% 0,100% 70%,50% 100%,0 70%)"><div style="width:100%;height:100%;background:#3a0d06;clip-path:polygon(0 0,100% 0,100% 70%,50% 100%,0 70%)"></div></div><b style="font:700 13px Spectral,serif;color:#f6d6c8;text-shadow:0 1px 3px #000,0 0 6px #000">{{ invN }}</b></div>
+      <div style="position:absolute;left:{{ army.x }}%;top:{{ army.y }}%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:5px;z-index:4;pointer-events:none">
+        <div style="width:26px;height:30px;padding:2px;background:#e0c48a;clip-path:polygon(0 0,100% 0,100% 70%,50% 100%,0 70%)"><div style="width:100%;height:100%;background:#8a2a1a;clip-path:polygon(0 0,100% 0,100% 70%,50% 100%,0 70%)"></div></div>
+        <b style="font:700 13px Spectral,serif;color:#f6e6c0;text-shadow:0 1px 3px #000,0 0 6px #000">{{ army.n }}</b>
+      </div>
+
+      </div>
+      <div style="position:absolute;left:calc(50% + 180px);bottom:12px;display:flex;gap:4px;z-index:6">
+        <button onClick="{{ mapZ.in }}" title="Acercar" style="width:30px;height:30px;background:linear-gradient(#3a2d1c,#241c12);border:1px solid #9a7a40;color:#f0d9a0;font:600 16px Spectral,serif;cursor:pointer">+</button>
+        <button onClick="{{ mapZ.out }}" title="Alejar" style="width:30px;height:30px;background:linear-gradient(#3a2d1c,#241c12);border:1px solid #9a7a40;color:#f0d9a0;font:600 16px Spectral,serif;cursor:pointer">−</button>
+        <button onClick="{{ mapZ.reset }}" title="Restablecer vista" style="height:30px;padding:0 8px;background:linear-gradient(#3a2d1c,#241c12);border:1px solid #9a7a40;color:#f0d9a0;font:600 12px Spectral,serif;cursor:pointer">1:1</button>
+      </div>
+      <div style="position:absolute;left:12px;top:12px;bottom:12px;width:{{ lW }};display:flex;flex-direction:column;gap:8px;z-index:6">
+        <button onClick="{{ toggleL }}" title="{{ lTitle }}" style="height:26px;flex:none;background:linear-gradient(#3a2d1c,#241c12);border:1px solid #9a7a40;color:#f0d9a0;font:600 12px Spectral,serif;cursor:pointer">{{ lBtn }}</button>
+        <div style="display:{{ lDisp }};flex-direction:column;gap:8px;flex:1;min-height:0">
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;background:linear-gradient(180deg,#2a2117f4,#18130df7);border:1px solid #9a7a40;box-shadow:inset 0 0 0 2px #120e09,inset 0 0 0 3px #5a4426,0 8px 24px #000c">
+          <div style="display:flex;background:linear-gradient(#3a2d1c,#241c12);border-bottom:1px solid #9a7a40">
+            <sc-for list="{{ leftTabs }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.onClick }}" style="flex:1;padding:7px 2px;border:0;border-bottom:2px solid {{ t.bd }};background:transparent;color:{{ t.fg }};font:700 11px Spectral,serif;letter-spacing:1px;text-transform:uppercase;cursor:pointer;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.n }}</button></sc-for>
+          </div>
+          <div style="flex:1;min-height:0;overflow-y:auto;padding:8px 10px">
+            <sc-if value="{{ lTributo }}" hint-placeholder-val="{{ true }}">
+              <div style="font:600 11px Spectral,serif;letter-spacing:2px;text-transform:uppercase;color:#c8b48a;text-align:center;margin-bottom:3px">{{ pan.prod }}</div>
+              <sc-for list="{{ goods }}" as="g" hint-placeholder-count="6"><div style="display:flex;align-items:center;gap:9px;padding:2px 0;border-bottom:1px solid #2a2016"><i style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff8,{{ g.c }} 60%);border:1px solid #2a1f12;display:block"></i><span style="flex:1;font:500 13px Spectral,serif">{{ g.n }}</span><b>{{ g.v }}</b></div></sc-for>
+              <div style="font:600 11px Spectral,serif;letter-spacing:2px;text-transform:uppercase;color:#c8b48a;text-align:center;margin:8px 0 3px">{{ pan.balance }}</div>
+              <sc-for list="{{ balance }}" as="l" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;padding:2px 0;font-size:12px"><span style="color:#c8b48a">{{ l.k }}</span><b style="color:{{ l.c }}">{{ l.v }}</b></div></sc-for>
+              <div style="font:600 11px Spectral,serif;letter-spacing:2px;text-transform:uppercase;color:#c8b48a;text-align:center;margin:8px 0 3px">{{ pan.iretas }}</div>
+              <sc-for list="{{ contrib }}" as="c" hint-placeholder-count="3"><div onClick="{{ c.onClick }}" style="display:grid;grid-template-columns:1fr 70px 36px;gap:6px;padding:3px 0;font-size:12px;cursor:pointer;border-bottom:1px solid #2a2016"><span style="font:500 13px Spectral,serif">{{ c.n }}</span><span style="color:{{ c.sc }}">{{ c.s }}</span><b style="text-align:right">{{ c.v }}</b></div></sc-for>
+            </sc-if>
+            <sc-if value="{{ lHacienda }}" hint-placeholder-val="{{ false }}">
+              <sc-for list="{{ taxSliders }}" as="s" hint-placeholder-count="2"><div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font:600 12px Spectral,serif;letter-spacing:1px;text-transform:uppercase;color:#c8b48a"><span>{{ s.n }}</span><b style="color:#f0d9a0">{{ s.v }}</b></div><input type="range" min="1" max="5" value="{{ s.v }}" onChange="{{ s.onChange }}"><div style="font-size:11px;color:#c8b48a">{{ s.note }}</div></div></sc-for>
+              <div style="display:flex;justify-content:space-between;font:600 11px Spectral,serif;letter-spacing:2px;text-transform:uppercase;color:#c8b48a;margin:6px 0 3px;border-top:1px solid #5a4426;padding-top:6px"><span>{{ pan.presupuesto }}</span><span style="color:{{ budgetColor }}">{{ budgetSum }}%</span></div>
+              <sc-for list="{{ budget }}" as="b" hint-placeholder-count="4"><div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>{{ b.n }}</span><b style="color:#f0d9a0">{{ b.v }}%</b></div><input type="range" min="0" max="60" value="{{ b.v }}" onChange="{{ b.onChange }}"><div style="font-size:11px;color:#c8b48a">{{ b.note }}</div></div></sc-for>
+            </sc-if>
+            <sc-if value="{{ lEjercito }}" hint-placeholder-val="{{ false }}">
+              <div style="font:600 11px Spectral,serif;letter-spacing:2px;text-transform:uppercase;color:#c8b48a;text-align:center;margin-bottom:3px">Ejércitos</div>
+              <sc-for list="{{ ejercitos }}" as="e" hint-placeholder-count="1"><div style="display:flex;justify-content:space-between;gap:6px;font-size:12px;padding:3px 0;border-bottom:1px solid #2a2016"><span><b style="font:600 13px Spectral,serif">{{ e.n }}</b> <span style="color:#e0c48a">{{ e.capitan }}</span></span><b>{{ e.t }}</b></div></sc-for>
+              <div style="font-size:12px;color:#c8b48a;margin-top:6px">Capitán: <select value="{{ captain }}" onChange="{{ onCaptain }}" style="width:100%;background:#1a140d;color:#f3e8cf;border:1px solid #9a7a40;padding:5px;font:13px Spectral,serif;margin-top:3px"><sc-for list="{{ captainOptions }}" as="o" hint-placeholder-count="4"><option value="{{ o.id }}">{{ o.label }}</option></sc-for></select></div>
+              <div style="font-size:12px;color:#c8b48a;margin-top:8px">{{ ejInfo }}</div><button onClick="{{ ejMarch }}" style="width:100%;margin-top:4px;padding:5px 9px;background:linear-gradient(#3a2d1c,#241c12);border:1px solid #9a7a40;color:#f3e8cf;font:600 13px Spectral,serif;cursor:pointer">{{ ejMarchTxt }}</button><button onClick="{{ ejInc.run }}" disabled="{{ ejInc.off }}" style="width:100%;margin-top:4px;padding:5px 9px;background:linear-gradient(#5a1e12,#3a140c);border:1px solid #c8452e;color:#f3e8cf;font:600 13px Spectral,serif;cursor:pointer;opacity:{{ ejInc.op }}">{{ ejInc.title }}</button><button onClick="{{ ejLib.run }}" disabled="{{ ejLib.off }}" style="width:100%;margin-top:4px;padding:5px 9px;background:linear-gradient(#3a2d1c,#241c12);border:1px solid #9a7a40;color:#f3e8cf;font:600 13px Spectral,serif;cursor:pointer;opacity:{{ ejLib.op }}">{{ ejLib.title }}</button><button onClick="{{ tacOpenFn }}" disabled="{{ tacOff }}" style="width:100%;margin-top:4px;padding:5px 9px;background:linear-gradient(#5a1e12,#3a140c);border:1px solid #c8452e;color:#f3e8cf;font:600 13px Spectral,serif;cursor:pointer;opacity:{{ tacOff }}">{{ tacOpenT }}</button><div style="display:flex;flex-direction:column;gap:5px;margin-top:8px"><button onClick="{{ ejRec.run }}" disabled="{{ ejRec.off }}" style="display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;padding:5px 9px;background:linear-gradient(#3a2d1c,#241c12);border:1px solid #9a7a40;color:#f3e8cf;font:600 13px Spectral,serif;cursor:pointer;opacity:{{ ejRec.op }}">{{ ejRec.title }}<span style="font:400 11px 'IBM Plex Sans';color:#e0b89a">{{ ejRec.cost }}</span></button><button onClick="{{ ejLic.run }}" style="display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;padding:5px 9px;background:linear-gradient(#3a2d1c,#241c12);border:1px solid #9a7a40;color:#f3e8cf;font:600 13px Spectral,serif;cursor:pointer">Licenciar 500 soldados<span style="font:400 11px 'IBM Plex Sans';color:#e0b89a">Sin costo · ejército −500</span></button></div>
+            </sc-if>
+            <sc-if value="{{ lCorte }}" hint-placeholder-val="{{ false }}">
+              <sc-for list="{{ court }}" as="r" hint-placeholder-count="8"><div style="display:flex;justify-content:space-between;gap:6px;font-size:12px;padding:2px 0;opacity:{{ r.op }}"><span><b style="font:600 13px Spectral,serif">{{ r.name }}</b> <span style="color:#e0c48a">{{ r.role }}</span></span><span style="color:#c8b48a;font-size:11px">{{ r.stats }}</span></div></sc-for>
+              <div style="margin-top:6px;font:600 11px Spectral,serif;letter-spacing:1px;text-transform:uppercase;color:#c8b48a;display:flex;justify-content:space-between"><span>{{ pan.capitan }}</span><b style="color:#a9cc62">{{ captainBonus }}</b></div>
+              <select value="{{ captain }}" onChange="{{ onCaptain }}" style="width:100%;background:#1a140d;color:#f3e8cf;border:1px solid #9a7a40;padding:5px;font:13px Spectral,serif;margin-top:3px"><sc-for list="{{ captainOptions }}" as="o" hint-placeholder-count="4"><option value="{{ o.id }}">{{ o.label }}</option></sc-for></select>
+              <div style="font-size:12px;color:#c8b48a;margin-top:5px">{{ pan.herederoLabel }} <b style="color:#f3e8cf">{{ heirName }}</b></div>
+              <div style="font:600 11px Spectral,serif;letter-spacing:2px;text-transform:uppercase;color:#c8b48a;text-align:center;margin:8px 0 4px;border-top:1px solid #5a4426;padding-top:6px">{{ pan.reino }}</div>
+              <div style="display:flex;flex-direction:column;gap:5px"><sc-for list="{{ actReino }}" as="x" hint-placeholder-count="2"><button onClick="{{ x.run }}" disabled="{{ x.off }}" style="display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;padding:5px 9px;background:linear-gradient(#3a2d1c,#241c12);border:1px solid #9a7a40;color:#f3e8cf;font:600 13px Spectral,serif;cursor:pointer;opacity:{{ x.op }}">{{ x.title }}<span style="font:400 11px 'IBM Plex Sans';color:#e0b89a">{{ x.cost }}</span></button></sc-for></div>
+              <div style="font:600 11px Spectral,serif;letter-spacing:2px;text-transform:uppercase;color:#c8b48a;text-align:center;margin:8px 0 4px;border-top:1px solid #5a4426;padding-top:6px">{{ pan.prisTit }}</div>
+              <div style="display:flex;flex-direction:column;gap:5px"><sc-for list="{{ actPris }}" as="x" hint-placeholder-count="4"><button onClick="{{ x.run }}" disabled="{{ x.off }}" style="display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;padding:5px 9px;background:linear-gradient(#3a2d1c,#241c12);border:1px solid #9a7a40;color:#f3e8cf;font:600 13px Spectral,serif;cursor:pointer;opacity:{{ x.op }}">{{ x.title }}<span style="font:400 11px 'IBM Plex Sans';color:#e0b89a">{{ x.cost }}</span></button></sc-for></div>
+            </sc-if>
+          </div>
+        </div>
+
+        <div style="flex:none;background:linear-gradient(180deg,#2a2117f6,#18130df8);border:1px solid #9a7a40;box-shadow:inset 0 0 0 2px #120e09,inset 0 0 0 3px #5a4426,0 8px 24px #000c">
+          <div style="padding:6px 12px;display:flex;justify-content:space-between;align-items:baseline;background:linear-gradient(#3a2d1c,#241c12);border-bottom:1px solid #9a7a40"><span style="font:700 15px Spectral,serif;letter-spacing:2.5px;text-transform:uppercase;color:#f3dfae">{{ s.name }} <span style="font:400 11px 'IBM Plex Sans';letter-spacing:0;text-transform:none;color:#c8b48a;margin-left:4px">{{ s.set }}</span></span><span style="font-size:11px;color:{{ s.statusColor }};font-weight:600">{{ s.status }}</span></div>
+          <div style="display:flex;border-bottom:1px solid #5a4426;background:#14100b">
+            <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5"><button onClick="{{ t.onClick }}" style="flex:1;padding:5px 2px;border:0;border-right:1px solid #2a2016;border-bottom:2px solid {{ t.bd }};background:{{ t.bg }};color:{{ t.fg }};font:500 12px Spectral,serif;cursor:pointer">{{ t.n }}</button></sc-for>
+          </div>
+          <div style="padding:8px 12px;height:246px;overflow-y:auto">
+            <sc-if value="{{ tabResumen }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;gap:10px;margin-bottom:6px">
+                <div style="width:48px;height:48px;flex:none;padding:2px;background:linear-gradient(#e0c48a,#6a4e24)"><div style="width:100%;height:100%;background:repeating-linear-gradient(45deg,#3a3022 0 5px,#2a2218 5px 10px);display:flex;align-items:center;justify-content:center;font:400 7px 'IBM Plex Mono',monospace;color:#a89878;text-align:center;line-height:1.1">retrato<br>gobernador</div></div>
+                <div style="flex:1;min-width:0"><select value="{{ s.governor }}" onChange="{{ s.onGov }}" style="width:100%;background:#1a140d;color:#f3e8cf;border:1px solid #9a7a40;padding:3px;font:600 13px Spectral,serif"><sc-for list="{{ s.govOptions }}" as="o" hint-placeholder-count="4"><option value="{{ o.id }}">{{ o.label }}</option></sc-for></select><div style="font-size:12px;color:#c8b48a;margin-top:3px">{{ selT.eficiencia }} <b style="color:{{ s.effColor }}">{{ s.eff }}%</b> · {{ selT.pob }} <b style="color:#f3e8cf">{{ s.pop }}</b> · {{ selT.ingreso }} <b style="color:#f0d9a0">+{{ s.inc }}</b>{{ selT.anio }}</div></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font:600 12px Spectral,serif;text-transform:uppercase;letter-spacing:1px;color:#c8b48a"><span>{{ selT.lealtad }}</span><b style="color:#a9cc62">{{ s.loy }} → {{ s.loyT }}</b></div>
+              <div style="height:6px;background:#2a2016;border:1px solid #3a2d1d;margin:2px 0 5px"><div style="height:100%;width:{{ s.loy }}%;background:linear-gradient(#a9cc62,#5f7f30)"></div></div>
+              <div style="display:flex;justify-content:space-between;font:600 12px Spectral,serif;text-transform:uppercase;letter-spacing:1px;color:#c8b48a"><span>{{ selT.agravio }}</span><b style="color:#e8876c">{{ s.agr }} <span style="font-weight:400;text-transform:none;color:{{ s.agrDC }}">{{ s.agrD }}</span></b></div>
+              <div style="height:6px;background:#2a2016;border:1px solid #3a2d1d;margin:2px 0 6px"><div style="height:100%;width:{{ s.agr }}%;background:linear-gradient(#e8876c,#9a3c22)"></div></div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:#c8b48a"><span>{{ selT.guarnicion }}</span><b style="color:#f0d9a0">{{ s.garrison }} {{ selT.garMax }} {{ s.garMax }}</b></div>
+              <input type="range" min="0" max="2000" step="100" value="{{ s.garrison }}" onChange="{{ s.onGar }}">
+              <div style="display:flex;flex-direction:column;gap:5px;margin-top:6px"><sc-for list="{{ actIreta }}" as="x" hint-placeholder-count="1"><button onClick="{{ x.run }}" disabled="{{ x.off }}" style="display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;padding:5px 9px;background:linear-gradient(#5a1e12,#3a140c);border:1px solid #c8452e;color:#f3e8cf;font:600 13px Spectral,serif;cursor:pointer;opacity:{{ x.op }}">{{ x.title }}<span style="font:400 11px 'IBM Plex Sans';color:#e0b89a">{{ x.cost }}</span></button></sc-for></div>
+            </sc-if>
+            <sc-if value="{{ tabPops }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:1fr 54px 30px 30px 30px 30px;gap:2px 5px;font-size:10px;color:#c8b48a;text-transform:uppercase;padding-bottom:3px;border-bottom:1px solid #3a2d1d"><span>Pop</span><span style="text-align:right">Tamaño</span><span style="text-align:right">Lea</span><span style="text-align:right">Agr</span><span style="text-align:right">Sub</span><span style="text-align:right">Cot</span></div>
+              <sc-for list="{{ s.pops }}" as="p" hint-placeholder-count="3"><div style="display:grid;grid-template-columns:1fr 54px 30px 30px 30px 30px;gap:2px 5px;font-size:12px;padding:4px 0;border-bottom:1px solid #2a2016"><span style="font:500 13px Spectral,serif">{{ p.n }}</span><span style="text-align:right">{{ p.t }}</span><b style="text-align:right;color:#a9cc62">{{ p.l }}</b><b style="text-align:right;color:#e8876c">{{ p.a }}</b><b style="text-align:right;color:{{ p.sc }}">{{ p.s }}</b><b style="text-align:right;color:{{ p.cc }}">{{ p.c }}</b></div></sc-for>
+              <div style="font-size:11px;color:#c8b48a;margin-top:6px">{{ pan.popsNota }}</div>
+            </sc-if>
+            <sc-if value="{{ tabEdificios }}" hint-placeholder-val="{{ false }}">
+              <sc-for list="{{ s.buildings }}" as="b" hint-placeholder-count="3"><div style="padding:5px 0;border-bottom:1px solid #2a2016"><div style="display:flex;align-items:center;gap:9px"><i style="width:26px;height:26px;flex:none;border:1px solid #9a7a40;background:repeating-linear-gradient(45deg,#3a3022 0 4px,#2a2218 4px 8px);display:block"></i><div style="flex:1"><div style="font:600 14px Spectral,serif">{{ b.n }}</div><div style="font-size:11px;color:#c8b48a">{{ b.d }}</div></div><span style="font-size:11px;color:{{ b.sc }};font-weight:600;white-space:nowrap">{{ b.s }}</span></div>
+                <sc-if value="{{ b.canBuild }}" hint-placeholder-val="{{ false }}"><button onClick="{{ b.run }}" disabled="{{ b.off }}" style="margin-top:4px;width:100%;padding:4px 9px;background:linear-gradient(#3a2d1c,#241c12);border:1px solid #9a7a40;color:#f3e8cf;font:600 12px Spectral,serif;cursor:pointer;opacity:{{ b.op }};display:flex;justify-content:space-between"><span>{{ b.title }}</span><span style="color:#e0b89a">{{ b.cost }}</span></button></sc-if>
+              </div></sc-for>
+            </sc-if>
+            <sc-if value="{{ tabTributo }}" hint-placeholder-val="{{ false }}">
+              <sc-for list="{{ s.tribute }}" as="l" hint-placeholder-count="4"><div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;border-bottom:1px solid #2a2016"><span style="color:#c8b48a">{{ l.k }}</span><b style="color:{{ l.c }}">{{ l.v }}</b></div></sc-for>
+            </sc-if>
+            <sc-if value="{{ tabLealtad }}" hint-placeholder-val="{{ false }}">
+              <div style="font:600 11px Spectral,serif;letter-spacing:1px;text-transform:uppercase;color:#c8b48a;margin-bottom:2px">Agravio por año · por fuente</div>
+              <sc-for list="{{ s.agrLines }}" as="l" hint-placeholder-count="5"><div style="display:flex;justify-content:space-between;padding:2px 0;font-size:12px;border-bottom:1px solid #2a2016"><span style="color:#c8b48a">{{ l.k }}</span><b style="color:{{ l.c }}">{{ l.v }}</b></div></sc-for>
+              <div style="font:600 11px Spectral,serif;letter-spacing:1px;text-transform:uppercase;color:#c8b48a;margin:8px 0 2px">Eficiencia · {{ s.eff }}%</div>
+              <sc-for list="{{ s.effLines }}" as="l" hint-placeholder-count="4"><div style="display:flex;justify-content:space-between;padding:2px 0;font-size:12px;border-bottom:1px solid #2a2016"><span style="color:#c8b48a">{{ l.k }}</span><b style="color:{{ l.c }}">{{ l.v }}</b></div></sc-for>
+            </sc-if>
+          </div>
+        </div>
+</div>
+      </div>
+
+      <div style="position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;border:1px solid #9a7a40;background:linear-gradient(#2a2117f4,#18130df7);z-index:6;box-shadow:inset 0 0 0 2px #120e09,0 4px 14px #000c">
+        <sc-for list="{{ layers }}" as="l" hint-placeholder-count="3"><button onClick="{{ l.onClick }}" style="padding:7px 16px;border:0;border-right:1px solid #3a2d1d;background:{{ l.bg }};color:{{ l.fg }};font:600 12px Spectral,serif;letter-spacing:2px;text-transform:uppercase;cursor:pointer">{{ l.n }}</button></sc-for>
+      </div>
+
+      <div style="position:absolute;right:12px;top:12px;bottom:12px;width:250px;display:flex;flex-direction:column;gap:8px;z-index:6">
+        <button onClick="{{ toggleR }}" title="{{ rTitle }}" style="height:26px;flex:none;background:linear-gradient(#3a2d1c,#241c12);border:1px solid #9a7a40;color:#f0d9a0;font:600 12px Spectral,serif;cursor:pointer">{{ rBtn }}</button>
+        <div style="display:{{ rDisp }};flex-direction:column;gap:8px;flex:1;min-height:0">
+        <div style="flex:none;background:linear-gradient(180deg,#2a2117f4,#18130df7);border:1px solid #9a7a40;box-shadow:inset 0 0 0 2px #120e09,inset 0 0 0 3px #5a4426,0 8px 24px #000c">
+          <div style="padding:7px 10px;text-align:center;background:linear-gradient(#3a2d1c,#241c12);border-bottom:1px solid #9a7a40;font:700 14px Spectral,serif;letter-spacing:3px;text-transform:uppercase;color:#f3dfae"><span style="color:#9a7a40">◆</span> {{ pan.diplomacia }} <span style="color:#9a7a40">◆</span></div>
+          <sc-for list="{{ dip }}" as="d" hint-placeholder-count="3"><div style="display:flex;gap:9px;align-items:center;padding:6px 10px;border-bottom:1px solid #2a2016"><div style="width:28px;height:32px;flex:none;padding:2px;background:#9a7a40;clip-path:polygon(0 0,100% 0,100% 70%,50% 100%,0 70%)"><div style="width:100%;height:100%;background:{{ d.bg }};clip-path:polygon(0 0,100% 0,100% 70%,50% 100%,0 70%)"></div></div><div style="line-height:1.25;min-width:0"><div style="font:600 14px Spectral,serif;color:#f3e8cf">{{ d.n }}</div><div style="font-size:11px;color:{{ d.c }}">{{ d.t }}</div><div style="font-size:11px;color:#c8b48a">{{ d.t2 }}</div></div></div></sc-for>
+          <div style="display:{{ ultDisp }};flex-direction:column;gap:5px;padding:6px 10px;border-bottom:1px solid #2a2016;background:#2a1d0e"><div style="font:600 13px Spectral,serif;color:#f0d9a0">{{ ultT }}</div><div style="font:400 12px 'IBM Plex Sans';color:#c8b48a">{{ ultD }}</div><div style="display:flex;gap:5px"><button onClick="{{ ultPagar }}" style="flex:1;padding:5px;background:linear-gradient(#3a2d1c,#241c12);border:1px solid #9a7a40;color:#f3e8cf;font:600 12px Spectral,serif;cursor:pointer">{{ ultPagarT }}</button><button onClick="{{ ultRech }}" style="flex:1;padding:5px;background:linear-gradient(#5a1e12,#3a140c);border:1px solid #c8452e;color:#f3e8cf;font:600 12px Spectral,serif;cursor:pointer">{{ ultRechT }}</button></div></div>
+          <div style="padding:6px 8px;display:flex;flex-direction:column;gap:5px"><sc-for list="{{ actMil }}" as="x" hint-placeholder-count="2"><button onClick="{{ x.run }}" disabled="{{ x.off }}" style="display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;padding:5px 9px;background:linear-gradient(#5a1e12,#3a140c);border:1px solid #c8452e;color:#f3e8cf;font:600 13px Spectral,serif;cursor:pointer;opacity:{{ x.op }}">{{ x.title }}<span style="font:400 11px 'IBM Plex Sans';color:#e0b89a">{{ x.cost }}</span></button></sc-for></div>
+        </div>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;background:linear-gradient(180deg,#2a2117f4,#18130df7);border:1px solid #9a7a40;box-shadow:inset 0 0 0 2px #120e09,inset 0 0 0 3px #5a4426,0 8px 24px #000c">
+          <div style="padding:7px 10px;text-align:center;background:linear-gradient(#3a2d1c,#241c12);border-bottom:1px solid #9a7a40;font:700 14px Spectral,serif;letter-spacing:3px;text-transform:uppercase;color:#f3dfae"><span style="color:#9a7a40">◆</span> {{ pan.eventos }} <span style="color:#9a7a40">◆</span></div>
+          <div style="flex:1;min-height:0;overflow-y:auto">
+            <sc-for list="{{ alerts }}" as="e" hint-placeholder-count="3"><div style="display:flex;gap:9px;align-items:center;padding:6px 10px;border-bottom:1px solid #2a2016"><div style="width:26px;height:26px;flex:none;padding:2px;background:{{ e.bc }}"><div style="width:100%;height:100%;background:repeating-linear-gradient(45deg,#3a3022 0 4px,#2a2218 4px 8px)"></div></div><div style="line-height:1.25"><div style="font:600 13px Spectral,serif;color:#f3e8cf">{{ e.n }}</div><div style="font-size:11px;color:{{ e.c }}">{{ e.t }}</div></div></div></sc-for>
+            <div style="padding:6px 10px 2px;font:600 11px Spectral,serif;letter-spacing:2px;text-transform:uppercase;color:#c8b48a">{{ pan.cronica }}</div>
+            <sc-for list="{{ chronShort }}" as="e" hint-placeholder-count="4"><div style="padding:2px 10px;font-size:11px;color:{{ e.color }}"><b style="color:#e0c48a;margin-right:5px">{{ e.year }}</b>{{ e.text }}</div></sc-for>
+          </div>
+          <div style="padding:6px;text-align:center;border-top:1px solid #3a2d1d"><button onClick="{{ openChron }}" style="font:600 12px Spectral,serif;color:#f0d9a0;border:1px solid #9a7a40;background:linear-gradient(#3a2d1c,#241c12);padding:3px 22px;cursor:pointer">{{ pan.verCronica }}</button></div>
+        </div>
+        </div>
+        <div style="flex:none;height:84px;padding:3px;background:linear-gradient(#e0c48a,#6a4e24)"><div style="width:100%;height:100%;background:repeating-linear-gradient(45deg,#2a2218 0 7px,#211a12 7px 14px);position:relative"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:400 10px 'IBM Plex Mono',monospace;color:#a89878;text-align:center">{{ mapa.minimapa }}</div><div style="position:absolute;left:36%;top:40%;width:26%;height:32%;border:1px solid #f3dfae"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ modal }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(8,6,4,.78);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px">
+      <div style="width:560px;max-width:100%;max-height:92vh;overflow-y:auto;background:linear-gradient(180deg,#2a2117,#18130d);border:1px solid #e0c48a;box-shadow:inset 0 0 0 3px #120e09,inset 0 0 0 4px #9a7a40,0 20px 60px #000">
+        <div style="padding:10px 16px;text-align:center;background:linear-gradient(#3a2d1c,#241c12);border-bottom:1px solid #9a7a40"><div style="font:600 11px 'IBM Plex Sans';letter-spacing:2px;text-transform:uppercase;color:{{ modal.kc }}">{{ modal.kind }}</div><div style="font:700 21px Spectral,serif;letter-spacing:2px;text-transform:uppercase;color:#f3dfae">{{ modal.title }}</div></div>
+        <div style="margin:12px 16px 0;height:130px;border:1px solid #9a7a40;background:repeating-linear-gradient(45deg,#2e261b 0 8px,#241d14 8px 16px);display:flex;align-items:center;justify-content:center;font:400 11px 'IBM Plex Mono',monospace;color:#a89878">ilustración del evento · {{ modal.title }}</div>
+        <div style="padding:12px 16px">
+          <div style="font:500 15px/1.5 Spectral,serif;color:#f3e8cf">{{ modal.cuerpo }}</div>
+          <div style="font-size:12px;color:#c8b48a;margin:6px 0 12px">{{ modal.desc }}</div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <sc-for list="{{ modalOptions }}" as="o" hint-placeholder-count="2">
+              <button onClick="{{ o.pick }}" disabled="{{ o.off }}" style="text-align:left;padding:8px 12px;background:linear-gradient(#3a2d1c,#241c12);border:1px solid #9a7a40;color:#f3e8cf;cursor:pointer;opacity:{{ o.op }}" style-hover="border-color:#f3dfae">
+                <div style="font:600 15px Spectral,serif;color:#f3dfae">{{ o.title }}</div>
+                <div style="font-size:12px;color:#e8a080">{{ o.cost }}</div>
+                <div style="font-size:11px;color:#c8b48a">{{ o.why }}</div>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ chronOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeChron }}" style="position:fixed;inset:0;background:rgba(8,6,4,.78);display:flex;align-items:center;justify-content:center;z-index:90;padding:20px">
+      <div style="width:640px;max-width:100%;height:80vh;display:flex;flex-direction:column;background:linear-gradient(180deg,#2a2117,#18130d);border:1px solid #e0c48a;box-shadow:inset 0 0 0 3px #120e09,inset 0 0 0 4px #9a7a40,0 20px 60px #000">
+        <div style="padding:10px 16px;text-align:center;background:linear-gradient(#3a2d1c,#241c12);border-bottom:1px solid #9a7a40;font:700 18px Spectral,serif;letter-spacing:3px;text-transform:uppercase;color:#f3dfae">Crónica del reino</div>
+        <div style="flex:1;overflow-y:auto;padding:10px 16px"><sc-for list="{{ chronAll }}" as="e" hint-placeholder-count="6"><div style="padding:3px 0;border-bottom:1px solid #2a2016;font-size:12px;color:{{ e.color }}"><b style="color:#e0c48a;margin-right:8px">{{ e.year }}</b>{{ e.text }}</div></sc-for></div>
+        <div style="padding:8px;text-align:center;font-size:11px;color:#c8b48a">Clic en cualquier parte para cerrar</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ ended }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(8,6,4,.9);display:flex;align-items:center;justify-content:center;z-index:110;padding:20px">
+      <div style="width:780px;max-width:100%;max-height:92vh;display:flex;flex-direction:column;background:linear-gradient(180deg,#2a2117,#18130d);border:1px solid #e0c48a;box-shadow:inset 0 0 0 3px #120e09,inset 0 0 0 4px #9a7a40,0 20px 60px #000">
+        <div style="padding:10px 18px;display:flex;justify-content:space-between;align-items:baseline;background:linear-gradient(#3a2d1c,#241c12);border-bottom:1px solid #9a7a40"><span style="font:700 21px Spectral,serif;letter-spacing:2px;text-transform:uppercase;color:#f3dfae">{{ fin.titulo }}</span><b style="color:{{ endColor }}">{{ endRubric }}</b></div>
+        <div style="padding:12px 18px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px"><sc-for list="{{ endStats }}" as="s" hint-placeholder-count="9"><div style="display:flex;justify-content:space-between;padding:5px 10px;background:#14100b;border:1px solid #3a2d1d"><span style="color:#c8b48a;font-size:12px">{{ s.k }}</span><b style="color:#f0d9a0">{{ s.v }}</b></div></sc-for></div>
+        <div style="padding:0 18px 4px;font:600 12px Spectral,serif;letter-spacing:2px;text-transform:uppercase;color:#c8b48a">{{ fin.logTitulo }}</div>
+        <div style="flex:1;min-height:120px;overflow-y:auto;padding:0 18px 10px;font-size:12px"><sc-for list="{{ endLog }}" as="e" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:62px 1fr 1fr;gap:8px;padding:2px 0;border-bottom:1px solid #2a2016"><span style="color:#e0c48a">{{ e.when }}</span><span>{{ e.what }}</span><b style="color:{{ e.color }};font-weight:500">{{ e.why }}</b></div></sc-for></div>
+        <div style="padding:10px 18px;display:flex;gap:8px;border-top:1px solid #3a2d1d"><button onClick="{{ openChron }}" style="padding:10px 16px;background:transparent;color:#f0d9a0;border:1px solid #9a7a40;font:600 13px Spectral,serif;letter-spacing:1px;text-transform:uppercase;cursor:pointer">{{ fin.cron }}</button><button onClick="{{ exportLog }}" style="padding:10px 16px;background:transparent;color:#f0d9a0;border:1px solid #9a7a40;font:600 13px Spectral,serif;letter-spacing:1px;text-transform:uppercase;cursor:pointer">{{ fin.exportar }}</button><button onClick="{{ restart }}" style="flex:1;padding:10px;background:linear-gradient(#8a3322,#5a1e12);color:#fff1d0;border:1px solid #e0c48a;font:600 14px Spectral,serif;letter-spacing:2px;text-transform:uppercase;cursor:pointer">{{ fin.reiniciar }}</button></div>
+      </div>
+    </div>
+  </sc-if>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { err: '', sel: 'zacapu', selSet: 'Zacapu', tab: 'resumen', layer: 'influencia', left: 'tributo', chron: false, mz: 1, mx: 0, my: 0, lo: true, ro: true };
+  g = null; D = null; T = null; drag = null; GC = 16; GR = 12;
+  componentDidMount() { window.__hito0 = this; window.createHarness = () => this.makeHarness(); if (!this.D) this.load(); }
+  async load() {
+    try {
+      const f = (n) => fetch('datos/' + n + '.json').then(r => { if (!r.ok) throw new Error('datos/' + n + '.json: ' + r.status); return r.json(); });
+      const [C, E, K, A, T] = await Promise.all(['constantes', 'eventos', 'crisis', 'acciones', 'es'].map(f));
+      this.D = { C, E: E.eventos, K: K.crisis, A: A.acciones }; this.T = T;
+      this.newGame(); this.forceUpdate();
+      if (new URLSearchParams(location.search).has('i18n')) {
+        const r = this.checkI18n();
+        console.log('[i18n] ' + (r.ok ? '✓' : '✗') + ' · ' + r.claves + ' claves · ' + r.placeholdersUnicos.length + ' placeholders únicos');
+        if (r.vacias.length) console.warn('[i18n] claves vacías:', r.vacias);
+        if (r.malformadas.length) console.warn('[i18n] claves malformadas:', r.malformadas);
+        if (r.sinVars.length) console.info('[i18n] placeholders que requieren vars del llamador (auditar):', r.sinVars);
+        window.__i18n = r;
+      }
+    } catch (e) { this.setState({ err: 'No se pudieron cargar los datos: ' + e.message }); }
+  }
+  SET() { return [
+    { n: 'Tzintzuntzan', p: [790, 505], o: 'tzintzuntzan', cap: 1 }, { n: 'Pátzcuaro', p: [640, 250], o: 'tzintzuntzan' }, { n: 'Ihuatzio', p: [830, 445], o: 'tzintzuntzan' },
+    { n: 'Zacapu', p: [920, 250], o: 'zacapu', cap: 1 }, { n: 'Taximaroa', p: [960, 390], o: 'zacapu' },
+    { n: 'Uruapan', p: [470, 330], o: 'uruapan', cap: 1 }, { n: 'Tiquicheo', p: [560, 600], o: 'uruapan' }]; }
+  // ---------- textos (es.json)
+  t(k, vars) {
+    if (!this.T) return k;
+    const v = this.getP(this.T, k);
+    if (typeof v !== 'string') { console.warn('[i18n] clave no encontrada: ' + k); return k; }
+    if (!vars || typeof vars !== 'object') vars = {};
+    return v.replace(/\{([^}]+)\}/g, (_, raw) => {
+      const n = raw.trim();
+      const ps = n.split('.');
+      if (n in vars) {
+        const vv = vars[n];
+        if (vv === null || typeof vv !== 'object') return this.show(vv);
+      }
+      if (ps[0] in vars) {
+        const head = vars[ps[0]];
+        if (head !== null && typeof head === 'object') {
+          const rest = ps.slice(1).join('.');
+          if (rest) {
+            const val = head.id !== undefined
+              ? this.getM({ k: 'a', o: head }, rest)
+              : this.getP(head, rest);
+            if (val !== null && val !== undefined && typeof val !== 'object') return this.show(val);
+          }
+        }
+      }
+      if (ps[0] === 'faccion' && this.g && ps.length > 1) {
+        const val = this.getM({ k: 'f', o: this.g }, ps.slice(1).join('.'));
+        if (val !== null && val !== undefined && typeof val !== 'object') return this.show(val);
+      }
+      if (ps[0] === 'cazonci' && ps[1] === 'heir' && this.g) {
+        const h = this.g.cazonci.heir;
+        return h ? this.g.chars[h].name : '—';
+      }
+      if (this.g) {
+        const gv = this.gvar(n);
+        if (gv !== undefined) return gv;
+      }
+      const kv = this.K(n.toUpperCase(), true);
+      if (kv !== undefined) return this.show(kv);
+      return '{' + n + '}';
+    });
+  }
+  checkI18n() {
+    const out = { version: (this.T && this.T.version_esquema) || 0, claves: 0, vacias: [], malformadas: [], conPlaceholders: [], placeholdersUnicos: [], sinVars: [], ok: false };
+    if (!this.T) { out.razon = 'this.T no cargado'; return out; }
+    const phsSet = new Set();
+    const walk = (o, p) => {
+      for (const k in o) {
+        if (k[0] === '_') continue;
+        const v = o[k], key = p ? p + '.' + k : k;
+        if (v && typeof v === 'object' && !Array.isArray(v)) { walk(v, key); continue; }
+        if (typeof v === 'number' || typeof v === 'boolean') continue;
+        if (typeof v !== 'string') { out.malformadas.push({ clave: key, razon: 'valor no string' }); continue; }
+        out.claves++;
+        if (!v.trim()) { out.vacias.push(key); continue; }
+        const abre = (v.match(/\{/g) || []).length, cierra = (v.match(/\}/g) || []).length;
+        if (abre !== cierra) { out.malformadas.push({ clave: key, razon: 'llaves desbalanceadas (' + abre + '/' + cierra + ')' }); continue; }
+        if (/\{\s*\}/.test(v)) { out.malformadas.push({ clave: key, razon: 'placeholder vacío' }); continue; }
+        const phs = [...v.matchAll(/\{([^}]+)\}/g)].map(m => m[1].trim());
+        if (phs.length) { out.conPlaceholders.push({ clave: key, placeholders: phs }); for (const ph of phs) phsSet.add(ph); }
+      }
+    };
+    walk(this.T, '');
+    out.placeholdersUnicos = [...phsSet].sort();
+    for (const { clave, placeholders } of out.conPlaceholders) {
+      const test = this.t(clave, {});
+      for (const ph of placeholders) if (test.indexOf('{' + ph + '}') >= 0) out.sinVars.push({ clave, ph });
+    }
+    out.ok = !out.malformadas.length && !out.vacias.length;
+    return out;
+  }
+  // ---------- datos y constantes
+  cp(path) { return path.split('.').reduce((o, k) => o == null ? o : o[k], this.D.C); }
+  K(name, soft) {
+    const A = { PROB_COSECHA_TICK: 'cosecha.prob_por_tick', PROB_REFUGIADOS_TICK: 'refugiados.prob_por_tick', REFUGIADOS_POBLACION: 'refugiados.poblacion', REBELION_CALMA_VEINTENAS: 'rebelion.calma_veintenas',
+      TREGUA_ALIANZA: 'guerra.tregua_alianza', TREGUA_CHICHIMECA: 'guerra.tregua_chichimeca', EDAD_SUCESION_FORZADA: 'personajes.edad_sucesion_forzada', CASUS_VENTANA: 'guerra.casus_ventana',
+      SIN_CASUS_ALIANZA: 'guerra.sin_casus_alianza', SIN_CASUS_CHICHIMECA: 'guerra.sin_casus_chichimeca', ENEMIGO_ALIANZA: 'guerra.enemigo_alianza', ENEMIGO_CHICHIMECA: 'guerra.enemigo_chichimeca',
+      COSTO_YACATA: 'construccion.costo.yacata', COSTO_FORTALEZA: 'construccion.costo.fortaleza', COSTO_TROJE: 'construccion.costo.troje', COSTO_RECLUTAR: 'acciones.reclutar_costo', TROPAS_RECLUTAR: 'acciones.reclutar_tropas',
+      COSTO_REGALOS: 'acciones.regalos_costo', PRESTIGIO_REGALOS: 'acciones.regalos_prestigio', TESORO_TRABAJO: 'prisioneros.tesoro_trabajo', TESORO_RESCATE: 'prisioneros.tesoro_rescate' };
+    const p = A[name]; if (!p) { if (!soft) console.warn('Constante desconocida: ' + name); return soft ? undefined : 0; }
+    return this.cp(p);
+  }
+  // ---------- partida
+  newGame() {
+    const C = this.D.C, R = 39, W = Math.sqrt(3) * R, hash = (c, r) => (((c * 73856093) ^ (r * 19349663)) >>> 0) % 100;
+    const YLD = { maiz: 20, pescado: 18, sal: 14, mantas: 18, obsidiana: 10, cobre: 24 };
+    const hexes = [];
+    for (let r = 0; r < this.GR; r++) for (let c = 0; c < this.GC; c++) {
+      const cx = 120 + c * W + (r % 2) * W / 2, cy = 70 + r * 1.5 * R, hs = hash(c, r);
+      let terr = hs < 32 ? 'bosque' : 'llano';
+      if (Math.hypot(cx - 640, cy - 440) < 125) terr = 'lago'; else if ((r <= 1 && hs < 55) || ((c <= 1 || c >= this.GC - 2) && hs < 40) || hs > 90) terr = 'sierra';
+      const res = terr === 'lago' ? 'pescado' : terr === 'llano' ? ['maiz', 'maiz', 'maiz', 'sal', 'mantas'][hs % 5] : terr === 'bosque' ? (hs % 2 ? 'mantas' : 'obsidiana') : (hs % 2 ? 'cobre' : 'obsidiana');
+      const vx = [0, 1, 2, 3, 4, 5].map(i => { const a = Math.PI / 3 * i - Math.PI / 2; return [+(cx + R * Math.cos(a)).toFixed(1), +(cy + R * Math.sin(a)).toFixed(1)]; });
+      hexes.push({ c, r, cx, cy, hs, terr, res, yield: YLD[res], vx, owner: null, contested: false, raided: 0, inf: {} });
+    }
+    const mk = (id, name, pop, loyalty, agravio, governor, distance, tags) => ({ id, name, pop, loyalty, agravio, governor, distance, tags, garrison: 0, yacata: false, fortaleza: false, troje: false, building: null, buildProgress: 0, independent: false, moroso: false, calm: 0, territory: [], territoryValue: 0, res: {} });
+    const s0 = (Date.now() & 0xffffff) | 1;
+    this.g = { seed: s0, seed0: s0, t: 0, v: 1, year: 1475, endYear: 1485, treasury: 800, prestige: 20, army: 40000, morale: 7,
+      taxes: { tributo: 3, impuesto: 3 }, budget: { ejercito: 30, administracion: 25, obras: 30, diplomacia: 15 }, hexes, queue: [], log: [], chron: [], lastEvent: {}, modal: null, ended: false, ready: false,
+      flags: { war: false, truce: 0, truceChi: 0, cazonciDead: false, rebel: false }, cazonci: { age: 40, heir: null }, ruler: 'zuangua', captain: 'veterano', prisoners: 0,
+      tributeOut: { amount: 0, left: 0 }, invasionAnio: 1478, ultimatum: null, oleada: 0, invasor: null, invTropas: this.D.C.invasion.tropas, lastRaid: -999, harvest: { left: 0, pen: 0 }, debtTicks: 0, series: [], lastAuto: -999,
+      alts: [mk('tzintzuntzan', 'Tzintzuntzan', 30000, 80, 10, 'tangaxoan', 0, []), mk('zacapu', 'Zacapu', 12000, 60, 40, 'inepto', 2, ['frontera_norte']), mk('uruapan', 'Uruapan', 18000, 75, 15, 'capaz', 1, [])],
+      chars: { zuangua: { name: 'Zuangua', admin: 3, command: 2, age: 40, alive: true }, tangaxoan: { name: 'Tangáxoan', admin: 4, command: 3, age: 28, alive: true }, hijo: { name: 'Hijo del cazonci', admin: 1, command: 1, age: 14, alive: true }, rival: { name: 'Señor de Uruapan', admin: 2, command: 4, age: 35, alive: true }, inepto: { name: 'Gobernador Inepto', admin: 1, command: 2, age: 45, alive: true }, capaz: { name: 'Gobernador Capaz', admin: 3, command: 2, age: 38, alive: true }, ambicioso: { name: 'Capitán Ambicioso', admin: 2, command: 5, age: 30, alive: true }, veterano: { name: 'Capitán Veterano', admin: 2, command: 3, age: 50, alive: true }, vacante: { name: 'Vacante', admin: 0, command: 0, age: 0, alive: true } } };
+    const PO = { tzintzuntzan: [['purepecha', 'nobleza', 0.1], ['purepecha', 'comun', 0.75], ['otomi', 'comun', 0.15]], zacapu: [['purepecha', 'comun', 0.7], ['otomi', 'comun', 0.3]], uruapan: [['purepecha', 'comun', 0.85], ['nahua', 'comun', 0.15]] };
+    const cl = (x) => Math.max(0, Math.min(100, x));
+    this.g.alts.forEach(a => { a.pops = PO[a.id].map(([i, e, s], k) => ({ id: a.id + k, identidad: i, estrato: e, tam: Math.round(a.pop * s), lealtad: cl(a.loyalty + (e === 'nobleza' ? 10 : 0) - (i !== 'purepecha' ? 8 : 0)), agravio: cl(a.agravio + (e === 'nobleza' ? -8 : 0) + (i !== 'purepecha' ? 5 : 0)) })); });
+    { let bi = 0, bd = 1e9; this.g.hexes.forEach((h, i) => { const d = Math.hypot(h.cx - 790, h.cy - 505); if (d < bd) { bd = d; bi = i; } }); this.g.ejercito = { pos: bi, dest: null, path: [], prog: 0 }; }
+    this.recalc(); this.recalc(); this.g.ready = true; this.g.chron = [];
+    this.chronicle(this.t('cronica.inicio'), 'crisis');
+  }
+  R() { let a = this.g.seed += 0x6D2B79F5; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+  chronicle(text, type) { this.g.chron.push({ year: this.g.year, v: this.g.v, text, type: type || '' }); }
+  alt(id) { return this.g.alts.find(a => a.id === id); }
+  syncPops() { for (const a of this.g.alts) { if (!a.pops) continue; const T = a.pops.reduce((s, p) => s + p.tam, 0) || 1; a.pop = T; a.agravio = a.pops.reduce((s, p) => s + p.agravio * p.tam, 0) / T; a.loyalty = a.pops.reduce((s, p) => s + p.lealtad * p.tam, 0) / T; a.moroso = !a.independent && a.id !== 'tzintzuntzan' && a.loyalty < 35; if (a.moroso && !a.m2 && this.g.ready) this.chronicle(this.t('cronica.tributo_impagado', { alt: a.name }), 'crisis'); a.m2 = a.moroso; } }
+  snap() { return this.g.alts.map(a => ({ a, ag: a.agravio, lo: a.loyalty, pop: a.pop })); }
+  reconcile(sn) { const cl = (x) => Math.max(0, Math.min(100, x)); for (const s of sn) { const a = s.a, dA = a.agravio - s.ag, dL = a.loyalty - s.lo, r = a.pop / s.pop; if (!dA && !dL && r === 1) continue; a.pops.forEach(p => { p.agravio = cl(p.agravio + dA); p.lealtad = cl(p.lealtad + dL); p.tam = Math.round(p.tam * r); }); } this.syncPops(); }
+  resnap(sn) { if (!sn) return; for (const s of sn) { s.ag = s.a.agravio; s.lo = s.a.loyalty; s.pop = s.a.pop; } }
+  // ---------- sistemas
+  power(a) { const IC = this.D.C.influencia; return a.independent ? 0.3 + a.pop / IC.indep_pop_div : 1 + a.pop / IC.pop_div * (1 - IC.efecto_eficiencia + IC.efecto_eficiencia * this.eff(a)) + a.garrison / IC.guarnicion_div + (a.yacata ? 0.3 : 0) + this.g.prestige / IC.prestigio_div; }
+  recalc() {
+    this.syncPops();
+    const g = this.g, IC = this.D.C.influencia, P = {}, S = this.SET(), ch = [];
+    g.alts.forEach(a => P[a.id] = this.power(a));
+    for (const h of g.hexes) {
+      const inf = {};
+      for (const s of S) { const d = Math.hypot(h.cx - s.p[0], h.cy - s.p[1]) / 107; const v = P[s.o] * (s.cap ? 1 : 0.6) * Math.exp(-d / IC.decaimiento); if (!(inf[s.o] >= v)) inf[s.o] = v; }
+      const so = Object.entries(inf).sort((x, y) => y[1] - x[1]);
+      let no = so[0][1] >= IC.umbral_poseer ? so[0][0] : null;
+      if (h.raided > g.t && h.terr !== 'lago') no = null;
+      if (h.occ && h.terr !== 'lago') no = h.occ;
+      if (h.owner && no && h.owner !== no && h.terr !== 'lago') ch.push([h.owner, no]);
+      h.owner = no; h.contested = !!no && !!so[1] && so[1][1] >= so[0][1] * IC.umbral_disputado; h.inf = inf;
+    }
+    for (const a of g.alts) { a.territory = g.hexes.filter(h => h.owner === a.id); a.territoryValue = a.territory.reduce((s, h) => s + h.yield, 0); a.res = {}; a.territory.forEach(h => a.res[h.res] = (a.res[h.res] || 0) + h.yield); }
+    if (g.ready) for (const [o, n] of ch) this.chronicle(this.t('cronica.frontera_gana', { ganador: this.alt(n).name, perdedor: this.alt(o).name }), 'consequence');
+  }
+  effLines(a) {
+    const g = this.g, E = this.D.C.eficiencia, gov = g.chars[a.governor];
+    const L = [{ k: 'Base', v: E.base }, { k: 'Gobernador (adm ' + gov.admin + ')', v: E.por_admin_gobernador * gov.admin }, { k: 'Distancia a la capital (' + a.distance + ')', v: E.por_distancia * a.distance }];
+    if (g.budget.administracion >= 25) L.push({ k: 'Presupuesto de admin ≥ 25%', v: E.bono_admin_25 });
+    const rl = g.chars[g.ruler]; if (rl.admin !== 3) L.push({ k: 'Cazonci ' + rl.name + ' (adm ' + rl.admin + ')', v: E.por_admin_cazonci * (rl.admin - 3) });
+    const sh = a.pops ? 1 - a.pops.filter(p => p.identidad === 'purepecha').reduce((s, p) => s + p.tam, 0) / a.pop : 0;
+    if (sh > 0.001) L.push({ k: 'Identidad ajena (' + Math.round(sh * 100) + '% de los pops)', v: Math.round(E.por_fraccion_identidad_ajena * sh) });
+    return { L, tot: Math.round(Math.max(E.clamp[0], Math.min(E.clamp[1], L.reduce((s, l) => s + l.v, 0)))) };
+  }
+  eff(a) { return this.effLines(a).tot / 100; }
+  taxM(a) { const g = this.g, b = this.D.C.economia.tasa_base; return a && a.id === 'tzintzuntzan' ? g.taxes.impuesto / b : (g.taxes.tributo + g.taxes.impuesto) / (2 * b); }
+  tShare(a) { const g = this.g; return a.id === 'tzintzuntzan' ? 0 : g.taxes.tributo / (g.taxes.tributo + g.taxes.impuesto); }
+  incomeParts(a) { const EC = this.D.C.economia, e = this.eff(a), t = this.taxM(a), y = (a.yacata ? 1.1 : 1) * (a.fortaleza ? 0.95 : 1); return { pop: a.pop * EC.ingreso_por_pop * e * t * y, terr: a.territoryValue * EC.ingreso_por_territorio * e * t }; }
+  rawIncome(a) { const p = this.incomeParts(a); return p.pop + p.terr; }
+  tributeIn() { return this.g.alts.filter(a => a.id !== 'tzintzuntzan' && !a.independent && !a.moroso).reduce((s, a) => s + this.rawIncome(a) * this.tShare(a), 0); }
+  income(a) { const own = this.rawIncome(a) * (1 - this.tShare(a)); return a.id === 'tzintzuntzan' ? own + this.tributeIn() : own; }
+  totalIncome() { return this.g.alts.filter(a => !a.independent).reduce((s, a) => s + this.income(a), 0); }
+  expenseLines() { const g = this.g, b = g.budget, u = this.D.C.economia.tesoro_por_punto_presupuesto; return [...(g.tributeOut.left > 0 ? [{ k: 'Tributo a la Triple Alianza', v: g.tributeOut.amount }] : []), { k: 'Ejército', v: Math.max(b.ejercito * u, Math.round(g.army * this.D.C.economia.mantenimiento_por_soldado)) }, { k: 'Administración', v: b.administracion * u }, { k: 'Obras', v: g.alts.some(a => a.building) ? b.obras * u : 0 }, { k: 'Diplomacia', v: b.diplomacia * u }]; }
+  totalExpenses() { return this.expenseLines().reduce((s, l) => s + l.v, 0); }
+  field() { const g = this.g; return Math.max(0, g.army - g.alts.reduce((s, a) => s + a.garrison, 0)); }
+  armies() { const g = this.g; return [{ id: 'principal', nombre: 'Ejército principal', capitan: g.captain, mando: g.chars[g.captain].command, tropas: this.field(), total: g.army, guarniciones: g.alts.filter(a => a.garrison > 0).map(a => ({ id: a.id, tropas: a.garrison })) }]; }
+  warStrength() { const g = this.g, G = this.D.C.guerra; return (1 + G.fuerza_por_mando * (g.chars[g.captain].command - 3)) * (this.field() + g.alts.reduce((s, a) => s + a.garrison * (a.id === 'zacapu' ? G.guarnicion_zacapu : G.guarnicion_otras), 0) + g.alts.filter(a => a.fortaleza && !a.independent).length * G.fuerza_por_fortaleza); }
+  enemigoAlianza() { return this.D.C.guerra.enemigo_alianza + (this.g.invasor ? this.g.invasor.tropas : this.g.invTropas); }
+  tx(d) { const E = this.D.C.economia; return d > 0 ? d * E.agravio_subir_impuesto + d * d : d * E.agravio_bajar_impuesto; }
+  roll(r) { const G = this.D.C.guerra, e = r * (G.roll_base + G.roll_varianza * this.R()); return e > G.victoria_umbral ? 'victoria' : e < G.derrota_umbral ? 'derrota' : 'empate'; }
+  odds(r) { const G = this.D.C.guerra, w = r * G.roll_varianza, lo = r * G.roll_base, c = (x) => Math.round(Math.max(0, Math.min(1, x)) * 100), v = c((lo + w - G.victoria_umbral) / w), d = c((G.derrota_umbral - lo) / w); return { v, d, e: 100 - v - d, txt: 'victoria ' + v + '% · empate ' + (100 - v - d) + '% · derrota ' + d + '%' }; }
+  pYear(r) { const P = this.D.C.guerra.p_ataque; if (r <= P.r_min) return P.max; const p = r >= 1 ? P.base * Math.exp(-P.k * (r - 1)) : P.base + P.slope * (1 - r) / 0.7; return Math.min(P.max, P.escala_prototipo * p); }
+  clampG() { const g = this.g, t = g.alts.reduce((s, a) => s + a.garrison, 0); if (t > g.army) { const k = g.army / t; g.alts.forEach(a => a.garrison = Math.round(a.garrison * k)); } }
+  needs(a, p) { const g = this.g; let food = 0, rest = 0; for (const k in a.res) { if (k === 'maiz' || k === 'pescado') food += a.res[k]; else rest += a.res[k]; }
+    const hp = g.harvest.left > 0 ? g.harvest.pen : 0, sub = Math.max(0, Math.min(100, food * 9000 / a.pop + (a.troje ? 15 : 0) - hp)), cot = Math.min(100, rest * 7000 / a.pop), b = p && p.estrato === 'nobleza' ? 20 : 0;
+    return { sub: Math.min(100, sub + b), cot: Math.min(100, cot + b) }; }
+  popParts(a, p) { const g = this.g, gov = g.chars[a.governor], tx = p.estrato === 'nobleza' ? 0.5 : 1, n = this.needs(a, p), r1 = (x) => Math.round(x * 10) / 10;
+    return [{ k: 'Tributo', v: a.id === 'tzintzuntzan' ? 0 : this.tx(g.taxes.tributo - 3) * tx }, { k: 'Impuesto interno', v: this.tx(g.taxes.impuesto - 3) * tx }, { k: 'Gobernador (adm ' + gov.admin + ')', v: (2 - gov.admin) * 3 }, { k: 'Yácata', v: a.yacata ? -5 : 0 }, { k: 'Troje', v: a.troje ? -3 : 0 }, { k: 'Ocupación por guarnición', v: r1(Math.max(0, a.garrison - a.pop / 30) / 500) }, { k: 'Subsistencia sin cubrir', v: r1((100 - n.sub) / 100 * 8) }, { k: 'Necesidades cotidianas sin cubrir', v: r1((100 - n.cot) / 100 * 4) }, { k: 'Identidad ajena', v: p.identidad === 'purepecha' ? 0 : 2 }, { k: 'Distancia a la capital', v: a.distance * 1.5 }]; }
+  agravioParts(a) { const P = a.pops.map(p => this.popParts(a, p)); return P[0].map((l, i) => ({ k: l.k, v: Math.round(P.reduce((s, pp, j) => s + pp[i].v * a.pops[j].tam, 0) / a.pop * 10) / 10 })); }
+  ageChars() { const g = this.g, PC = this.D.C.personajes; for (const [id, c] of Object.entries(g.chars)) { if (!c.alive || id === g.ruler || id === 'vacante') continue; if (this.R() < Math.max(0, (c.age - PC.edad_envejecimiento) * PC.prob_muerte_por_anio) + PC.prob_muerte_base) { c.alive = false; this.chronicle(this.t('cronica.muerte', { personaje: c.name }), 'crisis'); g.alts.forEach(a => { if (a.governor === id) a.governor = 'vacante'; }); if (g.captain === id) g.captain = 'vacante'; if (g.cazonci.heir === id) g.cazonci.heir = null; } } }
+  // ---------- motor de datos
+  getP(o, path) { return path.split('.').reduce((x, k) => x == null ? x : x[k], o); }
+  setP(o, path, v) { const ks = path.split('.'), last = ks.pop(); const t = ks.reduce((x, k) => x[k], o); t[last] = v; }
+  ent(spec, ctx) {
+    if (spec && typeof spec === 'object') return spec;
+    const g = this.g, m = /^\$(\w+)(?:\[(\w+)\])?$/.exec(spec || ''); if (!m) return null;
+    if (m[1] === 'faccion') return { k: 'f', o: g };
+    if (m[1] === 'capital') return { k: 'a', o: this.alt('tzintzuntzan') };
+    if (m[1] === 'alts') return m[2] ? { k: 'a', o: this.alt(m[2]) } : (ctx.it ? { k: 'a', o: ctx.it } : null);
+    const b = ctx.bind && ctx.bind[m[1]]; return b ? { k: 'a', o: b } : null;
+  }
+  alias(e, m) {
+    if (e.k === 'a') return { nombre: 'name', lealtad: 'loyalty', poblacion: 'pop', guarnicion: 'garrison' }[m] || m;
+    const F = { tesoro: 'treasury', prestigio: 'prestige', ejercito: 'army', capitan: 'captain', prisioneros: 'prisoners', moral: 'morale' };
+    if (F[m]) return F[m]; if (m.startsWith('tasas.')) return 'taxes.' + m.slice(6); return m;
+  }
+  getM(e, m) { if (e.k === 'f' && m === 'campo') return this.field(); if (e.k === 'f' && m === 'fuerza') return this.warStrength(); return this.getP(e.o, this.alias(e, m)); }
+  setM(e, m, v) { const p = this.alias(e, m); if (e.k === 'f' && p === 'army') { this.g.army = Math.max(0, Math.round(v)); this.clampG(); return; } if (e.k === 'f' && p === 'prisoners') v = Math.max(0, Math.round(v)); this.setP(e.o, p, v); }
+  ref(s, ctx) {
+    const m = /^\$(\w+)(?:\[(\w+)\])?(?:\.(.+))?$/.exec(s); if (!m) return undefined;
+    if (m[1] === 'tick') return this.g.t;
+    if (m[1] === 'cazonci') return this.getP(this.g, 'cazonci.' + m[3]);
+    const e = this.ent('$' + m[1] + (m[2] ? '[' + m[2] + ']' : ''), ctx); if (!m[3]) return e;
+    return e ? this.getM(e, m[3]) : undefined;
+  }
+  val(x, ctx) {
+    if (x === null || x === undefined || typeof x === 'number' || typeof x === 'boolean') return x;
+    if (typeof x === 'string') { if (x[0] === '$') return this.ref(x, ctx); if (/^[A-Z][A-Z0-9_]+$/.test(x)) return this.K(x); return x; }
+    if (Array.isArray(x)) return x;
+    if (x.formula) return this.F(x.formula, x.args, ctx);
+    const o = {}; for (const k in x) o[k] = this.val(x[k], ctx); return o;
+  }
+  F(name, args, ctx) {
+    const A = args ? this.val(args, ctx) : {}, C = this.D.C;
+    switch (name) {
+      case 'prob_rebelion_por_agravio': { const P = C.rebelion.prob_formula; return P.base + P.pendiente * Math.max(0, Math.min(1, (A.agravio - P.umbral_agravio) / P.span)); }
+      case 'prob_rebelion_por_tick': return A.lealtad > C.rebelion.umbral_lealtad ? 0 : C.rebelion.prob_por_tick * (1 - Math.min(1, ((A.guarnicion || 0) + (A.ejercito || 0)) / C.rebelion.guarnicion_div));
+      case 'fuerza_guerra': return this.warStrength() / (A.enemigo || this.enemigoAlianza());
+      case 'p_ataque_alianza': return 1 - Math.pow(1 - this.pYear(A.ratio), 1 / C.ticks_por_anio);
+      case 'roll_guerra': return this.roll(A.ratio);
+      case 'tick_mas': return A.t + A.n;
+      case 'perdida_cosecha': return A.troje ? 0.98 : 0.95;
+      case 'negar': return -A.x;
+      case 'producto': return A.a * A.b;
+      case 'prisioneros_prestigio': return Math.min(8, Math.floor(A.n / 100) * C.prisioneros.prestigio_por_cien);
+      default: console.warn('Fórmula desconocida: ' + name); return 0;
+    }
+  }
+  cmp(a, op, b) { a = a ?? null; b = b ?? null; switch (op) { case '!=': return a !== b; case '==': return a === b; case '<': return a < b; case '>': return a > b; case '<=': return a <= b; case '>=': return a >= b; } return false; }
+  is(v, es, ctx) { if (es === null) return v == null; if (es === true) return !!v; if (es === false) return !v; if (typeof es === 'object') return this.cmp(v, es.cmp, this.val(es.valor, ctx)); return v === es; }
+  getField(campo, ctx) { if (campo[0] === '$') return this.ref(campo, ctx); return this.getP(this.g, campo.replace(/\{([^}]+)\}/g, (_, k) => this.getP(this.g, k))); }
+  setPath(campo, v, ctx) { if (campo[0] === '$') { const m = /^\$(\w+)\.(.+)$/.exec(campo); const e = this.ent('$' + m[1], ctx); if (e) this.setP(e.o, this.alias(e, m[2]), v); return; } this.setP(this.g, campo, v); }
+  cond(c, ctx) {
+    const g = this.g;
+    switch (c.tipo) {
+      case 'magnitud': { const e = this.ent(c.entidad, ctx); if (!e) return false; const v = this.getM(e, c.magnitud); if (c.min !== undefined && !(v >= this.val(c.min, ctx))) return false; if (c.max !== undefined && !(v <= this.val(c.max, ctx))) return false; if (c.cmp) return this.cmp(v, c.cmp, this.val(c.valor, ctx)); return true; }
+      case 'flag': return this.is(this.getField(c.campo, ctx), c.es, ctx);
+      case 'probabilidad': return this.R() < (c.formula ? this.F(c.formula, c.formula === 'prob_rebelion_por_tick' && ctx.bind && ctx.bind.a ? { ...c.args, ejercito: this.ejercitoEn(ctx.bind.a) } : c.args, ctx) : this.val(c.p, ctx));
+      case 'tick_min': return g.t >= (this.val(c.t, ctx) || 0);
+      case 'existe': return g.alts.some(a => this.match(a, c.filtro || {}, ctx));
+      case 'reciente': return g.t - (this.getP(g, c.campo) ?? -999) <= this.val(c.ventana, ctx);
+    }
+    console.warn('Condición desconocida: ' + c.tipo); return true;
+  }
+  conds(list, ctx) { for (const c of list || []) if (!this.cond(c, ctx)) return false; return true; }
+  match(a, f, ctx) {
+    for (const k in f) {
+      const w = f[k], v = this.getM({ k: 'a', o: a }, k);
+      if (w === null) { if (v != null) return false; }
+      else if (typeof w === 'boolean') { if (!!v !== w) return false; }
+      else if (typeof w === 'number' || typeof w === 'string') { if (v !== w) return false; }
+      else if (Array.isArray(w)) { if (!w.every(t => (a.tags || []).includes(t))) return false; }
+      else { if (w.min !== undefined && !(v >= this.val(w.min, ctx))) return false; if (w.max !== undefined && !(v <= this.val(w.max, ctx))) return false; if (w.entre && !(v >= w.entre[0] && v <= w.entre[1])) return false; if (w.cmp && !this.cmp(v, w.cmp, this.val(w.valor, ctx))) return false; }
+    }
+    return true;
+  }
+  matchPop(p, f) { for (const k in f || {}) { const w = f[k]; if (w && typeof w === 'object') { if (!this.cmp(p[k], w.cmp, w.valor)) return false; } else if (p[k] !== w) return false; } return true; }
+  canPay(costo, ctx) { if (!costo) return true; if (costo.tesoro !== undefined && this.g.treasury < this.val(costo.tesoro, ctx)) return false; return true; }
+  pay(costo, ctx) { if (costo && costo.tesoro !== undefined) this.g.treasury = Math.max(0, this.g.treasury - this.val(costo.tesoro, ctx)); }
+  exec(list, ctx) {
+    const g = this.g;
+    for (const x of list || []) switch (x.tipo) {
+      case 'magnitud': { const e = this.ent(x.entidad, ctx); if (!e || !e.o) break; let v = this.getM(e, x.magnitud); if (x.sumar !== undefined) v += this.val(x.sumar, ctx); if (x.factor !== undefined) v *= this.val(x.factor, ctx); if (x.fijar !== undefined) v = this.val(x.fijar, ctx); if (x.clamp) v = Math.max(x.clamp[0], Math.min(x.clamp[1], v)); if (x.clamp_min !== undefined) v = Math.max(x.clamp_min, v); this.setM(e, x.magnitud, v); break; }
+      case 'tasa': g.taxes[x.cual] = Math.max(x.min ?? 1, Math.min(5, g.taxes[x.cual] + x.delta)); break;
+      case 'encolar': { const e = this.ent(x.objetivo, ctx); if (e && this.R() < (x.probabilidad === undefined ? 1 : this.val(x.probabilidad, ctx))) g.queue.push({ kind: 'crisis', id: x.crisis, bind: { a: e.o } }); break; }
+      case 'para_cada': for (const a of g.alts) if (this.match(a, x.filtro || {}, ctx)) this.exec(x.efectos, { ...ctx, it: a }); break;
+      case 'construir': { let site = typeof x.sitio === 'string' ? (this.ent(x.sitio, ctx) || {}).o : g.alts.find(a => this.match(a, (x.sitio || {}).filtro || {}, ctx)); if (!site) { this.exec(x.si_no_hay, ctx); break; } if (x.costo) this.pay(x.costo, ctx); site.building = x.edificio; site.buildProgress = 0; if (x.costo || x.si_no_hay) this.chronicle(this.t('cronica.obra_iniciada', { edificio: this.t('edificios.' + x.edificio + '.nombre').toLowerCase(), alt: site.name }), 'consequence'); break; }
+      case 'estado': case 'flag': this.setPath(x.campo, this.val(x.fijar, ctx), ctx); break;
+      case 'probabilidad': this.exec(this.R() < this.val(x.p, ctx) ? x.efectos : x.sino, ctx); break;
+      case 'si': this.exec(this.conds(x.condicion, ctx) ? x.entonces : x.sino, ctx); break;
+      case 'crear_pop': { const e = this.ent(x.entidad, ctx), n = Math.round(this.val(x.tamano, ctx) || 0); if (e && n > 0) { e.o.pops.push({ id: 'p' + g.t + '_' + e.o.pops.length, identidad: x.identidad, estrato: x.estrato, tam: n, lealtad: x.lealtad, agravio: x.agravio }); this.syncPops(); this.resnap(ctx.sn); } break; }
+      case 'pops': { for (const a of g.alts) if (!a.independent) for (const p of a.pops) if (this.matchPop(p, x.filtro_pop)) p[x.magnitud] = Math.max(0, Math.min(100, p[x.magnitud] + this.val(x.sumar, ctx))); this.syncPops(); this.resnap(ctx.sn); break; }
+      case 'cronica': this.chronicle(x.texto_clave ? this.t(x.texto_clave, ctx.bind) : this.fmt(x.texto, ctx), x.tipo_cronica); break;
+      case 'prisioneros': g.prisoners = Math.max(0, g.prisoners + this.val(x.sumar, ctx)); break;
+      case 'resolver': { const out = this.F(x.formula, x.args, ctx); ctx.out = out; this.exec(x[out], ctx); break; }
+      default: console.warn('Efecto desconocido: ' + x.tipo);
+    }
+  }
+  gvar(k) {
+    const g = this.g, ws = this.warStrength(), C = this.D.C;
+    switch (k) {
+      case 'fuerza_guerra': return Math.round(ws).toLocaleString('es-MX');
+      case 'enemigo_alianza': return f(this.enemigoAlianza());
+      case 'ratio': return Math.round(ws / this.enemigoAlianza() * 100) + '%';
+      case 'odds': case 'odds_alianza': return this.odds(ws / this.enemigoAlianza()).txt;
+      case 'odds_chichimeca': return this.odds(ws / C.guerra.enemigo_chichimeca).txt;
+      case 'casus_chichimeca': return g.t - g.lastRaid <= C.guerra.casus_ventana ? 'Casus belli: incursión reciente' : 'Sin casus belli: prestigio −' + C.guerra.sin_casus_chichimeca;
+    }
+    return undefined;
+  }
+  show(v) { return typeof v === 'number' ? Math.round(v).toLocaleString('es-MX') : String(v ?? '—'); }
+  fmt(s, ctx) {
+    if (!s) return '';
+    return s.replace(/\{([^}]+)\}/g, (_, k) => {
+      const gv = this.gvar(k); if (gv !== undefined) return gv;
+      const ps = k.split('.'), r = ps[0], rest = ps.slice(1).join('.');
+      if (r === 'faccion') return this.show(this.getM({ k: 'f', o: this.g }, rest));
+      if (r === 'cazonci' && ps[1] === 'heir') { const h = this.g.cazonci.heir; return h ? this.g.chars[h].name : '—'; }
+      if (ctx && ctx.bind && ctx.bind[r]) return this.show(this.getM({ k: 'a', o: ctx.bind[r] }, rest));
+      const kv = this.K(k.toUpperCase(), true); return kv !== undefined ? this.show(kv) : '{' + k + '}';
+    });
+  }
+  bindLiga(liga, pref) {
+    const b = {};
+    for (const v in liga) { const list = this.g.alts.filter(a => this.match(a, liga[v].filtro || {}, { bind: b })); if (!list.length) return null; b[v] = pref && list.includes(pref) ? pref : list[Math.floor(this.R() * list.length)]; }
+    return b;
+  }
+  txt(pre, def, field, ctx, oid) {
+    const key = pre + '.' + def.id + (oid ? '.opciones.' + oid : '') + '.' + field;
+    if (typeof this.getP(this.T, key) === 'string') return this.t(key, ctx.bind);
+    const raw = oid ? (def.opciones.find(o => o.id === oid) || {})[field] : def[field];
+    return this.fmt(raw, ctx);
+  }
+  openModal(def, bind, kind) {
+    const ctx = { bind: bind || {} };
+    const pre = kind === 'crisis' ? 'crisis' : 'eventos', TX = (f, oid) => this.txt(pre, def, f, ctx, oid);
+    let opts = def.opciones.map(o => { const ok = this.conds(o.requisitos, ctx) && this.canPay(o.costo, ctx); return { o, ok, title: TX('titulo', o.id), cost: TX('costo_visible', o.id), why: ok ? '' : this.t('modal.requisitos_fallidos') }; });
+    if (kind === 'crisis') opts = opts.filter(x => x.ok);
+    this.g.modal = { def, kind, ctx, title: TX('titulo'), cuerpo: TX('cuerpo'), desc: TX('descripcion'), options: opts };
+  }
+  pick(i) {
+    const g = this.g, M = g.modal, op = M && M.options[i]; if (!op || !op.ok) return;
+    const m0 = this.metrics(), sn = this.snap(), ctx = { ...M.ctx, sn };
+    this.pay(op.o.costo, ctx); this.exec(op.o.efectos, ctx); this.reconcile(sn); this.clampG();
+    this.logD(M.title, op.title, !!op.o.de_rumbo, m0, false);
+    g.modal = null; this.recalc(); this.next(); this.forceUpdate();
+  }
+  actionView(def, sel) {
+    let bind = {};
+    if (def.liga) { const pref = def.grupo === 'edificios' ? sel : null; if (def.grupo === 'edificios') { if (!this.match(sel, def.liga.a.filtro || {}, { bind: {} })) return null; bind = { a: sel }; } else { const list = this.g.alts.filter(a => this.match(a, def.liga.a.filtro || {}, { bind: {} })); if (!list.length) return null; bind = { a: list.includes(sel) ? sel : list[0] }; } }
+    const ctx = { bind }, ok = !this.g.modal && !this.g.ended && this.conds(def.requisitos, ctx) && this.canPay(def.costo, ctx);
+    return { title: this.txt('acciones', def, 'titulo', ctx), cost: this.txt('acciones', def, 'costo_visible', ctx), off: !ok, op: ok ? 1 : 0.45, run: () => this.runAction(def, bind) };
+  }
+  runAction(def, bind) {
+    const g = this.g, ctx0 = { bind }; if (g.modal || g.ended || !this.conds(def.requisitos, ctx0) || !this.canPay(def.costo, ctx0)) return;
+    const m0 = this.metrics(), sn = this.snap(), ctx = { bind, sn }, title = this.txt('acciones', def, 'titulo', ctx);
+    this.pay(def.costo, ctx); this.exec(def.efectos, ctx); this.reconcile(sn); this.clampG();
+    this.logD(title, title, !!def.de_rumbo, m0, !def.de_rumbo); this.recalc(); this.forceUpdate();
+  }
+  // ---------- ciclo
+  endTurn = () => { this.step(); this.forceUpdate(); }
+  runUntil = () => { let n = 0; while (this.g && !this.g.modal && !this.g.ended && n < 220) { this.step(); n++; } this.forceUpdate(); }
+  step() {
+    const g = this.g, C = this.D.C; if (!g || g.ended || g.modal) return;
+    const cl = (x) => Math.max(0, Math.min(100, x)), TY = C.ticks_por_anio;
+    this.resolveLog(false);
+    g.treasury += (this.totalIncome() - this.totalExpenses()) / TY;
+    if (g.treasury < 0) { g.treasury = 0; g.debtTicks++; const dt = g.debtTicks; if (dt === 1) this.chronicle(this.t('cronica.tesoro_agotado'), 'crisis'); if (dt % C.deuda.moral_cada === 1) g.morale = Math.max(0, g.morale - 1); if (dt % C.deuda.prestigio_cada === 1) g.prestige -= 1; g.army = Math.round(g.army * C.deuda.desercion); this.clampG(); } else g.debtTicks = 0;
+    for (const a of g.alts) { if (a.independent) continue; for (const p of a.pops) { const d = this.popParts(a, p).reduce((s, l) => s + l.v, 0) / TY; p.agravio = cl(p.agravio + d); const tgt = 100 - p.agravio + Math.min(20, a.garrison / 100); p.lealtad = cl(p.lealtad + (tgt - p.lealtad) * 0.02 + (a.yacata ? 2 / TY : 0)); } }
+    if (g.harvest.left > 0) g.harvest.left--;
+    g.prisoners = Math.floor(g.prisoners * C.prisioneros.decaimiento); if (g.tributeOut.left > 0) g.tributeOut.left--; this.marchar(); this.incTick(); this.invMarcha();
+    if (g.v === TY) { this.ageChars(); const M = C.morale, Dp = C.diplomacia;
+      if (g.budget.ejercito < M.ejercito_bajo) g.morale = Math.max(0, g.morale - 1); else if (g.budget.ejercito > M.ejercito_alto) g.morale = Math.min(10, g.morale + 1);
+      if (g.budget.diplomacia < Dp.prestigio_bajo) g.prestige -= 1; else if (g.budget.diplomacia >= Dp.prestigio_alto) g.prestige += 2; else if (g.budget.diplomacia >= Dp.prestigio_medio) g.prestige += 1;
+      if (g.taxes.tributo >= 2 && !g.alts.some(a => a.moroso || a.independent)) g.prestige += 1; }
+    const CO = C.construccion;
+    for (const a of g.alts) if (a.building && g.budget.obras >= CO.presupuesto_minimo) { a.buildProgress++; if (a.buildProgress >= CO.duracion[a.building]) { this.chronicle(this.t('cronica.obra_terminada', { edificio: this.t('edificios.' + a.building + '.nombre').toLowerCase(), alt: a.name }), 'consequence'); a[a.building] = true; g.prestige += a.building === 'fortaleza' ? CO.prestigio_fortaleza : CO.prestigio_yacata; a.building = null; } }
+    this.recalc();
+    const IN = C.incursion;
+    for (const a of g.alts) { if (a.independent) continue;
+      const fr = a.territory.filter(h => h.terr !== 'lago' && g.hexes.some(n => !n.owner && n.terr !== 'lago' && Math.hypot(n.cx - h.cx, n.cy - h.cy) < 115));
+      if (fr.length && this.R() < IN.prob_por_tick * (1 - Math.min(0.7, a.garrison / IN.guarnicion_div)) * (g.hexes[g.ejercito.pos].owner === a.id ? 0.5 : 1)) { fr[Math.floor(this.R() * fr.length)].raided = g.t + IN.marca_veintenas; a.pops.forEach(p => p.tam = Math.round(p.tam * IN.perdida_poblacion)); g.lastRaid = g.t; this.chronicle(this.t('cronica.incursion', { alt: a.name }), 'crisis'); } }
+    this.recalc(); this.clampG();
+    g.queue = []; g.flags.rebel = false;
+    const evs = [];
+    for (const e of this.D.E) { if (g.t - (g.lastEvent[e.id] ?? -999) < e.cd_veintenas) continue; let bind = {}; if (e.liga) { bind = this.bindLiga(e.liga); if (!bind) continue; } if (!this.conds(e.condicion, { bind })) continue; evs.push({ e, bind }); }
+    if (evs.length && this.R() < C.narrador.prob_por_tick) { const tot = evs.reduce((s, x) => s + (x.e.peso || 1), 0); let r = this.R() * tot, pk = evs[0]; for (const x of evs) { r -= (x.e.peso || 1); if (r <= 0) { pk = x; break; } } g.lastEvent[pk.e.id] = g.t; g.queue.push({ kind: 'evento', def: pk.e, bind: pk.bind }); }
+    for (const k of this.D.K) { const lists = k.liga ? g.alts.filter(a => this.match(a, k.liga.a.filtro || {}, { bind: {} })).map(a => ({ a })) : [{}];
+      for (const b of lists) { const ctx = { bind: b }; if (this.conds(k.condicion_entrada, ctx) && this.conds(k.precondicion, ctx) && !g.queue.some(q => q.id === k.id && q.bind.a === b.a)) g.queue.push({ kind: 'crisis', id: k.id, bind: b }); } }
+    this.next();
+  }
+  next = () => {
+    const g = this.g;
+    while (g.queue.length) {
+      const q = g.queue.shift();
+      if (q.kind === 'evento') { this.openModal(q.def, q.bind, 'evento'); return; }
+      const k = this.D.K.find(x => x.id === q.id), ctx = { bind: q.bind || {} };
+      if (!k || !this.conds(k.condicion_entrada, ctx)) continue;
+      if (k.marca_estado) this.setPath(k.marca_estado.campo, this.val(k.marca_estado.fijar, ctx), ctx);
+      const sn = this.snap(); this.exec(k.efectos_entrada, { ...ctx, sn }); this.reconcile(sn);
+      this.openModal(k, q.bind, 'crisis'); if (!g.modal.options.length) { g.modal = null; continue; } return;
+    }
+    this.advance();
+  }
+  advance() {
+    const g = this.g, TY = this.D.C.ticks_por_anio; g.t++; g.v = g.t % TY + 1; const y = 1475 + Math.floor(g.t / TY);
+    if (y !== g.year) { this.pushSeries(); g.year = y; if (y === this.D.C.invasion.ultimatum_anio && !g.ultimatum) this.emitirUltimatum(); if (y === g.invasionAnio && !g.invasor) this.spawnInvasor(); g.cazonci.age++; Object.values(g.chars).forEach(c => c.age++); if (y >= g.endYear) { g.ended = true; this.resolveLog(true); return; }
+      this.chronicle(this.t('cronica.anio_resumen', { anio: String(y), tesoro: Math.round(g.treasury).toLocaleString('es-MX'), prestigio: String(g.prestige), hexes: String(g.alts.filter(a => !a.independent).reduce((s, a) => s + a.territory.length, 0)) })); }
+  }
+  // ---------- registro
+  metrics() { const g = this.g, al = g.alts.filter(a => !a.independent), n = al.length || 1; return { tes: Math.round(g.treasury), pre: g.prestige, lea: al.reduce((s, a) => s + a.loyalty, 0) / n, agr: al.reduce((s, a) => s + a.agravio, 0) / n, ter: al.reduce((s, a) => s + a.territory.length, 0), ind: g.alts.filter(a => a.independent).length, ej: g.army, net: Math.round(this.totalIncome() - this.totalExpenses() + this.expenseLines().filter(l => l.k === 'Obras').reduce((s, l) => s + l.v, 0)) }; }
+  logD(d, o, s, m0, r) { const g = this.g; g.log.push({ t: g.t, year: g.year, v: g.v, decision: d, option: o, routine: !!r, structural: !!s, changing: !!s, done: false, m0: m0 || this.metrics(), m1: null, why: s ? this.t('resolucion.motivo.estructural') : '' }); }
+  resolveLog(force) {
+    const g = this.g, m1 = this.metrics(), RS = this.D.C.resolucion;
+    for (const e of g.log) { if (e.done || (!force && g.t - e.t < RS.dias)) continue; e.done = true; e.m1 = m1; const m = e.m0, w = [];
+      const d = (k, th, lab) => { const x = m1[k] - m[k]; if (Math.abs(x) >= th) w.push(lab + ' ' + this.sg(Math.round(x))); };
+      d('pre', RS.umbral_prestigio, this.t('resolucion.componente.prestigio')); d('lea', RS.umbral_lealtad, this.t('resolucion.componente.lealtad')); d('ter', RS.umbral_hexes, this.t('resolucion.componente.hexes')); d('ind', RS.umbral_rebeldes, this.t('resolucion.componente.rebeldes')); d('net', RS.umbral_balance, this.t('resolucion.componente.balance')); d('ej', RS.umbral_ejercito, this.t('resolucion.componente.ejercito'));
+      let eff = e.routine ? [] : w, note = '';
+      if (e.structural) g.lastAuto = e.t; else if (eff.length) { if (e.t - g.lastAuto >= RS.gap_estructural) g.lastAuto = e.t; else { eff = []; note = this.t('resolucion.motivo.atribuido'); } }
+      e.changing = e.structural || eff.length > 0; e.why = ((e.structural ? this.t('resolucion.motivo.estructural') : '') + (e.structural && eff.length ? ' · ' : '') + eff.join(', ')) || note || (e.routine && w.length ? this.t('resolucion.motivo.rutina') : this.t('resolucion.motivo.sin_cambio')); }
+  }
+  pushSeries() { const g = this.g; g.series.push(Object.assign({ año: g.year }, this.metrics())); }
+  sg(n) { return (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(Math.round(n * 10) / 10); }
+  col(n) { return n > 0 ? '#a9cc62' : n < 0 ? '#e8876c' : '#c8b48a'; }
+  exportLog = () => {
+    const g = this.g; if (!g) return; this.resolveLog(false);
+    const pay = { juego: 'Hito 0 v4', semilla: g.seed0, fecha_actual: g.year + '·V' + g.v, tasas: g.taxes, presupuesto: g.budget, rubrica: { decisiones: g.log.length, de_rumbo: g.log.filter(e => e.changing).length },
+      decisiones: g.log.map(e => ({ t: e.t, fecha: e.year + '·V' + e.v, decision: e.decision, opcion: e.option, rutina: e.routine, estructural: e.structural, de_rumbo: e.changing, resuelta: e.done, motivo: e.why, antes: e.m0, despues: e.m1 })),
+      serie_anual: g.series, cronica: g.chron.map(e => ({ fecha: e.year + '·V' + e.v, tipo: e.type, texto: e.text })) };
+    const s = JSON.stringify(pay, null, 2);
+    try { const b = new Blob([s], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'hito0-v4-log-' + g.seed0 + '.json'; document.body.appendChild(a); a.click(); a.remove(); } catch (err) {}
+    try { navigator.clipboard.writeText(s).catch(() => {}); } catch (err) {}
+  }
+  makeHarness() {
+    const Cls = this.constructor, results = [];
+    const fresh = (seed) => {
+      const c = new Cls(this.props);
+      c.D = this.D; c.T = this.T;
+      c.state = { err: '', sel: 'zacapu', selSet: 'Zacapu', tab: 'resumen', layer: 'influencia', left: 'tributo', chron: false };
+      c.forceUpdate = () => {}; c.setState = () => {};
+      c.newGame(); c.g.seed = seed | 1; c.g.seed0 = seed | 1; return c;
+    };
+    const choose = (c, s) => { const g = c.g, n = g.modal.options.length; const okIdx = g.modal.options.map((o, i) => o.ok ? i : -1).filter(i => i >= 0); if (!okIdx.length) return -1;
+      if (s === 'first') return okIdx[0]; if (s === 'last') return okIdx[okIdx.length - 1]; if (s === 'random') return okIdx[Math.floor(Math.random() * okIdx.length)];
+      const ti = g.modal.title || ''; if (ti.includes('Guerra')) return c.warStrength() / 6000 >= 0.9 ? okIdx[0] : okIdx[okIdx.length - 1];
+      if (ti.includes('Excedente')) return g.treasury < 400 ? okIdx[Math.min(2, okIdx.length - 1)] : okIdx[0];
+      if (ti.includes('cosecha')) return g.treasury < 150 ? okIdx[okIdx.length - 1] : okIdx[0];
+      if (ti.includes('Rebelión')) return c.field() >= 1500 ? okIdx[0] : okIdx[okIdx.length - 1];
+      return okIdx[0]; };
+    const one = (seed, s, o = {}) => { const c = fresh(seed), g = c.g; let k = 0, mc = 0;
+      while (!g.ended && k < (12 * 18 + 200)) { if (o.fixTaxes) { g.taxes.tributo = 3; g.taxes.impuesto = 3; } if (g.modal) { mc++; const i = choose(c, s); if (i < 0) { g.modal = null; c.next(); } else c.pick(i); } else c.step(); k++; }
+      c.resolveLog(true);
+      const log = g.log, by = {}, ty = {}, ch = {};
+      for (const e of log) { by[e.year] = (by[e.year] || 0) + 1; ty[e.decision] = (ty[e.decision] || 0) + 1; if (e.changing) ch[e.decision] = (ch[e.decision] || 0) + 1; }
+      const empty = []; for (let y = 1475; y < Math.min(g.year, 1485); y++) if (!by[y]) empty.push(y);
+      return { seed, strategy: s, ended: g.ended, finalYear: g.year, total: log.length, changing: log.filter(e => e.changing).length, structural: log.filter(e => e.structural).length, byYear: by, emptyYears: empty, decisionTypes: ty, changingTypes: ch, metrics: c.metrics(), territory: c.metrics().ter, indep: g.alts.filter(a => a.independent).length, chronicleLen: g.chron.length, modalCount: mc, log }; };
+    const run = (o = {}) => { results.length = 0; const n = o.seeds || 20, s = o.strategy || 'first', b = o.baseSeed || 12345; for (let i = 0; i < n; i++) { const seed = (b + i * 7919) | 1; try { results.push(one(seed, s, o)); } catch (e) { results.push({ seed, strategy: s, error: String(e && e.stack || e) }); } } return results; };
+    const summary = () => { const ok = results.filter(r => !r.error), n = ok.length || 1, avg = (f) => ok.reduce((a, r) => a + f(r), 0) / n, pct = (f) => Math.round(100 * ok.filter(f).length / n), RB = this.D.C.rubrica;
+      const by = {}, ty = {}, ch = {}; for (const r of ok) { for (const y in r.byYear) by[y] = (by[y] || 0) + r.byYear[y]; for (const k in r.decisionTypes) ty[k] = (ty[k] || 0) + r.decisionTypes[k]; for (const k in r.changingTypes) ch[k] = (ch[k] || 0) + r.changingTypes[k]; }
+      return { n, errors: results.length - ok.length, rubricBoth: pct(r => r.total >= RB.decisiones && r.changing >= RB.de_rumbo), avgTotal: +avg(r => r.total).toFixed(1), avgChanging: +avg(r => r.changing).toFixed(1), avgStructural: +avg(r => r.structural).toFixed(1), avgEmptyYears: +avg(r => r.emptyYears.length).toFixed(1), avgTreasury: Math.round(avg(r => r.metrics.tes)), avgPrestige: +avg(r => r.metrics.pre).toFixed(1), avgArmy: Math.round(avg(r => r.metrics.ej)), avgTerritory: +avg(r => r.territory).toFixed(1), avgLoyalty: +avg(r => r.metrics.lea).toFixed(1), avgAgravio: +avg(r => r.metrics.agr).toFixed(1), avgIndep: +avg(r => r.indep).toFixed(2), endedEarly: ok.filter(r => !r.ended).length, byYear: by, decisionTypes: ty, changingTypes: ch, errorsList: results.filter(r => r.error).map(r => r.error.slice(0, 200)) }; };
+    const timeline = (seed, s) => { const r = one(seed, s || 'smart'); let y = null; const L = []; for (const e of r.log) { if (e.year !== y) { L.push('\n' + e.year + ':'); y = e.year; } L.push('  V' + e.v + ' ' + e.decision + ' → ' + e.option + (e.changing ? ' [RUMBO]' : '') + (e.why ? '  (' + e.why + ')' : '')); } return { summary: r.total + ' decisiones, ' + r.changing + ' de rumbo', text: L.join('\n') }; };
+    return { run, summary, timeline, results };
+  }
+  mapClamp(z, x, y, W, H) { z = Math.max(1, Math.min(3, z)); return { mz: z, mx: Math.min(0, Math.max(W - W * z, x)), my: Math.min(0, Math.max(H - H * z, y)) }; }
+  mapZoomAt(el, cx, cy, z1) { const s = this.state, z0 = s.mz || 1, z = Math.max(1, Math.min(3, z1)), r = el.getBoundingClientRect(); this.setState(this.mapClamp(z, cx - (cx - (s.mx || 0)) * (z / z0), cy - (cy - (s.my || 0)) * (z / z0), r.width, r.height)); }
+  mapWheel = (e) => { const el = e.currentTarget, r = el.getBoundingClientRect(); this.mapZoomAt(el, e.clientX - r.left, e.clientY - r.top, (this.state.mz || 1) * (e.deltaY < 0 ? 1.2 : 1 / 1.2)); }
+  mapIn = (e) => { const el = e.currentTarget.closest('[data-map]'), r = el.getBoundingClientRect(); this.mapZoomAt(el, r.width / 2, r.height / 2, (this.state.mz || 1) * 1.25); }
+  mapOut = (e) => { const el = e.currentTarget.closest('[data-map]'), r = el.getBoundingClientRect(); this.mapZoomAt(el, r.width / 2, r.height / 2, (this.state.mz || 1) / 1.25); }
+  mapReset = () => this.setState({ mz: 1, mx: 0, my: 0 });
+  mapDown = (e) => { if (e.button !== 0) return; this.drag = { x: e.clientX, y: e.clientY, ox: this.state.mx || 0, oy: this.state.my || 0 }; }
+  mapMove = (e) => { if (!this.drag) return; const r = e.currentTarget.getBoundingClientRect(); this.setState(this.mapClamp(this.state.mz || 1, this.drag.ox + e.clientX - this.drag.x, this.drag.oy + e.clientY - this.drag.y, r.width, r.height)); }
+  mapUp = () => { this.drag = null; }
+  nbIdx(h, k) { const D = h.r % 2 ? [[1, -1], [1, 0], [1, 1], [0, 1], [-1, 0], [0, -1]] : [[0, -1], [1, 0], [0, 1], [-1, 1], [-1, 0], [-1, -1]]; const c = h.c + D[k][0], r = h.r + D[k][1]; return c < 0 || c >= this.GC || r < 0 || r >= this.GR ? null : r * this.GC + c; }
+  esFrontera(i) { const H = this.g.hexes, h = H[i]; if (!h.owner || this.alt(h.owner).independent) return false; for (let k = 0; k < 6; k++) { const n = this.nbIdx(h, k); if (n != null && H[n].terr !== 'lago' && H[n].owner !== h.owner) return true; } return false; }
+  iniciarIncursion() { const e = this.g.ejercito, H = this.g.hexes; if (e.incursion || e.path.length || !this.esFrontera(e.pos)) return; const libres = []; for (let k = 0; k < 6; k++) { const n = this.nbIdx(H[e.pos], k); if (n != null && H[n].terr !== 'lago' && !H[n].owner) libres.push(n); } if (!libres.length) return; e.incursion = { prog: 0, target: libres[Math.floor(this.R() * libres.length)] }; }
+  incTick() { const e = this.g.ejercito; if (!e || !e.incursion || ++e.incursion.prog < 2) return; const tgt = e.incursion.target; e.incursion = null; this.g.hexes[tgt].occ = this.g.hexes[e.pos].owner; this.chronicle(this.t('cronica.ejercito_ocupa'), 'consequence'); this.recalc(); const g = this.g, botin = Math.round(80 + this.R() * 160); let pris = 0; if (this.R() < 0.6) pris = Math.round(30 + this.R() * 70); g.treasury += botin; g.prisoners += pris; g.army = Math.max(0, Math.round(g.army * 0.98)); this.clampG(); this.chronicle(this.t('cronica.incursion_ejercito', { prisioneros: String(pris), botin: botin.toLocaleString('es-MX') }), 'consequence'); }
+  ordenar(dst) { if (this.g.ejercito.incursion) return; const e = this.g.ejercito, H = this.g.hexes, prev = new Map([[e.pos, -1]]), q = [e.pos]; while (q.length) { const i = q.shift(); if (i === dst) break; for (let k = 0; k < 6; k++) { const n = this.nbIdx(H[i], k); if (n == null || prev.has(n) || H[n].terr === 'lago') continue; prev.set(n, i); q.push(n); } } if (!prev.has(dst)) return; const path = []; for (let i = dst; i !== e.pos; i = prev.get(i)) path.unshift(i); e.path = path; e.dest = dst; e.prog = 0; }
+  marchar() { const e = this.g.ejercito; if (!e || !e.path.length) return; if (++e.prog < 2) return; e.prog = 0; e.pos = e.path.shift(); if (!e.path.length) { e.dest = null; this.chronicle(this.t('cronica.ejercito_llega'), 'consequence'); } }
+  ejercitoEn(a) { return this.g.hexes[this.g.ejercito.pos].owner === a.id ? this.field() * 0.1 : 0; }
+  spawnInvasor() { const H = this.g.hexes; let bi = 0, bd = 1e9; H.forEach((h, i) => { if (h.terr === 'lago') return; const d = Math.hypot(h.cx - 1100, h.cy - 700); if (d < bd) { bd = d; bi = i; } }); this.g.invasor = { pos: bi, spawn: bi, tropas: this.g.oleada ? Math.round(this.g.army * this.D.C.invasion.objetivo_ratio) : this.D.C.invasion.tropas, prog: 0, combatido: false, asedio: 0 }; this.g.oleada = (this.g.oleada || 0) + 1; this.chronicle(this.t('cronica.invasor_llega', { n: this.g.invasor.tropas.toLocaleString('es-MX') }), 'crisis'); }
+  capIdx() { const H = this.g.hexes, cap = this.SET().find(s => s.o === 'tzintzuntzan' && s.cap); let bi = 0, bd = 1e9; H.forEach((h, i) => { if (h.terr === 'lago') return; const d = Math.hypot(h.cx - cap.p[0], h.cy - cap.p[1]); if (d < bd) { bd = d; bi = i; } }); return bi; }
+  emitirUltimatum() { const g = this.g, IV = this.D.C.invasion; g.ultimatum = { estado: 'pendiente', monto: IV.tributo_exigido }; this.chronicle(this.t('cronica.ultimatum', { monto: String(IV.tributo_exigido) }), 'crisis'); }
+  pagarUltimatum() { const g = this.g, U = g.ultimatum; if (!U || U.estado !== 'pendiente' || g.treasury < U.monto) return; g.treasury -= U.monto; U.estado = 'pagado'; g.invasionAnio += this.D.C.invasion.pospuesta_anios; g.prestige = Math.max(0, g.prestige - 1); this.chronicle(this.t('cronica.ultimatum_pagado', { anio: String(g.invasionAnio) }), 'consequence'); this.forceUpdate(); }
+  rechazarUltimatum() { const g = this.g; if (!g.ultimatum || g.ultimatum.estado !== 'pendiente') return; g.ultimatum.estado = 'rechazado'; this.chronicle(this.t('cronica.ultimatum_rechazado'), 'crisis'); this.forceUpdate(); }
+  batalla() { const g = this.g, v = g.invasor, IV = this.D.C.invasion, fld = this.field(), ratio = (fld / Math.max(1, v.tropas * IV.fuerza_mexica)) * (0.85 + 0.3 * this.R()); v.combatido = true; v.enfrentado = v.pos; v.descanso = this.D.C.invasion.descanso_pasos; const fmt = (n) => n.toLocaleString('es-MX');
+    if (ratio >= 1) { const bi = Math.round(v.tropas * IV.bajas_victoria_invasor), bp = Math.round(fld * IV.bajas_victoria_propia); v.tropas -= bi; g.army -= bp; v.asedio = 0; this.chronicle(this.t('cronica.batalla_victoria', { invasores: fmt(bi), bajas: fmt(bp) }), 'consequence'); this.chronicle(this.t('cronica.invasion_derrotada'), 'consequence'); g.invasor = null; g.invasionAnio = g.year + IV.recuperacion_anios; }
+    else { const bp = Math.round(fld * IV.bajas_derrota_propia), bi = Math.round(v.tropas * IV.bajas_derrota_invasor); v.tropas -= bi; g.army -= bp; this.chronicle(this.t('cronica.batalla_derrota', { bajas: fmt(bp) }), 'crisis'); if (v.pos === this.capIdx() && !v.asedio) { v.asedio = 1; this.chronicle(this.t('cronica.asedio_inicia'), 'crisis'); } }
+    this.clampG(); this.recalc(); }
+  invMarcha() { const v = this.g.invasor; if (!v || ++v.prog < 2) return; v.prog = 0; const g = this.g, H = g.hexes, IV = this.D.C.invasion, capPt = this.SET().find(s => s.o === 'tzintzuntzan' && s.cap), d = (h) => Math.hypot(h.cx - capPt.p[0], h.cy - capPt.p[1]), cap = this.capIdx(), enc = () => { if (g.ejercito.pos === g.invasor.pos && !g.ejercito.incursion && g.invasor.enfrentado !== g.invasor.pos) this.batalla(); };
+    const obj = Math.round(g.army * IV.objetivo_ratio); if (v.combatido && v.tropas < obj) v.tropas = Math.min(obj, v.tropas + IV.refuerzo_por_paso);
+    enc();
+    if (!g.invasor) return;
+    if (v.descanso > 0) { v.descanso--; this.clampG(); return; }
+    if (v.asedio > 0) { v.asedio++; g.treasury = Math.max(0, g.treasury - IV.asedio_costo_tesoro); if (v.asedio % 3 === 0) g.prestige = Math.max(0, g.prestige - 1); if (this.R() < IV.prob_rendicion) { H.forEach(h => { if (h.owner === 'tzintzuntzan' && h.terr !== 'lago') h.raided = Infinity; }); this.chronicle(this.t('cronica.capital_rendida'), 'crisis'); g.invasor = null; g.invasionAnio = 9999; g.capitalCaida = true; this.recalc(); return; } this.clampG(); return; }
+    let best = v.pos; for (let k = 0; k < 6; k++) { const n = this.nbIdx(H[v.pos], k); if (n != null && H[n].terr !== 'lago' && d(H[n]) < d(H[best])) best = n; }
+    if (best === v.pos) return;
+    v.pos = best; H[best].raided = g.t + IV.ocupacion_ticks; enc(); if (!g.invasor) return;
+    if (v.pos === cap && !v.asedio) { v.asedio = 1; this.chronicle(this.t('cronica.asedio_inicia'), 'crisis'); } }
+  tacTerr(c, r) { if (c === 0 || c === 17) return 'lago'; if (c === 9 && r === 5) return 'ciudad'; if (r === 6 && c % 5 === 2) return 'rio'; const k = ((c * 73856093) ^ (r * 19349663)) >>> 0; if (k % 7 === 0) return 'montana'; if (k % 5 === 0) return 'bosque'; return 'llano'; }
+  tacNb(c, r) { const D = r % 2 ? [[1, -1], [1, 0], [1, 1], [0, 1], [-1, 0], [0, -1]] : [[0, -1], [1, 0], [0, 1], [-1, 1], [-1, 0], [-1, -1]]; return D.map(([dc, dr]) => ({ c: c + dc, r: r + dr })).filter(p => p.c >= 0 && p.c < 18 && p.r >= 0 && p.r < 11 && this.tacTerr(p.c, p.r) !== 'lago'); }
+  tacOcc(c, r, except) { return this.g.tac.units.some(u => u !== except && u.hp > 0 && u.c === c && u.r === r); }
+  tacAdj(a, b) { return this.tacNb(a.c, a.r).some(p => p.c === b.c && p.r === b.r); }
+  tacDef(u) { const t = this.tacTerr(u.c, u.r); return t === 'montana' ? 1.5 : t === 'ciudad' ? 1.6 : t === 'bosque' ? 1.25 : 1; }
+  tacPath(u, c, r) { const key = (p) => p.c + ',' + p.r, prev = new Map([[key(u), null]]), q = [{ c: u.c, r: u.r }]; let found = false; while (q.length) { const cur = q.shift(); if (cur.c === c && cur.r === r) { found = true; break; } for (const n of this.tacNb(cur.c, cur.r)) { if (prev.has(key(n))) continue; if (this.tacOcc(n.c, n.r, u) && !(n.c === c && n.r === r)) continue; prev.set(key(n), cur); q.push(n); } } if (!found) return []; const path = []; let p = { c, r }; while (prev.get(key(p))) { path.unshift(p); p = prev.get(key(p)); } return path; }
+  tacNearest(u) { let best = null, bd = 1e9; for (const e of this.g.tac.units) { if (e.side === u.side || e.hp <= 0) continue; const d = Math.hypot(e.c - u.c, e.r - u.r); if (d < bd) { bd = d; best = e; } } return best; }
+  tacOpen() { const g = this.g; if (!g.invasor || g.tac) return; const fld = this.field(), v = g.invasor, pb = Math.max(1, Math.min(18, Math.floor(fld / 1000))), mb = Math.max(1, Math.min(18, Math.ceil(v.tropas / 1000))); const units = []; for (let i = 0; i < pb; i++) units.push({ id: 'p' + i, side: 'p', c: 1 + (i % 2), r: 1 + (i >> 1), hp: 1000, path: [], cd: 0, sel: false }); for (let i = 0; i < mb; i++) units.push({ id: 'm' + i, side: 'm', c: 16 - (i % 2), r: 1 + (i >> 1), hp: 1000, path: [], cd: 0, sel: false }); g.tac = { units, n0: { p: pb, m: mb }, tick: 0, over: false, res: '' }; clearInterval(this.tacTimer); this.tacTimer = setInterval(() => this.tacTick(), 500); this.forceUpdate(); }
+  tacClick(c, r) { const T = this.g.tac; if (!T || T.over) return; const hit = T.units.find(u => u.hp > 0 && u.c === c && u.r === r); if (hit && hit.side === 'p') { T.units.forEach(u => u.sel = false); hit.sel = true; } else if (!hit) { const s = T.units.find(u => u.sel && u.hp > 0); if (s) s.path = this.tacPath(s, c, r); } this.forceUpdate(); }
+  tacTick() { const T = this.g.tac; if (!T || T.over) return; T.tick++; const alive = () => T.units.filter(u => u.hp > 0);
+    if (T.tick % 4 === 0) for (const u of alive()) { if (!u.path.length) { if (u.side === 'm') { const e = this.tacNearest(u); if (e) u.path = this.tacPath(u, e.c, e.r); } continue; } const nx = u.path[0]; if (this.tacOcc(nx.c, nx.r, u)) { u.path = []; continue; } if (['montana', 'rio'].includes(this.tacTerr(nx.c, nx.r)) && (u.cd = (u.cd || 0) + 1) < 2) continue; u.cd = 0; u.c = nx.c; u.r = nx.r; u.path.shift(); }
+    for (const u of alive()) { const foe = alive().find(f => f.side !== u.side && this.tacAdj(u, f)); if (foe) foe.hp -= 90 / this.tacDef(foe); }
+    const pA = T.units.some(u => u.side === 'p' && u.hp > 0), mA = T.units.some(u => u.side === 'm' && u.hp > 0);
+    if (!pA || !mA) { T.over = true; clearInterval(this.tacTimer); this.tacFin(mA); }
+    this.forceUpdate(); }
+  tacFin(mA) { const g = this.g, T = g.tac, v = g.invasor, IV = this.D.C.invasion; const remP = T.units.filter(u => u.side === 'p').reduce((s, u) => s + Math.max(0, u.hp), 0), remM = T.units.filter(u => u.side === 'm').reduce((s, u) => s + Math.max(0, u.hp), 0); const lostP = Math.round(T.n0.p * 1000 - remP); g.army = Math.max(0, g.army - lostP); this.clampG();
+    if (!mA) { g.invasor = null; g.invTropas = 0; g.invasionAnio = g.year + IV.recuperacion_anios; T.res = this.t('tac.ganado'); this.chronicle(this.t('cronica.invasion_derrotada'), 'consequence'); }
+    else { v.tropas = Math.max(1, Math.round(remM)); v.combatido = true; v.descanso = IV.descanso_pasos; if (v.pos !== this.capIdx()) v.asedio = 0; T.res = this.t('tac.perdido'); this.chronicle(this.t('cronica.batalla_derrota', { bajas: String(lostP) }), 'crisis'); }
+    this.recalc(); }
+  tacClose() { clearInterval(this.tacTimer); this.g.tac = null; this.forceUpdate(); }
+  // ---------- vista
+  renderVals() {
+    const st = this.state, g = this.g;
+    if (!g) return { ready: false, notReady: true, loadMsg: st.err || (this.T ? this.t('errores.cargando') : 'Cargando datos del juego…') };
+    const C = this.D.C, f = (n) => Math.round(n).toLocaleString('es-MX'), TY = C.ticks_por_anio;
+    let sel = this.alt(st.sel) || g.alts[0];
+    const OWNC = { tzintzuntzan: 'oklch(0.78 0.15 82)', zacapu: 'oklch(0.62 0.16 35)', uruapan: 'oklch(0.62 0.11 255)' };
+    const ours = (h) => h && h.owner && !this.alt(h.owner).independent;
+    const at = (c, r) => (r >= 0 && r < this.GR && c >= 0 && c < this.GC) ? g.hexes[r * this.GC + c] : null;
+    const nb = (h, e) => { const D = h.r % 2 ? [[1, -1], [1, 0], [1, 1], [0, 1], [-1, 0], [0, -1]] : [[0, -1], [1, 0], [0, 1], [-1, 1], [-1, 0], [-1, -1]]; return at(h.c + D[e][0], h.r + D[e][1]); };
+    const seg = (h, e) => ({ a: h.vx[e][0], b: h.vx[e][1], c: h.vx[(e + 1) % 6][0], d: h.vx[(e + 1) % 6][1] });
+    const hexes = [], tris = [], dots = [], res = [], outer = [], inner = [], shore = [], selEdges = [];
+    const RC = { maiz: ['M', '#e2bf52'], pescado: ['P', '#7fb2cf'], sal: ['S', '#e8e2d2'], cobre: ['C', '#cf8445'], obsidiana: ['O', '#9aa0aa'], mantas: ['T', '#c06a8a'] };
+    for (const h of g.hexes) {
+      const j = ((h.hs % 7) - 3) * 0.012, lake = h.terr === 'lago';
+      const terrC = { lago: 'oklch(0.60 0.07 222)', llano: 'oklch(' + (0.64 + j).toFixed(3) + ' 0.10 ' + (96 + h.hs % 12) + ')', bosque: 'oklch(' + (0.47 + j).toFixed(3) + ' 0.09 ' + (132 + h.hs % 14) + ')', sierra: 'oklch(' + (0.54 + j).toFixed(3) + ' 0.035 72)' }[h.terr];
+      const mine = ours(h), own = h.owner ? this.alt(h.owner) : null;
+      let fill = terrC;
+      if (!lake) {
+        if (!own) fill = 'color-mix(in oklch, ' + terrC + ' 62%, #17110a)';
+        else if (own.independent) fill = 'color-mix(in oklch, ' + terrC + ' 55%, oklch(0.42 0.09 20))';
+        else if (st.layer === 'influencia') fill = 'color-mix(in oklch, ' + terrC + ' 70%, ' + OWNC[h.owner] + ')';
+        else if (st.layer === 'lealtad') fill = 'color-mix(in oklch, ' + terrC + ' 45%, oklch(0.6 0.15 ' + (25 + own.loyalty * 1.2).toFixed(0) + '))';
+        if (h.raided > g.t) fill = 'color-mix(in oklch, ' + fill + ' 55%, #3a0d06)';
+      }
+      const isSel = h.owner === sel.id && !lake;
+      hexes.push({ points: h.vx.map(v => v.join(',')).join(' '), fill, op: !mine || isSel ? 1 : 0.86, cur: st.marching ? 'crosshair' : own && !lake ? 'pointer' : 'default', onClick: () => { if (st.marching) { this.ordenar(h.r * this.GC + h.c); this.setState({ marching: false }); return; } if (own && !lake) this.setState({ sel: own.id, selSet: own.name }); } });
+      if (h.terr === 'sierra') { tris.push({ p: (h.cx - 17) + ',' + (h.cy + 13) + ' ' + h.cx + ',' + (h.cy - 17) + ' ' + (h.cx + 17) + ',' + (h.cy + 13), f: '#3a2f22', o: 0.55 }); tris.push({ p: (h.cx - 17) + ',' + (h.cy + 13) + ' ' + h.cx + ',' + (h.cy - 17) + ' ' + (h.cx - 3) + ',' + (h.cy + 13), f: '#fff1d0', o: 0.35 }); tris.push({ p: (h.cx + 4) + ',' + (h.cy + 14) + ' ' + (h.cx + 20) + ',' + (h.cy - 6) + ' ' + (h.cx + 34) + ',' + (h.cy + 14), f: '#3a2f22', o: 0.4 }); }
+      if (h.terr === 'bosque') [[-14, -6, 9], [8, 6, 10], [-2, 14, 7], [18, -10, 7]].forEach(([dx, dy, rr]) => { dots.push({ x: h.cx + dx, y: h.cy + dy + 2, r: rr, f: '#0d1f0f80' }); dots.push({ x: h.cx + dx, y: h.cy + dy, r: rr, f: '#2d5a2a' }); });
+      if (mine && !lake && h.hs > 58 && h.hs < 78 && h.terr !== 'sierra') res.push({ x: (h.cx / 14).toFixed(2), y: ((h.cy + 22) / 8).toFixed(2), l: RC[h.res][0], c: RC[h.res][1] });
+      if (!lake) for (let e = 0; e < 6; e++) {
+        const n = nb(h, e), nl = n && n.terr === 'lago';
+        if (mine) { if (nl) shore.push(seg(h, e)); else if (!ours(n)) outer.push(seg(h, e)); else if (n.owner !== h.owner && (n.r * this.GC + n.c) > (h.r * this.GC + h.c)) inner.push(seg(h, e)); }
+        if (isSel && !nl && (!n || n.owner !== h.owner)) selEdges.push(seg(h, e));
+      }
+    }
+    const marks = this.SET().map(s => { const a = this.alt(s.o), on = st.selSet === s.n; return { name: (s.cap ? this.t('mapa.marcador_capital', { nombre: s.n }) : s.n) + (a.independent ? ' (' + this.t('estados.rebelde') + ')' : ''), x: (s.p[0] / 14).toFixed(2), y: (s.p[1] / 8).toFixed(2), w: s.cap ? 26 : 20, h: s.cap ? 32 : 25, ring: on ? '#ffffff' : a.independent ? '#6a1a0e' : s.cap ? '#e0c48a' : '#9a7a40', shield: a.independent ? 'linear-gradient(#4a4a4a,#222)' : 'linear-gradient(#b23a22,#6a1a0e)', lbl: on ? 'linear-gradient(#7a5a2a,#4a3418)' : 'linear-gradient(#241c12ee,#120e09ee)', onClick: () => this.setState({ sel: s.o, selSet: s.n }) }; });
+    const inc = this.totalIncome(), exp = this.totalExpenses(), net = inc - exp, ws = this.warStrength(), rr = ws / this.enemigoAlianza(), pa = this.pYear(rr), tr = g.flags.truce - g.t, trc = g.flags.truceChi - g.t;
+    const total = g.log.length, chg = g.log.filter(e => e.changing).length, RB = C.rubrica;
+    const prodTot = {}; g.alts.filter(a => !a.independent).forEach(a => { for (const k in a.res) prodTot[k] = (prodTot[k] || 0) + a.res[k]; });
+    const acts = this.D.A.map(d => ({ d, v: this.actionView(d, sel) })).filter(x => x.v);
+    const grp = (k) => acts.filter(x => x.d.grupo === k).map(x => x.v);
+    const DUR = C.construccion.duracion, BN = { yacata: this.t('edificios.yacata.nombre'), fortaleza: this.t('edificios.fortaleza.nombre'), troje: this.t('edificios.troje.nombre') };
+    const ea = this.effLines(sel), ip = this.incomeParts(sel), ap = this.agravioParts(sel), ad = ap.reduce((s, l) => s + l.v, 0);
+    const garOther = g.alts.filter(a => a.id !== sel.id).reduce((s, a) => s + a.garrison, 0);
+    const lines = (arr) => arr.map(l => ({ k: l.k, v: this.sg(l.v), c: this.col(l.v) }));
+    const lnI = (arr) => arr.map(l => ({ k: l.k, v: this.sg(l.v), c: this.col(-l.v) }));
+    const status = (a) => a.independent ? [this.t('estados.rebelde'), '#e8876c'] : a.moroso ? [this.t('estados.morosa'), '#e8876c'] : a.loyalty < 50 ? [this.t('estados.neutral'), '#e6b84a'] : [this.t('estados.leal'), '#a9cc62'];
+    const alerts = [];
+    if (g.debtTicks > 0) alerts.push({ n: this.t('alertas.tesoro_agotado.titulo'), t: this.t('alertas.tesoro_agotado.detalle'), c: '#e8876c', bc: '#b23a22' });
+    else if (net < 0) alerts.push({ n: this.t('alertas.tesoro_descenso.titulo'), t: this.t('alertas.tesoro_descenso.detalle', { n: Math.max(1, Math.floor(g.treasury / (-net / TY))) }), c: '#e8876c', bc: '#b23a22' });
+    g.alts.forEach(a => { if (a.independent) alerts.push({ n: this.t('alertas.rebelion.titulo', { alt: a.name }), t: this.t('alertas.rebelion.detalle'), c: '#e8876c', bc: '#b23a22' }); else if (a.moroso) alerts.push({ n: this.t('alertas.tributo_impagado.titulo'), t: this.t('alertas.tributo_impagado.detalle', { alt: a.name }), c: '#e6b84a', bc: '#c9a04e' }); else if (a.agravio > 45) alerts.push({ n: this.t('alertas.agravio_alto.titulo'), t: this.t('alertas.agravio_alto.detalle', { alt: a.name, valor: Math.round(a.agravio) }), c: '#e6b84a', bc: '#c9a04e' }); });
+    g.alts.forEach(a => { if (a.building) alerts.push({ n: this.t('alertas.obra_en_curso.titulo'), t: this.t('alertas.obra_en_curso.detalle', { edificio: BN[a.building], alt: a.name, progreso: a.buildProgress, total: DUR[a.building] }), c: '#a9cc62', bc: '#6f8f3a' }); });
+    const raided = g.hexes.filter(h => h.raided > g.t).length; if (raided) alerts.push({ n: this.t('alertas.frontera_saqueada.titulo'), t: this.t('alertas.frontera_saqueada.detalle', { n: raided }), c: '#e8876c', bc: '#b23a22' });
+    if (g.ultimatum && g.ultimatum.estado === 'pendiente') alerts.unshift({ n: this.t('alertas.ultimatum.titulo'), t: this.t('alertas.ultimatum.detalle', { n: f(g.ultimatum.monto) }), c: '#e6b84a', bc: '#8a6a2a' });
+    if (g.invasor) alerts.unshift({ n: this.t('alertas.invasor.titulo'), t: this.t('alertas.invasor.detalle', { n: f(g.invasor.tropas) }), c: '#e8876c', bc: '#b23a22' });
+    if (!alerts.length) alerts.push({ n: this.t('paneles.sin_alertas'), t: this.t('paneles.sin_alertas_detalle'), c: '#a9cc62', bc: '#6f8f3a' });
+    const cc = (e) => ({ year: e.year + '·V' + e.v, text: e.text, color: e.type === 'consequence' ? '#b9d27a' : e.type === 'crisis' ? '#ee9a80' : '#d6c8a4' });
+    const tabsDef = [['resumen', this.t('tabs.resumen')], ['pops', this.t('tabs.pops')], ['edificios', this.t('tabs.edificios')], ['tributo', this.t('tabs.tributo')], ['lealtad', this.t('tabs.desglose')]];
+    const avgL = g.alts.reduce((s, a) => s + a.loyalty, 0) / 3, rub = total >= RB.decisiones && chg >= RB.de_rumbo, M = g.modal;
+    const tgt = 100 - sel.agravio + Math.min(20, sel.garrison / 100);
+    const sh = this.tShare(sel), raw = ip.pop + ip.terr;
+    const bAct = {}; grp('edificios').forEach((v, i) => { const d = acts.filter(x => x.d.grupo === 'edificios')[i].d; bAct[d.edificio] = { v, d }; });
+    return {
+      ready: true, notReady: false,
+      rulerLine: this.t('hud.cazonci', { nombre: g.chars[g.ruler].name }),
+      lDisp: st.lo === false ? 'none' : 'flex', rDisp: st.ro === false ? 'none' : 'flex', lW: st.lo === false ? '36px' : '300px', lBtn: st.lo === false ? '▶' : '◀ Ocultar', lTitle: st.lo === false ? 'Mostrar paneles' : 'Ocultar paneles', rBtn: st.ro === false ? '◀' : '▶ Ocultar', rTitle: st.ro === false ? 'Mostrar paneles' : 'Ocultar paneles', toggleL: () => this.setState({ lo: st.lo === false }), toggleR: () => this.setState({ ro: st.ro === false }),
+      mapT: 'translate(' + (st.mx || 0) + 'px,' + (st.my || 0) + 'px) scale(' + (st.mz || 1) + ')', mapWheel: this.mapWheel, mapDown: this.mapDown, mapMove: this.mapMove, mapUp: this.mapUp, mapZ: { in: this.mapIn, out: this.mapOut, reset: this.mapReset },
+      selT: { eficiencia: this.t('sel.eficiencia'), pob: this.t('sel.poblacion'), ingreso: this.t('sel.ingreso', { valor: '@@' }).split('@@')[0].trim(), anio: this.t('comun.por_anio'), lealtad: this.t('sel.lealtad'), agravio: this.t('sel.agravio'), guarnicion: this.t('sel.guarnicion'), garMax: this.t('sel.guarnicion_max', { max: '@@' }).split('@@')[0].trim() },
+      pan: { popsNota: this.t('pops.nota'), prod: this.t('paneles.produccion_territorio'), balance: this.t('paneles.balance_veintena'), iretas: this.t('paneles.iretas_contribuyentes'), capitan: this.t('paneles.capitan_ejercito'), herederoLabel: this.t('paneles.heredero', { nombre: '' }).trim(), reino: this.t('paneles.reino'), prisTit: this.t('paneles.prisioneros_titulo', { n: f(g.prisoners) }), presupuesto: this.t('paneles.presupuesto'), diplomacia: this.t('paneles.diplomacia'), eventos: this.t('paneles.eventos_alertas'), cronica: this.t('paneles.cronica_reciente'), verCronica: this.t('paneles.ver_cronica') },
+      mapa: { lago: this.t('mapa.lago_patzcuaro'), frontera: this.t('mapa.frontera_chichimeca'), valle1: this.t('mapa.valle_de_mexico').split(' ').slice(0, 2).join(' '), valle2: this.t('mapa.valle_de_mexico').split(' ').slice(2).join(' '), minimapa: this.t('mapa.minimapa') },
+      fin: { titulo: this.t('fin.titulo', { anio: String(g.endYear) }), logTitulo: this.t('fin.log_titulo'), cron: this.t('fin.boton_cronica'), exportar: this.t('fin.boton_exportar'), reiniciar: this.t('fin.boton_reiniciar') },
+      hud: { titulo: this.t('hud.titulo_reino'), retCaz1: this.t('hud.retrato_cazonci').split(' ')[0], retCaz2: this.t('hud.retrato_cazonci').split(' ')[1], veintena: this.t('hud.veintena', { n: g.v, total: TY }), anio: this.t('hud.anio', { anio: String(g.year) }), avanzar: this.t('hud.avanzar'), avanzarT: this.t('hud.avanzar_titulo'), hasta: this.t('hud.hasta_decision'), hastaT: this.t('hud.hasta_decision_titulo'), decis: this.t('hud.etiqueta_decisiones'), rumbo: this.t('hud.etiqueta_rumbo'), cron: this.t('hud.boton_cronica'), cronT: this.t('hud.boton_cronica_titulo'), log: this.t('hud.boton_log'), logT: this.t('hud.boton_log_titulo') },
+      chips: [
+        { color: '#e2bf52', l: this.t('chips.tesoro.letra'), tip: this.t('chips.tesoro.tip'), value: f(g.treasury), vc: g.debtTicks ? '#e8876c' : '#f3e8cf', trend: this.t('chips.tesoro.trend', { neto: this.sg(Math.round(net / TY)) }), tc: this.col(net) },
+        { color: '#cf8445', l: this.t('chips.prestigio.letra'), tip: this.t('chips.prestigio.tip'), value: String(g.prestige), vc: '#f3e8cf', trend: this.t('chips.prestigio.trend'), tc: '#c8b48a' },
+        { color: '#b23a22', l: this.t('chips.ejercito.letra'), tip: this.t('chips.ejercito.tip', { campo: f(this.field()) }), value: f(g.army), vc: '#f3e8cf', trend: this.t('chips.ejercito.trend'), tc: '#c8b48a' },
+        { color: '#8fb04e', l: this.t('chips.moral.letra'), tip: this.t('chips.moral.tip'), value: g.morale + '/10', vc: g.morale < 4 ? '#e8876c' : '#f3e8cf', trend: this.t('chips.moral.trend'), tc: '#c8b48a' },
+        { color: '#7fb2cf', l: this.t('chips.prisioneros.letra'), tip: this.t('chips.prisioneros.tip'), value: f(g.prisoners), vc: '#f3e8cf', trend: this.t('chips.prisioneros.trend'), tc: '#c8b48a' }],
+      vein: g.v, year: g.year, cells: Array.from({ length: TY }, (_, i) => i < g.v - 1 ? '#c9a04e' : i === g.v - 1 ? '#fff1d0' : '#3a2d1d'),
+      endTurn: this.endTurn, runUntil: this.runUntil, exportLog: this.exportLog,
+      decTotal: total, decGoal: RB.decisiones, decChanging: chg, chgGoal: RB.de_rumbo, decColor: total >= RB.decisiones ? '#a9cc62' : '#e8876c', chgColor: chg >= RB.de_rumbo ? '#a9cc62' : '#e8876c',
+      openChron: () => this.setState({ chron: true }), closeChron: () => this.setState({ chron: false }), chronOpen: st.chron,
+      hexes, tris, dots, res, outer, inner, shore, selEdges, marks,
+      army: { x: (g.hexes[g.ejercito.pos].cx / 14).toFixed(2), y: (g.hexes[g.ejercito.pos].cy / 8).toFixed(2), n: f(this.field()) },
+      leftTabs: [['tributo', 'Tributo'], ['hacienda', 'Hacienda'], ['corte', 'Corte'], ['ejercito', 'Ejército']].map(([k, n]) => ({ n, bd: st.left === k ? '#e0c48a' : 'transparent', fg: st.left === k ? '#fff1d0' : '#c8b48a', onClick: () => this.setState({ left: k }) })),
+      lTributo: st.left === 'tributo', lHacienda: st.left === 'hacienda', lCorte: st.left === 'corte', lEjercito: st.left === 'ejercito',
+      ejercitos: this.armies().map(a => ({ n: a.nombre, capitan: g.chars[a.capitan].name, t: f(a.tropas) })),
+      ejRec: (acts.find(x => x.d.id === 'reclutar') || { v: { title: 'Reclutar', cost: '', off: true, op: 0.45, run: () => {} } }).v,
+      ejLic: { run: () => { g.army = Math.max(0, g.army - 500); this.clampG(); this.recalc(); this.forceUpdate(); } },
+      ejInc: { title: g.ejercito.incursion ? 'Incursión en curso · 2 veintenas' : 'Lanzar incursión desde la frontera', off: !!(g.ejercito.incursion || g.ejercito.path.length || !this.esFrontera(g.ejercito.pos)), op: (g.ejercito.incursion || g.ejercito.path.length || !this.esFrontera(g.ejercito.pos)) ? 0.45 : 1, run: () => this.iniciarIncursion() },
+      ultDisp: g.ultimatum && g.ultimatum.estado === 'pendiente' ? 'flex' : 'none', ultT: this.t('diplomacia.ultimatum.titulo', { n: f(g.ultimatum ? g.ultimatum.monto : 0) }), ultD: this.t('diplomacia.ultimatum.detalle'), ultPagarT: this.t('diplomacia.ultimatum.pagar'), ultRechT: this.t('diplomacia.ultimatum.rechazar'), ultPagar: () => this.pagarUltimatum(), ultRech: () => this.rechazarUltimatum(),
+      tacDisp: g.tac ? 'flex' : 'none', tacTitle: this.t('tac.titulo'), tacClose: this.t('tac.cerrar'), tacOpenT: this.t('tac.atacar'), tacOpenFn: () => this.tacOpen(), tacCloseFn: () => this.tacClose(), tacOff: !g.invasor || !!g.tac, tacInfo: g.tac ? this.t('tac.en_curso') : '', tacRes: g.tac ? g.tac.res : '',
+      tacCells: Array.from({ length: 198 }, (_, i) => { const c = i % 18, r = Math.floor(i / 18), x = 30 + c * 34.64 + (r % 2) * 17.32, y = 30 + r * 30, T = this.tacTerr(c, r); return { pts: [0, 1, 2, 3, 4, 5].map(k => { const a = (60 * k + 30) * Math.PI / 180; return (x + 20 * Math.cos(a)).toFixed(1) + ',' + (y + 20 * Math.sin(a)).toFixed(1); }).join(' '), fill: { llano: '#5a4a2c', bosque: '#2f4a2a', montana: '#6e6a62', lago: '#1d3a52', rio: '#2c5f7a', ciudad: '#8a6a2a' }[T], onClick: () => this.tacClick(c, r) }; }),
+      tacUnits: g.tac ? g.tac.units.filter(u => u.hp > 0).map(u => ({ x: (30 + u.c * 34.64 + (u.r % 2) * 17.32).toFixed(1), y: (30 + u.r * 30).toFixed(1), fill: u.side === 'p' ? '#e0c48a' : '#e8876c', stroke: u.sel ? '#fff8e6' : '#120e09', label: String(Math.max(0, Math.round(u.hp / 1000))) })) : [],
+      invDisp: g.invasor ? 'flex' : 'none', invX: g.invasor ? (g.hexes[g.invasor.pos].cx / 14).toFixed(2) : '0', invY: g.invasor ? (g.hexes[g.invasor.pos].cy / 8).toFixed(2) : '0', invN: g.invasor ? f(g.invasor.tropas) : '',
+      ejLib: { title: 'Retirar ocupación de este hexágono', off: !g.hexes[g.ejercito.pos].occ, op: g.hexes[g.ejercito.pos].occ ? 1 : 0.45, run: () => { g.hexes[g.ejercito.pos].occ = null; this.recalc(); this.forceUpdate(); } },
+      ejMarch: () => this.setState({ marching: !st.marching }), ejMarchTxt: st.marching ? 'Cancelar: elige destino en el mapa' : 'Mover ejército en el mapa', ejInfo: g.ejercito.dest == null ? 'Sin orden de marcha' : 'En marcha · ' + g.ejercito.path.length * 2 + ' veintenas', rutaPts: [g.ejercito.pos, ...g.ejercito.path, ...(g.ejercito.incursion ? [g.ejercito.incursion.target] : [])].map(i => g.hexes[i].cx + ',' + g.hexes[i].cy).join(' '),
+      goods: [['maiz', 'Maíz'], ['pescado', 'Pescado'], ['sal', 'Sal'], ['cobre', 'Cobre'], ['obsidiana', 'Obsidiana'], ['mantas', 'Mantas']].map(([k, n]) => ({ n, c: RC[k][1], v: f(prodTot[k] || 0) })),
+      balance: [{ k: 'Ingresos', v: '+' + f(inc / TY), c: '#a9cc62' }, ...this.expenseLines().filter(l => l.v).map(l => ({ k: l.k, v: '−' + f(l.v / TY), c: '#e8876c' })), { k: 'Neto', v: this.sg(Math.round(net / TY)), c: this.col(net) }],
+      contrib: g.alts.map(a => { const s = status(a); return { n: a.name, s: s[0], sc: s[1], v: a.independent ? '—' : f(this.income(a)), onClick: () => this.setState({ sel: a.id, selSet: a.name }) }; }),
+      taxSliders: [['tributo', this.t('paneles.tasa_tributo'), this.t('paneles.tasa_tributo_nota', { agravio: this.sg(this.tx(g.taxes.tributo - 3)) })], ['impuesto', this.t('paneles.impuesto_interno'), this.t('paneles.impuesto_interno_nota', { agravio: this.sg(this.tx(g.taxes.impuesto - 3)) })]].map(([k, n, note]) => ({ n, v: g.taxes[k], note, onChange: (e) => { g.taxes[k] = +e.target.value; this.forceUpdate(); } })),
+      budget: [['ejercito', this.t('presupuesto.ejercito.nombre'), this.t('presupuesto.ejercito.nota', { mantenimiento: f(g.army * C.economia.mantenimiento_por_soldado) })], ['administracion', this.t('presupuesto.administracion.nombre'), this.t('presupuesto.administracion.nota')], ['obras', this.t('presupuesto.obras.nombre'), this.t('presupuesto.obras.nota')], ['diplomacia', this.t('presupuesto.diplomacia.nombre'), this.t('presupuesto.diplomacia.nota')]].map(([k, n, note]) => ({ n, v: g.budget[k], note: note + ' · ' + f(g.budget[k] * C.economia.tesoro_por_punto_presupuesto) + '/año', onChange: (e) => { g.budget[k] = +e.target.value; this.forceUpdate(); } })),
+      budgetSum: Object.values(g.budget).reduce((s, x) => s + x, 0), budgetColor: Object.values(g.budget).reduce((s, x) => s + x, 0) > 100 ? '#e8876c' : '#c8b48a',
+      court: Object.entries(g.chars).filter(([i]) => i !== 'vacante').map(([i, c]) => { const gv = g.alts.find(a => a.governor === i); return { name: c.name, role: !c.alive ? this.t('roles.difunto') : i === g.ruler ? this.t('roles.cazonci') : i === g.cazonci.heir ? this.t('roles.heredero') : i === g.captain ? this.t('roles.capitan') : gv ? this.t('roles.gobernador', { alt: gv.name }) : '', stats: this.t('stats_corte.formato', { edad: c.age, admin: c.admin, mando: c.command }), op: c.alive ? 1 : 0.45 }; }),
+      captain: g.captain, captainOptions: Object.entries(g.chars).filter(([i, c]) => c.alive && i !== g.ruler).map(([i, c]) => ({ id: i, label: c.name + ' (mando ' + c.command + ')' })),
+      captainBonus: 'fuerza ' + this.sg(Math.round(C.guerra.fuerza_por_mando * 100 * (g.chars[g.captain].command - 3))) + '%',
+      onCaptain: (e) => { const o = g.captain; g.captain = e.target.value; this.chronicle(this.t('cronica.capitan_nombrado', { nuevo: g.chars[g.captain].name, anterior: g.chars[o].name }), 'consequence'); this.forceUpdate(); },
+      heirName: g.cazonci.heir ? g.chars[g.cazonci.heir].name : 'sin designar', prisoners: f(g.prisoners),
+      actReino: grp('reino'), actPris: grp('prisioneros'), actMil: grp('militar'), actIreta: grp('ireta'),
+      layers: [['influencia', this.t('capas.influencia')], ['lealtad', this.t('capas.lealtad')], ['terreno', this.t('capas.terreno')]].map(([k, n]) => ({ n, bg: st.layer === k ? 'linear-gradient(#7a5a2a,#4a3418)' : 'transparent', fg: st.layer === k ? '#fff1d0' : '#c8b48a', onClick: () => this.setState({ layer: k }) })),
+      tabs: tabsDef.map(([k, n]) => ({ n, bd: st.tab === k ? '#e0c48a' : 'transparent', bg: st.tab === k ? '#2e2418' : 'transparent', fg: st.tab === k ? '#fff1d0' : '#c8b48a', onClick: () => this.setState({ tab: k }) })),
+      tabResumen: st.tab === 'resumen', tabPops: st.tab === 'pops', tabEdificios: st.tab === 'edificios', tabTributo: st.tab === 'tributo', tabLealtad: st.tab === 'lealtad',
+      s: {
+        name: sel.name, set: st.selSet, status: status(sel)[0], statusColor: status(sel)[1], governor: sel.governor,
+        govOptions: Object.entries(g.chars).filter(([i, c]) => c.alive && i !== g.ruler).map(([i, c]) => ({ id: i, label: c.name + ' (adm ' + c.admin + ')' })),
+        onGov: (e) => { const o = sel.governor; sel.governor = e.target.value; this.chronicle(this.t('cronica.gobernador_nombrado', { nuevo: g.chars[sel.governor].name, alt: sel.name, anterior: g.chars[o].name }), 'consequence'); this.recalc(); this.forceUpdate(); },
+        eff: ea.tot, effColor: ea.tot < 40 ? '#e8876c' : '#a9cc62', pop: f(sel.pop), inc: f(this.income(sel)), loy: Math.round(sel.loyalty), loyT: Math.round(Math.min(100, tgt)), agr: Math.round(sel.agravio), agrD: this.t('sel.agravio_delta', { delta: this.sg(ad) }), agrDC: ad > 0 ? '#e8876c' : '#a9cc62',
+        garrison: sel.garrison, garMax: Math.max(0, g.army - garOther), onGar: (e) => { sel.garrison = Math.min(parseInt(e.target.value), Math.max(0, g.army - garOther)); this.recalc(); this.forceUpdate(); },
+        pops: sel.pops.map(p => { const n = this.needs(sel, p); return { n: ({ purepecha: 'Purépecha', otomi: 'Otomí', nahua: 'Nahua', chichimeca: 'Chichimeca' })[p.identidad] + ' · ' + (p.estrato === 'nobleza' ? 'nobleza' : 'común'), t: f(p.tam), l: Math.round(p.lealtad), a: Math.round(p.agravio), s: Math.round(n.sub), c: Math.round(n.cot), sc: n.sub < 50 ? '#e8876c' : '#f3e8cf', cc: n.cot < 50 ? '#e8876c' : '#f3e8cf' }; }),
+        buildings: ['yacata', 'fortaleza', 'troje'].map(k => { const ba = bAct[k]; const built = sel[k], building = sel.building === k; return { n: BN[k], d: this.t('edificios.' + k + '.efecto'), s: built ? this.t('edificios.' + k + '.estado_construida') : building ? this.t('edificios.' + k + '.estado_obra', { n: sel.buildProgress, total: DUR[k] }) : sel.building ? this.t('edificios.' + k + '.estado_otra_obra') : this.t('edificios.' + k + '.estado_disponible'), sc: built ? '#a9cc62' : building ? '#e6b84a' : '#f0d9a0', canBuild: !!ba && !built && !building, title: ba ? ba.v.title : '', cost: ba ? ba.v.cost : '', off: ba ? ba.v.off : true, op: ba ? ba.v.op : 0.45, run: ba ? ba.v.run : (() => {}) }; }),
+        tribute: [{ k: 'Producción gravable', v: '+' + f(raw), c: '#a9cc62' }, ...(sel.id === 'tzintzuntzan' ? [{ k: 'Tributo recibido de iretas sujetas', v: '+' + f(this.tributeIn()), c: '#a9cc62' }] : [{ k: sel.moroso ? 'Tributo a Tzintzuntzan: impagado' : 'Tributo a Tzintzuntzan (' + Math.round(sh * 100) + '%)', v: sel.moroso ? 'impagado' : '−' + f(raw * sh), c: '#e8876c' }]), { k: 'Ingreso propio por año', v: f(this.income(sel)), c: '#f0d9a0' }, { k: 'Eficiencia × tasas', v: ea.tot + '% × ' + this.taxM(sel).toFixed(2), c: '#c8b48a' }, { k: 'Territorio', v: sel.territory.length + ' hexes · valor ' + sel.territoryValue, c: '#c8b48a' }],
+        agrLines: lnI(ap.filter(l => l.v)), effLines: lines(ea.L)
+      },
+      dip: [
+        { n: this.t('diplomacia.triple_alianza.nombre'), t: tr > 0 ? this.t('diplomacia.triple_alianza.tregua', { n: tr }) : g.invasor ? this.t('diplomacia.triple_alianza.casus_belli') : g.year < 1478 ? this.t('diplomacia.triple_alianza.sin_amenaza') : this.t('diplomacia.triple_alianza.riesgo_ataque', { probabilidad: Math.round(pa * 100) }), c: tr > 0 ? '#a9cc62' : pa > 0.3 ? '#e8876c' : '#e6b84a', t2: this.t('diplomacia.triple_alianza.fuerza', { fuerza: f(ws), enemigo: f(this.enemigoAlianza()), ratio: rr.toFixed(2) }), bg: 'linear-gradient(#3f6a4a,#22402a)' },
+        { n: this.t('diplomacia.chichimecas.nombre'), t: g.t - g.lastRaid <= C.guerra.casus_ventana ? this.t('diplomacia.chichimecas.casus_belli') : this.t('diplomacia.chichimecas.sin_casus'), c: g.t - g.lastRaid <= C.guerra.casus_ventana ? '#e6b84a' : '#c8b48a', t2: trc > 0 ? this.t('diplomacia.chichimecas.tregua', { n: trc }) : this.t('diplomacia.chichimecas.frontera_abierta'), bg: 'linear-gradient(#c0742a,#7a3f12)' },
+        { n: this.t('diplomacia.iretas_sujetas.nombre'), t: this.t('diplomacia.iretas_sujetas.listado', { items: g.alts.filter(a => !a.independent).map(a => a.name + ' ' + status(a)[0]).join(this.t('comun.separador')) }), c: '#c8b48a', t2: g.tributeOut.left > 0 ? this.t('diplomacia.iretas_sujetas.pagamos_tributo', { monto: g.tributeOut.amount, veintenas: g.tributeOut.left }) : '', bg: 'linear-gradient(#b23a22,#6a1a0e)' }],
+      alerts: alerts.slice(0, 5), chronShort: g.chron.slice(-6).reverse().map(cc), chronAll: g.chron.slice().reverse().map(cc),
+      modal: M ? { title: M.title, cuerpo: M.cuerpo, desc: M.desc, kind: M.kind === 'crisis' ? this.t('modal.crisis') : this.t('modal.decision'), kc: M.kind === 'crisis' ? '#ee9a80' : '#e0c48a' } : false,
+      modalOptions: M ? M.options.map((o, i) => ({ title: o.title, cost: o.cost, why: o.why, off: !o.ok, op: o.ok ? 1 : 0.45, pick: () => this.pick(i) })) : [],
+      ended: g.ended, endColor: rub ? '#a9cc62' : '#e8876c', endRubric: rub ? this.t('fin.rubrica_si') : this.t('fin.rubrica_no'),
+      endStats: [[this.t('fin.stats.tesoro'), f(g.treasury)], [this.t('fin.stats.prestigio'), g.prestige], [this.t('fin.stats.ejercito'), f(g.army)], [this.t('fin.stats.territorio'), this.metrics().ter + ' ' + this.t('comun.hexes')], [this.t('fin.stats.lealtad_media'), Math.round(avgL)], [this.t('fin.stats.decisiones'), total], [this.t('fin.stats.de_rumbo'), chg], [this.t('fin.stats.iretas_rebeldes'), g.alts.filter(a => a.independent).length], [this.t('fin.stats.cazonci'), g.chars[g.ruler].name]].map(([k, v]) => ({ k, v })),
+      endLog: g.log.map(e => ({ when: e.year + '·V' + e.v, what: e.decision === e.option ? e.decision : this.t('fin.log_what', { decision: e.decision, opcion: e.option }), why: e.why || '—', color: e.changing ? '#a9cc62' : '#c8b48a' })),
+      restart: () => { this.newGame(); this.setState({ chron: false }); this.forceUpdate(); }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,761 @@
+{
+  "version_esquema": 1,
+  "idioma": "es",
+  "_convencion": "Claves: seccion.subseccion.id.campo. Los {placeholders} se interpolan con el mismo fmt() del prototipo. Ver _pendiente_migracion para lo que aún vive en código.",
+  "_pendiente_migracion": [
+    "comun.identidades / comun.estratos: hoy hardcodeados en renderVals.s.pops",
+    "comun.status / estados: hoy en status()",
+    "edificios.<id>.nombre: hoy en el objeto BN",
+    "roles.*: hoy en renderVals.court",
+    "resolucion.componente.* / resolucion.motivo.*: hoy en resolveLog",
+    "cronica.*: hoy en los this.chronicle('...')",
+    "alertas.*: hoy en el bloque alerts",
+    "fin.*: hoy en el bloque ended",
+    "hud.chips.*: hoy en el array chips",
+    "capas.*: hoy en capas",
+    "mapa.etiqueta.*: hoy en los <div> del SVG"
+  ],
+  "comun": {
+    "si": "sí",
+    "no": "no",
+    "ninguno": "ninguno",
+    "ninguna": "ninguna",
+    "sin_designar": "sin designar",
+    "sin_alias": "—",
+    "mas": "+",
+    "menos": "−",
+    "separador": " · ",
+    "por_anio": "/año",
+    "por_veintena": "/v",
+    "hexes": "hexes",
+    "veintenas": "veintenas",
+    "veintena_corta": "v",
+    "anios": "años",
+    "ano_corto": "a",
+    "identidades": {
+      "purepecha": "Purépecha",
+      "otomi": "Otomí",
+      "nahua": "Nahua",
+      "chichimeca": "Chichimeca"
+    },
+    "estratos": {
+      "nobleza": "nobleza",
+      "comun": "común"
+    }
+  },
+  "hud": {
+    "retrato_cazonci": "retrato cazonci",
+    "retrato_gobernador": "retrato gobernador",
+    "titulo_reino": "Reino purépecha",
+    "cazonci": "Cazonci {nombre}",
+    "avanzar": "Avanzar ▶",
+    "avanzar_titulo": "Avanzar una veintena",
+    "hasta_decision": "Decisión ▶▶",
+    "hasta_decision_titulo": "Avanzar hasta la próxima decisión",
+    "veintena": "Veintena {n} de {total}",
+    "anio": "año {anio}",
+    "etiqueta_decisiones": "Decis.",
+    "etiqueta_rumbo": "Rumbo",
+    "boton_cronica": "Crón.",
+    "boton_cronica_titulo": "Crónica del reino",
+    "boton_log": "Log",
+    "boton_log_titulo": "Exportar el registro de decisiones (JSON)"
+  },
+  "chips": {
+    "tesoro": {
+      "letra": "T",
+      "tip": "Tesoro · neto por veintena",
+      "trend": "{neto}/v"
+    },
+    "prestigio": {
+      "letra": "P",
+      "tip": "Prestigio",
+      "trend": "prest."
+    },
+    "ejercito": {
+      "letra": "E",
+      "tip": "Ejército total · en campo {campo}",
+      "trend": "ejército"
+    },
+    "moral": {
+      "letra": "M",
+      "tip": "Moral del ejército (0–10)",
+      "trend": "moral"
+    },
+    "prisioneros": {
+      "letra": "C",
+      "tip": "Prisioneros · pierden 3% por veintena sin destino",
+      "trend": "cautivos"
+    }
+  },
+  "mapa": {
+    "lago_patzcuaro": "Lago de Pátzcuaro",
+    "frontera_chichimeca": "Frontera chichimeca",
+    "valle_de_mexico": "Valle de México",
+    "minimapa": "minimapa de Mesoamérica",
+    "marcador_capital": "★ {nombre}",
+    "marcador_rebelde": "{nombre} (rebelde)"
+  },
+  "capas": {
+    "influencia": "Influencia",
+    "lealtad": "Lealtad",
+    "terreno": "Terreno"
+  },
+  "paneles": {
+    "produccion_territorio": "Producción del territorio",
+    "balance_veintena": "Balance por veintena",
+    "iretas_contribuyentes": "Iretas contribuyentes · por año",
+    "tasa_tributo": "Tasa de tributo",
+    "tasa_tributo_nota": "Lo pagan las iretas sujetas · agravio {agravio}/año",
+    "impuesto_interno": "Impuesto interno",
+    "impuesto_interno_nota": "Lo pagan todas las iretas · agravio {agravio}/año",
+    "presupuesto": "Presupuesto",
+    "presupuesto_suma": "{suma}%",
+    "capitan_ejercito": "Capitán del ejército",
+    "capitan_bonus": "fuerza {bonus}%",
+    "heredero": "Heredero: {nombre}",
+    "reino": "Reino",
+    "prisioneros_titulo": "Prisioneros · {n}",
+    "diplomacia": "Diplomacia",
+    "eventos_alertas": "Eventos y alertas",
+    "cronica_reciente": "Crónica reciente",
+    "ver_cronica": "Ver crónica",
+    "sin_alertas": "Sin alertas",
+    "sin_alertas_detalle": "El reino está en calma"
+  },
+  "presupuesto": {
+    "ejercito": {
+      "nombre": "Ejército",
+      "nota": "Mantenimiento mínimo {mantenimiento}/año"
+    },
+    "administracion": {
+      "nombre": "Administración",
+      "nota": "≥25% da +5 de eficiencia"
+    },
+    "obras": {
+      "nombre": "Obras",
+      "nota": "≥20% avanza las obras (solo se cobra con obra en curso)"
+    },
+    "diplomacia": {
+      "nombre": "Diplomacia",
+      "nota": "≥20% +1 · ≥30% +2 prestigio/año · <10% −1"
+    }
+  },
+  "tabs": {
+    "resumen": "Resumen",
+    "pops": "Pops",
+    "edificios": "Edificios",
+    "tributo": "Tributo",
+    "desglose": "Desglose"
+  },
+  "estados": {
+    "rebelde": "rebelde",
+    "morosa": "morosa",
+    "neutral": "neutral",
+    "leal": "leal",
+    "independiente": "independiente"
+  },
+  "bienes": {
+    "maiz": {
+      "nombre": "Maíz",
+      "letra": "M"
+    },
+    "pescado": {
+      "nombre": "Pescado",
+      "letra": "P"
+    },
+    "sal": {
+      "nombre": "Sal",
+      "letra": "S"
+    },
+    "cobre": {
+      "nombre": "Cobre",
+      "letra": "C"
+    },
+    "obsidiana": {
+      "nombre": "Obsidiana",
+      "letra": "O"
+    },
+    "mantas": {
+      "nombre": "Mantas",
+      "letra": "T"
+    }
+  },
+  "terrenos": {
+    "lago": "lago",
+    "llano": "llano",
+    "bosque": "bosque",
+    "sierra": "sierra"
+  },
+  "edificios": {
+    "yacata": {
+      "nombre": "Yácata",
+      "descripcion": "Templo funerario en forma de pirámide alargada. Reduce el agravio y sostiene la legitimidad del linaje.",
+      "estado_construida": "Construida",
+      "estado_obra": "En obra {n}/{total}",
+      "estado_otra_obra": "Hay otra obra",
+      "estado_disponible": "Disponible",
+      "efecto": "+10% ingreso · −5 agravio/año · +1 prestigio al terminar"
+    },
+    "fortaleza": {
+      "nombre": "Fortaleza",
+      "descripcion": "Recinto amurallado en la frontera. Aumenta la fuerza de guerra y las reservas de asedio; produce un poco menos.",
+      "estado_construida": "Construida",
+      "estado_obra": "En obra {n}/{total}",
+      "estado_otra_obra": "Hay otra obra",
+      "estado_disponible": "Disponible",
+      "efecto": "+800 fuerza de guerra · −5% producción · +2 prestigio"
+    },
+    "troje": {
+      "nombre": "Troje",
+      "descripcion": "Granero comunal. Amortigua las malas cosechas y reduce el agravio por subsistencia.",
+      "estado_construida": "Construida",
+      "estado_obra": "En obra {n}/{total}",
+      "estado_otra_obra": "Hay otra obra",
+      "estado_disponible": "Disponible",
+      "efecto": "−3 agravio/año · +15 subsistencia · cosechas sin costo"
+    }
+  },
+  "roles": {
+    "cazonci": "Cazonci",
+    "heredero": "Heredero",
+    "capitan": "Capitán",
+    "gobernador": "Gob. {alt}",
+    "difunto": "†",
+    "vacante": "Vacante"
+  },
+  "stats_corte": {
+    "formato": "{edad} a · adm {admin} · man {mando}"
+  },
+  "sel": {
+    "eficiencia": "Eficiencia",
+    "poblacion": "Pob.",
+    "ingreso": "Ingreso {valor}/año",
+    "lealtad": "Lealtad",
+    "agravio": "Agravio",
+    "agravio_delta": "({delta}/año)",
+    "guarnicion": "Guarnición",
+    "guarnicion_max": "/ máx {max}",
+    "gobernador": "Gobernador"
+  },
+  "pops": {
+    "cabecera_pop": "Pop",
+    "cabecera_tamano": "Tamaño",
+    "cabecera_lealtad": "Lea",
+    "cabecera_agravio": "Agr",
+    "cabecera_subsistencia": "Sub",
+    "cabecera_cotidiana": "Cot",
+    "nota": "Sub: subsistencia (maíz y pescado) · Cot: necesidades cotidianas."
+  },
+  "sel_tributo": {
+    "produccion_gravable": "Producción gravable",
+    "tributo_recibido": "Tributo recibido de iretas sujetas",
+    "tributo_pagado": "Tributo a Tzintzuntzan ({porcentaje}%)",
+    "tributo_impagado": "Tributo a Tzintzuntzan: impagado",
+    "ingreso_propio": "Ingreso propio por año",
+    "eficiencia_tasas": "Eficiencia × tasas",
+    "territorio": "Territorio",
+    "territorio_valor": "{n} hexes · valor {valor}"
+  },
+  "desglose": {
+    "agravio_por_fuente": "Agravio por año · por fuente",
+    "eficiencia_titulo": "Eficiencia · {valor}%",
+    "pop": {
+      "tributo": "Tributo",
+      "impuesto_interno": "Impuesto interno",
+      "gobernador": "Gobernador (adm {admin})",
+      "yacata": "Yácata",
+      "troje": "Troje",
+      "ocupacion_guarnicion": "Ocupación por guarnición",
+      "subsistencia_sin_cubrir": "Subsistencia sin cubrir",
+      "cotidianas_sin_cubrir": "Necesidades cotidianas sin cubrir",
+      "identidad_ajena": "Identidad ajena",
+      "distancia_capital": "Distancia a la capital"
+    },
+    "eficiencia": {
+      "base": "Base",
+      "gobernador": "Gobernador (adm {admin})",
+      "distancia": "Distancia a la capital ({n})",
+      "bono_admin_25": "Presupuesto de admin ≥ 25%",
+      "cazonci": "Cazonci {nombre} (adm {admin})",
+      "identidad_ajena": "Identidad ajena ({porcentaje}% de los pops)"
+    }
+  },
+  "diplomacia": {
+    "triple_alianza": {
+      "nombre": "Triple Alianza",
+      "tregua": "Tregua: {n} veintenas",
+      "sin_amenaza": "Sin amenaza aún",
+      "casus_belli": "Casus belli: invasión mexica en el reino",
+      "riesgo_ataque": "Riesgo de ataque {probabilidad}% al año",
+      "fuerza": "Fuerza {fuerza} vs ~{enemigo} (r {ratio})"
+    },
+    "chichimecas": {
+      "nombre": "Chichimecas",
+      "casus_belli": "Casus belli: incursión reciente",
+      "sin_casus": "Sin casus belli",
+      "tregua": "Tregua: {n} veintenas",
+      "frontera_abierta": "Frontera abierta"
+    },
+    "iretas_sujetas": {
+      "nombre": "Iretas sujetas",
+      "listado": "{items}",
+      "pagamos_tributo": "Pagamos tributo: {monto}/año · {veintenas} v"
+    },
+    "ultimatum": {
+      "titulo": "Embajada mexica · {n} de tesoro",
+      "detalle": "Pagar retrasa la invasión cuatro años; rechazar la mantiene en 1478.",
+      "pagar": "Pagar tributo",
+      "rechazar": "Rechazar"
+    }
+  },
+  "alertas": {
+    "tesoro_agotado": {
+      "titulo": "Tesoro agotado",
+      "detalle": "Deserciones y pérdida de moral"
+    },
+    "tesoro_descenso": {
+      "titulo": "Tesoro en descenso",
+      "detalle": "Llegará a 0 en {n} veintenas"
+    },
+    "rebelion": {
+      "titulo": "{alt} en rebelión",
+      "detalle": "Puedes reconquistarla (casus belli)"
+    },
+    "tributo_impagado": {
+      "titulo": "Tributo impagado",
+      "detalle": "{alt} · casus belli para castigar"
+    },
+    "agravio_alto": {
+      "titulo": "Agravio alto",
+      "detalle": "{alt} · {valor}"
+    },
+    "obra_en_curso": {
+      "titulo": "Obra en curso",
+      "detalle": "{edificio} en {alt} · {progreso} de {total}"
+    },
+    "frontera_saqueada": {
+      "titulo": "Frontera saqueada",
+      "detalle": "{n} hexágono(s) sin control"
+    },
+    "invasor": {
+      "titulo": "Ejército mexica en marcha",
+      "detalle": "{n} soldados avanzan hacia la capital"
+    },
+    "ultimatum": {
+      "titulo": "Exigencia mexica",
+      "detalle": "Piden {n} de tesoro como tributo"
+    }
+  },
+  "acciones": {
+    "construir_yacata": {
+      "titulo": "Construir yácata en {a.nombre}",
+      "costo_visible": "{costo_yacata}"
+    },
+    "construir_fortaleza": {
+      "titulo": "Construir fortaleza en {a.nombre}",
+      "costo_visible": "{costo_fortaleza}"
+    },
+    "construir_troje": {
+      "titulo": "Construir troje en {a.nombre}",
+      "costo_visible": "{costo_troje}"
+    },
+    "reclutar": {
+      "titulo": "Reclutar {tropas_reclutar} guerreros",
+      "costo_visible": "Tesoro −{costo_reclutar}"
+    },
+    "regalos": {
+      "titulo": "Enviar regalos a los vecinos",
+      "costo_visible": "Tesoro −{costo_regalos} · prestigio +{prestigio_regalos}"
+    },
+    "guerra_alianza": {
+      "titulo": "Declarar guerra a la Triple Alianza",
+      "costo_visible": "Sin casus belli: prestigio −{sin_casus_alianza} · {odds_alianza}"
+    },
+    "expedicion_chichimeca": {
+      "titulo": "Expedición contra los chichimecas",
+      "costo_visible": "{casus_chichimeca} · {odds_chichimeca}"
+    },
+    "castigar": {
+      "titulo": "Castigar a {a.nombre} (tributo impagado)",
+      "costo_visible": "Ejército −3% · lealtad +12 · agravio +5"
+    },
+    "reconquistar": {
+      "titulo": "Reconquistar {a.nombre} (casus belli: rebelión)",
+      "costo_visible": "Ejército −5% · prestigio +2"
+    },
+    "prisioneros_ritual": {
+      "titulo": "Prisioneros al ritual",
+      "costo_visible": "Prestigio +1 por cada 100 · agravio +3 en pops no purépechas"
+    },
+    "prisioneros_trabajo": {
+      "titulo": "Prisioneros a trabajos",
+      "costo_visible": "Tesoro +0.4 por prisionero · agravio +2 en la capital"
+    },
+    "prisioneros_rescate": {
+      "titulo": "Prisioneros a rescate",
+      "costo_visible": "Tesoro +0.6 por prisionero"
+    },
+    "prisioneros_integrar": {
+      "titulo": "Prisioneros a integrarse como pops",
+      "costo_visible": "Pop nahua en la capital, lealtad 25"
+    },
+    "_no_disponible": "No disponible: no se cumplen los requisitos"
+  },
+  "eventos": {
+    "rebaja": {
+      "titulo": "Petición de rebaja",
+      "cuerpo": "El agravio de {a.nombre} es {a.agravio}. Los señores piden una rebaja del tributo.",
+      "descripcion": "Si ignoras la petición, el agravio seguirá subiendo. Si aceptas, perderás ingresos.",
+      "opciones": {
+        "rebajar": {
+          "titulo": "Rebajar el tributo",
+          "costo_visible": "Tributo −1 (ingreso ≈ −17%), agravio −20"
+        },
+        "ignorar": {
+          "titulo": "Ignorar la petición",
+          "costo_visible": "Agravio +5 · riesgo de rebelión 10–50% según el agravio"
+        }
+      }
+    },
+    "autonomia": {
+      "titulo": "Señorío pide autonomía",
+      "cuerpo": "{a.nombre} tiene lealtad {a.lealtad} y está a distancia {a.distance}.",
+      "descripcion": "El señorío pide mayor autonomía. Concederla mejora la lealtad pero reduce el control.",
+      "opciones": {
+        "conceder": {
+          "titulo": "Conceder autonomía",
+          "costo_visible": "Lealtad +15, agravio −10 en el señorío"
+        },
+        "negar": {
+          "titulo": "Negar la autonomía",
+          "costo_visible": "Lealtad −10 local, +5 en las demás"
+        }
+      }
+    },
+    "excedente": {
+      "titulo": "Excedente en el tesoro",
+      "cuerpo": "El tesoro tiene {faccion.tesoro} unidades. Hay margen para invertir.",
+      "descripcion": "Un excedente permite invertir en obra, regalos o bajar impuestos.",
+      "opciones": {
+        "obra": {
+          "titulo": "Invertir en una obra",
+          "costo_visible": "Tesoro −400 (si hay una ireta sin yácata ni obra)"
+        },
+        "regalos": {
+          "titulo": "Enviar regalos",
+          "costo_visible": "Tesoro −200 · prestigio +5"
+        },
+        "bajar_impuesto": {
+          "titulo": "Bajar impuesto interno",
+          "costo_visible": "Impuesto −1 (menos ingreso), agravio −10 a todos"
+        }
+      }
+    },
+    "capitan": {
+      "titulo": "Capitán ambicioso",
+      "cuerpo": "Hay un capitán con mando 5 y sin guerra. Su ambición crece.",
+      "descripcion": "Dale una campaña de frontera o relégalo.",
+      "opciones": {
+        "nombrar": {
+          "titulo": "Nombrarlo capitán del ejército",
+          "costo_visible": "Mando 5: +12% de fuerza de guerra"
+        },
+        "campana": {
+          "titulo": "Campaña de frontera",
+          "costo_visible": "Prestigio +3 · 30% de perder 10% del ejército"
+        },
+        "relegar": {
+          "titulo": "Relegarlo",
+          "costo_visible": "Lealtad −10 en la capital, prestigio −1"
+        }
+      }
+    },
+    "cosecha": {
+      "titulo": "Mala cosecha",
+      "cuerpo": "La producción de maíz ha caído. Las trojes se vacían.",
+      "descripcion": "Una mala cosecha exige decisiones.",
+      "opciones": {
+        "abrir_trojes": {
+          "titulo": "Abrir las trojes",
+          "costo_visible": "Tesoro −100 si no hay troje"
+        },
+        "comprar": {
+          "titulo": "Comprar a un vecino",
+          "costo_visible": "Tesoro −200 · subsistencia −10 por 9 veintenas"
+        },
+        "nada": {
+          "titulo": "No hacer nada",
+          "costo_visible": "Agravio +15 a todos, población −5% (−2% con troje) · subsistencia −25 por 9 veintenas"
+        }
+      }
+    },
+    "refugiados": {
+      "titulo": "Refugiados de la frontera",
+      "cuerpo": "Una banda chichimeca saqueó un asentamiento fronterizo. Llegan refugiados.",
+      "descripcion": "Acoger a los refugiados o rechazarlos.",
+      "opciones": {
+        "acoger": {
+          "titulo": "Acogerlos",
+          "costo_visible": "Población +500 en {t.nombre}, agravio +5"
+        },
+        "rechazar": {
+          "titulo": "Rechazarlos",
+          "costo_visible": "Prestigio −2"
+        }
+      }
+    },
+    "moroso": {
+      "titulo": "Tributario moroso",
+      "cuerpo": "{a.nombre} no ha pagado su tributo este año.",
+      "descripcion": "Exige con amenaza o perdona; ambos tienen consecuencias.",
+      "opciones": {
+        "exigir": {
+          "titulo": "Exigir con amenaza",
+          "costo_visible": "60%: prestigio +3 · 40%: prestigio −3 y agravio +10"
+        },
+        "perdonar": {
+          "titulo": "Perdonar",
+          "costo_visible": "Prestigio −2 · agravio −15"
+        }
+      }
+    },
+    "heredero": {
+      "titulo": "Heredero en duda",
+      "cuerpo": "El cazonci Zuangua tiene {faccion.cazonci.age} años y no ha designado heredero.",
+      "descripcion": "Designar heredero ahora o esperar.",
+      "opciones": {
+        "tangaxoan": {
+          "titulo": "Designar a Tangáxoan (28 años, adm 4)",
+          "costo_visible": "Prestigio −2"
+        },
+        "hijo": {
+          "titulo": "Designar al hijo del cazonci (14 años, adm 1)",
+          "costo_visible": "Prestigio −1 · si reina pronto, eficiencia −8 (minoría)"
+        },
+        "esperar": {
+          "titulo": "Esperar",
+          "costo_visible": "Riesgo de crisis sucesoria"
+        }
+      }
+    }
+  },
+  "crisis": {
+    "rebelion": {
+      "titulo": "Rebelión en {a.nombre}",
+      "cuerpo": "{a.nombre} se ha rebelado (lealtad {a.lealtad}, guarnición {a.guarnicion}).",
+      "descripcion": "Si la ignoras, la ireta se independiza y pierdes su territorio.",
+      "opciones": {
+        "suprimir": {
+          "titulo": "Suprimir con el ejército",
+          "costo_visible": "Ejército −10% · prestigio −2 · tesoro −300"
+        },
+        "ignorar": {
+          "titulo": "Ignorar la rebelión",
+          "costo_visible": "Pierdes {a.nombre} · prestigio −5"
+        }
+      }
+    },
+    "guerra_alianza": {
+      "titulo": "Guerra con la Triple Alianza",
+      "cuerpo": "Fuerza efectiva: {fuerza_guerra}. Enemigo: ~{enemigo_alianza}.",
+      "descripcion": "Proporción {ratio} → {odds}. Guarnecer Zacapu antes de avanzar el año mejora el resultado.",
+      "opciones": {
+        "luchar": {
+          "titulo": "Luchar",
+          "costo_visible": "{odds} · victoria +5 prestigio, +300, 400 prisioneros · derrota −5, −300, lealtad −15"
+        },
+        "pagar": {
+          "titulo": "Pagar tributo por la paz",
+          "costo_visible": "Tesoro −200 · tributo de 120/año durante 2 años · prestigio −3"
+        }
+      }
+    },
+    "sucesion": {
+      "titulo": "Muerte del cazonci",
+      "cuerpo": "El cazonci Zuangua ha muerto.",
+      "descripcion": "Se abre la sucesión.",
+      "opciones": {
+        "aceptar_heredero": {
+          "titulo": "Aceptar a {cazonci.heir.nombre}",
+          "costo_visible": "Ninguno"
+        },
+        "tangaxoan": {
+          "titulo": "Apoyar a Tangáxoan",
+          "costo_visible": "Prestigio +3 · Uruapan lealtad −15"
+        },
+        "rival": {
+          "titulo": "Apoyar al señor de Uruapan",
+          "costo_visible": "Prestigio −5 · Tzintzuntzan lealtad −20 · Uruapan +15"
+        }
+      }
+    }
+  },
+  "modal": {
+    "crisis": "Crisis",
+    "decision": "Decisión",
+    "ilustracion": "ilustración del evento · {titulo}",
+    "requisitos_fallidos": "No disponible: no se cumplen los requisitos"
+  },
+  "cronica": {
+    "inicio": "Comienza el reinado de Zuangua. El reino purépecha se prepara.",
+    "tributo_impagado": "Tributo impagado: {alt} deja de tributar a Tzintzuntzan.",
+    "frontera_gana": "Frontera: {ganador} ganó un hexágono a {perdedor}.",
+    "obra_iniciada": "Se inició una {edificio} en {alt}.",
+    "obra_terminada": "Se terminó la {edificio} de {alt}.",
+    "incursion": "Incursión chichimeca: {alt} perdió un hexágono.",
+    "muerte": "{personaje} ha muerto.",
+    "cazonci_muere": "El cazonci Zuangua ha muerto. Se abre la sucesión.",
+    "tesoro_agotado": "Tesoro agotado: no se pagan el ejército ni la administración. Habrá deserciones y descrédito.",
+    "anio_resumen": "Año {anio}: tesoro {tesoro}, prestigio {prestigio}, territorio {hexes} hexes.",
+    "gobernador_nombrado": "Se nombró a {nuevo} gobernador de {alt} (antes: {anterior}).",
+    "capitan_nombrado": "{nuevo} fue nombrado capitán (antes: {anterior}).",
+    "tipo": {
+      "crisis": "crisis",
+      "consequence": "consecuencia",
+      "decision": "decisión",
+      "default": "nota"
+    },
+    "ejercito_llega": "El ejército llegó a su destino.",
+    "incursion_ejercito": "El ejército regresó de una incursión: {prisioneros} prisioneros y {botin} de botín.",
+    "ejercito_ocupa": "El ejército ocupó un hexágono de la frontera.",
+    "invasor_llega": "Un ejército mexica de {n} soldados entra en el reino.",
+    "ultimatum": "Embajada mexica: exigen {monto} de tesoro como tributo antes de 1478.",
+    "ultimatum_pagado": "Pagamos el tributo a los mexicas; retrasan su ataque hasta {anio}.",
+    "ultimatum_rechazado": "Rechazamos la exigencia mexica. Preparan la invasión.",
+    "asedio_inicia": "El ejército mexica cerca la capital.",
+    "asedio_levanta": "El ejército mexica levanta el sitio y se retira.",
+    "batalla_victoria": "Vencimos a los mexicas: {invasores} muertos de su lado y {bajas} de los nuestros.",
+    "batalla_derrota": "Los mexicas nos vencieron y ocupan el terreno: perdimos {bajas} soldados.",
+    "invasion_derrotada": "Los mexicas se retiran derrotados. Volverán cuando su ejército se recupere.",
+    "capital_rendida": "La capital se rinde a los mexicas. Pasa a su dominio."
+  },
+  "resolucion": {
+    "motivo": {
+      "estructural": "decisión estructural",
+      "atribuido": "cambio ya atribuido a una decisión anterior",
+      "rutina": "acción de rutina: no cuenta",
+      "sin_cambio": "sin cambio notable"
+    },
+    "componente": {
+      "prestigio": "prestigio",
+      "lealtad": "lealtad",
+      "hexes": "hexes",
+      "rebeldes": "iretas rebeldes",
+      "balance": "balance operativo/año",
+      "ejercito": "ejército"
+    }
+  },
+  "fin": {
+    "titulo": "Fin de la partida · {anio}",
+    "rubrica_si": "✓ Rúbrica del hito 0 cumplida",
+    "rubrica_no": "✗ Rúbrica no cumplida",
+    "log_titulo": "Decisiones y consecuencias a 1 año",
+    "boton_cronica": "Crónica",
+    "boton_exportar": "Exportar log",
+    "boton_reiniciar": "Jugar de nuevo",
+    "stats": {
+      "tesoro": "Tesoro",
+      "prestigio": "Prestigio",
+      "ejercito": "Ejército",
+      "territorio": "Territorio",
+      "lealtad_media": "Lealtad media",
+      "decisiones": "Decisiones",
+      "de_rumbo": "De rumbo",
+      "iretas_rebeldes": "Iretas rebeldes",
+      "cazonci": "Cazonci"
+    },
+    "log_what": "{decision}: {opcion}"
+  },
+  "errores": {
+    "carga_datos": "No se pudieron cargar los datos: {mensaje}",
+    "cargando": "Cargando datos del juego…",
+    "formula_desconocida": "Fórmula desconocida: {nombre}",
+    "efecto_desconocido": "Efecto desconocido: {tipo}",
+    "condicion_desconocida": "Condición desconocida: {tipo}",
+    "constante_desconocida": "Constante desconocida: {nombre}"
+  },
+  "export": {
+    "juego": "Hito 0 v4",
+    "archivo": "hito0-v4-log-{semilla}.json",
+    "fecha": "{anio}·V{veintena}"
+  },
+  "cronica_efectos": {
+    "acciones": {
+      "construir_yacata": {
+        "1": "Se inició una yácata en {a.nombre}."
+      },
+      "construir_fortaleza": {
+        "1": "Se inició una fortaleza en {a.nombre}."
+      },
+      "construir_troje": {
+        "1": "Se inició una troje en {a.nombre}."
+      },
+      "reclutar": {
+        "1": "Se reclutaron {tropas_reclutar} guerreros."
+      },
+      "regalos": {
+        "1": "Se enviaron regalos. Prestigio +{prestigio_regalos}."
+      },
+      "guerra_alianza": {
+        "1": "Victoria contra la Triple Alianza (+400 prisioneros).",
+        "2": "Derrota contra la Triple Alianza.",
+        "3": "Empate contra la Triple Alianza."
+      },
+      "expedicion_chichimeca": {
+        "1": "Victoria contra los chichimecas (+200 prisioneros).",
+        "2": "Derrota contra los chichimecas.",
+        "3": "Empate contra los chichimecas."
+      },
+      "castigar": {
+        "1": "{a.nombre} fue castigada por tributo impagado."
+      },
+      "reconquistar": {
+        "1": "{a.nombre} fue reconquistada."
+      },
+      "prisioneros_ritual": {
+        "1": "{faccion.prisioneros} prisioneros al ritual."
+      },
+      "prisioneros_trabajo": {
+        "1": "{faccion.prisioneros} prisioneros a trabajos."
+      },
+      "prisioneros_rescate": {
+        "1": "{faccion.prisioneros} prisioneros a rescate."
+      },
+      "prisioneros_integrar": {
+        "1": "{faccion.prisioneros} prisioneros a integrarse como pops."
+      }
+    },
+    "eventos": {
+      "excedente": {
+        "1": "No había dónde levantar una yácata; no se gastó el tesoro."
+      }
+    },
+    "crisis": {
+      "rebelion": {
+        "1": "La rebelión en {a.nombre} fue suprimida.",
+        "2": "{a.nombre} se ha independizado."
+      },
+      "guerra_alianza": {
+        "1": "Victoria contra la Triple Alianza (+400 prisioneros).",
+        "2": "Derrota contra la Triple Alianza.",
+        "3": "Empate con la Triple Alianza (+100 prisioneros).",
+        "4": "Se pagó tributo a la Triple Alianza."
+      },
+      "sucesion": {
+        "1": "El cazonci Zuangua ha muerto. Se abre la sucesión.",
+        "2": "{cazonci.heir.nombre} asumió el poder sin disputa.",
+        "3": "Tangáxoan fue entronizado.",
+        "4": "El señor de Uruapan tomó el poder."
+      }
+    }
+  },
+  "tac": {
+    "titulo": "Batalla táctica",
+    "cerrar": "Cerrar",
+    "atacar": "Librar batalla táctica",
+    "en_curso": "Clic en una unidad propia y luego en un hexágono para moverla",
+    "ganado": "Victoria: el invasor se retira derrotado.",
+    "perdido": "Derrota: el invasor sigue sobre el territorio."
+  }
+}

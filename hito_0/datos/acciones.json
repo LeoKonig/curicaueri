@@ -1,0 +1,852 @@
+{
+  "version_esquema": 1,
+  "acciones": [
+    {
+      "id": "construir_yacata",
+      "tipo": "accion",
+      "modo": "panel",
+      "grupo": "edificios",
+      "edificio": "yacata",
+      "liga": {
+        "a": {
+          "entidad": "altepetl",
+          "filtro": {
+            "independent": false
+          }
+        }
+      },
+      "requisitos": [
+        {
+          "tipo": "flag",
+          "campo": "$a.building",
+          "es": null
+        },
+        {
+          "tipo": "flag",
+          "campo": "$a.yacata",
+          "es": false
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "tesoro",
+          "min": "COSTO_YACATA"
+        }
+      ],
+      "costo": {
+        "tesoro": "COSTO_YACATA"
+      },
+      "efectos": [
+        {
+          "tipo": "construir",
+          "edificio": "yacata",
+          "sitio": "$a"
+        },
+        {
+          "tipo": "cronica",
+          "tipo_cronica": "consequence",
+          "texto_clave": "cronica_efectos.acciones.construir_yacata.1"
+        }
+      ],
+      "descripcion_clave": "edificios.yacata.efecto",
+      "titulo_clave": "acciones.construir_yacata.titulo",
+      "costo_visible_clave": "acciones.construir_yacata.costo_visible"
+    },
+    {
+      "id": "construir_fortaleza",
+      "tipo": "accion",
+      "modo": "panel",
+      "grupo": "edificios",
+      "edificio": "fortaleza",
+      "liga": {
+        "a": {
+          "entidad": "altepetl",
+          "filtro": {
+            "independent": false
+          }
+        }
+      },
+      "requisitos": [
+        {
+          "tipo": "flag",
+          "campo": "$a.building",
+          "es": null
+        },
+        {
+          "tipo": "flag",
+          "campo": "$a.fortaleza",
+          "es": false
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "tesoro",
+          "min": "COSTO_FORTALEZA"
+        }
+      ],
+      "costo": {
+        "tesoro": "COSTO_FORTALEZA"
+      },
+      "efectos": [
+        {
+          "tipo": "construir",
+          "edificio": "fortaleza",
+          "sitio": "$a"
+        },
+        {
+          "tipo": "cronica",
+          "tipo_cronica": "consequence",
+          "texto_clave": "cronica_efectos.acciones.construir_fortaleza.1"
+        }
+      ],
+      "descripcion_clave": "edificios.fortaleza.efecto",
+      "titulo_clave": "acciones.construir_fortaleza.titulo",
+      "costo_visible_clave": "acciones.construir_fortaleza.costo_visible"
+    },
+    {
+      "id": "construir_troje",
+      "tipo": "accion",
+      "modo": "panel",
+      "grupo": "edificios",
+      "edificio": "troje",
+      "liga": {
+        "a": {
+          "entidad": "altepetl",
+          "filtro": {
+            "independent": false
+          }
+        }
+      },
+      "requisitos": [
+        {
+          "tipo": "flag",
+          "campo": "$a.building",
+          "es": null
+        },
+        {
+          "tipo": "flag",
+          "campo": "$a.troje",
+          "es": false
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "tesoro",
+          "min": "COSTO_TROJE"
+        }
+      ],
+      "costo": {
+        "tesoro": "COSTO_TROJE"
+      },
+      "efectos": [
+        {
+          "tipo": "construir",
+          "edificio": "troje",
+          "sitio": "$a"
+        },
+        {
+          "tipo": "cronica",
+          "tipo_cronica": "consequence",
+          "texto_clave": "cronica_efectos.acciones.construir_troje.1"
+        }
+      ],
+      "descripcion_clave": "edificios.troje.efecto",
+      "titulo_clave": "acciones.construir_troje.titulo",
+      "costo_visible_clave": "acciones.construir_troje.costo_visible"
+    },
+    {
+      "id": "reclutar",
+      "tipo": "accion",
+      "modo": "panel",
+      "grupo": "reino",
+      "requisitos": [
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "tesoro",
+          "min": "COSTO_RECLUTAR"
+        }
+      ],
+      "costo": {
+        "tesoro": "COSTO_RECLUTAR"
+      },
+      "efectos": [
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "ejercito",
+          "sumar": "TROPAS_RECLUTAR"
+        },
+        {
+          "tipo": "cronica",
+          "tipo_cronica": "consequence",
+          "texto_clave": "cronica_efectos.acciones.reclutar.1"
+        }
+      ],
+      "titulo_clave": "acciones.reclutar.titulo",
+      "costo_visible_clave": "acciones.reclutar.costo_visible"
+    },
+    {
+      "id": "regalos",
+      "tipo": "accion",
+      "modo": "panel",
+      "grupo": "reino",
+      "requisitos": [
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "tesoro",
+          "min": "COSTO_REGALOS"
+        }
+      ],
+      "costo": {
+        "tesoro": "COSTO_REGALOS"
+      },
+      "efectos": [
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "prestigio",
+          "sumar": "PRESTIGIO_REGALOS"
+        },
+        {
+          "tipo": "cronica",
+          "tipo_cronica": "consequence",
+          "texto_clave": "cronica_efectos.acciones.regalos.1"
+        }
+      ],
+      "titulo_clave": "acciones.regalos.titulo",
+      "costo_visible_clave": "acciones.regalos.costo_visible"
+    },
+    {
+      "id": "guerra_alianza",
+      "tipo": "accion",
+      "modo": "panel",
+      "grupo": "militar",
+      "requisitos": [
+        {
+          "tipo": "flag",
+          "campo": "flags.war",
+          "es": false
+        },
+        {
+          "tipo": "tick_min",
+          "t": "$faccion.flags.truce"
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "campo",
+          "min": 1000
+        }
+      ],
+      "efectos": [
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "prestigio",
+          "sumar": {
+            "formula": "negar",
+            "args": {
+              "x": "SIN_CASUS_ALIANZA"
+            }
+          }
+        },
+        {
+          "tipo": "resolver",
+          "formula": "roll_guerra",
+          "args": {
+            "ratio": {
+              "formula": "fuerza_guerra",
+              "args": {
+                "faccion": "$faccion"
+              }
+            }
+          },
+          "victoria": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": 5
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "tesoro",
+              "sumar": 300
+            },
+            {
+              "tipo": "prisioneros",
+              "sumar": 400
+            },
+            {
+              "tipo": "para_cada",
+              "entidad": "altepetl",
+              "filtro": {
+                "independent": false
+              },
+              "efectos": [
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$alts",
+                  "magnitud": "lealtad",
+                  "sumar": 5,
+                  "clamp": [
+                    0,
+                    100
+                  ]
+                }
+              ]
+            },
+            {
+              "tipo": "cronica",
+              "tipo_cronica": "consequence",
+              "texto_clave": "cronica_efectos.acciones.guerra_alianza.1"
+            }
+          ],
+          "derrota": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": -5
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "ejercito",
+              "factor": 0.9
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "tesoro",
+              "sumar": -300,
+              "clamp_min": 0
+            },
+            {
+              "tipo": "para_cada",
+              "entidad": "altepetl",
+              "filtro": {
+                "independent": false
+              },
+              "efectos": [
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$alts",
+                  "magnitud": "lealtad",
+                  "sumar": -15,
+                  "clamp": [
+                    0,
+                    100
+                  ]
+                }
+              ]
+            },
+            {
+              "tipo": "cronica",
+              "tipo_cronica": "consequence",
+              "texto_clave": "cronica_efectos.acciones.guerra_alianza.2"
+            }
+          ],
+          "empate": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "tesoro",
+              "sumar": -100,
+              "clamp_min": 0
+            },
+            {
+              "tipo": "prisioneros",
+              "sumar": 100
+            },
+            {
+              "tipo": "cronica",
+              "tipo_cronica": "consequence",
+              "texto_clave": "cronica_efectos.acciones.guerra_alianza.3"
+            }
+          ]
+        },
+        {
+          "tipo": "estado",
+          "campo": "flags.truce",
+          "fijar": {
+            "formula": "tick_mas",
+            "args": {
+              "t": "$tick",
+              "n": "TREGUA_ALIANZA"
+            }
+          }
+        }
+      ],
+      "titulo_clave": "acciones.guerra_alianza.titulo",
+      "costo_visible_clave": "acciones.guerra_alianza.costo_visible"
+    },
+    {
+      "id": "expedicion_chichimeca",
+      "tipo": "accion",
+      "modo": "panel",
+      "grupo": "militar",
+      "requisitos": [
+        {
+          "tipo": "flag",
+          "campo": "flags.war",
+          "es": false
+        },
+        {
+          "tipo": "tick_min",
+          "t": "$faccion.flags.truceChi"
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "campo",
+          "min": 1000
+        }
+      ],
+      "efectos": [
+        {
+          "tipo": "si",
+          "condicion": [
+            {
+              "tipo": "reciente",
+              "campo": "lastRaid",
+              "ventana": "CASUS_VENTANA"
+            }
+          ],
+          "entonces": [],
+          "sino": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": {
+                "formula": "negar",
+                "args": {
+                  "x": "SIN_CASUS_CHICHIMECA"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "tipo": "resolver",
+          "formula": "roll_guerra",
+          "args": {
+            "ratio": {
+              "formula": "fuerza_guerra",
+              "args": {
+                "faccion": "$faccion",
+                "enemigo": "ENEMIGO_CHICHIMECA"
+              }
+            }
+          },
+          "victoria": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": 2
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "tesoro",
+              "sumar": 100
+            },
+            {
+              "tipo": "prisioneros",
+              "sumar": 200
+            },
+            {
+              "tipo": "cronica",
+              "tipo_cronica": "consequence",
+              "texto_clave": "cronica_efectos.acciones.expedicion_chichimeca.1"
+            }
+          ],
+          "derrota": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": -2
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "ejercito",
+              "factor": 0.9
+            },
+            {
+              "tipo": "para_cada",
+              "entidad": "altepetl",
+              "filtro": {
+                "independent": false
+              },
+              "efectos": [
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$alts",
+                  "magnitud": "lealtad",
+                  "sumar": -5,
+                  "clamp": [
+                    0,
+                    100
+                  ]
+                }
+              ]
+            },
+            {
+              "tipo": "cronica",
+              "tipo_cronica": "consequence",
+              "texto_clave": "cronica_efectos.acciones.expedicion_chichimeca.2"
+            }
+          ],
+          "empate": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "tesoro",
+              "sumar": -100,
+              "clamp_min": 0
+            },
+            {
+              "tipo": "prisioneros",
+              "sumar": 50
+            },
+            {
+              "tipo": "cronica",
+              "tipo_cronica": "consequence",
+              "texto_clave": "cronica_efectos.acciones.expedicion_chichimeca.3"
+            }
+          ]
+        },
+        {
+          "tipo": "estado",
+          "campo": "flags.truceChi",
+          "fijar": {
+            "formula": "tick_mas",
+            "args": {
+              "t": "$tick",
+              "n": "TREGUA_CHICHIMECA"
+            }
+          }
+        }
+      ],
+      "titulo_clave": "acciones.expedicion_chichimeca.titulo",
+      "costo_visible_clave": "acciones.expedicion_chichimeca.costo_visible"
+    },
+    {
+      "id": "castigar",
+      "tipo": "accion",
+      "modo": "panel",
+      "grupo": "ireta",
+      "liga": {
+        "a": {
+          "entidad": "altepetl",
+          "filtro": {
+            "moroso": true,
+            "independent": false
+          }
+        }
+      },
+      "requisitos": [
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "campo",
+          "min": 1000
+        }
+      ],
+      "efectos": [
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "ejercito",
+          "factor": 0.97
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$a",
+          "magnitud": "lealtad",
+          "sumar": 12,
+          "clamp": [
+            0,
+            100
+          ]
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$a",
+          "magnitud": "agravio",
+          "sumar": 5,
+          "clamp": [
+            0,
+            100
+          ]
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "prestigio",
+          "sumar": 1
+        },
+        {
+          "tipo": "prisioneros",
+          "sumar": 60
+        },
+        {
+          "tipo": "cronica",
+          "tipo_cronica": "consequence",
+          "texto_clave": "cronica_efectos.acciones.castigar.1"
+        }
+      ],
+      "titulo_clave": "acciones.castigar.titulo",
+      "costo_visible_clave": "acciones.castigar.costo_visible"
+    },
+    {
+      "id": "reconquistar",
+      "tipo": "accion",
+      "modo": "panel",
+      "grupo": "ireta",
+      "de_rumbo": true,
+      "liga": {
+        "a": {
+          "entidad": "altepetl",
+          "filtro": {
+            "independent": true
+          }
+        }
+      },
+      "requisitos": [
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "campo",
+          "min": 1500
+        }
+      ],
+      "efectos": [
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "ejercito",
+          "factor": 0.95
+        },
+        {
+          "tipo": "estado",
+          "campo": "$a.independent",
+          "fijar": false
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$a",
+          "magnitud": "lealtad",
+          "fijar": 40
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$a",
+          "magnitud": "agravio",
+          "sumar": -20,
+          "clamp": [
+            0,
+            100
+          ]
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "prestigio",
+          "sumar": 2
+        },
+        {
+          "tipo": "cronica",
+          "tipo_cronica": "consequence",
+          "texto_clave": "cronica_efectos.acciones.reconquistar.1"
+        }
+      ],
+      "titulo_clave": "acciones.reconquistar.titulo",
+      "costo_visible_clave": "acciones.reconquistar.costo_visible"
+    },
+    {
+      "id": "prisioneros_ritual",
+      "tipo": "accion",
+      "modo": "panel",
+      "grupo": "prisioneros",
+      "requisitos": [
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "prisioneros",
+          "min": 1
+        }
+      ],
+      "efectos": [
+        {
+          "tipo": "cronica",
+          "tipo_cronica": "consequence",
+          "texto_clave": "cronica_efectos.acciones.prisioneros_ritual.1"
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "prestigio",
+          "sumar": {
+            "formula": "prisioneros_prestigio",
+            "args": {
+              "n": "$faccion.prisioneros"
+            }
+          }
+        },
+        {
+          "tipo": "pops",
+          "filtro_pop": {
+            "identidad": {
+              "cmp": "!=",
+              "valor": "purepecha"
+            }
+          },
+          "magnitud": "agravio",
+          "sumar": 3
+        },
+        {
+          "tipo": "estado",
+          "campo": "prisoners",
+          "fijar": 0
+        }
+      ],
+      "titulo_clave": "acciones.prisioneros_ritual.titulo",
+      "costo_visible_clave": "acciones.prisioneros_ritual.costo_visible"
+    },
+    {
+      "id": "prisioneros_trabajo",
+      "tipo": "accion",
+      "modo": "panel",
+      "grupo": "prisioneros",
+      "requisitos": [
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "prisioneros",
+          "min": 1
+        }
+      ],
+      "efectos": [
+        {
+          "tipo": "cronica",
+          "tipo_cronica": "consequence",
+          "texto_clave": "cronica_efectos.acciones.prisioneros_trabajo.1"
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "tesoro",
+          "sumar": {
+            "formula": "producto",
+            "args": {
+              "a": "$faccion.prisioneros",
+              "b": "TESORO_TRABAJO"
+            }
+          }
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$capital",
+          "magnitud": "agravio",
+          "sumar": 2,
+          "clamp": [
+            0,
+            100
+          ]
+        },
+        {
+          "tipo": "estado",
+          "campo": "prisoners",
+          "fijar": 0
+        }
+      ],
+      "titulo_clave": "acciones.prisioneros_trabajo.titulo",
+      "costo_visible_clave": "acciones.prisioneros_trabajo.costo_visible"
+    },
+    {
+      "id": "prisioneros_rescate",
+      "tipo": "accion",
+      "modo": "panel",
+      "grupo": "prisioneros",
+      "requisitos": [
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "prisioneros",
+          "min": 1
+        }
+      ],
+      "efectos": [
+        {
+          "tipo": "cronica",
+          "tipo_cronica": "consequence",
+          "texto_clave": "cronica_efectos.acciones.prisioneros_rescate.1"
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "tesoro",
+          "sumar": {
+            "formula": "producto",
+            "args": {
+              "a": "$faccion.prisioneros",
+              "b": "TESORO_RESCATE"
+            }
+          }
+        },
+        {
+          "tipo": "estado",
+          "campo": "prisoners",
+          "fijar": 0
+        }
+      ],
+      "titulo_clave": "acciones.prisioneros_rescate.titulo",
+      "costo_visible_clave": "acciones.prisioneros_rescate.costo_visible"
+    },
+    {
+      "id": "prisioneros_integrar",
+      "tipo": "accion",
+      "modo": "panel",
+      "grupo": "prisioneros",
+      "requisitos": [
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "prisioneros",
+          "min": 1
+        }
+      ],
+      "efectos": [
+        {
+          "tipo": "cronica",
+          "tipo_cronica": "consequence",
+          "texto_clave": "cronica_efectos.acciones.prisioneros_integrar.1"
+        },
+        {
+          "tipo": "crear_pop",
+          "entidad": "$capital",
+          "identidad": "nahua",
+          "estrato": "comun",
+          "tamano": "$faccion.prisioneros",
+          "lealtad": 25,
+          "agravio": 40
+        },
+        {
+          "tipo": "estado",
+          "campo": "prisoners",
+          "fijar": 0
+        }
+      ],
+      "titulo_clave": "acciones.prisioneros_integrar.titulo",
+      "costo_visible_clave": "acciones.prisioneros_integrar.costo_visible"
+    }
+  ]
+}

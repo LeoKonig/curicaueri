@@ -178,6 +178,15 @@ proyectarAldeas est =
 sequiaPrograma :: Programa
 sequiaPrograma = either (error . show) id (compilarPrograma efectosSequia)
 
+-- | Guion mínimo para probar el vencimiento de una pregunta de cantidad. La
+-- situación no se presenta sola: solo importa que la reanudación encuentre su
+-- opción "" en el guion al vencer el plazo.
+guionSequia :: Guion
+guionSequia = guionVacio
+  { guSituaciones = [ Situacion "sequia" "sequia" uno 0 0 [] Siempre [("", sequiaPrograma)] ]
+  , guDirector = (guDirector guionVacio) { pdProbBase = Fijo 0 }
+  }
+
 descontentoTotal :: Persistente Aldeas -> Fijo
 descontentoTotal p = foldl' (.+.) (Fijo 0)
   [ almacenBase x | ((_, m), x) <- Map.toList (comunMagnitudes (persistenteComun p))
@@ -284,6 +293,13 @@ presionEn e = maybe (Fijo 0) (valorEn (estadoTick e) (RangoMag (Fijo 0) (fi 100)
 
 directorDe :: Estado Aldeas -> EstadoDirector
 directorDe = comunDirector . persistenteComun . estadoPersistente
+
+conPlazo :: Int -> Tick -> Estado Aldeas -> Estado Aldeas
+conPlazo i t e =
+  let p = estadoPersistente e
+      c = persistenteComun p
+      d = comunDirector c
+  in e { estadoPersistente = p { persistenteComun = c { comunDirector = d { edPlazos = Map.singleton i t } } } }
 
 efectosSequia :: [Value]
 efectosSequia =
@@ -551,6 +567,17 @@ main = hspec $ do
         Right (e, _) ->
           baseMag 1 (Magnitud "descontento") e `shouldBe` Just (fi 20)
         Left r -> expectationFailure ("rechazo inesperado: " ++ show r)
+
+    it "al vencer una pregunta de cantidad se aplica el mínimo y no queda pendiente" $ do
+      let Just dpId = Map.lookupMin
+                        (comunDecisiones (persistenteComun (estadoPersistente estadoSuspendido)))
+                        >>= \(k, _) -> Just k
+          e0 = conPlazo dpId (Tick 0) estadoSuspendido
+          (e', hs) = pasoDirector catalogoToy guionSequia (Rng 1) (Tick 0) e0
+      Map.member dpId (comunDecisiones (persistenteComun (estadoPersistente e'))) `shouldBe` False
+      [ v | h <- hs, hechoTipo h == "plazo_vencido", Just v <- [Map.lookup "opcion" (hechoParams h)] ]
+        `shouldBe` ["0"]
+      baseMag 1 (Magnitud "descontento") e' `shouldBe` Just (fi 50)
 
   describe "rechazo de comando invalido" $ do
     it "impuesto negativo" $ do

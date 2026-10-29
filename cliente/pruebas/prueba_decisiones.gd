@@ -2,8 +2,10 @@
 ## presenta una situación enseguida:
 ##   nucleo --puerto 4791 --guion pruebas_compartidas/guion_integracion.json &
 ##   godot --headless --path cliente --script res://pruebas/prueba_decisiones.gd -- --puerto 4791
-## Espera la decisión, manda primero una respuesta inválida (debe volver un
-## error con su secuencia), luego una válida, y espera "decision_cerrada".
+## Espera la decisión, guarda la partida con la decisión pendiente, la carga
+## y comprueba que el núcleo vuelve a mandar esa misma decisión. Después manda
+## una respuesta inválida (debe volver un error con su secuencia), luego una
+## válida, y espera "decision_cerrada".
 extends SceneTree
 
 const Conexion = preload("res://red/conexion.gd")
@@ -19,6 +21,9 @@ var sec_valida := -1
 var errores := []
 var cerrada := false
 var hechos := []
+var fase := "inicial"
+var id_guardada := -1
+var reenviada := false
 
 
 func _init() -> void:
@@ -34,13 +39,27 @@ func _al_recibir(m: Dictionary) -> void:
 	espejo.recibir(m)
 	match m["tipo"]:
 		"instantanea":
-			conexion.enviar(Protocolo.velocidad(5))
-			conexion.enviar(Protocolo.pausa(false))
+			if fase == "inicial":
+				conexion.enviar(Protocolo.velocidad(5))
+				conexion.enviar(Protocolo.pausa(false))
+			elif fase == "cargando":
+				fase = "cargando_decision"
 		"decision":
-			if decision.is_empty():
+			if fase == "inicial":
 				decision = m
+				id_guardada = int(m["id"])
+				conexion.enviar(Protocolo.guardar("decisiones"))
+				fase = "guardando"
+			elif fase == "cargando_decision" and int(m["id"]) == id_guardada:
+				reenviada = true
 				sec_invalida = conexion.enviar_respuesta(int(m["id"]), "no_existe")
 				sec_valida = conexion.enviar_respuesta(int(m["id"]), str(m["pregunta"]["opciones"][1]))
+				conexion.enviar(Protocolo.pausa(false))
+				fase = "respondiendo"
+		"aviso":
+			if fase == "guardando" and m["texto"].begins_with("partida guardada"):
+				conexion.enviar(Protocolo.cargar("decisiones"))
+				fase = "cargando"
 		"error":
 			errores.append(m)
 		"decision_cerrada":
@@ -64,6 +83,10 @@ func _terminar() -> void:
 	if decision.is_empty():
 		fallos.append("no llegó ninguna decisión en 20 s")
 	else:
+		if int(decision["id"]) != id_guardada:
+			fallos.append("la decisión reenviada tiene otro id")
+		if not reenviada:
+			fallos.append("la decisión pendiente no se reenvió tras cargar la partida")
 		if decision["tipo_situacion"] != "prueba":
 			fallos.append("tipo de situación inesperado: %s" % decision["tipo_situacion"])
 		if not errores.any(func(e): return e["secuencia"] != null and int(e["secuencia"]) == sec_invalida):
@@ -80,6 +103,7 @@ func _terminar() -> void:
 		print("  ✘ ", f)
 	if fallos.is_empty():
 		print("  ✔ llegó la decisión «%s» con sus opciones %s" % [decision["situacion"], decision["pregunta"]["opciones"]])
+		print("  ✔ la decisión pendiente se reenvió tras guardar y cargar la partida")
 		print("  ✔ la respuesta inválida se rechazó con su secuencia; la válida se aceptó")
 		print("  ✔ decision_cerrada la quitó del espejo y llegó el hecho situacion_resuelta")
 	print("decisiones: %d fallos" % fallos.size())

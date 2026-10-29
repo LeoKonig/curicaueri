@@ -1,0 +1,727 @@
+{
+  "version_esquema": 1,
+  "eventos": [
+    {
+      "id": "rebaja",
+      "tipo": "evento",
+      "cd_veintenas": 36,
+      "peso": 1,
+      "liga": {
+        "a": {
+          "entidad": "altepetl",
+          "filtro": {
+            "independent": false,
+            "agravio": {
+              "min": 35
+            }
+          }
+        }
+      },
+      "condicion": [],
+      "opciones": [
+        {
+          "id": "rebajar",
+          "requisitos": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "tasas.tributo",
+              "min": 2
+            }
+          ],
+          "efectos": [
+            {
+              "tipo": "tasa",
+              "cual": "tributo",
+              "delta": -1,
+              "min": 1
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$a",
+              "magnitud": "agravio",
+              "sumar": -20,
+              "clamp": [
+                0,
+                100
+              ]
+            }
+          ],
+          "titulo_clave": "eventos.rebaja.opciones.rebajar.titulo",
+          "costo_visible_clave": "eventos.rebaja.opciones.rebajar.costo_visible"
+        },
+        {
+          "id": "ignorar",
+          "efectos": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$a",
+              "magnitud": "agravio",
+              "sumar": 5,
+              "clamp": [
+                0,
+                100
+              ]
+            },
+            {
+              "tipo": "encolar",
+              "crisis": "rebelion",
+              "objetivo": "$a",
+              "probabilidad": {
+                "formula": "prob_rebelion_por_agravio",
+                "args": {
+                  "agravio": "$a.agravio"
+                }
+              }
+            }
+          ],
+          "titulo_clave": "eventos.rebaja.opciones.ignorar.titulo",
+          "costo_visible_clave": "eventos.rebaja.opciones.ignorar.costo_visible"
+        }
+      ],
+      "descripcion_clave": "eventos.rebaja.descripcion",
+      "titulo_clave": "eventos.rebaja.titulo",
+      "cuerpo_clave": "eventos.rebaja.cuerpo"
+    },
+    {
+      "id": "autonomia",
+      "tipo": "evento",
+      "cd_veintenas": 54,
+      "peso": 1,
+      "liga": {
+        "a": {
+          "entidad": "altepetl",
+          "filtro": {
+            "independent": false,
+            "distance": {
+              "min": 1
+            },
+            "loyalty": {
+              "entre": [
+                36,
+                74
+              ]
+            }
+          }
+        }
+      },
+      "condicion": [],
+      "opciones": [
+        {
+          "id": "conceder",
+          "efectos": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$a",
+              "magnitud": "lealtad",
+              "sumar": 15,
+              "clamp": [
+                0,
+                100
+              ]
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$a",
+              "magnitud": "agravio",
+              "sumar": -10,
+              "clamp": [
+                0,
+                100
+              ]
+            }
+          ],
+          "titulo_clave": "eventos.autonomia.opciones.conceder.titulo",
+          "costo_visible_clave": "eventos.autonomia.opciones.conceder.costo_visible"
+        },
+        {
+          "id": "negar",
+          "efectos": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$a",
+              "magnitud": "lealtad",
+              "sumar": -10,
+              "clamp": [
+                0,
+                100
+              ]
+            },
+            {
+              "tipo": "para_cada",
+              "entidad": "altepetl",
+              "filtro": {
+                "id": {
+                  "cmp": "!=",
+                  "valor": "$a.id"
+                }
+              },
+              "efectos": [
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$alts",
+                  "magnitud": "lealtad",
+                  "sumar": 5,
+                  "clamp": [
+                    0,
+                    100
+                  ]
+                }
+              ]
+            }
+          ],
+          "titulo_clave": "eventos.autonomia.opciones.negar.titulo",
+          "costo_visible_clave": "eventos.autonomia.opciones.negar.costo_visible"
+        }
+      ],
+      "descripcion_clave": "eventos.autonomia.descripcion",
+      "titulo_clave": "eventos.autonomia.titulo",
+      "cuerpo_clave": "eventos.autonomia.cuerpo"
+    },
+    {
+      "id": "excedente",
+      "tipo": "evento",
+      "cd_veintenas": 54,
+      "peso": 1,
+      "condicion": [
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "tesoro",
+          "min": 351
+        }
+      ],
+      "opciones": [
+        {
+          "id": "obra",
+          "efectos": [
+            {
+              "tipo": "construir",
+              "edificio": "yacata",
+              "sitio": {
+                "entidad": "altepetl",
+                "filtro": {
+                  "independent": false,
+                  "building": null,
+                  "yacata": false
+                }
+              },
+              "costo": {
+                "tesoro": 400
+              },
+              "si_no_hay": [
+                {
+                  "tipo": "cronica",
+                  "tipo_cronica": "consequence",
+                  "texto_clave": "cronica_efectos.eventos.excedente.1"
+                }
+              ]
+            }
+          ],
+          "titulo_clave": "eventos.excedente.opciones.obra.titulo",
+          "costo_visible_clave": "eventos.excedente.opciones.obra.costo_visible"
+        },
+        {
+          "id": "regalos",
+          "costo": {
+            "tesoro": 200
+          },
+          "efectos": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": 5
+            }
+          ],
+          "titulo_clave": "eventos.excedente.opciones.regalos.titulo",
+          "costo_visible_clave": "eventos.excedente.opciones.regalos.costo_visible"
+        },
+        {
+          "id": "bajar_impuesto",
+          "efectos": [
+            {
+              "tipo": "tasa",
+              "cual": "impuesto",
+              "delta": -1,
+              "min": 1
+            },
+            {
+              "tipo": "para_cada",
+              "entidad": "altepetl",
+              "filtro": {
+                "independent": false
+              },
+              "efectos": [
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$alts",
+                  "magnitud": "agravio",
+                  "sumar": -10,
+                  "clamp": [
+                    0,
+                    100
+                  ]
+                }
+              ]
+            }
+          ],
+          "titulo_clave": "eventos.excedente.opciones.bajar_impuesto.titulo",
+          "costo_visible_clave": "eventos.excedente.opciones.bajar_impuesto.costo_visible"
+        }
+      ],
+      "descripcion_clave": "eventos.excedente.descripcion",
+      "titulo_clave": "eventos.excedente.titulo",
+      "cuerpo_clave": "eventos.excedente.cuerpo"
+    },
+    {
+      "id": "capitan",
+      "tipo": "evento",
+      "cd_veintenas": 54,
+      "peso": 1,
+      "condicion": [
+        {
+          "tipo": "flag",
+          "campo": "flags.war",
+          "es": false
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "ejercito",
+          "min": 3001
+        },
+        {
+          "tipo": "flag",
+          "campo": "chars.ambicioso.alive",
+          "es": true
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "capitan",
+          "cmp": "!=",
+          "valor": "ambicioso"
+        }
+      ],
+      "opciones": [
+        {
+          "id": "nombrar",
+          "efectos": [
+            {
+              "tipo": "estado",
+              "campo": "capitan",
+              "fijar": "ambicioso"
+            }
+          ],
+          "titulo_clave": "eventos.capitan.opciones.nombrar.titulo",
+          "costo_visible_clave": "eventos.capitan.opciones.nombrar.costo_visible"
+        },
+        {
+          "id": "campana",
+          "efectos": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": 3
+            },
+            {
+              "tipo": "probabilidad",
+              "p": 0.3,
+              "efectos": [
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$faccion",
+                  "magnitud": "ejercito",
+                  "factor": 0.9
+                }
+              ]
+            }
+          ],
+          "titulo_clave": "eventos.capitan.opciones.campana.titulo",
+          "costo_visible_clave": "eventos.capitan.opciones.campana.costo_visible"
+        },
+        {
+          "id": "relegar",
+          "efectos": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$capital",
+              "magnitud": "lealtad",
+              "sumar": -10,
+              "clamp": [
+                0,
+                100
+              ]
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": -1
+            }
+          ],
+          "titulo_clave": "eventos.capitan.opciones.relegar.titulo",
+          "costo_visible_clave": "eventos.capitan.opciones.relegar.costo_visible"
+        }
+      ],
+      "descripcion_clave": "eventos.capitan.descripcion",
+      "titulo_clave": "eventos.capitan.titulo",
+      "cuerpo_clave": "eventos.capitan.cuerpo"
+    },
+    {
+      "id": "cosecha",
+      "tipo": "evento",
+      "cd_veintenas": 36,
+      "peso": 1,
+      "condicion": [
+        {
+          "tipo": "probabilidad",
+          "p": "PROB_COSECHA_TICK"
+        }
+      ],
+      "opciones": [
+        {
+          "id": "abrir_trojes",
+          "efectos": [
+            {
+              "tipo": "si",
+              "condicion": [
+                {
+                  "tipo": "existe",
+                  "entidad": "altepetl",
+                  "filtro": {
+                    "troje": true,
+                    "independent": false
+                  }
+                }
+              ],
+              "entonces": [],
+              "sino": [
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$faccion",
+                  "magnitud": "tesoro",
+                  "sumar": -100,
+                  "clamp_min": 0
+                }
+              ]
+            },
+            {
+              "tipo": "estado",
+              "campo": "harvest",
+              "fijar": {
+                "left": 0,
+                "pen": 0
+              }
+            }
+          ],
+          "titulo_clave": "eventos.cosecha.opciones.abrir_trojes.titulo",
+          "costo_visible_clave": "eventos.cosecha.opciones.abrir_trojes.costo_visible"
+        },
+        {
+          "id": "comprar",
+          "costo": {
+            "tesoro": 200
+          },
+          "efectos": [
+            {
+              "tipo": "estado",
+              "campo": "harvest",
+              "fijar": {
+                "left": 9,
+                "pen": 10
+              }
+            }
+          ],
+          "titulo_clave": "eventos.cosecha.opciones.comprar.titulo",
+          "costo_visible_clave": "eventos.cosecha.opciones.comprar.costo_visible"
+        },
+        {
+          "id": "nada",
+          "efectos": [
+            {
+              "tipo": "para_cada",
+              "entidad": "altepetl",
+              "filtro": {
+                "independent": false
+              },
+              "efectos": [
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$alts",
+                  "magnitud": "agravio",
+                  "sumar": 15,
+                  "clamp": [
+                    0,
+                    100
+                  ]
+                },
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$alts",
+                  "magnitud": "poblacion",
+                  "factor": {
+                    "formula": "perdida_cosecha",
+                    "args": {
+                      "troje": "$alts.troje"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "tipo": "estado",
+              "campo": "harvest",
+              "fijar": {
+                "left": 9,
+                "pen": 25
+              }
+            }
+          ],
+          "titulo_clave": "eventos.cosecha.opciones.nada.titulo",
+          "costo_visible_clave": "eventos.cosecha.opciones.nada.costo_visible"
+        }
+      ],
+      "descripcion_clave": "eventos.cosecha.descripcion",
+      "titulo_clave": "eventos.cosecha.titulo",
+      "cuerpo_clave": "eventos.cosecha.cuerpo"
+    },
+    {
+      "id": "refugiados",
+      "tipo": "evento",
+      "cd_veintenas": 36,
+      "peso": 1,
+      "condicion": [
+        {
+          "tipo": "tick_min",
+          "t": 18
+        },
+        {
+          "tipo": "probabilidad",
+          "p": "PROB_REFUGIADOS_TICK"
+        }
+      ],
+      "liga": {
+        "t": {
+          "entidad": "altepetl",
+          "filtro": {
+            "tags": [
+              "frontera_norte"
+            ],
+            "independent": false
+          }
+        }
+      },
+      "opciones": [
+        {
+          "id": "acoger",
+          "efectos": [
+            {
+              "tipo": "crear_pop",
+              "entidad": "$t",
+              "identidad": "chichimeca",
+              "estrato": "comun",
+              "tamano": "REFUGIADOS_POBLACION",
+              "lealtad": 40,
+              "agravio": 60
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$t",
+              "magnitud": "agravio",
+              "sumar": 5,
+              "clamp": [
+                0,
+                100
+              ]
+            }
+          ],
+          "titulo_clave": "eventos.refugiados.opciones.acoger.titulo",
+          "costo_visible_clave": "eventos.refugiados.opciones.acoger.costo_visible"
+        },
+        {
+          "id": "rechazar",
+          "efectos": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": -2
+            }
+          ],
+          "titulo_clave": "eventos.refugiados.opciones.rechazar.titulo",
+          "costo_visible_clave": "eventos.refugiados.opciones.rechazar.costo_visible"
+        }
+      ],
+      "descripcion_clave": "eventos.refugiados.descripcion",
+      "titulo_clave": "eventos.refugiados.titulo",
+      "cuerpo_clave": "eventos.refugiados.cuerpo"
+    },
+    {
+      "id": "moroso",
+      "tipo": "evento",
+      "cd_veintenas": 36,
+      "peso": 1,
+      "liga": {
+        "a": {
+          "entidad": "altepetl",
+          "filtro": {
+            "independent": false,
+            "agravio": {
+              "min": 51
+            }
+          }
+        }
+      },
+      "condicion": [],
+      "opciones": [
+        {
+          "id": "exigir",
+          "efectos": [
+            {
+              "tipo": "probabilidad",
+              "p": 0.6,
+              "efectos": [
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$faccion",
+                  "magnitud": "prestigio",
+                  "sumar": 3
+                },
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$a",
+                  "magnitud": "agravio",
+                  "sumar": -5,
+                  "clamp": [
+                    0,
+                    100
+                  ]
+                }
+              ],
+              "sino": [
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$faccion",
+                  "magnitud": "prestigio",
+                  "sumar": -3
+                },
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$a",
+                  "magnitud": "agravio",
+                  "sumar": 10,
+                  "clamp": [
+                    0,
+                    100
+                  ]
+                }
+              ]
+            }
+          ],
+          "titulo_clave": "eventos.moroso.opciones.exigir.titulo",
+          "costo_visible_clave": "eventos.moroso.opciones.exigir.costo_visible"
+        },
+        {
+          "id": "perdonar",
+          "efectos": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": -2
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$a",
+              "magnitud": "agravio",
+              "sumar": -15,
+              "clamp": [
+                0,
+                100
+              ]
+            }
+          ],
+          "titulo_clave": "eventos.moroso.opciones.perdonar.titulo",
+          "costo_visible_clave": "eventos.moroso.opciones.perdonar.costo_visible"
+        }
+      ],
+      "descripcion_clave": "eventos.moroso.descripcion",
+      "titulo_clave": "eventos.moroso.titulo",
+      "cuerpo_clave": "eventos.moroso.cuerpo"
+    },
+    {
+      "id": "heredero",
+      "tipo": "evento",
+      "cd_veintenas": 54,
+      "peso": 1,
+      "condicion": [
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "cazonci.age",
+          "min": 43
+        },
+        {
+          "tipo": "flag",
+          "campo": "cazonci.heir",
+          "es": null
+        },
+        {
+          "tipo": "flag",
+          "campo": "flags.cazonciDead",
+          "es": false
+        }
+      ],
+      "opciones": [
+        {
+          "id": "tangaxoan",
+          "efectos": [
+            {
+              "tipo": "estado",
+              "campo": "cazonci.heir",
+              "fijar": "tangaxoan"
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": -2
+            }
+          ],
+          "titulo_clave": "eventos.heredero.opciones.tangaxoan.titulo",
+          "costo_visible_clave": "eventos.heredero.opciones.tangaxoan.costo_visible"
+        },
+        {
+          "id": "hijo",
+          "efectos": [
+            {
+              "tipo": "estado",
+              "campo": "cazonci.heir",
+              "fijar": "hijo"
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": -1
+            }
+          ],
+          "titulo_clave": "eventos.heredero.opciones.hijo.titulo",
+          "costo_visible_clave": "eventos.heredero.opciones.hijo.costo_visible"
+        },
+        {
+          "id": "esperar",
+          "efectos": [],
+          "titulo_clave": "eventos.heredero.opciones.esperar.titulo",
+          "costo_visible_clave": "eventos.heredero.opciones.esperar.costo_visible"
+        }
+      ],
+      "descripcion_clave": "eventos.heredero.descripcion",
+      "titulo_clave": "eventos.heredero.titulo",
+      "cuerpo_clave": "eventos.heredero.cuerpo"
+    }
+  ]
+}

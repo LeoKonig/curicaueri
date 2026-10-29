@@ -1,0 +1,176 @@
+{
+  "version_esquema": 1,
+  "ticks_por_anio": 18,
+  "narrador": {
+    "prob_por_tick": 0.3
+  },
+  "economia": {
+    "ingreso_por_pop": 0.012,
+    "ingreso_por_territorio": 0.8,
+    "mantenimiento_por_soldado": 0.035,
+    "tesoro_por_punto_presupuesto": 6,
+    "tasa_base": 3,
+    "agravio_subir_impuesto": 4,
+    "agravio_bajar_impuesto": 2
+  },
+  "eficiencia": {
+    "base": 40,
+    "por_admin_gobernador": 12,
+    "por_distancia": -10,
+    "bono_admin_25": 5,
+    "por_admin_cazonci": 4,
+    "por_fraccion_identidad_ajena": -20,
+    "clamp": [
+      20,
+      100
+    ]
+  },
+  "influencia": {
+    "decaimiento": 2,
+    "umbral_poseer": 0.5,
+    "umbral_disputado": 0.7,
+    "pop_div": 15000,
+    "guarnicion_div": 1000,
+    "prestigio_div": 50,
+    "indep_pop_div": 20000,
+    "efecto_eficiencia": 0.5
+  },
+  "rebelion": {
+    "umbral_lealtad": 30,
+    "prob_por_tick": 0.05,
+    "guarnicion_div": 1500,
+    "calma_veintenas": 36,
+    "prob_formula": {
+      "base": 0.1,
+      "pendiente": 0.4,
+      "umbral_agravio": 35,
+      "span": 40
+    }
+  },
+  "guerra": {
+    "enemigo_alianza": 6000,
+    "enemigo_chichimeca": 2500,
+    "fuerza_por_mando": 0.06,
+    "guarnicion_zacapu": 1,
+    "guarnicion_otras": 0.3,
+    "fuerza_por_fortaleza": 800,
+    "roll_base": 0.85,
+    "roll_varianza": 0.3,
+    "victoria_umbral": 1.15,
+    "derrota_umbral": 0.75,
+    "casus_ventana": 36,
+    "sin_casus_alianza": 8,
+    "sin_casus_chichimeca": 4,
+    "tregua_alianza": 36,
+    "tregua_chichimeca": 18,
+    "tributo_paz": {
+      "amount": 120,
+      "left": 36
+    },
+    "p_ataque": {
+      "base": 0.5,
+      "k": 3,
+      "r_min": 0.3,
+      "slope": 0.3,
+      "max": 0.9,
+      "escala_prototipo": 0.6
+    }
+  },
+  "personajes": {
+    "edad_envejecimiento": 45,
+    "prob_muerte_base": 0.004,
+    "prob_muerte_por_anio": 0.012,
+    "edad_sucesion_forzada": 45
+  },
+  "construccion": {
+    "duracion": {
+      "yacata": 8,
+      "fortaleza": 6,
+      "troje": 4
+    },
+    "presupuesto_minimo": 20,
+    "prestigio_yacata": 1,
+    "prestigio_fortaleza": 2,
+    "costo": {
+      "yacata": 400,
+      "fortaleza": 400,
+      "troje": 300
+    }
+  },
+  "incursion": {
+    "prob_por_tick": 0.0278,
+    "guarnicion_div": 2000,
+    "perdida_poblacion": 0.98,
+    "marca_veintenas": 27
+  },
+  "deuda": {
+    "moral_cada": 6,
+    "prestigio_cada": 9,
+    "desercion": 0.99
+  },
+  "resolucion": {
+    "dias": 18,
+    "umbral_prestigio": 5,
+    "umbral_lealtad": 8,
+    "umbral_hexes": 2,
+    "umbral_rebeldes": 1,
+    "umbral_balance": 60,
+    "umbral_ejercito": 500,
+    "gap_estructural": 18
+  },
+  "rubrica": {
+    "decisiones": 15,
+    "de_rumbo": 3
+  },
+  "cosecha": {
+    "prob_por_tick": 0.06,
+    "penalizacion": 25,
+    "duracion": 9
+  },
+  "refugiados": {
+    "prob_por_tick": 0.08,
+    "tick_min": 18,
+    "poblacion": 500
+  },
+  "prisioneros": {
+    "decaimiento": 0.97,
+    "prestigio_por_cien": 1,
+    "tesoro_trabajo": 0.4,
+    "tesoro_rescate": 0.6
+  },
+  "morale": {
+    "ejercito_bajo": 15,
+    "ejercito_alto": 35
+  },
+  "diplomacia": {
+    "prestigio_bajo": 10,
+    "prestigio_medio": 20,
+    "prestigio_alto": 30
+  },
+  "acciones": {
+    "reclutar_costo": 200,
+    "reclutar_tropas": 500,
+    "regalos_costo": 150,
+    "regalos_prestigio": 3
+  },
+  "invasion": {
+    "ultimatum_anio": 1476,
+    "tributo_exigido": 400,
+    "tropas": 24000,
+    "fuerza_mexica": 1.6,
+    "objetivo_ratio": 0.62,
+    "refuerzo_por_paso": 2000,
+    "ocupacion_ticks": 36,
+    "asedio_costo_tesoro": 60,
+    "asedio_turnos_retirada": 6,
+    "retirada_bajas": 0.3,
+    "bajas_victoria_invasor": 0.4,
+    "bajas_victoria_propia": 0.08,
+    "bajas_derrota_propia": 0.2,
+    "bajas_derrota_invasor": 0.15,
+    "pospuesta_anios": 4,
+    "descanso_pasos": 12,
+    "recuperacion_anios": 4,
+    "prob_rendicion": 0.25
+  }
+}

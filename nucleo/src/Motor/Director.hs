@@ -124,12 +124,15 @@ vencerPlazos g t e0 = foldl vencer (e0, []) vencidas
     vencidas = [ i | (i, limite) <- Map.toAscList (edPlazos (director e0)), limite <= t ]
     vencer (e, hs) i =
       let pendiente = Map.lookup i (comunDecisiones (persistenteComun (estadoPersistente e)))
+          resolver respuesta = case responderDecision g i respuesta e of
+            Right (e', hs') -> (e', hs ++ hs' ++ [Hecho "plazo_vencido" t [] (Map.fromList [("decision", tshow i), ("opcion", respuesta)])])
+            Left _ -> (quitarPlazo i e, hs)
       in case pendiente of
-           Just dp | PreguntaOpcion _ (o : _) <- dpPregunta dp ->
-             case responderDecision g i o e of
-               Right (e', hs') -> (e', hs ++ hs' ++ [Hecho "plazo_vencido" t [] (Map.fromList [("decision", tshow i), ("opcion", o)])])
-               Left _ -> (quitarPlazo i e, hs)
-           _ -> (quitarPlazo i e, hs)
+           Just dp -> case dpPregunta dp of
+             PreguntaOpcion _ (o : _) -> resolver o
+             PreguntaCantidad _ lo _  -> resolver (tshow lo)
+             _                        -> (quitarPlazo i e, hs)
+           Nothing -> (e, hs)
 
 quitarPlazo :: Int -> Estado s -> Estado s
 quitarPlazo i e = let d = director e in conDirector d { edPlazos = Map.delete i (edPlazos d) } e

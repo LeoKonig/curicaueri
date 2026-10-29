@@ -358,8 +358,11 @@ sesion conf juego mapaR ref conn = do
             case leido of
               Left err -> enviar (NError Nothing ("no se pudo cargar " <> nombre <> ": " <> err))
               Right (sig, e) -> do
-                -- La partida cargada empieza en pausa y sin comandos pendientes.
-                modifyIORef' ref (\p -> p { pEstado = e, pSiguiente = sig, pPendientes = [], pPausado = True, pVista = proyeccion juego e })
+                -- La partida cargada empieza en pausa y sin comandos ni
+                -- respuestas pendientes. También se olvida qué decisiones
+                -- conocía el cliente: la instantánea vacía su espejo y el
+                -- núcleo debe reenviar todas las pendientes del guardado.
+                modifyIORef' ref (\p -> p { pEstado = e, pSiguiente = sig, pPendientes = [], pRespuestas = [], pDecisionesEnviadas = [], pPausado = True, pVista = proyeccion juego e })
                 p <- readIORef ref
                 enviar (NInstantanea (reloj p) (pVista p))
                 sincronizarDecisiones enviar
