@@ -81,8 +81,12 @@ main = hspec $ do
     it "agravio: con tasa 5 el agravio de la nobleza sube la mitad" $ do
       let dComun   = agravioPop 2 sCon .-. agravioPop 2 sSin
           dNobleza = agravioPop 1 sCon .-. agravioPop 1 sSin
-      -- estratoW nobleza = 0.5, común = 1.0
-      dNobleza .*. fi 2 `shouldBe` dComun
+      -- El factor de estrato de la nobleza es 0,5 y el de lo común, 1. Cada
+      -- delta se trunca a 0,0001 por separado, así que la mitad exacta puede
+      -- diferir en una o dos unidades.
+      let Fijo mitad = dNobleza .*. fi 2
+          Fijo comun = dComun
+      abs (mitad - comun) `shouldSatisfy` (<= 2)
 
   describe "reglas: repetición con el juego real" $ do
     it "misma semilla, mismos comandos, misma traza (10 ticks)" $ do
@@ -106,37 +110,71 @@ main = hspec $ do
         `shouldBe` ppTasas (persistenteJuego (estadoPersistente estadoInicial1475))
 
   describe "reglas: cifras de la recaudación" $
-    -- El neto (720 − 420) se divide una sola vez entre 18: 1000 + 300 ÷ 18 =
-    -- 1016,6666… El punto fijo trunca a 1016,6666 (resolución 0,0001).
-    it "tick 0 a tasas neutras: 1000 + (60 000 × 0,012 − 70 × 6) ÷ 18 = 1016,6666" $ do
+    -- Con las eficiencias del escenario (93, 31 y 68 puntos) el ingreso anual
+    -- es 526,32; el gasto, 420. El neto se divide una sola vez entre 18:
+    -- 1000 + 106,32 ÷ 18 = 1005,9066…
+    it "tick 0 a tasas neutras: 1000 + (526,32 − 70 × 6) ÷ 18 = 1005,9066" $ do
       let j = Reglas.Juego.juego constantesDefault
           (s1, _) = paso j (entornoSimple mapaVacio) (Semilla 1) (Tick 0) [] estadoInicial1475
-      baseFaccion magTesoro s1 `shouldBe` Fijo 10166666
+      cercaCon 3 (baseFaccion magTesoro s1) 1005.906666
+
+  describe "reglas: gobernadores (hito 3, primer corte)" $ do
+    let j = Reglas.Juego.juego constantesDefault
+        unTick e = fst (paso j (entornoSimple mapaVacio) (Semilla 1) (Tick 0) [] e)
+        agravioPop k st =
+          maybe (Fijo 0) almacenBase
+            (Map.lookup (entRefPop (PopId k), Magnitud "agravio")
+                        (comunMagnitudes (persistenteComun (estadoPersistente st))))
+        base      = unTick estadoInicial1475
+        -- Zuangua es el cazonci; Tangáxoan (administración 4) gobierna Tzintzuntzan,
+        -- el Inepto (1) Zacapu y el Capaz (3) Uruapan.
+        sinInepto = unTick (conGobernador (AltId 2) (PerId 4) estadoInicial1475)
+        conInepto = unTick (conGobernador (AltId 1) (PerId 3) estadoInicial1475)
+
+    it "un mal gobernador baja la recaudación" $
+      baseFaccion magTesoro conInepto `shouldSatisfy` (< baseFaccion magTesoro base)
+
+    it "un buen gobernador la sube" $
+      baseFaccion magTesoro sinInepto `shouldSatisfy` (> baseFaccion magTesoro base)
+
+    it "un mal gobernador sube el agravio de su altépetl" $
+      agravioPop 1 conInepto `shouldSatisfy` (> agravioPop 1 base)
+
+    it "un buen gobernador baja el agravio de su altépetl" $
+      agravioPop 3 sinInepto `shouldSatisfy` (< agravioPop 3 base)
 
   describe "reglas: tablas de casos del hito 0a (prototipo HTML)" $ do
     tablas <- runIO (fmap (>>= parseEither parseTablas)
                           (A.eitherDecodeFileStrict "test/tablas_hito0.json"))
-    let -- Dos cifras cuentan como iguales si difieren menos de 0,001: el punto
-        -- fijo tiene resolución 0,0001 y cada operación redondea.
-        cercaCon :: Integer -> Fijo -> Double -> Expectation
-        cercaCon tol (Fijo n) x = abs (fromIntegral n - x * 10000) `shouldSatisfy` (<= fromIntegral tol)
-        cerca = cercaCon 10
+    let cerca = cercaCon 10
 
     it "tasas: taxM y tShare coinciden con el prototipo en la rejilla 1..5" $
       either expectationFailure (\tb -> forM_ (tbTasas tb) $ \(t, i, cap, tm, ts) -> do
         cerca (taxM constantesDefault (Tasas t i) cap) tm
         cerca (tShare (Tasas t i) cap) ts) tablas
 
+    it "eficiencia: los puntos coinciden con el prototipo en 810 combinaciones" $
+      either expectationFailure (\tb -> forM_ (tbEficiencia tb) $ \ce ->
+        eficienciaPuntos constantesDefault (ceAdminGob ce) (fi (ceDistancia ce))
+                         (cePresupuestoAdm ce >= cUmbralPresupuestoAdm constantesDefault)
+                         (ceAdminCazonci ce)
+                         (fraccionAjena (cePurepecha ce) (ceAjenos ce))
+          `shouldBe` cePuntos ce) tablas
+
     -- La tolerancia de esta tabla es 0,002 por veintena, y no 0,001: el factor
     -- de tasas se redondea a 0,0001 y la capital tiene 30 000 pobladores, así
     -- que el error llega a 0,0001 × 30 000 × 0,012 ÷ 18 ≈ 0,002 como máximo.
     it "ingreso: el total por veintena coincide con el prototipo" $
-      either expectationFailure (\tb -> forM_ (tbIngreso tb) $ \(t, i, pops, total) -> do
-        let tasas = Tasas t i
-            suma  = foldl' (.+.) (Fijo 0)
-                      [ ingresoPoblacion constantesDefault tasas (not sujeta) pop
-                      | (pop, sujeta) <- pops ]
-        cercaCon 20 (suma ./. cTicksPorAnio constantesDefault) (total / 18)) tablas
+      either expectationFailure (\tb -> forM_ (tbIngreso tb) $ \ci -> do
+        let tasas = Tasas (ciTributo ci) (ciImpuesto ci)
+            suma = foldl' (.+.) (Fijo 0)
+              [ ingresoPoblacion constantesDefault tasas (not (aiSujeta a))
+                  (eficiencia constantesDefault (aiAdminGob a) (fi (aiDistancia a))
+                              (ciPresupuestoAdm ci >= cUmbralPresupuestoAdm constantesDefault)
+                              3 (fraccionAjena (aiPurepecha a) (aiAjenos a)))
+                  (aiPurepecha a + aiAjenos a)
+              | a <- ciAltepetl ci ]
+        cercaCon 20 (suma ./. cTicksPorAnio constantesDefault) (ciTotal ci / 18)) tablas
 
     it "gastos: el presupuesto por veintena coincide con el prototipo" $
       either expectationFailure (\tb -> forM_ (tbGastos tb) $ \(ej, adm, dip, total) ->
@@ -144,48 +182,115 @@ main = hspec $ do
               (total / 18)) tablas
 
     it "agravio: cada componente y la suma por veintena coinciden con el prototipo" $
-      either expectationFailure (\tb -> forM_ (tbAgravio tb) $
-        \(t, i, cap, estrato, identidad, dist, comps, porVeintena) -> do
-          let p = popParts constantesDefault (Tasas t i) cap estrato identidad (fi dist)
-          cerca (paTributo p)   (comps Map.! "Tributo")
-          cerca (paImpuesto p)  (comps Map.! "Impuesto interno")
-          cerca (paIdentidad p) (comps Map.! "Identidad ajena")
-          cerca (paDistancia p) (comps Map.! "Distancia a la capital")
-          cerca (deltaAgravio constantesDefault p) porVeintena) tablas
+      either expectationFailure (\tb -> forM_ (tbAgravio tb) $ \ca -> do
+          let p = popParts constantesDefault (Tasas (cgTributo ca) (cgImpuesto ca)) (cgCapital ca)
+                           (cgEstrato ca) (cgIdentidad ca) (fi (cgDistancia ca)) (cgAdminGob ca)
+              comps = cgComponentes ca
+          cerca (paTributo p)    (comps Map.! "Tributo")
+          cerca (paImpuesto p)   (comps Map.! "Impuesto interno")
+          cerca (paGobernador p) (comps Map.! "Gobernador")
+          cerca (paIdentidad p)  (comps Map.! "Identidad ajena")
+          cerca (paDistancia p)  (comps Map.! "Distancia a la capital")
+          cerca (deltaAgravio constantesDefault p) (cgPorVeintena ca)) tablas
 
--- | Las cuatro tablas de `test/tablas_hito0.json` (generadas por
--- `hito_0/tablas/generar.mjs`), como tuplas.
+-- | Dos cifras cuentan como iguales si difieren como mucho `tol` unidades de
+-- punto fijo (cada una vale 0,0001): el punto fijo redondea en cada operación.
+cercaCon :: Integer -> Fijo -> Double -> Expectation
+cercaCon tol (Fijo n) x = abs (fromIntegral n - x * 10000) `shouldSatisfy` (<= fromIntegral tol)
+
+-- | La fracción de pobladores de identidad ajena, como la calcula el estado.
+fraccionAjena :: Int -> Int -> Fijo
+fraccionAjena purepecha ajenos
+  | purepecha + ajenos > 0 = fi ajenos ./. fi (purepecha + ajenos)
+  | otherwise              = Fijo 0
+
+-- | El estado con otro gobernador en un altépetl.
+conGobernador :: AltId -> PerId -> Estado Purepecha -> Estado Purepecha
+conGobernador a g e =
+  let p  = estadoPersistente e
+      j  = persistenteJuego p
+      j' = j { ppAltepetl = Map.adjust (\x -> x { altGobernador = Just g }) a (ppAltepetl j) }
+      p' = p { persistenteJuego = j' }
+  in e { estadoPersistente = p', estadoOrigen = Origen (Tick 0) p' }
+
+-- | Las tablas de `test/tablas_hito0.json` (generadas por
+-- `hito_0/tablas/generar.mjs`).
 data Tablas = Tablas
-  { tbTasas   :: [(Int, Int, Bool, Double, Double)]
+  { tbTasas      :: [(Int, Int, Bool, Double, Double)]
     -- ^ tributo, impuesto, capital, taxM, tShare
-  , tbIngreso :: [(Int, Int, [(Int, Bool)], Double)]
-    -- ^ tributo, impuesto, (población, sujeta) por altépetl, total
-  , tbGastos  :: [(Int, Int, Int, Double)]
+  , tbEficiencia :: [CasoEficiencia]
+  , tbIngreso    :: [CasoIngreso]
+  , tbGastos     :: [(Int, Int, Int, Double)]
     -- ^ ejército, administración, diplomacia, total
-  , tbAgravio :: [(Int, Int, Bool, Text, Text, Int, Map.Map Text Double, Double)]
-    -- ^ tributo, impuesto, capital, estrato, identidad, distancia, componentes, por veintena
+  , tbAgravio    :: [CasoAgravio]
+  }
+
+data CasoEficiencia = CasoEficiencia
+  { ceAdminGob       :: Int
+  , ceDistancia      :: Int
+  , cePresupuestoAdm :: Int
+  , ceAdminCazonci   :: Int
+  , cePurepecha      :: Int
+  , ceAjenos         :: Int
+  , cePuntos         :: Int
+  }
+
+data AltIngreso = AltIngreso
+  { aiSujeta     :: Bool
+  , aiAdminGob   :: Int
+  , aiDistancia  :: Int
+  , aiPurepecha  :: Int
+  , aiAjenos     :: Int
+  }
+
+data CasoIngreso = CasoIngreso
+  { ciTributo        :: Int
+  , ciImpuesto       :: Int
+  , ciPresupuestoAdm :: Int
+  , ciAltepetl       :: [AltIngreso]
+  , ciTotal          :: Double
+  }
+
+data CasoAgravio = CasoAgravio
+  { cgTributo     :: Int
+  , cgImpuesto    :: Int
+  , cgCapital     :: Bool
+  , cgEstrato     :: Text
+  , cgIdentidad   :: Text
+  , cgDistancia   :: Int
+  , cgAdminGob    :: Int
+  , cgComponentes :: Map.Map Text Double
+  , cgPorVeintena :: Double
   }
 
 parseTablas :: A.Value -> Parser Tablas
 parseTablas = withObject "tablas" $ \o -> do
   cs <- o .: "casos"
   withObject "casos" (\c -> Tablas
-    <$> (c .: "tasas"             >>= traverse fTasa)
-    <*> (c .: "ingreso_total"     >>= traverse fIngreso)
-    <*> (c .: "gastos"            >>= traverse fGasto)
+    <$> (c .: "tasas"                >>= traverse fTasa)
+    <*> (c .: "eficiencia"           >>= traverse fEficiencia)
+    <*> (c .: "ingreso_total"        >>= traverse fIngreso)
+    <*> (c .: "gastos"               >>= traverse fGasto)
     <*> (c .: "agravio_por_veintena" >>= traverse fAgravio)) cs
   where
     fTasa = withObject "tasa" $ \o ->
       (,,,,) <$> o .: "tributo" <*> o .: "impuesto" <*> o .: "capital"
              <*> o .: "taxM" <*> o .: "tShare"
-    fIngreso = withObject "ingreso" $ \o -> do
-      pops <- o .: "poblacion" >>= traverse (withObject "altepetl" $ \p ->
-                (,) <$> p .: "pop" <*> p .: "sujeta")
-      (,,,) <$> o .: "tributo" <*> o .: "impuesto" <*> pure pops <*> o .: "totalIncome"
+    fEficiencia = withObject "eficiencia" $ \o ->
+      CasoEficiencia <$> o .: "adminGobernador" <*> o .: "distancia"
+                     <*> o .: "presupuestoAdministracion" <*> o .: "adminCazonci"
+                     <*> o .: "pobladoresPurepecha" <*> o .: "pobladoresAjenos"
+                     <*> o .: "puntos"
+    fIngreso = withObject "ingreso" $ \o ->
+      CasoIngreso <$> o .: "tributo" <*> o .: "impuesto" <*> o .: "presupuestoAdministracion"
+                  <*> (o .: "altepetl" >>= traverse fAlt) <*> o .: "totalIncome"
+    fAlt = withObject "altepetl" $ \a ->
+      AltIngreso <$> a .: "sujeta" <*> a .: "adminGobernador" <*> a .: "distancia"
+                 <*> a .: "pobladoresPurepecha" <*> a .: "pobladoresAjenos"
     fGasto = withObject "gasto" $ \o ->
       (,,,) <$> o .: "ejercito" <*> o .: "administracion" <*> o .: "diplomacia"
             <*> o .: "totalExpenses"
     fAgravio = withObject "agravio" $ \o ->
-      (,,,,,,,) <$> o .: "tributo" <*> o .: "impuesto" <*> o .: "capital"
-                <*> o .: "estrato" <*> o .: "identidad" <*> o .: "distancia"
-                <*> o .: "componentes" <*> o .: "porVeintena"
+      CasoAgravio <$> o .: "tributo" <*> o .: "impuesto" <*> o .: "capital"
+                  <*> o .: "estrato" <*> o .: "identidad" <*> o .: "distancia"
+                  <*> o .: "adminGobernador" <*> o .: "componentes" <*> o .: "porVeintena"

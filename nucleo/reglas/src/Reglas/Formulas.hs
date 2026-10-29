@@ -1,10 +1,11 @@
 {-# LANGUAGE StrictData, OverloadedStrings #-}
 -- | Fórmulas del hito 0a con los nombres del prototipo (`taxM`, `tShare`,
--- `tx`, `popParts`…). Cada una tiene su tabla de casos en
+-- `tx`, `popParts`, `effLines`…). Cada una tiene su tabla de casos en
 -- `test/tablas_hito0.json`, generada por `hito_0/tablas/generar.mjs` a
 -- partir del HTML. Los sistemas de `Reglas.Sistemas` solo las llaman.
 module Reglas.Formulas where
 
+import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 
 import Motor.Base
@@ -12,6 +13,10 @@ import Motor.Base
 import Reglas.Base
 import Reglas.Constantes
 import Reglas.Estado
+
+-- | `Math.round` de JavaScript: a la mitad, hacia arriba (también en negativos).
+redondearJS :: Fijo -> Int
+redondearJS (Fijo n) = fromIntegral ((n + escala `div` 2) `div` escala)
 
 -- | `taxM`: el factor de tasas del altépetl. La capital paga solo impuesto
 -- interno; una sujeta, el promedio de tributo e impuesto.
@@ -27,12 +32,52 @@ tShare t capital
   | capital   = Fijo 0
   | otherwise = fi (tasaTributo t) ./. fi (tasaTributo t + tasaImpuesto t)
 
+-- | `effLines.tot`: la eficiencia del altépetl en puntos (de `cEfMin` a
+-- `cEfMax`), a partir de la administración del gobernador, la distancia a la
+-- capital, si el presupuesto de administración llega al umbral, la
+-- administración del cazonci y la fracción de pobladores de identidad ajena.
+eficienciaPuntos :: Constantes -> Int -> Fijo -> Bool -> Int -> Fijo -> Int
+eficienciaPuntos c adminGob distancia admin25 adminCazonci fraccionAjena =
+  let base      = fi (cEfBase c)
+      gobernador = fi (cEfPorAdminGobernador c * adminGob)
+      lejania   = distancia .*. fi (cEfPorDistancia c)
+      bono      = if admin25 then fi (cEfBonoAdmin25 c) else Fijo 0
+      cazonci   = if adminCazonci /= cAdminNeutral c
+                    then fi (cEfPorAdminCazonci c * (adminCazonci - cAdminNeutral c))
+                    else Fijo 0
+      ajena     = if fraccionAjena > cUmbralIdentidadAjena c
+                    then fi (redondearJS (fi (cEfIdentidadAjena c) .*. fraccionAjena))
+                    else Fijo 0
+      suma      = base .+. gobernador .+. lejania .+. bono .+. cazonci .+. ajena
+  in redondearJS (rangoFijo (fi (cEfMin c)) (fi (cEfMax c)) suma)
+
+-- | `eff`: la eficiencia como factor, de 0,2 a 1.
+eficiencia :: Constantes -> Int -> Fijo -> Bool -> Int -> Fijo -> Fijo
+eficiencia c adminGob distancia admin25 adminCazonci fraccionAjena =
+  fi (eficienciaPuntos c adminGob distancia admin25 adminCazonci fraccionAjena) ./. fi 100
+
+-- | La administración de un personaje. Un gobernador ausente vale 0, como
+-- `vacante` en el prototipo.
+adminDe :: Purepecha -> Maybe PerId -> Int
+adminDe p mper = maybe 0 perAdmin (mper >>= \i -> Map.lookup i (ppPersonajes p))
+
+-- | La eficiencia de un altépetl del estado.
+eficienciaDe :: Constantes -> Purepecha -> Altepetl -> Fijo
+eficienciaDe c p a =
+  let pops    = [ pop | pop <- Map.elems (ppPops p), popAltepetl pop == altId a ]
+      total   = sum (map popTamano pops)
+      ajenos  = sum [ popTamano pop | pop <- pops, popIdentidad pop /= "purepecha" ]
+      fraccion = if total > 0 then fi ajenos ./. fi total else Fijo 0
+      admin25 = pbAdministracion (ppPresupuesto p) >= cUmbralPresupuestoAdm c
+  in eficiencia c (adminDe p (altGobernador a)) (altDistancia a) admin25
+                  (adminDe p (Just (ppCazonci p))) fraccion
+
 -- | Ingreso de la población de un altépetl por veintena. Es la parte de
 -- `incomeParts` que no depende del territorio: en 1b no hay rendimientos
 -- del mapa, así que el término de territorio no entra todavía.
-ingresoPoblacion :: Constantes -> Tasas -> Bool -> Int -> Fijo
-ingresoPoblacion c t capital tam =
-  fi tam .*. cIngresoPorPop c .*. taxM c t capital
+ingresoPoblacion :: Constantes -> Tasas -> Bool -> Fijo -> Int -> Fijo
+ingresoPoblacion c t capital eff tam =
+  fi tam .*. cIngresoPorPop c .*. eff .*. taxM c t capital
 
 -- | El gasto de un punto de presupuesto por veintena: `tesoro_por_punto_presupuesto`.
 gastoPunto :: Constantes -> Int -> Fijo
@@ -52,28 +97,31 @@ factorEstrato e
   | e == "nobleza" = fiD 5
   | otherwise      = uno
 
--- | Componentes de `popParts` que 1b puede calcular, por veintena (sin
+-- | Componentes de `popParts` que el juego puede calcular, por veintena (sin
 -- dividir entre `cTicksPorAnio`). La capital no paga tributo; el tributo y
--- el impuesto llevan el factor de estrato; la identidad ajena suma 2; y la
--- distancia suma 1,5 por cada unidad de distancia.
+-- el impuesto llevan el factor de estrato; un buen gobernador resta y uno
+-- malo suma; la identidad ajena suma 2; y la distancia suma 1,5 por cada
+-- unidad.
 data PartesAgravio = PartesAgravio
-  { paTributo   :: Fijo
-  , paImpuesto  :: Fijo
-  , paIdentidad :: Fijo
-  , paDistancia :: Fijo
+  { paTributo    :: Fijo
+  , paImpuesto   :: Fijo
+  , paGobernador :: Fijo
+  , paIdentidad  :: Fijo
+  , paDistancia  :: Fijo
   } deriving (Eq, Show)
 
-popParts :: Constantes -> Tasas -> Bool -> Text -> Text -> Fijo -> PartesAgravio
-popParts c t capital estrato identidad distancia = PartesAgravio
-  { paTributo   = if capital then Fijo 0
-                  else tx c (tasaTributo t - cNeutralTasa c) .*. factorEstrato estrato
-  , paImpuesto  = tx c (tasaImpuesto t - cNeutralTasa c) .*. factorEstrato estrato
-  , paIdentidad = if identidad == "purepecha" then Fijo 0 else fi 2
-  , paDistancia = distancia .*. fiD 15
+popParts :: Constantes -> Tasas -> Bool -> Text -> Text -> Fijo -> Int -> PartesAgravio
+popParts c t capital estrato identidad distancia adminGob = PartesAgravio
+  { paTributo    = if capital then Fijo 0
+                   else tx c (tasaTributo t - cNeutralTasa c) .*. factorEstrato estrato
+  , paImpuesto   = tx c (tasaImpuesto t - cNeutralTasa c) .*. factorEstrato estrato
+  , paGobernador = fi ((cGobernadorAgravioBase c - adminGob) * cGobernadorAgravioPunto c)
+  , paIdentidad  = if identidad == "purepecha" then Fijo 0 else fi 2
+  , paDistancia  = distancia .*. fiD 15
   }
 
 -- | La suma de las partes, por veintena: `popParts` ÷ `ticks_por_anio`.
 deltaAgravio :: Constantes -> PartesAgravio -> Fijo
 deltaAgravio c p =
-  (paTributo p .+. paImpuesto p .+. paIdentidad p .+. paDistancia p)
+  (paTributo p .+. paImpuesto p .+. paGobernador p .+. paIdentidad p .+. paDistancia p)
     ./. cTicksPorAnio c

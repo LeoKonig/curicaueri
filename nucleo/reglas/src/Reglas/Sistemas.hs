@@ -34,8 +34,11 @@ hacienda c = Sistema
       let p      = persistenteJuego (estadoPersistente est)
           t      = ppTasas p
           pres   = ppPresupuesto p
+          eficiencias = Map.map (eficienciaDe c p) (ppAltepetl p)
           ingreso = foldl' (\acc pop ->
-                      acc .+. ingresoPoblacion c t (capitalDe p pop) (popTamano pop))
+                      acc .+. ingresoPoblacion c t (capitalDe p pop)
+                                (Map.findWithDefault (Fijo 0) (popAltepetl pop) eficiencias)
+                                (popTamano pop))
                     (Fijo 0) (Map.elems (ppPops p))
           gasto  = gastoPunto c (pbEjercito pres + pbAdministracion pres + pbDiplomacia pres)
           neto   = (ingreso .-. gasto) ./. cTicksPorAnio c
@@ -67,7 +70,8 @@ evolucionAgravio c = Sistema
             Just pop -> case Map.lookup (popAltepetl pop) alts of
               Just a  -> deltaAgravio c (popParts c t (isNothing (altSujetoA a))
                                             (popEstrato pop) (popIdentidad pop)
-                                            (altDistancia a))
+                                            (altDistancia a)
+                                            (adminDe p (altGobernador a)))
               Nothing -> Fijo 0
             Nothing  -> Fijo 0
           alm  = comunMagnitudes (persistenteComun (estadoPersistente est))

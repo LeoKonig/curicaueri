@@ -16,6 +16,7 @@ data Purepecha = Purepecha
   { ppAltepetl    :: Map AltId Altepetl
   , ppPops        :: Map PopId Pop
   , ppPersonajes  :: Map PerId Personaje
+  , ppCazonci     :: PerId          -- ^ quien gobierna; su administración mueve la eficiencia
   , ppTasas       :: Tasas
   , ppPresupuesto :: Presupuesto
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)

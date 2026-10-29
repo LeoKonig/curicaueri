@@ -19,7 +19,7 @@ Este código implementa dos documentos de diseño, que conviene leer antes de to
 
 **Agentes externos: verificados en Python y Mercury.** Los dos responden igual a los casos compartidos y la partida con cualquiera de ellos es idéntica.
 
-**Hito 1b (reglas): la parte del 0a que da las fórmulas está hecha.** Tesoro (ingreso por población, factor de tasas, gasto del presupuesto), tributo entre altépetl y agravio por tributo, impuesto, identidad y distancia salen del prototipo HTML. Sus fórmulas viven en `Reglas.Formulas` con los nombres del prototipo, y `hito_0/tablas/generar.mjs` las convierte en `test/tablas_hito0.json`, que las pruebas de Haskell comparan. Lo que sigue pendiente del 0a es la parte que no se automatiza: las partidas con la rúbrica de decisiones y la auditoría de qué decisiones cambian el rumbo. Ver *Pendiente*.
+**Hito 1b (reglas): la parte del 0a que da las fórmulas está hecha.** Tesoro (ingreso por población, factor de tasas, eficiencia, gasto del presupuesto), tributo entre altépetl y agravio por tributo, impuesto, gobernador, identidad y distancia salen del prototipo HTML. Sus fórmulas viven en `Reglas.Formulas` con los nombres del prototipo, y `hito_0/tablas/generar.mjs` las convierte en `test/tablas_hito0.json`, que las pruebas de Haskell comparan. Lo que sigue pendiente del 0a es la parte que no se automatiza: las partidas con la rúbrica de decisiones y la auditoría de qué decisiones cambian el rumbo. Ver *Pendiente*.
 
 ## Estructura
 
@@ -160,7 +160,7 @@ Vive en `test/Spec.hs`. Son aldeas con población y descontento, tres sistemas (
 
 **Antes de seguir con las reglas:**
 - Hacer la parte del 0a que no se automatiza: partidas jugadas con la rúbrica de decisiones y la auditoría de qué decisiones cambian el rumbo. Las fórmulas y sus tablas ya están (`hito_0/tablas/generar.mjs`).
-- Territorio y eficiencia: el ingreso por territorio, el gobernador y los edificios necesitan el mapa con rendimientos. Hasta entonces el tesoro solo cuenta la población.
+- Hito 3, primer corte hecho: eficiencia por altépetl y gobernador (un mal gobernador baja la recaudación y sube el agravio). Falta todo lo demás: territorio y edificios necesitan el mapa con rendimientos, y hasta entonces el tesoro solo cuenta la población. El prototipo no tiene un comando para nombrar gobernadores, así que «nombramientos» no tiene regla que copiar.
 - Mover el escenario y las constantes a `escenarios/` y `constantes.json`.
 - Reclutar ejército (`ReclutarEjercito`) sigue rechazado con `no_implementado`. El prototipo también lo tiene deshabilitado; no hay regla que copiar, así que queda para el hito 4, con la guerra.
 - Los rangos de prestigio y legitimidad son provisionales: el prototipo no los acota.

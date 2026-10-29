@@ -2,9 +2,9 @@
 //
 // Las fórmulas se toman del prototipo HTML tal cual: cada método se extrae por
 // su nombre y se ejecuta con un `this` de prueba. Solo se fijan a mano las
-// piezas que el juego de 1b todavía no tiene (la eficiencia y el territorio,
-// que vienen del mapa, los gobernadores, la yácata, el troje y la guarnición);
-// cada una queda anotada en la tabla como una entrada explícita.
+// piezas que el juego todavía no tiene (el territorio, que viene del mapa; los
+// edificios, la guarnición y las necesidades); cada una queda anotada en la
+// tabla como una entrada explícita.
 //
 // Uso: node hito_0/tablas/generar.mjs
 // Salida: nucleo/reglas/test/tablas_hito0.json
@@ -45,20 +45,14 @@ function extraerMetodo(nombre) {
 const NOMBRES = [
   'taxM', 'tShare', 'tx', 'incomeParts', 'rawIncome', 'tributeIn', 'income',
   'totalIncome', 'expenseLines', 'totalExpenses', 'needs', 'popParts',
+  'effLines', 'eff',
 ];
 const fuentes = NOMBRES.map(extraerMetodo).join(",\n");
 const metodos = new Function(`return ({\n${fuentes}\n});`)();
 
 // --- `this` de prueba -------------------------------------------------------
-// eff: la eficiencia sale de los edificios y del gobernador; en 1b no existen,
-// así que vale 1 (100 %). Es una entrada fija, no una fórmula del prototipo.
 function nuevoThis(g) {
-  const self = {
-    D: { C },
-    g,
-    eff: () => 1,
-    ...metodos,
-  };
+  const self = { D: { C }, g, ...metodos };
   for (const n of NOMBRES) self[n] = metodos[n].bind(self);
   return self;
 }
@@ -73,19 +67,30 @@ function altepetl(id, pop, distance, pops, extra = {}) {
   };
 }
 
-function gestionDe(T, I, alts, presupuesto = { ejercito: 0, administracion: 0, obras: 0, diplomacia: 0 }) {
+// El cazonci por omisión es Zuangua (administración 3): su término de
+// eficiencia vale 0. Los gobernadores se identifican por su administración.
+const CAZONCI = { name: 'Zuangua', admin: 3 };
+const gobernadores = (...admins) => Object.fromEntries(admins.map((a) => [`g${a}`, { name: `g${a}`, admin: a }]));
+
+function gestionDe(T, I, alts, presupuesto, chars, ruler = CAZONCI) {
   return {
     taxes: { tributo: T, impuesto: I },
-    budget: presupuesto,
+    budget: presupuesto ?? { ejercito: 0, administracion: 0, obras: 0, diplomacia: 0 },
     tributeOut: { left: 0, amount: 0 },
     army: 0,
     alts,
-    chars: { g: { admin: 2 } },
+    chars: { ...gobernadores(0, 1, 2, 3, 4), ...(chars ?? {}), ruler },
+    ruler: 'ruler',
     harvest: { left: 0, pen: 0 },
   };
 }
 
 const redondo = (x) => Math.round(x * 1e9) / 1e9;
+const pobladores = (tams, identidades = []) =>
+  tams.map((tam, i) => ({
+    id: `p${i}`, identidad: identidades[i] ?? 'purepecha', estrato: 'comun', tam, lealtad: 50, agravio: 0,
+  }));
+const sumarPop = (a) => { a.pop = a.pops.reduce((s, p) => s + p.tam, 0); return a; };
 
 // --- casos ------------------------------------------------------------------
 const casos = {};
@@ -104,30 +109,64 @@ for (const T of [1, 2, 3, 4, 5]) for (const I of [1, 2, 3, 4, 5]) {
   }
 }
 
-// 2. Ingreso total con tres altépetl (capital y dos sujetas): tributo a la capital.
-//    Sin territorio (territoryValue = 0) y eficiencia 1.
+// 2. Eficiencia (`effLines`): administración del gobernador, distancia,
+//    presupuesto de administración, administración del cazonci y fracción de
+//    pobladores de identidad ajena. Las fracciones se eligen lejos de un
+//    empate de redondeo (x,5), donde los flotantes y el punto fijo difieren.
+casos.eficiencia = [];
+const fracciones = [
+  { purepecha: 1000, ajena: 0 },
+  { purepecha: 1999, ajena: 1 },      // 0,0005: bajo el umbral de 0,001
+  { purepecha: 850, ajena: 150 },     // 0,15 → −3
+  { purepecha: 700, ajena: 300 },     // 0,30 → −6
+  { purepecha: 2000, ajena: 1000 },   // 1/3 → −6,67 → −7
+  { purepecha: 500, ajena: 500 },     // 0,50 → −10
+];
+for (const adm of [0, 1, 2, 3, 4]) for (const dist of [0, 1, 2]) for (const presupuestoAdm of [0, 25, 40]) {
+  for (const adminCazonci of [2, 3, 4]) for (const f of fracciones) {
+    const pops = pobladores([f.purepecha, f.ajena].filter((n) => n > 0),
+      f.ajena > 0 ? ['purepecha', 'nahua'] : ['purepecha']);
+    const a = sumarPop(altepetl('zacapu', 0, dist, pops, { governor: `g${adm}` }));
+    const self = nuevoThis(gestionDe(3, 3, [a],
+      { ejercito: 0, administracion: presupuestoAdm, obras: 0, diplomacia: 0 },
+      null, { name: 'Cazonci', admin: adminCazonci }));
+    casos.eficiencia.push({
+      adminGobernador: adm, distancia: dist, presupuestoAdministracion: presupuestoAdm,
+      adminCazonci,
+      pobladoresPurepecha: f.purepecha, pobladoresAjenos: f.ajena,
+      puntos: self.effLines(a).tot,
+    });
+  }
+}
+
+// 3. Ingreso total del escenario de 1475: tres altépetl (capital y dos
+//    sujetas) con sus gobernadores e identidades, y la eficiencia de cada
+//    una. Sin territorio (territoryValue = 0).
 casos.ingreso_total = [];
-const pobladores = (tams) => tams.map((tam, i) => ({ id: `p${i}`, identidad: 'purepecha', estrato: 'comun', tam, lealtad: 50, agravio: 0 }));
-for (const [T, I] of [[3, 3], [1, 5], [5, 1], [4, 2]]) {
-  const cap = altepetl('tzintzuntzan', 30000, 0, pobladores([3000, 27000]));
-  const z = altepetl('zacapu', 12000, 2, pobladores([8400, 3600]));
-  const u = altepetl('uruapan', 18000, 1, pobladores([15300, 2700]));
-  for (const a of [cap, z, u]) a.pop = a.pops.reduce((s, p) => s + p.tam, 0);
+for (const [T, I, presupuestoAdm] of [[3, 3, 25], [1, 5, 25], [5, 1, 0], [4, 2, 40]]) {
+  const cap = sumarPop(altepetl('tzintzuntzan', 0, 0, pobladores([3000, 27000]), { governor: 'g4' }));
+  const z = sumarPop(altepetl('zacapu', 0, 2, pobladores([8400, 3600], ['purepecha', 'hnahnu']), { governor: 'g1' }));
+  const u = sumarPop(altepetl('uruapan', 0, 1, pobladores([15300, 2700], ['purepecha', 'nahua']), { governor: 'g3' }));
   const alts = [cap, z, u];
-  const self = nuevoThis(gestionDe(T, I, alts));
+  const self = nuevoThis(gestionDe(T, I, alts,
+    { ejercito: 0, administracion: presupuestoAdm, obras: 0, diplomacia: 0 }));
   casos.ingreso_total.push({
-    tributo: T, impuesto: I,
-    poblacion: alts.map((a) => ({ alt: a.id, pop: a.pop, sujeta: a.id !== 'tzintzuntzan' })),
+    tributo: T, impuesto: I, presupuestoAdministracion: presupuestoAdm,
+    altepetl: alts.map((a) => ({
+      alt: a.id, sujeta: a.id !== 'tzintzuntzan',
+      adminGobernador: Number(a.governor.slice(1)), distancia: a.distance,
+      pobladoresPurepecha: a.pops.filter((p) => p.identidad === 'purepecha').reduce((s, p) => s + p.tam, 0),
+      pobladoresAjenos: a.pops.filter((p) => p.identidad !== 'purepecha').reduce((s, p) => s + p.tam, 0),
+    })),
     totalIncome: redondo(self.totalIncome()),
   });
 }
 
-// 3. Gastos del presupuesto: puntos × tesoro_por_punto_presupuesto, sin ejército
+// 4. Gastos del presupuesto: puntos × tesoro_por_punto_presupuesto, sin ejército
 //    (army = 0, así que el mínimo por soldados vale 0) y sin obras (sin edificios).
 casos.gastos = [];
 for (const [ej, adm, dip] of [[30, 25, 15], [0, 0, 0], [10, 40, 5], [50, 0, 20]]) {
-  const alts = [altepetl('tzintzuntzan', 30000, 0, pobladores([3000, 27000]))];
-  alts[0].pop = 30000;
+  const alts = [sumarPop(altepetl('tzintzuntzan', 0, 0, pobladores([3000, 27000])))];
   const self = nuevoThis(gestionDe(3, 3, alts, { ejercito: ej, administracion: adm, obras: 30, diplomacia: dip }));
   casos.gastos.push({
     ejercito: ej, administracion: adm, diplomacia: dip,
@@ -135,23 +174,35 @@ for (const [ej, adm, dip] of [[30, 25, 15], [0, 0, 0], [10, 40, 5], [50, 0, 20]]
   });
 }
 
-// 4. Agravio por veintena (componentes de popParts que 1b puede calcular):
-//    Tributo, Impuesto interno, Identidad ajena y Distancia, divididos por TY.
-//    Gobernador, yácata, troje, guarnición y necesidades quedan fuera (hitos 3 y 4).
-const COMPONENTES = new Set(['Tributo', 'Impuesto interno', 'Identidad ajena', 'Distancia a la capital']);
+// 5. Agravio por veintena (componentes de popParts que el juego puede calcular):
+//    Tributo, Impuesto interno, Gobernador, Identidad ajena y Distancia,
+//    divididos por TY. Yácata, troje, guarnición y necesidades quedan fuera
+//    (hitos posteriores).
+const COMPONENTES = new Map([
+  ['Tributo', 'Tributo'],
+  ['Impuesto interno', 'Impuesto interno'],
+  ['Identidad ajena', 'Identidad ajena'],
+  ['Distancia a la capital', 'Distancia a la capital'],
+]);
+const nombreComponente = (k) => (k.startsWith('Gobernador') ? 'Gobernador' : COMPONENTES.get(k));
 casos.agravio_por_veintena = [];
 for (const [T, I] of [[3, 3], [5, 3], [1, 3], [3, 5], [3, 1], [5, 5], [1, 1]]) {
-  for (const capital of [true, false]) for (const estrato of ['comun', 'nobleza']) for (const identidad of ['purepecha', 'nahua']) for (const distancia of [0, 60]) {
-    const pop = { id: 'p', identidad, estrato, tam: 1000, lealtad: 50, agravio: 0 };
-    const a = altepetl(capital ? 'tzintzuntzan' : 'zacapu', 1000, distancia, [pop]);
-    const self = nuevoThis(gestionDe(T, I, [a]));
-    const partes = self.popParts(a, pop).filter((l) => COMPONENTES.has(l.k));
-    const suma = partes.reduce((s, l) => s + l.v, 0);
-    casos.agravio_por_veintena.push({
-      tributo: T, impuesto: I, capital, estrato, identidad, distancia,
-      componentes: Object.fromEntries(partes.map((l) => [l.k, redondo(l.v)])),
-      porVeintena: redondo(suma / TY),
-    });
+  for (const capital of [true, false]) for (const estrato of ['comun', 'nobleza']) {
+    for (const identidad of ['purepecha', 'nahua']) for (const distancia of [0, 60]) {
+      for (const adm of [1, 3, 4]) {
+        const pop = { id: 'p', identidad, estrato, tam: 1000, lealtad: 50, agravio: 0 };
+        const a = sumarPop(altepetl(capital ? 'tzintzuntzan' : 'zacapu', 0, distancia, [pop], { governor: `g${adm}` }));
+        const self = nuevoThis(gestionDe(T, I, [a]));
+        const partes = self.popParts(a, pop).filter((l) => nombreComponente(l.k));
+        const suma = partes.reduce((s, l) => s + l.v, 0);
+        casos.agravio_por_veintena.push({
+          tributo: T, impuesto: I, capital, estrato, identidad, distancia,
+          adminGobernador: adm,
+          componentes: Object.fromEntries(partes.map((l) => [nombreComponente(l.k), redondo(l.v)])),
+          porVeintena: redondo(suma / TY),
+        });
+      }
+    }
   }
 }
 
@@ -159,13 +210,13 @@ const salidaJson = {
   fuente: 'hito_0/Hito 0 v4 - Reino purepecha.dc.html (métodos extraídos por nombre)',
   generador: 'hito_0/tablas/generar.mjs',
   ticks_por_anio: TY,
-  constantes: C.economia,
+  constantes: { economia: C.economia, eficiencia: C.eficiencia },
   supuestos: {
-    eficiencia: 1,
+    cazonci_admin: CAZONCI.admin,
     territoryValue: 0,
     ejercito_en_campana: 0,
     obras: 0,
-    gobernador_admin: 2,
+    yacata_troje_guarnicion_necesidades: 'fuera: hitos posteriores',
   },
   casos,
 };

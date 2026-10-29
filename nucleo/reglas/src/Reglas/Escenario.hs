@@ -38,6 +38,7 @@ escenario1475 = Purepecha
       , (PerId 3, Personaje (PerId 3) "Gobernador Inepto" 1 2 45 True)
       , (PerId 4, Personaje (PerId 4) "Gobernador Capaz"   3 2 38 True)
       ]
+  , ppCazonci     = PerId 1          -- Zuangua, administración 3
   , ppTasas       = Tasas 3 3
   , ppPresupuesto = Presupuesto 30 25 30 15 0
   }
