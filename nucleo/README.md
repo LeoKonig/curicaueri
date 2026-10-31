@@ -62,7 +62,7 @@ Los archivos dorados del protocolo y del espejo viven fuera, en `../pruebas_comp
 | `Motor.Carga` | Carga de datos con errores acumulados, versión de esquema, compilación de eventos, `validarOrdenSistemas` |
 | `Motor.Efectos` | Efectos compilados (`Programa`) y su intérprete con suspensión y reanudación |
 | `Motor.Agentes` | Agente nulo y agente aleatorio |
-| `Motor.Guardado` | `guardar` y `cargar` con el origen del derivado |
+| `Motor.Guardado` | `guardar` y `cargar` con el origen del derivado. El guardado lleva `versionGuardado` (hoy 2): `cargar` rechaza otra versión con `ErrorVersion` y un aviso que dice qué pasó, porque no hay migraciones (V5, *Guardado*) |
 | `Motor.Poblacion` | Crecer con resto y migrar con resto, repartiendo por mayor resto |
 | `Motor.Calendario` | Calendario interno como dato del escenario (periodos y días fuera de periodo: veintenas y nemontemi en el prototipo, meses o semanas en otra época) y calendario visible (juliano, gregoriano o el cambio entre los dos) |
 | `Motor.Guion` | El guion del escenario como dato: condiciones, fases (actos), situaciones con su tipo, parámetros del director, `Entorno` y `cargarGuion` con errores acumulados |
