@@ -1,10 +1,40 @@
 {
   "_nota": "Bienes del juego de juguete para probar la moneda designada y la inflación. Valores de relleno.",
   "horizonte": "6",
+  "magnitudes_nominales": [
+    "tesoro"
+  ],
   "bienes": [
-    {"id": "plata",  "valor": "2",    "calidad_monetaria": "0.95", "referencia": "2000", "elasticidad": "0.5", "designable": true},
-    {"id": "oro",    "valor": "6",    "calidad_monetaria": "1",    "referencia": "200",  "elasticidad": "0.1", "designable": true},
-    {"id": "maiz",   "valor": "0.67", "calidad_monetaria": "0.5",  "referencia": "1000", "elasticidad": "0.3", "designable": true},
-    {"id": "plumas", "valor": "4",    "calidad_monetaria": "0.6",  "referencia": "100",  "elasticidad": "0.2"}
+    {
+      "id": "plata",
+      "valor": "2",
+      "calidad_monetaria": "0.95",
+      "referencia": "2000",
+      "elasticidad": "0.5",
+      "designable": true
+    },
+    {
+      "id": "oro",
+      "valor": "6",
+      "calidad_monetaria": "1",
+      "referencia": "200",
+      "elasticidad": "0.1",
+      "designable": true
+    },
+    {
+      "id": "maiz",
+      "valor": "0.67",
+      "calidad_monetaria": "0.5",
+      "referencia": "1000",
+      "elasticidad": "0.3",
+      "designable": true
+    },
+    {
+      "id": "plumas",
+      "valor": "4",
+      "calidad_monetaria": "0.6",
+      "referencia": "100",
+      "elasticidad": "0.2"
+    }
   ]
 }

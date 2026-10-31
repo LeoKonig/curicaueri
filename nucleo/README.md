@@ -11,11 +11,11 @@ Este código implementa dos documentos de diseño, que conviene leer antes de to
 
 ## Estado
 
-**Hito 1a (motor): criterio mínimo cumplido.** El motor corre con un juego de juguete que pasa por las seis rutas difíciles, y las leyes del criterio se comprueban con pruebas automáticas (198 pruebas en el motor, incluidas las de los archivos dorados, las del guion y las de la moneda; 18 en las reglas).
+**Hito 1a (motor): criterio mínimo cumplido.** El motor corre con un juego de juguete que pasa por las seis rutas difíciles, y las leyes del criterio se comprueban con pruebas automáticas (202 pruebas en el motor, incluidas las de los archivos dorados, las del guion y las de la moneda; 18 en las reglas).
 
 **Actos modulares: en el motor.** Guion con fases, situaciones con vocabulario de tipos cerrado y director (`Motor.Guion`, `Motor.Director`), conectados al paso, al guardado y al protocolo, y probados con el juego de juguete y su guion (`test/guion_juguete.json`), incluida la prueba de métricas del hito 0. El guion del escenario es ilustrativo hasta el hito 0.
 
-**Moneda designada e inflación: en el motor.** Precio de cada bien según su escasez, designación de moneda por entidad, nivel de precios, inflación anual e historial persistente (`Motor.Moneda`), conectados al paso y al guardado, y probados con el juego de juguete y sus bienes (`test/bienes_juguete.json`). El juego real todavía no lo usa: falta decidir qué cantidades son nominales y llevar existencias de bienes (ver V5, *La moneda designada y la inflación*).
+**Moneda designada e inflación: en el motor.** Precio de cada bien según su escasez, designación de moneda por entidad, nivel de precios, inflación anual e historial persistente (`Motor.Moneda`), conectados al paso y al guardado, y probados con el juego de juguete y sus bienes (`test/bienes_juguete.json`). Las magnitudes nominales (el tesoro) se convierten al designar la moneda sin perder valor, y `enCuenta` pasa costos e ingresos al tipo del día. El juego real todavía no lo usa: falta el comando `DesignarMoneda` en `reglas` y la producción de bienes del hito 3 (ver V5, *La moneda designada y la inflación*).
 
 **Hito 2 (protocolo y atlas): cerrado, salvo calibrar las velocidades jugando.** Protocolo con nombres JSON explícitos y archivos dorados; cáscara con socket, reloj y velocidades configurables; consulta (predicción hasta la siguiente veintena); guardar y cargar; cliente en Godot con mapa, paneles genéricos, informe de veintena y medidor de tiempo en pausa. El criterio de 2 700 hexágonos a 60 FPS se cumple con margen en una NVIDIA MX150 (percentil 99 de 7,2 ms). Falta calibrar las velocidades jugando (ver `../docs/calibrar.md`).
 
