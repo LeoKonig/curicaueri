@@ -1,5 +1,5 @@
 # Integración continua: compila el núcleo y corre todas las pruebas en cada
-# cambio. Tres trabajos:
+# cambio. Cuatro trabajos:
 #
 #   nucleo   motor y reglas con cabal, en Linux y con dos versiones de GHC. Las
 #            pruebas incluyen los valores dorados del azar y del estado, así que
@@ -8,6 +8,7 @@
 #            enlazador del runner rechaza las dependencias.
 #   agentes  probar_agentes.sh con el agente de Python (Mercury se salta si no
 #            hay compilador; el script lo dice).
+#   datos_hito0  validar_opciones.py: ninguna opción del prototipo sin costo.
 #   cliente  probar_cliente.sh sin interfaz gráfica, con Godot 4.3 (la versión
 #            mínima) y con la más reciente probada.
 name: pruebas
@@ -70,6 +71,14 @@ jobs:
           name: nucleo-linux
           path: nucleo-bin
           retention-days: 7
+
+  datos_hito0:
+    name: datos del hito 0
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ninguna opción de evento o crisis sin costo (criterio c)
+        run: python3 hito_0/evaluacion/validar_opciones.py
 
   agentes:
     needs: nucleo
