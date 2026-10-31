@@ -214,6 +214,10 @@
       "estado_otra_obra": "Hay otra obra",
       "estado_disponible": "Disponible",
       "efecto": "−3 agravio/año · +15 subsistencia · cosechas sin costo"
+    },
+    "gran_yacata": {
+      "nombre": "Gran yácata",
+      "efecto": "Prestigio +6 al terminarla y agravio −3 por año en todo el reino."
     }
   },
   "roles": {
@@ -370,7 +374,7 @@
     },
     "guerra_alianza": {
       "titulo": "Declarar guerra a la Triple Alianza",
-      "costo_visible": "Sin casus belli: prestigio −{sin_casus_alianza} · {odds_alianza}"
+      "costo_visible": "Sin casus belli: prestigio −{sin_casus_alianza} · lealtad +5 en la capital · la Triple Alianza invadirá el año próximo"
     },
     "expedicion_chichimeca": {
       "titulo": "Expedición contra los chichimecas",
@@ -400,7 +404,15 @@
       "titulo": "Prisioneros a integrarse como pops",
       "costo_visible": "Pop nahua en la capital, lealtad 25"
     },
-    "_no_disponible": "No disponible: no se cumplen los requisitos"
+    "_no_disponible": "No disponible: no se cumplen los requisitos",
+    "gran_fiesta": {
+      "titulo": "Celebrar una gran fiesta a Curicaueri",
+      "costo_visible": "Tesoro −{costo_fiesta} · agravio −{agravio_fiesta} en todo el reino · una vez al año"
+    },
+    "construir_gran_yacata": {
+      "titulo": "Construir la gran yácata de Curicaueri",
+      "costo_visible": "Tesoro −{costo_gran_yacata} · 18 veintenas · prestigio +6 y agravio −3/año en todo el reino"
+    }
   },
   "eventos": {
     "rebaja": {
@@ -410,7 +422,7 @@
       "opciones": {
         "rebajar": {
           "titulo": "Rebajar el tributo",
-          "costo_visible": "Tributo −1 (ingreso ≈ −17%), agravio −20"
+          "costo_visible": "Tributo −1 y no se puede subir en 2 años · agravio −20 en el señorío"
         },
         "ignorar": {
           "titulo": "Ignorar la petición",
@@ -421,11 +433,11 @@
     "autonomia": {
       "titulo": "Señorío pide autonomía",
       "cuerpo": "{a.nombre} tiene lealtad {a.lealtad} y está a distancia {a.distance}.",
-      "descripcion": "El señorío pide mayor autonomía. Concederla mejora la lealtad pero reduce el control.",
+      "descripcion": "El señorío pide mayor autonomía. Concederla mejora la lealtad pero el señorío entrega la mitad de tributo durante 5 años.",
       "opciones": {
         "conceder": {
           "titulo": "Conceder autonomía",
-          "costo_visible": "Lealtad +15, agravio −10 en el señorío"
+          "costo_visible": "Lealtad +15, agravio −10 en el señorío · su tributo baja a la mitad durante 5 años"
         },
         "negar": {
           "titulo": "Negar la autonomía",
@@ -448,7 +460,7 @@
         },
         "bajar_impuesto": {
           "titulo": "Bajar impuesto interno",
-          "costo_visible": "Impuesto −1 (menos ingreso), agravio −10 a todos"
+          "costo_visible": "Impuesto −1 (menos ingreso) y no se puede subir en 2 años · agravio −10 a todos"
         }
       }
     },
@@ -459,7 +471,7 @@
       "opciones": {
         "nombrar": {
           "titulo": "Nombrarlo capitán del ejército",
-          "costo_visible": "Mando 5: +12% de fuerza de guerra"
+          "costo_visible": "Mando 5: +12% de fuerza de guerra · lealtad −{lealtad_capitan} en la capital (la nobleza ve un advenedizo)"
         },
         "campana": {
           "titulo": "Campaña de frontera",
@@ -478,7 +490,7 @@
       "opciones": {
         "abrir_trojes": {
           "titulo": "Abrir las trojes",
-          "costo_visible": "Tesoro −100 si no hay troje"
+          "costo_visible": "Sin trojes: tesoro −100 · con trojes: se vacían 2 años (no protegen el hambre ni alargan un asedio)"
         },
         "comprar": {
           "titulo": "Comprar a un vecino",
@@ -538,6 +550,44 @@
           "costo_visible": "Riesgo de crisis sucesoria"
         }
       }
+    },
+    "presagio_sequia": {
+      "titulo": "Presagio de sequía",
+      "cuerpo": "Los sacerdotes leen malos signos: las lluvias se retrasarán.",
+      "descripcion": "Si no llueve, la cosecha caerá en {aviso_sequia} veintenas. Prepararse cuesta ahora; no hacerlo puede costar hambre y agravio.",
+      "opciones": {
+        "almacenar": {
+          "titulo": "Llenar las trojes y racionar",
+          "costo_visible": "Tesoro −200 · la sequía golpeará mucho menos"
+        },
+        "rogativas": {
+          "titulo": "Rogativas a Curicaueri",
+          "costo_visible": "Tesoro −80 · prestigio +2 · la sequía golpeará igual"
+        },
+        "ignorar": {
+          "titulo": "No hacer nada",
+          "costo_visible": "Sin costo ahora · la sequía golpeará de lleno"
+        }
+      }
+    },
+    "incursion_respuesta": {
+      "titulo": "Incursión chichimeca en {a.nombre}",
+      "cuerpo": "Una partida chichimeca saqueó milpas de {a.nombre} y se llevó cautivos.",
+      "descripcion": "Perseguirlos arriesga un destacamento ({odds_chichimeca}); reforzar la guarnición protege pero cuesta y resta tropas al ejército; dejarlo pasar enoja a la gente.",
+      "opciones": {
+        "perseguir": {
+          "titulo": "Perseguir a los atacantes",
+          "costo_visible": "{odds_chichimeca} · victoria: prestigio +2, cautivos, agravio −5 · derrota: ejército −5%, prestigio −2"
+        },
+        "reforzar": {
+          "titulo": "Reforzar la guarnición de {a.nombre}",
+          "costo_visible": "Tesoro −150 · guarnición +500 (menos incursiones, menos ejército en campo)"
+        },
+        "dejar": {
+          "titulo": "Dejarlo pasar",
+          "costo_visible": "Agravio +6 en {a.nombre} · prestigio −1"
+        }
+      }
     }
   },
   "crisis": {
@@ -589,6 +639,63 @@
           "costo_visible": "Prestigio −5 · Tzintzuntzan lealtad −20 · Uruapan +15"
         }
       }
+    },
+    "ultimatum": {
+      "titulo": "Embajada de la Triple Alianza",
+      "cuerpo": "Los embajadores de Axayácatl exigen {tributo_exigido} de tesoro como tributo. Si no se paga, su ejército entrará en el reino.",
+      "descripcion": "Pagar retrasa la guerra tres años pero humilla a la nobleza; rechazar la trae en 1478.",
+      "opciones": {
+        "pagar": {
+          "titulo": "Pagar el tributo",
+          "costo_visible": "Tesoro −{tributo_exigido} · prestigio −3 · lealtad −5 en la capital · la invasión se retrasa 3 años"
+        },
+        "ganar_tiempo": {
+          "titulo": "Negociar para ganar tiempo",
+          "costo_visible": "Tesoro −150 · prestigio −1 · la invasión se retrasa 1 año"
+        },
+        "rechazar": {
+          "titulo": "Rechazar la exigencia",
+          "costo_visible": "Prestigio +3 · lealtad +5 en la capital · la invasión llega a su tiempo"
+        }
+      }
+    },
+    "invasion": {
+      "titulo": "Un ejército mexica entra en el reino",
+      "cuerpo": "{tropas_invasor} guerreros de la Triple Alianza cruzan la frontera oriental.",
+      "descripcion": "Salir al encuentro arriesga el ejército en campo abierto; esperar en la capital tiene ventaja defensiva, pero el enemigo saquea a su paso y los señoríos se sienten abandonados. El asedio de la capital resistiría {resistencia_asedio} pasos (trojes llenas y fortaleza lo alargan).",
+      "opciones": {
+        "frontera": {
+          "titulo": "Salir al encuentro en la frontera",
+          "costo_visible": "Probabilidad de victoria {prob_frontera} · si se pierde, el enemigo sigue hacia la capital"
+        },
+        "capital": {
+          "titulo": "Defender Tzintzuntzan",
+          "costo_visible": "Probabilidad de victoria {prob_capital} · lealtad −10 en los señoríos · el enemigo ocupa terreno a su paso"
+        },
+        "pagar": {
+          "titulo": "Pagar por la paz",
+          "costo_visible": "Tesoro −{tributo_paz} · tributo de 150/año durante 3 años · prestigio −6 · lealtad −8 en todo el reino"
+        }
+      }
+    },
+    "matlatzinca": {
+      "titulo": "Los matlatzincas resisten a la Triple Alianza",
+      "cuerpo": "En el valle de Toluca, los matlatzincas resisten el avance mexica y piden ayuda.",
+      "descripcion": "Ayudarlos debilita al enemigo pero lo provoca; acoger refugiados suma gente con agravio; mantenerse al margen no cuesta nada ahora, pero el enemigo llegará más fuerte.",
+      "opciones": {
+        "apoyar": {
+          "titulo": "Enviar ayuda",
+          "costo_visible": "Tesoro −300 · prestigio +2 · el ejército mexica llegará más débil (24 000 en vez de 30 000), pero un año antes: la Triple Alianza no perdona la ayuda"
+        },
+        "refugio": {
+          "titulo": "Acoger a los refugiados",
+          "costo_visible": "+2 500 matlatzincas en la capital (agravio 35) · prestigio +1"
+        },
+        "margen": {
+          "titulo": "Mantenerse al margen",
+          "costo_visible": "Prestigio −2 · el ejército mexica llegará entero y reforzado (34 000)"
+        }
+      }
     }
   },
   "modal": {
@@ -628,7 +735,10 @@
     "batalla_victoria": "Vencimos a los mexicas: {invasores} muertos de su lado y {bajas} de los nuestros.",
     "batalla_derrota": "Los mexicas nos vencieron y ocupan el terreno: perdimos {bajas} soldados.",
     "invasion_derrotada": "Los mexicas se retiran derrotados. Volverán cuando su ejército se recupere.",
-    "capital_rendida": "La capital se rinde a los mexicas. Pasa a su dominio."
+    "capital_rendida": "La capital se rinde a los mexicas. Pasa a su dominio.",
+    "metas": "Metas del reinado para 1485: conservar Tzintzuntzan, ningún señorío independiente, prestigio ≥ {prestigio}, lealtad media ≥ {lealtad}.",
+    "sequia_llega": "La sequía llega: las milpas se secan.",
+    "sequia_preparada": "La sequía llega, pero las trojes llenas alivian el hambre."
   },
   "resolucion": {
     "motivo": {
@@ -665,7 +775,14 @@
       "iretas_rebeldes": "Iretas rebeldes",
       "cazonci": "Cazonci"
     },
-    "log_what": "{decision}: {opcion}"
+    "log_what": "{decision}: {opcion}",
+    "veredicto": {
+      "triunfo": "Triunfo: el reino llega a 1485 fuerte y unido",
+      "reinado_firme": "Reinado firme",
+      "supervivencia": "Supervivencia con heridas",
+      "decadencia": "Decadencia",
+      "caida": "Derrota: Tzintzuntzan cayó en manos mexicas"
+    }
   },
   "errores": {
     "carga_datos": "No se pudieron cargar los datos: {mensaje}",
@@ -700,7 +817,8 @@
       "guerra_alianza": {
         "1": "Victoria contra la Triple Alianza (+400 prisioneros).",
         "2": "Derrota contra la Triple Alianza.",
-        "3": "Empate contra la Triple Alianza."
+        "3": "Empate contra la Triple Alianza.",
+        "provocar": "Declaramos la guerra a la Triple Alianza. Su ejército vendrá el año próximo."
       },
       "expedicion_chichimeca": {
         "1": "Victoria contra los chichimecas (+200 prisioneros).",
@@ -724,6 +842,12 @@
       },
       "prisioneros_integrar": {
         "1": "{faccion.prisioneros} prisioneros a integrarse como pops."
+      },
+      "gran_fiesta": {
+        "1": "Gran fiesta a Curicaueri: el agravio baja en todo el reino."
+      },
+      "construir_gran_yacata": {
+        "1": "Comienza la gran yácata de Curicaueri en Tzintzuntzan."
       }
     },
     "eventos": {
@@ -747,6 +871,20 @@
         "2": "{cazonci.heir.nombre} asumió el poder sin disputa.",
         "3": "Tangáxoan fue entronizado.",
         "4": "El señor de Uruapan tomó el poder."
+      },
+      "ultimatum": {
+        "pagar": "Pagamos el tributo a la Triple Alianza; la nobleza murmura. La guerra se aplaza tres años.",
+        "ganar_tiempo": "Los embajadores aceptan regalos y aplazan un año su exigencia."
+      },
+      "invasion": {
+        "frontera": "El ejército sale al encuentro de los mexicas.",
+        "capital": "El cazonci reúne al ejército en Tzintzuntzan; los señoríos quedan expuestos.",
+        "pagar": "Pagamos por la paz. Los mexicas se retiran con su tributo."
+      },
+      "matlatzinca": {
+        "apoyar": "Enviamos ayuda a los matlatzincas; el ejército mexica se desgasta en Toluca.",
+        "refugio": "Familias matlatzincas se asientan en Tzintzuntzan.",
+        "margen": "Los matlatzincas caen sin nuestra ayuda; el ejército mexica queda libre y reforzado."
       }
     }
   },

@@ -2334,6 +2334,16 @@ Las dos vías se juntan en el hito 1b, donde las reglas que sobrevivieron al hit
 3. **Los umbrales de juicio en datos.** La medición del arnés (las diferencias entre estados) se separa del juicio (qué cuenta como decisión que cambia el rumbo, la variedad por década), y los umbrales del juicio van a `constantes.json`.
 4. **Las notas de las sesiones jugadas,** con las respuestas al protocolo de preguntas del criterio del hito 0.
 
+**Lo que dejó la iteración v5 del prototipo** (ver `docs/evaluacion_hito0.md`). La evaluación automática de la v4 mostró que el azar de una batalla decidía la partida y que muchas opciones eran gratis. La v5 corrige eso con decisiones que deben pasar a `reglas` cuando se porte:
+
+- **Una sola guerra con la Triple Alianza, la invasión,** decidida por lo preparado (capitán, moral, fortaleza, guarnición) con poco azar. El asedio dura lo que dan las trojes y la fortaleza, y perder la capital termina la partida.
+- **Metas explícitas del reinado** y un veredicto final.
+- **Toda opción con costo o riesgo declarado:** la autonomía cuesta tributo, bajar una tasa por un evento la bloquea 2 años y abrir las trojes las vacía.
+- **Presión sostenida:** techo de lealtad, desgaste anual del agravio y el agravio que recorta lo recaudado.
+- **Riesgo militar:** la expedición manda un destacamento y puede perder; el ultimátum es una decisión.
+
+Los criterios de tensión (a)–(e) y el modelo de espera de ese documento se suman al criterio 0a.
+
 **El criterio del hito 0 tiene dos partes, y solo la primera bloquea.** Conseguir a otra persona puede tardar semanas, y el 1b no debe esperar por eso:
 
 - **0a, automático, bloquea el 1b.** Lo corre el autor solo: partidas jugadas por él con la rúbrica de decisiones, la auditoría de qué decisiones cambian el rumbo y el arnés de 30 años con su criterio de variedad.

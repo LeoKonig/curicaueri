@@ -238,6 +238,11 @@
           "entidad": "$faccion",
           "magnitud": "campo",
           "min": 1000
+        },
+        {
+          "tipo": "flag",
+          "campo": "invasor",
+          "es": null
         }
       ],
       "efectos": [
@@ -253,136 +258,43 @@
           }
         },
         {
-          "tipo": "resolver",
-          "formula": "roll_guerra",
-          "args": {
-            "ratio": {
-              "formula": "fuerza_guerra",
-              "args": {
-                "faccion": "$faccion"
-              }
-            }
-          },
-          "victoria": [
-            {
-              "tipo": "magnitud",
-              "entidad": "$faccion",
-              "magnitud": "prestigio",
-              "sumar": 5
-            },
-            {
-              "tipo": "magnitud",
-              "entidad": "$faccion",
-              "magnitud": "tesoro",
-              "sumar": 300
-            },
-            {
-              "tipo": "prisioneros",
-              "sumar": 400
-            },
-            {
-              "tipo": "para_cada",
-              "entidad": "altepetl",
-              "filtro": {
-                "independent": false
-              },
-              "efectos": [
-                {
-                  "tipo": "magnitud",
-                  "entidad": "$alts",
-                  "magnitud": "lealtad",
-                  "sumar": 5,
-                  "clamp": [
-                    0,
-                    100
-                  ]
-                }
-              ]
-            },
-            {
-              "tipo": "cronica",
-              "tipo_cronica": "consequence",
-              "texto_clave": "cronica_efectos.acciones.guerra_alianza.1"
-            }
-          ],
-          "derrota": [
-            {
-              "tipo": "magnitud",
-              "entidad": "$faccion",
-              "magnitud": "prestigio",
-              "sumar": -5
-            },
-            {
-              "tipo": "magnitud",
-              "entidad": "$faccion",
-              "magnitud": "ejercito",
-              "factor": 0.9
-            },
-            {
-              "tipo": "magnitud",
-              "entidad": "$faccion",
-              "magnitud": "tesoro",
-              "sumar": -300,
-              "clamp_min": 0
-            },
-            {
-              "tipo": "para_cada",
-              "entidad": "altepetl",
-              "filtro": {
-                "independent": false
-              },
-              "efectos": [
-                {
-                  "tipo": "magnitud",
-                  "entidad": "$alts",
-                  "magnitud": "lealtad",
-                  "sumar": -15,
-                  "clamp": [
-                    0,
-                    100
-                  ]
-                }
-              ]
-            },
-            {
-              "tipo": "cronica",
-              "tipo_cronica": "consequence",
-              "texto_clave": "cronica_efectos.acciones.guerra_alianza.2"
-            }
-          ],
-          "empate": [
-            {
-              "tipo": "magnitud",
-              "entidad": "$faccion",
-              "magnitud": "tesoro",
-              "sumar": -100,
-              "clamp_min": 0
-            },
-            {
-              "tipo": "prisioneros",
-              "sumar": 100
-            },
-            {
-              "tipo": "cronica",
-              "tipo_cronica": "consequence",
-              "texto_clave": "cronica_efectos.acciones.guerra_alianza.3"
-            }
+          "tipo": "magnitud",
+          "entidad": "$capital",
+          "magnitud": "lealtad",
+          "sumar": 5,
+          "clamp": [
+            0,
+            100
           ]
         },
         {
           "tipo": "estado",
-          "campo": "flags.truce",
+          "campo": "invasionAnio",
           "fijar": {
             "formula": "tick_mas",
             "args": {
-              "t": "$tick",
-              "n": "TREGUA_ALIANZA"
+              "t": "$faccion.year",
+              "n": 1
             }
           }
+        },
+        {
+          "tipo": "estado",
+          "campo": "ultimatum",
+          "fijar": {
+            "estado": "rechazado",
+            "monto": 0
+          }
+        },
+        {
+          "tipo": "cronica",
+          "tipo_cronica": "crisis",
+          "texto_clave": "cronica_efectos.acciones.guerra_alianza.provocar"
         }
       ],
       "titulo_clave": "acciones.guerra_alianza.titulo",
-      "costo_visible_clave": "acciones.guerra_alianza.costo_visible"
+      "costo_visible_clave": "acciones.guerra_alianza.costo_visible",
+      "_nota": "Versión 5: atacar a la Triple Alianza ya no es una tirada aparte; provoca su invasión el año siguiente (guerra unificada, cambio 1)."
     },
     {
       "id": "expedicion_chichimeca",
@@ -433,14 +345,11 @@
         },
         {
           "tipo": "resolver",
-          "formula": "roll_guerra",
+          "formula": "roll_expedicion",
           "args": {
             "ratio": {
-              "formula": "fuerza_guerra",
-              "args": {
-                "faccion": "$faccion",
-                "enemigo": "ENEMIGO_CHICHIMECA"
-              }
+              "formula": "fuerza_expedicion",
+              "args": {}
             }
           },
           "victoria": [
@@ -847,6 +756,122 @@
       ],
       "titulo_clave": "acciones.prisioneros_integrar.titulo",
       "costo_visible_clave": "acciones.prisioneros_integrar.costo_visible"
+    },
+    {
+      "id": "gran_fiesta",
+      "tipo": "accion",
+      "modo": "panel",
+      "grupo": "reino",
+      "requisitos": [
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "tesoro",
+          "min": "COSTO_FIESTA"
+        },
+        {
+          "tipo": "tick_min",
+          "t": {
+            "formula": "tick_mas",
+            "args": {
+              "t": "$faccion.ultFiesta",
+              "n": 18
+            }
+          }
+        }
+      ],
+      "costo": {
+        "tesoro": "COSTO_FIESTA"
+      },
+      "efectos": [
+        {
+          "tipo": "estado",
+          "campo": "ultFiesta",
+          "fijar": "$tick"
+        },
+        {
+          "tipo": "para_cada",
+          "entidad": "altepetl",
+          "filtro": {
+            "independent": false
+          },
+          "efectos": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$alts",
+              "magnitud": "agravio",
+              "sumar": {
+                "formula": "negar",
+                "args": {
+                  "x": "AGRAVIO_FIESTA"
+                }
+              },
+              "clamp": [
+                0,
+                100
+              ]
+            }
+          ]
+        },
+        {
+          "tipo": "cronica",
+          "tipo_cronica": "consequence",
+          "texto_clave": "cronica_efectos.acciones.gran_fiesta.1"
+        }
+      ],
+      "titulo_clave": "acciones.gran_fiesta.titulo",
+      "costo_visible_clave": "acciones.gran_fiesta.costo_visible"
+    },
+    {
+      "id": "construir_gran_yacata",
+      "tipo": "accion",
+      "modo": "panel",
+      "grupo": "edificios",
+      "edificio": "gran_yacata",
+      "liga": {
+        "a": {
+          "entidad": "altepetl",
+          "filtro": {
+            "id": "tzintzuntzan"
+          }
+        }
+      },
+      "requisitos": [
+        {
+          "tipo": "flag",
+          "campo": "$a.building",
+          "es": null
+        },
+        {
+          "tipo": "flag",
+          "campo": "$a.gran_yacata",
+          "es": false
+        },
+        {
+          "tipo": "magnitud",
+          "entidad": "$faccion",
+          "magnitud": "tesoro",
+          "min": "COSTO_GRAN_YACATA"
+        }
+      ],
+      "costo": {
+        "tesoro": "COSTO_GRAN_YACATA"
+      },
+      "efectos": [
+        {
+          "tipo": "construir",
+          "edificio": "gran_yacata",
+          "sitio": "$a"
+        },
+        {
+          "tipo": "cronica",
+          "tipo_cronica": "consequence",
+          "texto_clave": "cronica_efectos.acciones.construir_gran_yacata.1"
+        }
+      ],
+      "descripcion_clave": "edificios.gran_yacata.efecto",
+      "titulo_clave": "acciones.construir_gran_yacata.titulo",
+      "costo_visible_clave": "acciones.construir_gran_yacata.costo_visible"
     }
   ]
 }
