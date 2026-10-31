@@ -1,6 +1,115 @@
 # Evaluación del prototipo del hito 0 (jugado por una IA)
 
-31 de octubre de 2026. Prototipo: `hito_0/Hito 0 v4 - Reino purepecha.dc.html`, 1475–1485. Herramientas y forma de repetirlo: `hito_0/evaluacion/`.
+Herramientas y forma de repetirlo: `hito_0/evaluacion/`. La primera parte es la iteración actual (v5); la segunda, la evaluación original de la v4 que la motivó.
+
+# Parte 1: versión 5 (31 de octubre de 2026)
+
+Prototipo: `hito_0/Hito 0 v5 - Reino purepecha.dc.html`, 1475–1485. Se aplicaron los cinco cambios propuestos al final de la parte 2 y se volvió a medir con el mismo arnés, 60 partidas por estrategia y 1 003 partidas de divergencia.
+
+## Veredicto
+
+**El núcleo ya tiene tensión: el final lo deciden las decisiones, no una tirada.** La estrategia experta logra el triunfo en el 93 % de las partidas. Eligiendo siempre la primera opción se logra en el 62 %, al azar en el 5 % y eligiendo siempre la última en ninguno. La caída de la capital va del 0 % al 58 % según cómo se juegue, en vez de rondar el 50 % para todas. **Lo que sigue débil es el ritmo:** a velocidad normal, todavía hay tramos de unos 5 minutos sin nada que decidir ni esperar (ver *Modelo de espera*).
+
+## Qué cambió
+
+| Cambio | Qué se hizo | Dónde |
+| --- | --- | --- |
+| 1. Que el final dependa de las decisiones | La guerra con la Triple Alianza es una sola: la invasión. Al entrar, un modal ofrece salir a la frontera, defender Tzintzuntzan o pagar por la paz, con la probabilidad de victoria calculada igual que la batalla. La fuerza depende del capitán, la moral, la fortaleza y la guarnición de la capital, con ±10 % de azar. El asedio ya no es un 25 % de rendición por paso: dura lo que dan las trojes llenas y la fortaleza, y el invasor se desgasta. Perder la capital termina la partida. Declarar la guerra a la Triple Alianza provoca su invasión al año siguiente, en vez de ser una tirada aparte con victoria segura | código, `constantes.invasion`, `crisis.invasion`, `acciones.guerra_alianza` |
+| 2. Ninguna opción gratis | Conceder la autonomía reduce a la mitad el tributo del señorío durante 5 años. Nombrar al capitán ambicioso cuesta lealtad en la capital. Bajar una tasa por un evento la bloquea 2 años: el deslizador ya no la sube. Abrir las trojes las vacía 2 años, y entonces no protegen ni alargan un asedio. `validar_opciones.py` comprueba que toda opción tenga un costo, un riesgo diferido declarado (`riesgo`) o sea consecuencia de una decisión anterior (`consecuencia_de`). Las crisis muestran deshabilitadas, con su motivo, las opciones que no se pueden pagar | `eventos`, `crisis`, código |
+| 3. Presión que no se apaga sola | La lealtad tiende a un objetivo con techo (92, menos 6 por distancia y 10 por identidad ajena) en vez de saturarse en 100. Hay un desgaste anual del agravio (+4 en los señoríos y +1 en la capital). La rebelión es posible con lealtad ≤ 45 (antes, ≤ 30). El agravio alto recorta lo recaudado (−40 % con agravio 80, −50 % con 100). Las incursiones suben el agravio | código, `constantes.presion`, `rebelion`, `economia`, `incursion` |
+| 4. Riesgo en lo militar | La expedición chichimeca manda un destacamento de 4 000. Su victoria va del 28 % (capitán normal, sin casus belli) al 70 % (mejor capitán, con casus belli), y puede perderse. El ultimátum es un modal con tres salidas: pagar (retrasa 3 años y humilla a la nobleza), negociar (1 año) o rechazar | `constantes.guerra.expedicion`, `crisis.ultimatum` |
+| 5. Sumideros y metas | Metas explícitas para 1485: conservar la capital, ningún señorío independiente, prestigio ≥ 35 y lealtad media ≥ 60. La pantalla final da un veredicto (triunfo, reinado firme, supervivencia, decadencia o caída). Dos sumideros nuevos: la gran fiesta (una vez al año) y la gran yácata de Curicaueri (1 500 de tesoro y 18 veintenas) | código, `constantes.metas`, `acciones` |
+| De tus comentarios | La rebelión matlatzinca de 1475: apoyar debilita al invasor pero adelanta su ataque, acoger refugiados suma gente con agravio, mantenerse al margen lo refuerza. El presagio de sequía avisa con 6 veintenas para prepararse. Las incursiones chichimecas abren una respuesta: perseguir (con riesgo), reforzar la guarnición o dejarlas pasar | `crisis.matlatzinca`, `eventos.presagio_sequia`, `eventos.incursion_respuesta` |
+
+Además se corrigió el texto de las crisis que ocultaba opciones. Se comprobó que todos los textos nuevos resuelven sus marcadores (`i18n.js`) y que la interfaz real muestra el modal de invasión y la pantalla final (`captura.js`).
+
+## Resultados contra los criterios de tensión
+
+| Criterio | v4 | v5 | |
+| --- | --- | --- | --- |
+| (a) La experta claramente mejor que una regla fija | 0,15 desviaciones de diferencia en puntos | Triunfo: 93 % experta, 62 % primera opción, 5 % azar, 0 % última opción | ✓ |
+| (b) Invertir la decisión pesa más que el azar | En ningún tipo con más de una muestra (en la mediana, 44 puntos) | En 10 de 14 tipos | ✓ |
+| (c) Ninguna opción sin costo | Varias gratis o explotables (tabla de la parte 2) | Ninguna (validador) | ✓ |
+| (d) Ningún año sin decisión | 2,5 años vacíos por partida; 58 de 60 partidas con alguno | 0,9 por partida; 36 de 60 con alguno | Mejor, no cumple |
+| (e) La caída de la capital varía con la estrategia | Del 48 al 93 % | Del 0 al 58 % | ✓ |
+
+**Por qué el criterio (a) se mide ahora con el veredicto.** La puntuación provisional premia el tesoro acumulado, y el juego ya tiene metas propias. Con la puntuación, subir los impuestos al máximo empata con la experta: acumula 7 800 de tesoro, pero con lealtad 38 y agravio 80 no logra el triunfo en ninguna partida. Las metas del juego son el criterio honesto.
+
+**"Elegir siempre la primera opción" no es no jugar.** En la v5 esa regla junta tres decisiones prudentes: apoyar a los matlatzincas, pagar el ultimátum y salir a la frontera. Por eso le va bien. Es una línea razonable que cuesta tesoro, prestigio y lealtad, no una opción gratis.
+
+## Modelo de espera: ¿serán aburridas las esperas?
+
+Una IA no siente aburrimiento, pero se puede estimar dónde es probable que una persona se aburra con lo que se sabe de la atención y la espera.
+
+**Lo que dice la investigación, y cómo se traduce al juego:**
+
+- **El aburrimiento es falta de compromiso de la atención:** querer ocuparse en algo y no poder (Eastwood y otros, 2012). Según el modelo MAC (Westgate y Wilson, 2018), aparece cuando falta algo en qué poner la atención o cuando lo que se hace no tiene sentido. *En el juego: un tramo sin decisiones y sin nada pendiente es el caso típico.*
+- **El tiempo desocupado se siente más largo que el ocupado, y una espera incierta, sin explicación o cargada de ansiedad, más larga que una conocida** (Maister, 1985). *En el juego: una barra que avanza hacia algo (una obra, un plazo, un enemigo que se acerca) acorta la espera; una amenaza contra la que no se puede hacer nada la alarga.*
+- **Acercarse a una recompensa visible sostiene el interés:** la dopamina estriatal sube a medida que se aproxima una recompensa (Howe y otros, 2013), y el esfuerzo crece cerca de la meta (Kivetz, Urminsky y Zheng, 2006). *En el juego: es el componente de "anticipación".*
+- **La curiosidad nace de una brecha de información** (Loewenstein, 1994). Lo inesperado mueve la atención por el error de predicción de recompensa (Schultz, Dayan y Montague, 1997), y la repetición produce habituación. *En el juego: el mismo evento con la misma respuesta obvia deja de interesar; un presagio abre una pregunta.*
+- **La mente divaga alrededor de la mitad del tiempo cuando la tarea no la reclama** (Killingsworth y Gilbert, 2010), y la vigilancia sin estímulos decae en minutos (Mackworth, 1948). **Quien se aburre sobreestima cuánto duró la espera** (Danckert y Allman, 2005).
+
+**Cómo se mide.** Cada veintena se clasifica en una de tres clases, y los tramos se pasan a tiempo real con las velocidades del cliente de Godot (velocidad 3: 20 s por veintena; velocidad 5: 3 s):
+
+- **D:** el jugador toma alguna decisión.
+- **A, anticipación:** hay algo visible por resolverse (obra en curso, ejército mexica en marcha o asedio, ultimátum pendiente, invasión anunciada para menos de un año, sequía anunciada, hambre, ejército marchando).
+- **V, vacía:** ni una cosa ni la otra.
+
+| Riesgo | Tramo vacío continuo | Razón |
+| --- | --- | --- |
+| Bajo | Menos de 30 s | Lo que tarda revisar el mapa o un panel |
+| Medio | De 30 a 90 s | La atención empieza a irse a otra cosa |
+| Alto | Más de 90 s | Tiempo desocupado sin meta a la vista |
+
+Los umbrales son una heurística de diseño inspirada en esa investigación, no constantes medidas para este juego. Se calibran en la prueba 0b: se le pregunta a la persona cuánto le pareció que duró un tramo y se compara con lo que duró de verdad. Si lo sobreestima, se aburrió.
+
+**Resultados (estrategia experta, v5):**
+
+- La partida es un 13 % de decisión, un 54 % de anticipación y un 33 % vacía: unos **20 s vacíos por cada minuto de juego**.
+- El tramo vacío más largo dura en promedio 14,6 veintenas: **≈ 5 min a velocidad 3 (riesgo alto)** y ≈ 45 s a velocidad 5 (riesgo medio).
+- Los años más vacíos son 1479 y 1483–1484, después de que se resuelve la primera invasión.
+- Frente a la v4: el hueco más largo sin ninguna decisión bajó de 40 a 28 veintenas, y las decisiones de evento subieron de 14,5 a 22,8 por partida.
+
+**Un sesgo de la medición.** En la v4, el ejército mexica podía quedarse años sitiando la capital sin que el jugador pudiera hacer nada, y el clasificador lo contaba como anticipación. Según Maister, una amenaza sin respuesta es ansiedad, que alarga la espera, no anticipación. Por eso la comparación entre versiones usa solo la densidad de decisiones y los huecos, no la clase A.
+
+**Qué falta para que las esperas no aburran:**
+
+1. **En el cliente:** acelerar solo los tramos vacíos y volver a la velocidad elegida al aparecer una decisión o una anticipación, más un botón de "avanzar hasta el próximo suceso" (el prototipo HTML ya lo tiene). Con eso, el tramo vacío más largo bajaría a unos 45 s. Es aplicar a Maister lo más barato: acortar el tiempo desocupado.
+2. **En el núcleo de Haskell:** el director del guion ya hace subir la probabilidad de una situación con cada día de espera (el parámetro de tensión). Al portar el prototipo, la meta debe ser ningún tramo vacío mayor de 6 veintenas.
+3. **En el diseño:** más fuentes de anticipación con plazo visible (presagios, embajadas que anuncian su llegada, campañas que tardan en volver) y variar los eventos que se repiten, porque la repetición produce habituación.
+
+## Lo que sigue débil
+
+- **Hay repetición:** conceder la autonomía o perseguir a los chichimecas tiene casi siempre la misma mejor respuesta. Hace falta que los eventos escalen o cambien según lo ocurrido.
+- **En cuatro tipos de decisión el azar todavía pesa más que la decisión:** heredero, rebaja, refugiados y excedente.
+- **Un dato histórico por verificar:** el prototipo empieza con Zuangua como cazonci en 1475, y Zuangua muere en la partida hacia 1480. Según tus comentarios y la *Relación de Michoacán*, el cazonci de la guerra de 1476–1479 fue Tzitzipandácuare, y Zuangua gobernó después, hasta su muerte por viruela hacia 1520. Si se confirma, conviene cambiar el soberano inicial y la sucesión.
+
+## Sobre la propuesta de 6 altépetl y 10 puntos de interés
+
+Coincido con su diagnóstico central: más hexágonos no dan más tensión, y más señoríos con papeles distintos sí. Pero no lo apliqué en esta iteración, por tres razones:
+
+1. **Depende de seis verificaciones históricas que la propia propuesta enumera,** sobre todo si Pátzcuaro e Ihuatzio eran señoríos aparte y si Taximaroa era purépecha en 1475. Están en la tarea T6 de `docs/tareas_paralelas.md`.
+2. **Es mucho trabajo de mapa y datos,** y el núcleo tenía que corregirse primero: con el núcleo de la v4, seis señoríos habrían sido seis veces las mismas decisiones obvias.
+3. **Su cifra de "2 a 3 decisiones de cada 10 veintenas" no está medida.** Con el arnés se puede medir en cuanto exista.
+
+Propuesta: hacerlo como la siguiente iteración del prototipo, después de las verificaciones, y medir si sube la densidad de decisiones sin que vuelva la repetición.
+
+### Fuentes del modelo de espera
+
+- Danckert, J. A. y Allman, A.-A. A. (2005). Time flies when you're having fun: Temporal estimation and the experience of boredom. *Brain and Cognition*, 59(3), 236–245.
+- Eastwood, J. D., Frischen, A., Fenske, M. J. y Smilek, D. (2012). The unengaged mind: Defining boredom in terms of attention. *Perspectives on Psychological Science*, 7(5), 482–495.
+- Howe, M. W., Tierney, P. L., Sandberg, S. G., Phillips, P. E. M. y Graybiel, A. M. (2013). Prolonged dopamine signalling in striatum signals proximity and value of distant rewards. *Nature*, 500, 575–579.
+- Killingsworth, M. A. y Gilbert, D. T. (2010). A wandering mind is an unhappy mind. *Science*, 330, 932.
+- Kivetz, R., Urminsky, O. y Zheng, Y. (2006). The goal-gradient hypothesis resurrected. *Journal of Marketing Research*, 43(1), 39–58.
+- Loewenstein, G. (1994). The psychology of curiosity: A review and reinterpretation. *Psychological Bulletin*, 116(1), 75–98.
+- Mackworth, N. H. (1948). The breakdown of vigilance during prolonged visual search. *Quarterly Journal of Experimental Psychology*, 1(1), 6–21.
+- Maister, D. H. (1985). The psychology of waiting lines. En J. A. Czepiel, M. R. Solomon y C. F. Surprenant (eds.), *The Service Encounter*. Lexington Books.
+- Schultz, W., Dayan, P. y Montague, P. R. (1997). A neural substrate of prediction and reward. *Science*, 275, 1593–1599.
+- Westgate, E. C. y Wilson, T. D. (2018). Boring thoughts and bored minds: The MAC model of boredom and cognitive engagement. *Psychological Review*, 125(5), 689–713.
+
+# Parte 2: versión 4 (evaluación original)
+
+Prototipo: la versión 4 del mismo archivo, 1475–1485.
 
 ## Veredicto
 
