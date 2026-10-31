@@ -259,6 +259,19 @@ instance (FromJSON s, FromJSON (PlanDe s)) => FromJSON (Persistente s) where
 -- Estado en disco: tick, persistente, origen. El derivado se recalcula.
 -- ---------------------------------------------------------------------------
 
+-- | La versión del formato de guardado. Sube cuando un guardado anterior ya no
+-- puede cargarse con valores por defecto. No hay migraciones: V5 pide que un
+-- guardado antiguo se migre «si hay migración» y, si no, se rechace con un
+-- aviso claro, y mientras no haya partidas reales que conservar no se escribe
+-- ninguna.
+--
+-- * 1: el formato inicial.
+-- * 2: cambió la forma del estado del juego (el tesoro, el prestigio y la
+--   legitimidad pasaron al almacén de magnitudes y el estado guarda al
+--   cazonci); los guardados de la 1 se rechazan.
+versionGuardado :: Int
+versionGuardado = 2
+
 data EstadoEnDisco s = EstadoEnDisco
   { edTick    :: Tick
   , edPersist :: Persistente s
@@ -268,7 +281,7 @@ data EstadoEnDisco s = EstadoEnDisco
 
 instance (ToJSON s, ToJSON (PlanDe s)) => ToJSON (EstadoEnDisco s) where
   toJSON e = object
-    [ "version" .= (1 :: Int)
+    [ "version" .= versionGuardado
     , "tick"    .= edTick e
     , "persist" .= edPersist e
     , "origenT" .= edOrigenT e
@@ -277,10 +290,10 @@ instance (ToJSON s, ToJSON (PlanDe s)) => ToJSON (EstadoEnDisco s) where
 instance (FromJSON s, FromJSON (PlanDe s)) => FromJSON (EstadoEnDisco s) where
   parseJSON = withObject "EstadoEnDisco" $ \o -> do
     v <- o .: "version" :: Parser Int
-    case v of
-      1 -> EstadoEnDisco <$> o .: "tick" <*> o .: "persist"
+    if v == versionGuardado
+      then EstadoEnDisco <$> o .: "tick" <*> o .: "persist"
                          <*> o .: "origenT" <*> o .: "origenP"
-      _ -> fail ("versión de guardado desconocida: " <> show v)
+      else fail ("versión de guardado desconocida: " <> show v)
 
 -- ---------------------------------------------------------------------------
 -- guardar / cargar
@@ -293,14 +306,41 @@ guardar est = A.encode $ EstadoEnDisco
   (origenTick (estadoOrigen est))
   (origenPersistente (estadoOrigen est))
 
+-- | Rechaza un guardado de otra versión con un aviso que dice qué pasó y qué
+-- hacer, en lugar del error de estructura que daría después. Un guardado sin
+-- versión, o cuya versión no es un entero, sí es un error de estructura.
+comprobarVersionGuardado :: A.Value -> Either ErrorCarga ()
+comprobarVersionGuardado v =
+  case AT.parseEither (withObject "guardado" (\o -> o .:? "version")) v of
+    Left err -> Left (estructura (T.pack err))
+    Right Nothing -> Left (estructura "el guardado no declara su versión")
+    Right (Just k)
+      | k == versionGuardado -> Right ()
+      | k < versionGuardado ->
+          Left (ErrorCarga ErrorVersion "" "version"
+            ("esta partida es de la versión " <> tshow k <> " del guardado y este juego lee la "
+             <> tshow versionGuardado <> ". No hay migración para esa versión: "
+             <> "las partidas anteriores se descartan, empieza una nueva."))
+      | otherwise ->
+          Left (ErrorCarga ErrorVersion "" "version"
+            ("esta partida es de la versión " <> tshow k <> " del guardado, posterior a la "
+             <> tshow versionGuardado <> " que lee este juego: actualiza el juego."))
+  where
+    estructura = ErrorCarga ErrorEstructura "" "version"
+    tshow = T.pack . show
+
 -- | La ley: `derivado <$> cargar j m (guardar s) == Right (derivado s)`
 -- para todo estado s, incluso a mitad de una veintena.
 cargar :: (FromJSON s, FromJSON (PlanDe s))
        => Juego s c -> Mapa -> BL.ByteString -> Either ErrorCarga (Estado s)
 cargar j m bs = do
-  ed <- case A.eitherDecode bs of
+  crudo <- case A.eitherDecode bs of
     Left err -> Left (ErrorCarga ErrorEstructura "" "" (T.pack err))
-    Right x  -> Right x
+    Right x  -> Right (x :: A.Value)
+  comprobarVersionGuardado crudo
+  ed <- case A.fromJSON crudo of
+    A.Error err -> Left (ErrorCarga ErrorEstructura "" "" (T.pack err))
+    A.Success x -> Right x
   let d = derivar j m (edOrigenT ed) (edOrigenP ed)
   pure (Estado (edTick ed) (edPersist ed)
                (Origen (edOrigenT ed) (edOrigenP ed)) d)
