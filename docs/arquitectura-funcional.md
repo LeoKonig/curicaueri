@@ -918,6 +918,25 @@ m_{ijk} = \lfloor x_{ijk} \rfloor,
 
 con el resto ρ persistente en `restos`. Si para una identidad i la suma de sus m_ijk supera sus nacimientos B_i, se recorta a B_i por el método del mayor resto, igual que en la migración (sección 12): cada m_ijk es la parte entera de su cuota B_i · x_ijk / Σ x_ijk, las unidades sobrantes van a las de mayor parte fraccionaria y los empates se rompen por (j, k) en orden estable. Los m_ijk pasan de los nacimientos del pop de identidad i al pop de identidad k del mismo asentamiento. Como los nacimientos se atribuyen al pop de la madre, la condición del hijo "según la madre" sale directamente de la condición del pop de origen; las demás reglas de condición son datos de la regla. μ_ij(a) es una magnitud del asentamiento por par (`asentamiento.tasa_mezcla.<i>.<j>`, declarada en el catálogo a partir de la lista de pares), con sus factores como modificadores porcentuales.
 
+**Aparición y desaparición de facciones.** Cada facción declarada tiene un estado `Potencial | Activa | Eliminada`, que es persistente. En el paso 13, al empezar la veintena:
+
+```haskell
+data Transferencia = Transferencia { trTitulos :: Destino, trTesoro :: Destino, trPops :: Destino, trPersonajes :: Destino }
+data Destino = AlHeredero FaccionId | AlSoberano | SePierde | AlAbsorbente FaccionId
+-- potencial → activa  si  desde ≤ t  ∨  condAparicion(S)
+-- activa → eliminada  si  hasta ≤ t  ∨  condDesaparicion(S)
+```
+
+Las condiciones son las de la sección 11b, más `Ocurrio hecho`: verdadera si el hecho aparece en la crónica. Para cada desaparición:
+
+```math
+\sum_{\text{destinos}} \text{lo transferido} \;=\; \text{lo que tenía la facción} \;-\; \text{lo declarado } \texttt{SePierde}
+```
+
+Todo lo demás llega a un destino. Un título cuyo destino no puede recibirlo, porque el destino no es soberano ni titular sobre esa entidad, se pierde y lo anota el hecho. Los ids de facción no se reutilizan.
+
+**Sin un tipo "entidad política".** La interfaz común a facción, señorío y asentamiento ya existe: son las magnitudes, pares (entidad, nombre). El tesoro de un señorío es `altepetl:2 / tesoro`, con el mismo código que el de la facción; los grupos son datos. No se introduce una clase de tipos `Polity` ni un registro con todos los campos opcionales.
+
 ## 14c. Vínculos, concesiones y propuestas (juego completo)
 
 V5 (*Vínculos y concesiones*) modela la diplomacia como obligaciones entre facciones y permisos sobre entidades. Todo vive en `reglas` y en datos; la interfaz `Juego` no cambia.
@@ -1002,6 +1021,14 @@ donde L sin tope es el valor efectivo sin este modificador y M es `MARGEN_LEALTA
 2. Si el grupo que se opone cumple la condición de bloqueo (poder ≥ mínimo y lealtad ≤ máxima), no se rechaza: se cobra el costo inicial y se abre una crisis suspendida con sus tres opciones (sección 10), con el hecho `reforma_bloqueada`. Los efectos de la reforma no se aplican hasta que la respuesta lo decida.
 3. Si no, se cobra el costo, se aplican los efectos y se emite `reforma_aprobada`.
 
+**Nombramientos.** Un personaje p tiene un grupo opcional g_p. Un cargo k (gobernador de un altépetl, capitán, consejero) declara sus pretendientes Π_k ⊆ grupos. Nombrar a p en k, en `aplicarCmd`:
+
+```math
+\text{mods}(p, k) = \big\{\, (\text{poder}_{g_p}, +\pi),\ (\text{lealtad}_{g_p}, +\lambda) \,\big\} \;\cup\; \big\{\, (\text{lealtad}_{g}, -\lambda') \mid g \in \Pi_k,\ g \ne g_p \,\big\}
+```
+
+con π = `PODER_POR_CARGO`, λ y λ' constantes y fuente `nombramiento:<p>:<k>`. Son modificadores sin fin. Destituir o reemplazar a p los cancela todos, con `modificador_terminado` y razón "su fuente desapareció". Como el aporte es constante mientras dura el cargo y cero después, mantener un cargo no acumula poder. Si g_p = ∅ no hay modificadores de grupo. Después de 1530, si p tiene facción f_p ≠ soberano, el nombramiento añade además el título (f_p, entidad de k, eje de k, fuente: el nombramiento), que termina con el cargo.
+
 `costo_destitucion` (al destituir a un consejero) es una fórmula con nombre que crece con el poder del consejero; se prueba con su tabla de casos, no como ley.
 
 ## 14e. Difusión tecnológica (paso 15)
@@ -1028,6 +1055,14 @@ T_{t+1} = \text{clamp}\Big(T_t + \textstyle\sum_c (1 - \kappa_c(\tau))\, r_c(\ta
 - m_f(t) es la mortalidad de la veintena (epidemia, guerra) y la emigración de la facción, y δ la tasa de pérdida del conocimiento tácito (`PERDIDA_TACITO`).
 
 `dominio_tecnologia` es una fórmula con nombre de C y T, no decreciente en ambas (provisional: el mínimo). Los efectos de la tecnología se aplican como modificadores proporcionales al dominio. La invención propia es un evento con condiciones, no parte de esta ecuación.
+
+**La tecnología como receta alternativa.** Un insumo i de una receta (sección 14h) tiene sustitutos s, cada uno con (bien, cantidad q_s, tecnología τ_s o ninguna, calidad κ_s ∈ [0, 1.5]). Para la facción f, la calidad efectiva del sustituto es
+
+```math
+\kappa^{\text{ef}}_s = \kappa_s \cdot \frac{\text{dominio}_f(\tau_s)}{100} \quad (\kappa^{\text{ef}}_s = \kappa_s \text{ si no requiere tecnología})
+```
+
+Se usa el insumo principal si hay existencias suficientes; si no, el sustituto disponible de mayor κ^ef > 0, con empate por id. El resultado de la actividad se multiplica por κ^ef. Como el dominio baja con el conocimiento tácito (mortalidad, emigración), la pérdida de expertos bloquea sustitutos sin código especial. El grafo receta → insumo → sustituto → tecnología no puede tener ciclos; `cargarDatos` lo comprueba.
 
 ## 14f. Religión: pluralismo, templos y sincretismo
 
@@ -1140,9 +1175,41 @@ fases → expirar → agentes → cola + respuestas → sistemas → moneda → 
 
 definida solo si |h| > n. El paso escribe `moneda.precio` = p_m, `moneda.nivel_precios` = P y `moneda.inflacion` = π como bases de magnitudes de e. Las escribe solo este módulo: son su único escritor.
 
+**Magnitudes nominales.** El escenario declara qué magnitudes de la entidad se cuentan en su moneda (`pmNominales`; en la práctica, el tesoro). Al pasar de una cuenta con precio p_de a otra con precio p_a (el valor tiene precio 1), su base n se convierte a
+
+```math
+n' = n \cdot \frac{p_{\text{de}}}{p_a}
+```
+
+así que designar, cambiar y retirar la moneda conservan el valor real n · p, salvo el redondeo. Después, sin flujos, el valor real n · p_m(t) cae cuando p_m cae: la inflación erosiona lo guardado. Los flujos se calculan en valor y se pasan a la cuenta al tipo del día con `enCuenta c = c · P` (y `aValor n = n · p_m` en sentido contrario). Por eso la inflación no los toca.
+
 **Designar.** `designarMoneda` rechaza un bien inexistente, uno no designable o la moneda vigente, y retirar sin moneda. Al aceptar, reinicia el historial (h = [], de modo que π no mezcla dos monedas), escribe p_m y P en el acto y emite `moneda_designada` o `moneda_retirada`. Lo llama el `aplicarCmd` de cada juego.
 
 Dos diferencias con la propuesta que dio origen a esta sección. La conservación en el pago resta los bienes entregados y no además el tesoro. Y la inflación no puede "calcularse al leer" sin datos del pasado: se lee del historial persistente, que es lo mínimo necesario para que una partida cargada vea la misma inflación.
+
+## 14h. Costo en valor e insumos
+
+V5 (*El costo de las cosas*). El costo de una actividad gana insumos, con valor por defecto vacío:
+
+```haskell
+data Costo   = Costo { coValor :: Fijo, coVeintenas :: Int, coInsumos :: [Insumo] }   -- coInsumos = [] por defecto
+data Insumo  = Insumo { inBien :: BienId, inCantidad :: Fijo, inSustitutos :: [Sustituto], inPenalizacion :: Fijo }
+data Sustituto = Sustituto { suBien :: BienId, suCantidad :: Fijo, suTecnologia :: Maybe TecnologiaId, suCalidad :: Fijo }
+```
+
+Para cada insumo, con x las existencias del bien:
+
+- si x ≥ cantidad, se consumen `cantidad` unidades;
+- si no, se usa el mejor sustituto disponible (sección 14e);
+- si no hay sustituto y x > 0, se consume x y el costo en valor sube en
+
+```math
+\Delta = \text{penalización} \cdot \frac{\text{cantidad} - x}{\text{cantidad}}
+```
+
+- si x = 0 y no hay sustituto, el comando se rechaza con el motivo, sin cambiar el estado.
+
+Los insumos no se pueden pagar con valor ni con moneda, y la consulta muestra qué se consumiría.
 
 ## 15. Punto fijo y aritmética determinista
 
@@ -1282,6 +1349,11 @@ Las reglas del diseño, escritas como propiedades. En un lenguaje puro, "la mism
 | Moneda estable | Si las existencias y la producción de la moneda no cambian, la inflación es 0 |
 | Moneda persistente | Guardar y cargar a mitad de periodo conserva la moneda y su historial, y la partida sigue igual; un guardado sin monedas carga sin monedas |
 | Historial por moneda | Cambiar de moneda vacía el historial: la inflación nunca compara dos monedas |
+| Valor conservado al cambiar de cuenta | Designar, cambiar o retirar la moneda no cambia el valor real de las magnitudes nominales, salvo el redondeo (sección 14g) |
+| Nombramiento sin trinquete | Mientras dura un cargo, su aporte al poder del grupo es constante; al terminar el cargo, es 0 y sus modificadores emiten `modificador_terminado` (sección 14d) |
+| Facciones con rastro | Toda aparición emite `faccion_aparece` y toda desaparición `faccion_desaparece`; lo que tenía la facción llega a un destino declarado o se pierde por declaración; los ids no se reutilizan (sección 14b) |
+| Insumos en especie | Un insumo nunca se paga con valor; sin insumo ni sustituto, la actividad se rechaza sin cambiar el estado; la penalización es proporcional a la fracción que falta (sección 14h) |
+| Recetas sin ciclos | Ninguna receta depende, directa o indirectamente, de sí misma; la carga lo rechaza (sección 14e) |
 | Migración de guardados | Un guardado de la versión anterior se carga, se vuelve a guardar y es válido en la actual |
 | Autoridad neutra en el prototipo | Sin títulos almacenados y con `Requiere` por defecto, ningún comando del soberano se rechaza por autoridad y su eficacia es 1: la traza es la misma que sin la capa de autoridad (sección 14b) |
 | Titular exclusivo único | Para toda entidad y eje hay a lo sumo un titular exclusivo, y no depende del orden de la lista de títulos |
