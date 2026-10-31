@@ -14,3 +14,4 @@ agentes/mercury/*.err
 result
 result-*
 .direnv/
+.nix-store/
