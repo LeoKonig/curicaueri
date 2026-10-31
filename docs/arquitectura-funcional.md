@@ -545,7 +545,7 @@ donde n_s es el número de veces que el tipo de s salió en las últimas V situa
 **Paso.** El director corre al final del tick, después de derivar:
 
 ```
-fases → expirar → agentes → cola + respuestas → sistemas → derivar → director
+fases → expirar → agentes → cola + respuestas → sistemas → moneda → derivar → director
 ```
 
 ```haskell
@@ -1098,6 +1098,52 @@ Un destino distinto del ritual es el caso R = ∅. El término existente para lo
 
 En el paso 14, si cruza hacia arriba un umbral de la lista de datos que aún no se usó, se abre la crisis (decisión suspendida, sección 10) y el umbral se marca como usado en el estado persistente. La respuesta fija la práctica vigente, un conjunto de componentes guardado en la facción.
 
+## 14g. Moneda designada e inflación
+
+`Motor.Moneda`. Las unidades de valor son el numerario fijo: el tesoro y los costos se cuentan en ellas. La economía es un dato del entorno, como el mapa y el guion:
+
+```haskell
+data Entorno  = Entorno { entMapa :: Mapa, entGuion :: Guion, entEconomia :: Economia }
+data Economia = Economia { ecoBienes :: Map Text Bien, ecoParams :: ParamsMoneda }
+data Bien     = Bien { bnId :: Text, bnValor, bnCalidad, bnReferencia, bnElasticidad :: Fijo, bnDesignable :: Bool }
+cargarEconomia :: Text -> Value -> Validacion Economia     -- aplicativo: acumula todos los errores
+```
+
+**Precio.** Para la entidad e y el bien g, con x_g y y_g los valores efectivos de las magnitudes `bien.<g>.existencias` y `bien.<g>.produccion` de e (las escribe el juego) y H el horizonte en periodos:
+
+```math
+D_g = \max\big(1,\ x_g^{+} + H\,y_g^{+}\big), \qquad
+p_g = \max\Big(p_{\min},\ v_g \cdot q_g \cdot \big(R_g / D_g\big)^{\varepsilon_g}\Big)
+```
+
+con v_g el valor, q_g ∈ [0,1] la calidad monetaria, R_g > 0 la referencia y ε_g ∈ [0,1] la elasticidad. La potencia se calcula como exp(ε · ln(R/D)) con `lnFijo` y `expFijo`, deterministas. Propiedades: p_g no crece con x_g ni con y_g; con ε_g = 0, p_g = v_g q_g; p_g ≥ p_min > 0.
+
+**Moneda y nivel de precios.** Si e designó la moneda m, el nivel de precios es P = 1 / p_m y algo que vale C cuesta C · P unidades de m (`costoEnMoneda`). El estado monetario es persistente:
+
+```haskell
+data EstadoMonetario = EstadoMonetario { emMoneda :: Text, emDesde :: Tick, emHistorial :: [(Tick, Fijo)] }
+comunMonedas :: Map EntRef EstadoMonetario
+designarMoneda :: Economia -> EntRef -> Maybe Text -> Tick -> Estado s -> Either Text (Estado s, [Hecho])
+```
+
+**Paso.** Al empezar cada periodo, para cada entidad con moneda, se anota (t, p_m) en el historial, acotado a n + 1 entradas, con n los periodos por año. Corre después de los sistemas, que mueven existencias y producción, y antes del derivado:
+
+```
+fases → expirar → agentes → cola + respuestas → sistemas → moneda → derivar → director
+```
+
+**Inflación anual.** Con h el historial (el más reciente primero):
+
+```math
+\pi = \frac{P(t)}{P(t - 1\ \text{año})} - 1 = \frac{p_m(h_n)}{p_m(h_0)} - 1
+```
+
+definida solo si |h| > n. El paso escribe `moneda.precio` = p_m, `moneda.nivel_precios` = P y `moneda.inflacion` = π como bases de magnitudes de e. Las escribe solo este módulo: son su único escritor.
+
+**Designar.** `designarMoneda` rechaza un bien inexistente, uno no designable o la moneda vigente, y retirar sin moneda. Al aceptar, reinicia el historial (h = [], de modo que π no mezcla dos monedas), escribe p_m y P en el acto y emite `moneda_designada` o `moneda_retirada`. Lo llama el `aplicarCmd` de cada juego.
+
+Dos diferencias con la propuesta que dio origen a esta sección. La conservación en el pago resta los bienes entregados y no además el tesoro. Y la inflación no puede "calcularse al leer" sin datos del pasado: se lee del historial persistente, que es lo mínimo necesario para que una partida cargada vea la misma inflación.
+
 ## 15. Punto fijo y aritmética determinista
 
 ```haskell
@@ -1232,6 +1278,10 @@ Las reglas del diseño, escritas como propiedades. En un lenguaje puro, "la mism
 | Decisiones únicas | Ningún identificador de decisión se repite en una partida; una respuesta a una decisión cerrada se rechaza sin cambiar el estado |
 | Director determinista | Dos partidas con la misma semilla, guion y comandos presentan las mismas situaciones el mismo día |
 | Variedad | Con el guion definitivo del escenario, el arnés de 30 años cumple parte_max ≤ 0.25 y nuevos(d) ≥ 2 (sección 11b) |
+| Precio monótono | p_g no crece con las existencias ni con la producción; con elasticidad 0 no depende de ellas; nunca baja de p_min (sección 14g) |
+| Moneda estable | Si las existencias y la producción de la moneda no cambian, la inflación es 0 |
+| Moneda persistente | Guardar y cargar a mitad de periodo conserva la moneda y su historial, y la partida sigue igual; un guardado sin monedas carga sin monedas |
+| Historial por moneda | Cambiar de moneda vacía el historial: la inflación nunca compara dos monedas |
 | Migración de guardados | Un guardado de la versión anterior se carga, se vuelve a guardar y es válido en la actual |
 | Autoridad neutra en el prototipo | Sin títulos almacenados y con `Requiere` por defecto, ningún comando del soberano se rechaza por autoridad y su eficacia es 1: la traza es la misma que sin la capa de autoridad (sección 14b) |
 | Titular exclusivo único | Para toda entidad y eje hay a lo sumo un titular exclusivo, y no depende del orden de la lista de títulos |

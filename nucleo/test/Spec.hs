@@ -4,7 +4,7 @@ module Main where
 import Control.Monad (forM_, when)
 import Data.Aeson (Value)
 import qualified Data.Aeson as A
-import Data.List (foldl')
+import Data.List (foldl', sort)
 import Test.Hspec
 import Test.QuickCheck
 import qualified Data.IntMap.Strict as IntMap
@@ -35,6 +35,8 @@ import qualified Data.Aeson.Encode.Pretty as AP
 import System.Environment (lookupEnv)
 import System.IO.Unsafe (unsafePerformIO)
 import Motor.Guardado
+import Motor.Moneda
+import qualified Data.Aeson.KeyMap as KM
 import GHC.Generics (Generic)
 import qualified Data.ByteString.Lazy as BL
 import Data.Set (Set)
@@ -63,6 +65,7 @@ data ComandoJuguete
   = SubirImpuesto Int Fijo
   | ResponderSequia Int Int
   | CelebrarFiesta Int        -- −10 de descontento en esa aldea durante 3 veintenas
+  | DesignarMonedaJ (Maybe Text)   -- la facción 1 designa (o retira) su moneda
   deriving (Eq, Show)
 
 catalogoToy :: Map.Map Magnitud DefMagnitud
@@ -282,7 +285,7 @@ guionBytes = unsafePerformIO (BL.readFile "test/guion_juguete.json")
 {-# NOINLINE guionBytes #-}
 
 entornoGuion :: Entorno
-entornoGuion = Entorno mapaPrueba guionJuguete
+entornoGuion = Entorno mapaPrueba guionJuguete economiaVacia
 
 avanzarCon :: Entorno -> [Int64] -> Estado Aldeas -> (Estado Aldeas, [Hecho])
 avanzarCon ent ts s0 = foldl' (\(e, hs) t -> let (e', h) = paso juguete ent (Semilla 1) (Tick t) [] e in (e', hs ++ h)) (s0, []) ts
@@ -356,6 +359,10 @@ aplicarCmdJuguete est sell = case sellCmd sell of
         in Right (est { estadoPersistente = (estadoPersistente est)
                           { persistenteComun = com { comunMagnitudes = alm' } } }, [])
 
+  DesignarMonedaJ m -> case designarMoneda economiaJuguete faccionJ m (sellTick sell) est of
+    Left motivo -> Left (Rechazo motivo)
+    Right r     -> Right r
+
 juguete :: Juego Aldeas ComandoJuguete
 juguete = Juego
   { juegoSistemas    = [cosechaSistema, impuestoSistema, migracionSistema, fronteraSistema]
@@ -390,6 +397,7 @@ estadoInicial = Estado
           , comunCronica    = Seq.empty
           , comunCalendario = calendarioVeintenas 0
           , comunDirector   = directorInicial
+          , comunMonedas    = Map.empty
           }
       , persistenteJuego = aldeas
       }
@@ -1149,10 +1157,11 @@ main = hspec $ do
       mTotal m `shouldSatisfy` (>= 20)
     it "sin fases (todas las situaciones siempre), la novedad por década falla: la prueba detecta un acto II repetitivo" $ do
       let plano = guionJuguete { guFases = [], guSituaciones = [ x { siFases = [], siCondicion = Siempre } | x <- guSituaciones guionJuguete ] }
-          (sP, _) = avanzarCon (Entorno mapaPrueba plano) [0..10949] estadoInicial
+          (sP, _) = avanzarCon (Entorno mapaPrueba plano economiaVacia) [0..10949] estadoInicial
           mP = metricas 3650 10950 (directorDe sP)
       (cumpleVariedad 0.25 2 mP, mTotal mP > 0) `shouldBe` (False, True)
 
+  monedaPruebas
   where
     mkSys :: NombreSistema -> Cadencia
           -> Set Magnitud -> Set Magnitud -> Sistema s
@@ -1178,3 +1187,217 @@ cv = calendarioVeintenas 0
 isLeft :: Either a b -> Bool
 isLeft (Left _)  = True
 isLeft (Right _) = False
+
+
+-- ---------------------------------------------------------------------------
+-- Moneda designada e inflación (Motor.Moneda)
+-- ---------------------------------------------------------------------------
+
+faccionJ :: EntRef
+faccionJ = EntRef "faccion" 1
+
+{-# NOINLINE economiaJuguete #-}
+economiaJuguete :: Economia
+economiaJuguete = case A.decode bienesBytes >>= \v -> valValor (cargarEconomia "bienes_juguete.json" v) of
+  Just ec -> ec
+  Nothing -> error "test/bienes_juguete.json no carga"
+
+bienesBytes :: BL.ByteString
+bienesBytes = unsafePerformIO (BL.readFile "test/bienes_juguete.json")
+{-# NOINLINE bienesBytes #-}
+
+entornoMoneda :: Entorno
+entornoMoneda = Entorno mapaPrueba guionVacio economiaJuguete
+
+-- | Una mina que cada veintena suma su producción a las existencias de plata.
+minaSistema :: Sistema Aldeas
+minaSistema = Sistema
+  { sisNombre   = NombreSistema "mina"
+  , sisCadencia = Periodo
+  , sisLee      = Set.singleton (magProduccion "plata")
+  , sisEscribe  = Set.singleton (magExistencias "plata")
+  , sisEjecutar = \_ est ->
+      let alm = comunMagnitudes (persistenteComun (estadoPersistente est))
+          prod = maybe (Fijo 0) almacenBase (Map.lookup (faccionJ, magProduccion "plata") alm)
+      in (conAlmacen est (sumarBase faccionJ (magExistencias "plata") prod alm), [])
+  }
+
+-- | Un granero: una cosecha grande en la veintena 12 y consumo el resto del año.
+graneroSistema :: Sistema Aldeas
+graneroSistema = Sistema
+  { sisNombre   = NombreSistema "granero"
+  , sisCadencia = Periodo
+  , sisLee      = Set.empty
+  , sisEscribe  = Set.singleton (magExistencias "maiz")
+  , sisEjecutar = \_ est ->
+      let alm = comunMagnitudes (persistenteComun (estadoPersistente est))
+          cal = comunCalendario (persistenteComun (estadoPersistente est))
+          x = maybe (Fijo 0) almacenBase (Map.lookup (faccionJ, magExistencias "maiz") alm)
+          x' = if ipPeriodo (infoPeriodo cal (estadoTick est)) == 12 then x .+. fi 1800
+               else max (Fijo 0) (x .-. fi 100)
+      in (conAlmacen est (fijarBase faccionJ (magExistencias "maiz") x' alm), [])
+  }
+
+conAlmacen :: Estado Aldeas -> Almacen -> Estado Aldeas
+conAlmacen est alm =
+  let p = estadoPersistente est
+  in est { estadoPersistente = p { persistenteComun = (persistenteComun p) { comunMagnitudes = alm } } }
+
+jugueteMoneda :: Juego Aldeas ComandoJuguete
+jugueteMoneda = juguete { juegoSistemas = juegoSistemas juguete ++ [minaSistema, graneroSistema] }
+
+estadoMoneda :: Estado Aldeas
+estadoMoneda =
+  let alm = foldl' (\a (b, m, v) -> fijarBase faccionJ (m b) (fi v) a)
+              (comunMagnitudes (persistenteComun (estadoPersistente estadoInicial)))
+              [ ("plata", magExistencias, 2000), ("plata", magProduccion, 100)
+              , ("oro", magExistencias, 200), ("maiz", magExistencias, 1000) ]
+      e = conAlmacen estadoInicial alm
+  in e { estadoOrigen = Origen (Tick 0) (estadoPersistente e) }
+
+-- | Juega desde el tick 0 hasta @n@ − 1, designando @moneda@ el primer día.
+jugarConMoneda :: Text -> Int64 -> Estado Aldeas
+jugarConMoneda moneda n =
+  foldl' (\e t -> fst (paso jugueteMoneda entornoMoneda (Semilla 1) (Tick t)
+                         [ Sellado (Tick 0) (FaccionId 1) 1 (DesignarMonedaJ (Just moneda)) | t == 0 ] e))
+         estadoMoneda [0 .. n - 1]
+
+magDe :: Magnitud -> Estado Aldeas -> Maybe Fijo
+magDe m e = almacenBase <$> Map.lookup (faccionJ, m) (comunMagnitudes (persistenteComun (estadoPersistente e)))
+
+monedaDe :: Estado Aldeas -> Maybe EstadoMonetario
+monedaDe e = Map.lookup faccionJ (comunMonedas (persistenteComun (estadoPersistente e)))
+
+genFijoNoNeg :: Gen Fijo
+genFijoNoNeg = Fijo <$> choose (0, 100000000)       -- de 0 a 10 000
+
+genBien :: Gen Bien
+genBien = do
+  v <- Fijo <$> choose (1, 100000)
+  q <- Fijo <$> choose (0, 10000)
+  r <- Fijo <$> choose (1, 50000000)
+  e <- Fijo <$> choose (0, 10000)
+  pure (Bien "g" v q r e True)
+
+monedaPruebas :: Spec
+monedaPruebas = do
+  describe "moneda: carga de los bienes" $ do
+    it "carga los cuatro bienes del juguete; las plumas no son designables" $ do
+      Map.size (ecoBienes economiaJuguete) `shouldBe` 4
+      bnDesignable <$> Map.lookup "plumas" (ecoBienes economiaJuguete) `shouldBe` Just False
+      pmHorizonte (ecoParams economiaJuguete) `shouldBe` fi 6
+    it "acumula todos los errores: rangos, valor no positivo y bienes repetidos" $ do
+      let malo = A.object [ "bienes" A..= [ bienJ "a" "0" "1.5" "-0.1", bienJ "b" "1" "0.5" "0.2", bienJ "b" "1" "0.5" "0.2" ] ]
+          bienJ i v q e = A.object [ "id" A..= (i :: Text), "valor" A..= (v :: Text), "calidad_monetaria" A..= (q :: Text)
+                                   , "referencia" A..= ("10" :: Text), "elasticidad" A..= (e :: Text) ]
+          Validacion errs r = cargarEconomia "malo.json" malo
+      length errs `shouldBe` 4
+      fmap (const ()) r `shouldBe` Nothing
+
+  describe "moneda: el precio de un bien" $ do
+    let pm = ecoParams economiaJuguete
+        bien i = ecoBienes economiaJuguete Map.! i
+    it "con la disponibilidad de referencia vale valor · calidad" $ do
+      precioBien pm (bien "plata") (fi 2000) (Fijo 0) `shouldBe` Fijo 19000
+      precioBien pm (bien "oro") (fi 200) (Fijo 0) `shouldBe` fi 6
+    it "la producción cuenta como disponible durante el horizonte" $
+      precioBien pm (bien "plata") (fi 1400) (fi 100) `shouldBe` precioBien pm (bien "plata") (fi 2000) (Fijo 0)
+    it "ley: no sube cuando hay más existencias" $ property $
+      forAll genBien $ \b -> forAll genFijoNoNeg $ \x1 -> forAll genFijoNoNeg $ \x2 ->
+        precioBien pm b (max x1 x2) (Fijo 0) <= precioBien pm b (min x1 x2) (Fijo 0)
+    it "ley: no sube cuando hay más producción" $ property $
+      forAll genBien $ \b -> forAll genFijoNoNeg $ \y1 -> forAll genFijoNoNeg $ \y2 ->
+        precioBien pm b (fi 10) (max y1 y2) <= precioBien pm b (fi 10) (min y1 y2)
+    it "ley: con elasticidad 0 el precio no depende de la cantidad" $ property $
+      forAll genBien $ \b0 -> forAll genFijoNoNeg $ \x ->
+        let b = b0 { bnElasticidad = Fijo 0 }
+        in precioBien pm b x (Fijo 0) == max (pmPrecioMinimo pm) (bnValor b .*. bnCalidad b)
+    it "ley: nunca baja del piso, así que el nivel de precios siempre existe" $ property $
+      forAll genBien $ \b -> forAll genFijoNoNeg $ \x ->
+        precioBien pm b x x >= pmPrecioMinimo pm
+
+  describe "moneda: designar" $ do
+    let designar m = designarMoneda economiaJuguete faccionJ m (Tick 0) estadoMoneda
+        motivo = either id (const "")
+    it "rechaza un bien que no existe, uno no designable y retirar sin moneda" $ do
+      motivo (designar (Just "cacao")) `shouldBe` "no hay ningún bien «cacao»"
+      motivo (designar (Just "plumas")) `shouldBe` "«plumas» no puede ser moneda"
+      motivo (designar Nothing) `shouldBe` "no hay moneda designada"
+    it "al designar, el precio y el nivel de precios se ven en el acto, con su hecho" $ do
+      let Right (e, hs) = designar (Just "oro")
+      magDe magPrecioMoneda e `shouldBe` Just (fi 6)
+      magDe magNivelPrecios e `shouldBe` Just (uno ./. fi 6)
+      map hechoTipo hs `shouldBe` ["moneda_designada"]
+      emMoneda <$> monedaDe e `shouldBe` Just "oro"
+    it "volver a designar la misma moneda se rechaza; retirarla borra sus magnitudes" $ do
+      let Right (e, _) = designar (Just "oro")
+      either id (const "") (designarMoneda economiaJuguete faccionJ (Just "oro") (Tick 1) e) `shouldBe` "«oro» ya es la moneda"
+      let Right (e', hs) = designarMoneda economiaJuguete faccionJ Nothing (Tick 1) e
+      monedaDe e' `shouldBe` Nothing
+      magDe magPrecioMoneda e' `shouldBe` Nothing
+      map hechoTipo hs `shouldBe` ["moneda_retirada"]
+    it "un comando rechazado no cambia el estado (rechazo sin daño)" $ do
+      let (e, _, rechazos) = pasoDetallado jugueteMoneda entornoMoneda (Semilla 1) (Tick 0)
+                               [Sellado (Tick 0) (FaccionId 1) 1 (DesignarMonedaJ (Just "plumas"))] estadoMoneda
+          (e0, _, _) = pasoDetallado jugueteMoneda entornoMoneda (Semilla 1) (Tick 0) [] estadoMoneda
+      length rechazos `shouldBe` 1
+      guardar e `shouldBe` guardar e0
+    it "costo en moneda: una obra de 300 cuesta 50 de oro, o 300 / p(plata), con la producción de la mina" $ do
+      let Right (eo, _) = designar (Just "oro")
+          Right (ep, _) = designar (Just "plata")
+      costoEnMoneda economiaJuguete (Tick 0) eo faccionJ (fi 300) `shouldBe` Just (fi 50)
+      costoEnMoneda economiaJuguete (Tick 0) ep faccionJ (fi 300) `shouldBe` Just (fi 300 ./. precioBien (ecoParams economiaJuguete) (ecoBienes economiaJuguete Map.! "plata") (fi 2000) (fi 100))
+      costoEnMoneda economiaJuguete (Tick 0) estadoMoneda faccionJ (fi 300) `shouldBe` Nothing
+
+  describe "moneda: inflación" $ do
+    let dosAnios = 2 * 365
+        ePlata = jugarConMoneda "plata" dosAnios
+        eOro = jugarConMoneda "oro" dosAnios
+        eMaiz = jugarConMoneda "maiz" dosAnios
+    it "sin moneda designada, el paso monetario no escribe nada" $ do
+      let e = foldl' (\s t -> fst (paso jugueteMoneda entornoMoneda (Semilla 1) (Tick t) [] s)) estadoMoneda [0 .. 400]
+      map (`magDe` e) [magPrecioMoneda, magNivelPrecios, magInflacion] `shouldBe` [Nothing, Nothing, Nothing]
+    it "el historial guarda un año y una veintena (19 precios), uno por veintena" $ do
+      fmap (length . emHistorial) (monedaDe ePlata) `shouldBe` Just 19
+    it "la plata de la mina se abarata cada veintena: inflación positiva" $ do
+      let Just infl = magDe magInflacion ePlata
+          Just em = monedaDe ePlata
+      infl `shouldSatisfy` (> Fijo 0)
+      Just infl `shouldBe` inflacionDe cv em
+      -- el más reciente primero: cada veintena la plata vale menos que la anterior
+      map snd (emHistorial em) `shouldBe` sort (map snd (emHistorial em))
+    it "el oro no cambia de cantidad: inflación 0 y precios estables" $ do
+      magDe magInflacion eOro `shouldBe` Just (Fijo 0)
+      magDe magPrecioMoneda eOro `shouldBe` Just (fi 6)
+    it "el maíz sube y baja con la cosecha: el nivel de precios fluctúa dentro del año" $ do
+      let Just em = monedaDe eMaiz
+          ps = map snd (emHistorial em)
+      maximum ps `shouldSatisfy` (> minimum ps)
+      length (filter id (zipWith (<) ps (drop 1 ps))) `shouldSatisfy` (> 0)
+      length (filter id (zipWith (>) ps (drop 1 ps))) `shouldSatisfy` (> 0)
+    it "antes de un año no hay inflación: no se inventa" $
+      magDe magInflacion (jugarConMoneda "plata" 200) `shouldBe` Nothing
+    it "cambiar de moneda empieza el historial de cero" $ do
+      let (e, _) = paso jugueteMoneda entornoMoneda (Semilla 1) (Tick dosAnios)
+                     [Sellado (Tick dosAnios) (FaccionId 1) 1 (DesignarMonedaJ (Just "oro"))] ePlata
+      fmap emMoneda (monedaDe e) `shouldBe` Just "oro"
+      magDe magInflacion e `shouldBe` Nothing
+    it "ley: guardar y cargar a mitad de veintena conserva la moneda, y la partida sigue igual" $ do
+      let e = jugarConMoneda "plata" 437
+          Right e' = cargar jugueteMoneda mapaPrueba (guardar e)
+          seguir s = foldl' (\x t -> fst (paso jugueteMoneda entornoMoneda (Semilla 1) (Tick t) [] x)) s [437 .. 900]
+      monedaDe e' `shouldBe` monedaDe e
+      guardar (seguir e') `shouldBe` guardar (seguir e)
+    it "un guardado anterior a la moneda carga sin monedas" $ do
+      let Just (A.Object o) = A.decode (guardar estadoMoneda) :: Maybe Value
+          quitar (A.Object x) = A.Object (ajustarKM quitarComun "origenP" (ajustarKM quitarComun "persist" x))
+          quitar v = v
+          quitarComun (A.Object x) = A.Object (ajustarKM (\case A.Object c -> A.Object (KM.delete "monedas" c); v -> v) "comun" x)
+          quitarComun v = v
+          viejo = A.encode (quitar (A.Object o))
+      viejo `shouldNotBe` guardar estadoMoneda
+      fmap monedaDe (cargar jugueteMoneda mapaPrueba viejo) `shouldBe` Right Nothing
+
+-- | KM.adjust no existe en todas las versiones de aeson.
+ajustarKM :: (Value -> Value) -> KM.Key -> KM.KeyMap Value -> KM.KeyMap Value
+ajustarKM f k m = maybe m (\v -> KM.insert k (f v) m) (KM.lookup k m)

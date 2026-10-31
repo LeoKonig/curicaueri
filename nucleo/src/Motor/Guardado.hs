@@ -209,6 +209,22 @@ instance FromJSON EstadoDirector where
                    <*> o .: "ultima" <*> o .: "historial" <*> o .: "plazos"
                    <*> (maybe 1 id <$> o .:? "proxima_decision")
 
+-- Las monedas se guardan como lista: EntRef no es clave de objeto JSON.
+monedasAJson :: Map.Map EntRef EstadoMonetario -> Value
+monedasAJson m = toJSON
+  [ object [ "entidad" .= e, "moneda" .= emMoneda em, "desde" .= emDesde em
+           , "historial" .= [ object [ "tick" .= t, "precio" .= p ] | (t, p) <- emHistorial em ] ]
+  | (e, em) <- Map.toAscList m ]
+
+monedasDeJson :: Value -> Parser (Map.Map EntRef EstadoMonetario)
+monedasDeJson = withArray "monedas" $ \xs -> Map.fromList <$> mapM leerMoneda (toList xs)
+  where
+    leerMoneda = withObject "moneda" $ \o -> do
+      e <- o .: "entidad"
+      hist <- o .: "historial" >>= mapM (withObject "precio" (\h -> (,) <$> h .: "tick" <*> h .: "precio"))
+      em <- EstadoMonetario <$> o .: "moneda" <*> o .: "desde" <*> pure hist
+      pure (e, em)
+
 instance (ToJSON (PlanDe s)) => ToJSON (Comun s) where
   toJSON c = object
     [ "magnitudes" .= almacenAJson (comunMagnitudes c)
@@ -217,6 +233,7 @@ instance (ToJSON (PlanDe s)) => ToJSON (Comun s) where
     , "cronica"    .= toJSON (toList (comunCronica c))
     , "calendario" .= comunCalendario c
     , "director"   .= comunDirector c
+    , "monedas"    .= monedasAJson (comunMonedas c)
     ]
 instance (FromJSON (PlanDe s)) => FromJSON (Comun s) where
   parseJSON = withObject "Comun" $ \o ->
@@ -227,6 +244,7 @@ instance (FromJSON (PlanDe s)) => FromJSON (Comun s) where
       <*> fmap Seq.fromList (o .: "cronica")
       <*> o .: "calendario"
       <*> (maybe directorInicial id <$> o .:? "director")   -- guardados anteriores al director
+      <*> (maybe (pure Map.empty) monedasDeJson =<< o .:? "monedas")   -- guardados anteriores a la moneda
 
 instance (ToJSON s, ToJSON (PlanDe s)) => ToJSON (Persistente s) where
   toJSON p = object

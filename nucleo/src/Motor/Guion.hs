@@ -35,6 +35,7 @@ import Motor.Carga (CategoriaError (..), ErrorCarga (..), Validacion (..), falla
 import Motor.Efectos (Programa, compilarPrograma)
 import Motor.Magnitudes (Magnitud (..))
 import Motor.Mapa (Mapa)
+import Motor.Moneda (Economia, economiaVacia)
 
 -- | Condiciones sobre el estado visible. Un lenguaje pequeño y cerrado: se
 -- valida al cargar y se evalúa sin efectos.
@@ -106,12 +107,13 @@ guionVacio = Guion [] [] [] paramsPorOmision
 -- | Lo inmutable de la partida (documento funcional, sección 1): no cambia
 -- durante la partida y no se guarda con el estado.
 data Entorno = Entorno
-  { entMapa  :: Mapa
-  , entGuion :: Guion
+  { entMapa     :: Mapa
+  , entGuion    :: Guion
+  , entEconomia :: Economia   -- ^ bienes que pueden ser moneda (Motor.Moneda)
   }
 
 entornoSimple :: Mapa -> Entorno
-entornoSimple m = Entorno m guionVacio
+entornoSimple m = Entorno m guionVacio economiaVacia
 
 -- ---------------------------------------------------------------------------
 -- Carga

@@ -60,6 +60,7 @@ import Motor.Vista (Vista)
 import Motor.Calendario (esInicioDePeriodo)
 import qualified Data.Map.Strict as Map
 import Motor.Guion
+import Motor.Moneda (economiaVacia)
 import Motor.Director (metricas, cumpleVariedad, Metricas (..))
 import Motor.Carga (Validacion (..), ErrorCarga (..))
 import Motor.Autoridad
@@ -159,7 +160,7 @@ main = do
   validado (validarRequisitos "catálogo de comandos" ejesTodos [ (dcTipo d, dcRequiere d) | d <- catalogoComandos ])
   unless (null ejes) $ registro ("ejes activos: " <> T.intercalate ", " (map ejId ejes))
   let faccionAgente = FaccionId (read (opcion "--agente-faccion" "1"))
-      conf = Config ancho alto carpeta vels (fmap (\a -> (faccionAgente, a, mregistro)) agente) (Entorno mapaR guion) ejes
+      conf = Config ancho alto carpeta vels (fmap (\a -> (faccionAgente, a, mregistro)) agente) (Entorno mapaR guion economiaVacia) ejes
   forM_ agente $ \_ -> registro ("agente externo para la facción " <> T.pack (opcion "--agente-faccion" "1"))
   ref <- newIORef Partida
     { pEstado = e0, pSiguiente = 0, pPendientes = [], pRespuestas = [], pDecisionesEnviadas = []

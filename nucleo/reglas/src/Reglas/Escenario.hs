@@ -61,6 +61,7 @@ estadoInicial1475 =
         , comunCronica    = Seq.empty
         , comunCalendario = calendarioVeintenas 0
         , comunDirector   = directorInicial
+        , comunMonedas    = Map.empty
         }
       per  = Persistente com p
   in Estado (Tick 0) per (Origen (Tick 0) per) (Derivado IntSet.empty ())
