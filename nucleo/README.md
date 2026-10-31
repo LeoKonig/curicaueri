@@ -11,15 +11,17 @@ Este código implementa dos documentos de diseño, que conviene leer antes de to
 
 ## Estado
 
-**Hito 1a (motor): criterio mínimo cumplido.** El motor corre con un juego de juguete que pasa por las seis rutas difíciles, y las leyes del criterio se comprueban con pruebas automáticas (170 pruebas en el motor, incluidas las de los archivos dorados y las del guion; 7 en las reglas).
+**Hito 1a (motor): criterio mínimo cumplido.** El motor corre con un juego de juguete que pasa por las seis rutas difíciles, y las leyes del criterio se comprueban con pruebas automáticas (198 pruebas en el motor, incluidas las de los archivos dorados, las del guion y las de la moneda; 18 en las reglas).
 
 **Actos modulares: en el motor.** Guion con fases, situaciones con vocabulario de tipos cerrado y director (`Motor.Guion`, `Motor.Director`), conectados al paso, al guardado y al protocolo, y probados con el juego de juguete y su guion (`test/guion_juguete.json`), incluida la prueba de métricas del hito 0. El guion del escenario es ilustrativo hasta el hito 0.
+
+**Moneda designada e inflación: en el motor.** Precio de cada bien según su escasez, designación de moneda por entidad, nivel de precios, inflación anual e historial persistente (`Motor.Moneda`), conectados al paso y al guardado, y probados con el juego de juguete y sus bienes (`test/bienes_juguete.json`). El juego real todavía no lo usa: falta decidir qué cantidades son nominales y llevar existencias de bienes (ver V5, *La moneda designada y la inflación*).
 
 **Hito 2 (protocolo y atlas): cerrado, salvo calibrar las velocidades jugando.** Protocolo con nombres JSON explícitos y archivos dorados; cáscara con socket, reloj y velocidades configurables; consulta (predicción hasta la siguiente veintena); guardar y cargar; cliente en Godot con mapa, paneles genéricos, informe de veintena y medidor de tiempo en pausa. El criterio de 2 700 hexágonos a 60 FPS se cumple con margen en una NVIDIA MX150 (percentil 99 de 7,2 ms). Falta calibrar las velocidades jugando (ver `../docs/calibrar.md`).
 
 **Agentes externos: verificados en Python y Mercury.** Los dos responden igual a los casos compartidos y la partida con cualquiera de ellos es idéntica.
 
-**Hito 1b (reglas): primer corte, adelantado.** El paquete `reglas` existe y compila, pero sus constantes, fórmulas y escenario son provisionales: según el plan, el 1b empieza cuando el hito 0a pasa su criterio, y eso aún no ocurre. Ver *Pendiente*.
+**Hito 1b (reglas): la parte del 0a que da las fórmulas está hecha.** Tesoro (ingreso por población, factor de tasas, eficiencia, gasto del presupuesto), tributo entre altépetl y agravio por tributo, impuesto, gobernador, identidad y distancia salen del prototipo HTML. Sus fórmulas viven en `Reglas.Formulas` con los nombres del prototipo, y `hito_0/tablas/generar.mjs` las convierte en `test/tablas_hito0.json`, que las pruebas de Haskell comparan. Lo que sigue pendiente del 0a es la parte que no se automatiza: las partidas con la rúbrica de decisiones y la auditoría de qué decisiones cambian el rumbo. Ver *Pendiente*.
 
 ## Estructura
 
@@ -65,6 +67,7 @@ Los archivos dorados del protocolo y del espejo viven fuera, en `../pruebas_comp
 | `Motor.Calendario` | Calendario interno como dato del escenario (periodos y días fuera de periodo: veintenas y nemontemi en el prototipo, meses o semanas en otra época) y calendario visible (juliano, gregoriano o el cambio entre los dos) |
 | `Motor.Guion` | El guion del escenario como dato: condiciones, fases (actos), situaciones con su tipo, parámetros del director, `Entorno` y `cargarGuion` con errores acumulados |
 | `Motor.Director` | Avance de fases, fuentes de presión (`intensidad`), el director (espaciado, tensión, variedad, novedad, plazos), `responderDecision` y las métricas del hito 0 (`metricas`, `cumpleVariedad`) |
+| `Motor.Moneda` | Bienes como dato (`cargarEconomia`), precio por escasez (`precioBien`), `designarMoneda`, nivel de precios, `costoEnMoneda` e inflación anual (`inflacionDe`); `pasoMoneda` anota el precio de cada moneda al empezar el periodo. Lee `bien.<id>.existencias` y `bien.<id>.produccion`; escribe `moneda.precio`, `moneda.nivel_precios` y `moneda.inflacion` |
 | `Motor.Autoridad` | Ejes de poder como dato (`cargarEjes`, `ejesActivos`) y el requisito de autoridad de cada comando (`Requisito`, por omisión `{eje: todo, clase: exclusivo}`). En el prototipo no rechaza nada |
 | `Motor.Protocolo` | Mensajes entre núcleo y cliente con nombres JSON explícitos, versión y reglas de compatibilidad |
 
@@ -153,15 +156,18 @@ Vive en `test/Spec.hs`. Son aldeas con población y descontento, tres sistemas (
 | Un efecto de evento | Un constructor en `Motor.Efectos`, su caso en `parsearEfecto` y en `interpretar` |
 | Un acto, o cambiar uno | Una fase en el guion del escenario: fecha o condición de inicio, sistemas activos e intensidades. No se toca código |
 | Una situación | Una entrada en `situaciones` del guion, con un tipo del vocabulario. Si el tipo es nuevo, añadirlo a `tipos` |
+| Un bien que puede ser moneda | Una entrada en el archivo de bienes (`valor`, `calidad_monetaria`, `referencia`, `elasticidad`, `designable`). El juego escribe sus existencias y su producción como magnitudes de la facción |
 | Una fuente de presión | Un sistema pequeño que añade un modificador temporal de valor `intensidad "nombre"`; las fases fijan la intensidad |
 | Una ley | Una prueba en `test/Spec.hs`. Si vale para cualquier juego, se escribe sobre `Juego s c` |
 
 ## Pendiente
 
 **Antes de seguir con las reglas:**
-- Hacer el hito 0a con el prototipo HTML y traer de ahí constantes y fórmulas, como especificaciones con tablas de casos.
-- Convertir tesoro, prestigio y legitimidad en magnitudes. Mientras el tesoro sea un campo, `validarOrdenSistemas` no ve que recaudación y pago lo escriben los dos.
+- Hacer la parte del 0a que no se automatiza: partidas jugadas con la rúbrica de decisiones y la auditoría de qué decisiones cambian el rumbo. Las fórmulas y sus tablas ya están (`hito_0/tablas/generar.mjs`).
+- Hito 3, primer corte hecho: eficiencia por altépetl y gobernador (un mal gobernador baja la recaudación y sube el agravio). Falta todo lo demás: territorio y edificios necesitan el mapa con rendimientos, y hasta entonces el tesoro solo cuenta la población. El prototipo no tiene un comando para nombrar gobernadores, así que «nombramientos» no tiene regla que copiar.
 - Mover el escenario y las constantes a `escenarios/` y `constantes.json`.
+- Reclutar ejército (`ReclutarEjercito`) sigue rechazado con `no_implementado`. El prototipo también lo tiene deshabilitado; no hay regla que copiar, así que queda para el hito 4, con la guerra.
+- Los rangos de prestigio y legitimidad son provisionales: el prototipo no los acota.
 
 **Huecos conocidos del motor**, que se cierran cuando una mecánica los pida:
 - Las condiciones de los modificadores no se evalúan (`vigentesEn` devuelve vacío hasta el hito 3).

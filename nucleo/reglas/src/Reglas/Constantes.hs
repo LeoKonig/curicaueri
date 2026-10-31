@@ -1,51 +1,59 @@
 {-# LANGUAGE StrictData, OverloadedStrings #-}
 module Reglas.Constantes where
 
-import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
-import Data.Text (Text)
-
 import Motor.Base
 import Reglas.Base
 
+-- | Constantes del hito 0a: los valores de `hito_0/datos/constantes.json`
+-- (bloques `economia`, `eficiencia` y `ticks_por_anio`), que el generador de
+-- tablas usa también. Si cambian allí, cambian aquí y las tablas lo confirman.
+-- Las marcadas «literal» son números escritos dentro de las fórmulas del
+-- prototipo, sin entrada en el JSON.
 data Constantes = Constantes
-  { cIngresoPorPop         :: Fijo   -- por pop y veintena, a tasa neutra
-  , cAgravioSubirImpuesto  :: Fijo
-  , cAgravioBajarImpuesto  :: Fijo
-  , cAgravioSubirTributo   :: Fijo
-  , cAgravioBajarTributo   :: Fijo
-  , cMantenimientoEjercito :: Fijo   -- por punto de presupuesto
-  , cMantenimientoAdmin    :: Fijo
-  , cNeutralTasa           :: Int
+  { cIngresoPorPop         :: Fijo   -- economia.ingreso_por_pop (0.012)
+  , cTasaBase              :: Int    -- economia.tasa_base
+  , cNeutralTasa           :: Int    -- literal: la tasa de referencia del agravio (3)
+  , cAgravioSubirImpuesto  :: Fijo   -- economia.agravio_subir_impuesto
+  , cAgravioBajarImpuesto  :: Fijo   -- economia.agravio_bajar_impuesto
+  , cTesoroPorPunto        :: Fijo   -- economia.tesoro_por_punto_presupuesto
+  , cTicksPorAnio          :: Fijo   -- ticks_por_anio: veintenas por año
+    -- Eficiencia de un altépetl (`effLines`), en puntos de 0 a 100.
+  , cEfBase                :: Int    -- eficiencia.base
+  , cEfPorAdminGobernador  :: Int    -- eficiencia.por_admin_gobernador
+  , cEfPorDistancia        :: Int    -- eficiencia.por_distancia
+  , cEfBonoAdmin25         :: Int    -- eficiencia.bono_admin_25
+  , cEfPorAdminCazonci     :: Int    -- eficiencia.por_admin_cazonci
+  , cEfIdentidadAjena      :: Int    -- eficiencia.por_fraccion_identidad_ajena
+  , cEfMin                 :: Int    -- eficiencia.clamp[0]
+  , cEfMax                 :: Int    -- eficiencia.clamp[1]
+  , cUmbralPresupuestoAdm  :: Int    -- literal: presupuesto de administración que da el bono (25)
+  , cUmbralIdentidadAjena  :: Fijo   -- literal: fracción mínima de pobladores ajenos (0.001)
+  , cAdminNeutral          :: Int    -- literal: administración que no suma ni resta (3)
+    -- Agravio del gobernador (`popParts`): (base − administración) × por punto.
+  , cGobernadorAgravioBase :: Int    -- literal: 2
+  , cGobernadorAgravioPunto :: Int   -- literal: 3
   } deriving (Eq, Show)
 
 constantesDefault :: Constantes
 constantesDefault = Constantes
-  { cIngresoPorPop         = fiD 1    -- 0.1
-  , cAgravioSubirImpuesto  = fi 2     -- 2.0
-  , cAgravioBajarImpuesto  = fi 2
-  , cAgravioSubirTributo   = fi 1
-  , cAgravioBajarTributo   = fi 1
-  , cMantenimientoEjercito = fiD 1    -- 0.1
-  , cMantenimientoAdmin    = fiD 1
+  { cIngresoPorPop         = Fijo 120        -- 0.012 = 120 / 10 000
+  , cTasaBase              = 3
   , cNeutralTasa           = 3
+  , cAgravioSubirImpuesto  = fi 4
+  , cAgravioBajarImpuesto  = fi 2
+  , cTesoroPorPunto        = fi 6
+  , cTicksPorAnio          = fi 18
+  , cEfBase                = 40
+  , cEfPorAdminGobernador  = 12
+  , cEfPorDistancia        = -10
+  , cEfBonoAdmin25         = 5
+  , cEfPorAdminCazonci     = 4
+  , cEfIdentidadAjena      = -20
+  , cEfMin                 = 20
+  , cEfMax                 = 100
+  , cUmbralPresupuestoAdm  = 25
+  , cUmbralIdentidadAjena  = Fijo 10         -- 0.001 = 10 / 10 000
+  , cAdminNeutral          = 3
+  , cGobernadorAgravioBase = 2
+  , cGobernadorAgravioPunto = 3
   }
-
--- | Fórmulas con nombre. Los datos podrán elegir cuál usar y con qué
--- parámetros; en 1b se llaman directamente desde los sistemas.
-type FormulaAgravio = Int -> Fijo
-
-formulasAgravio :: Constantes -> Map Text FormulaAgravio
-formulasAgravio c = Map.fromList
-  [ ("agravio_por_impuesto", fnImpuesto c)
-  , ("agravio_por_tributo",  fnTributo c)
-  ]
-  where
-    fnImpuesto cc d
-      | d > 0     = cAgravioSubirImpuesto cc .*. fi d .+. fi (d * d)
-      | d < 0     = cAgravioBajarImpuesto cc .*. fi d
-      | otherwise = Fijo 0
-    fnTributo cc d
-      | d > 0     = cAgravioSubirTributo cc .*. fi d .+. fi (d * d)
-      | d < 0     = cAgravioBajarTributo cc .*. fi d
-      | otherwise = Fijo 0

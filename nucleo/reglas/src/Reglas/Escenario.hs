@@ -38,7 +38,7 @@ escenario1475 = Purepecha
       , (PerId 3, Personaje (PerId 3) "Gobernador Inepto" 1 2 45 True)
       , (PerId 4, Personaje (PerId 4) "Gobernador Capaz"   3 2 38 True)
       ]
-  , ppFaccion     = Faccion (fi 1000) 20 50
+  , ppCazonci     = PerId 1          -- Zuangua, administración 3
   , ppTasas       = Tasas 3 3
   , ppPresupuesto = Presupuesto 30 25 30 15 0
   }
@@ -46,9 +46,13 @@ escenario1475 = Purepecha
 estadoInicial1475 :: Estado Purepecha
 estadoInicial1475 =
   let p    = escenario1475
-      mags = Map.fromList
+      mags = Map.fromList $
         [ ((entRefPop (PopId i), Magnitud "agravio"), AlmacenMag (fi ag) [])
         | (i, ag) <- [(1, 10), (2, 20), (3, 40), (4, 45), (5, 15), (6, 20)]
+        ] ++
+        [ ((entFaccion, magTesoro),      AlmacenMag (fi 1000) [])
+        , ((entFaccion, magPrestigio),   AlmacenMag (fi 20) [])
+        , ((entFaccion, magLegitimidad), AlmacenMag (fi 50) [])
         ]
       com  = Comun
         { comunMagnitudes = mags
@@ -57,6 +61,7 @@ estadoInicial1475 =
         , comunCronica    = Seq.empty
         , comunCalendario = calendarioVeintenas 0
         , comunDirector   = directorInicial
+        , comunMonedas    = Map.empty
         }
       per  = Persistente com p
   in Estado (Tick 0) per (Origen (Tick 0) per) (Derivado IntSet.empty ())

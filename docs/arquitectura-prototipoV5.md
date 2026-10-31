@@ -1355,6 +1355,38 @@ La economía del prototipo es extractiva: tasas, tributo y gasto. El mercado com
 
 Así la extracción tiene dos vías (impuesto y comercio) con efectos distintos sobre el agravio, la red gana vínculos comerciales y los mercaderes tienen un interés concreto. Cuándo entra es una decisión abierta: la propuesta lo sitúa en el hito 6; V5 lo deja en el juego completo.
 
+## La moneda designada y la inflación (motor listo; juego completo)
+
+El tesoro sigue siendo **una sola cifra**, y los costos de los comandos también: se cuentan en **unidades de valor**, que no cambian con el tiempo. Lo nuevo es que cada bien tiene un precio en esas unidades, que una facción puede **designar un bien como su moneda**, y que entonces los precios se expresan en esa moneda. La inflación no es un número que alguien sume: sale sola de cuánto hay de la moneda.
+
+**El precio de un bien.** Depende de su valor, de su calidad como dinero y de cuánto hay:
+
+- **Valor** (`valor`): lo que vale una unidad cuando hay justo la cantidad de referencia.
+- **Calidad monetaria** (`calidad_monetaria`, de 0 a 1): durabilidad, divisibilidad y portabilidad. El oro está cerca de 1 y el maíz, perecedero, mucho más abajo.
+- **Escasez:** la cantidad disponible (existencias más unos periodos de producción) comparada con una cantidad de referencia. Si hay más, cada unidad vale menos.
+- **Elasticidad** (de 0 a 1): cuánto reacciona el precio a la escasez. Con 0 el precio es fijo; con elasticidad baja (oro) es estable; con alta (maíz) fluctúa con cada cosecha.
+
+**La moneda designada.** Si una facción designa la plata como moneda, una obra que vale 300 cuesta 300 / p(plata) unidades de plata. A 1/p se le llama **nivel de precios**. Si la plata abunda (una mina que produce sin parar, la plata de Potosí), su precio baja, el nivel de precios sube y todo cuesta más plata. Eso es la inflación. Con oro, cuya cantidad apenas cambia, los precios son estables. Con maíz suben y bajan con la cosecha. **El jugador elige la moneda, y la elección decide qué tan estable es su economía.**
+
+**Lo que ve el jugador**, como magnitudes de la facción con su panel y su tooltip: el precio de la moneda (`moneda.precio`), el nivel de precios (`moneda.nivel_precios`) y la **inflación anual** (`moneda.inflacion`): cuánto subió el nivel de precios desde hace un año. Antes de un año de historial no se muestra inflación; no se inventa.
+
+**Reglas que se mantienen:**
+
+- **Designar es un comando,** no un automatismo. Si se rechaza (el bien no existe, no es designable o ya es la moneda), el estado no cambia. Retirar la designación vuelve al tesoro en valor.
+- **Cambiar de moneda empieza el historial de cero:** la inflación de la moneda anterior no se mezcla con la nueva.
+- **Determinista y sin dado:** el precio es una función de las existencias y la producción, que escriben los sistemas del juego. El historial de precios se guarda con la partida.
+- **Sin conversión libre:** no hay comando para cambiar bienes por valor; sin eso no hay arbitraje.
+
+**Qué está hecho y qué falta.** El mecanismo está en el motor (`Motor.Moneda`) y probado con el juego de juguete: una mina de plata que hace subir los precios, oro estable y maíz que fluctúa con la cosecha. Falta conectarlo al juego real, y eso pide tres decisiones de diseño:
+
+1. **Qué cantidades son nominales.** La propuesta: con moneda designada, el tesoro se cuenta en unidades de la moneda y los tributos fijados en moneda no se ajustan solos. Así la inflación erosiona el tesoro acumulado y los tributos fijos, y beneficia al que debe, como hizo la plata americana en el siglo XVI. Los costos de los comandos siguen en valor.
+2. **De dónde salen las existencias y la producción de cada bien,** que hoy el juego no lleva. El mercado parcial (sección anterior) usa los mismos seis bienes y puede compartir el precio base: su precio administrado sería este precio con los ajustes que decida la facción.
+3. **Qué bienes son designables en cada época.** En el prototipo, 1475–1530, la economía es tributaria y ningún bien se designa por defecto. Mantas, cacao y hachas de cobre son candidatos, por verificar con fuentes. En el periodo novohispano, la plata y el oro.
+
+**Pospuesto:** pagar con otros bienes al tipo del día (`PagarConBien`), la volatilidad como indicador (la desviación de los precios recientes) y una cesta de precios distinta del valor. Se añaden sobre esto, sin cambiar lo hecho.
+
+**Dos correcciones a la propuesta original.** La ley de conservación restaba el pago dos veces: de los bienes entregados y además del tesoro. Aquí, quien paga con bienes no paga también del tesoro. Y la propuesta fijaba el precio de la moneda en 1, con lo que el precio en moneda de una obra nunca cambiaría y la inflación sería invisible. Aquí la unidad fija es el valor y la que fluctúa es la moneda.
+
 ## Población: origen, condición y mestizaje (juego completo)
 
 Este apartado incorpora la *Propuesta v2: catálogo de pops y mecánica de mestizaje*, con las correcciones necesarias para que encaje con el modelo de pops agregados, el sistema de magnitudes y la regla de un solo escritor de `pop.tamano`. El prototipo solo usa las cuatro identidades de *Modelo de datos*; el resto es catálogo para el juego completo.

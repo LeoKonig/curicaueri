@@ -3,6 +3,7 @@ module Reglas.Sistemas where
 
 import Data.List (foldl')
 import qualified Data.Map.Strict as Map
+import Data.Maybe (isNothing)
 import qualified Data.Set as Set
 
 import Motor.Base
@@ -12,52 +13,48 @@ import Motor.Sistema
 import Reglas.Base
 import Reglas.Constantes
 import Reglas.Estado
+import Reglas.Formulas
 
--- | Factor multiplicativo de las tasas respecto a la neutral.
-tasaFactor :: Constantes -> Tasas -> Fijo
-tasaFactor c t =
-  let d = (tasaTributo t - cNeutralTasa c) + (tasaImpuesto t - cNeutralTasa c)
-  in uno .+. fiD 1 .*. fi d     -- 1 + 0.1 · d
+-- | ¿Es capital el altépetl del poblador? Una capital no está sujeta a otro.
+capitalDe :: Purepecha -> Pop -> Bool
+capitalDe p pop =
+  maybe False (isNothing . altSujetoA) (Map.lookup (popAltepetl pop) (ppAltepetl p))
 
-recaudacion :: Constantes -> Sistema Purepecha
-recaudacion c = Sistema
-  { sisNombre   = NombreSistema "recaudacion"
+-- | La hacienda por veintena, igual que `step` del prototipo: el ingreso de
+-- la población menos el gasto del presupuesto, dividido entre las veintenas
+-- del año, y el tesoro no baja de cero. Es el único sistema que escribe el
+-- tesoro, así que el orden de sus sumas no importa.
+hacienda :: Constantes -> Sistema Purepecha
+hacienda c = Sistema
+  { sisNombre   = NombreSistema "hacienda"
   , sisCadencia = Periodo
   , sisLee      = Set.empty
-  , sisEscribe  = Set.empty   -- solo toca `ppFaccion`, no magnitudes
+  , sisEscribe  = Set.singleton magTesoro
   , sisEjecutar = \_ est ->
-      let p   = persistenteJuego (estadoPersistente est)
-          inp = foldl' (\acc pop ->
-                  acc .+. cIngresoPorPop c .*. fi (popTamano pop)
-                       .*. tasaFactor c (ppTasas p))
-                (Fijo 0) (Map.elems (ppPops p))
-          fac  = ppFaccion p
-          fac' = fac { facTesoro = facTesoro fac .+. inp }
-          p'   = p { ppFaccion = fac' }
-          est' = est { estadoPersistente = (estadoPersistente est)
-                        { persistenteJuego = p' } }
+      let p      = persistenteJuego (estadoPersistente est)
+          t      = ppTasas p
+          pres   = ppPresupuesto p
+          eficiencias = Map.map (eficienciaDe c p) (ppAltepetl p)
+          ingreso = foldl' (\acc pop ->
+                      acc .+. ingresoPoblacion c t (capitalDe p pop)
+                                (Map.findWithDefault (Fijo 0) (popAltepetl pop) eficiencias)
+                                (popTamano pop))
+                    (Fijo 0) (Map.elems (ppPops p))
+          gasto  = gastoPunto c (pbEjercito pres + pbAdministracion pres + pbDiplomacia pres)
+          neto   = (ingreso .-. gasto) ./. cTicksPorAnio c
+          com    = persistenteComun (estadoPersistente est)
+          ajustar x = x { almacenBase =
+                            rangoFijo (minMag rangoTesoro) (maxMag rangoTesoro)
+                                      (almacenBase x .+. neto) }
+          alm'   = Map.adjust ajustar (entFaccion, magTesoro) (comunMagnitudes com)
+          com'   = com { comunMagnitudes = alm' }
+          est'   = est { estadoPersistente = (estadoPersistente est)
+                          { persistenteComun = com' } }
       in (est', [])
   }
 
-pago :: Constantes -> Sistema Purepecha
-pago c = Sistema
-  { sisNombre   = NombreSistema "pago"
-  , sisCadencia = Periodo
-  , sisLee      = Set.empty
-  , sisEscribe  = Set.empty
-  , sisEjecutar = \_ est ->
-      let p    = persistenteJuego (estadoPersistente est)
-          pres = ppPresupuesto p
-          gasto = cMantenimientoEjercito c .*. fi (pbEjercito pres)
-                .+. cMantenimientoAdmin c .*. fi (pbAdministracion pres)
-          fac  = ppFaccion p
-          fac' = fac { facTesoro = max (Fijo 0) (facTesoro fac .-. gasto) }
-          p'   = p { ppFaccion = fac' }
-          est' = est { estadoPersistente = (estadoPersistente est)
-                        { persistenteJuego = p' } }
-      in (est', [])
-  }
-
+-- | El agravio de cada poblador sube o baja por veintena según `popParts`
+-- (`deltaAgravio`), acotado a 0..100.
 evolucionAgravio :: Constantes -> Sistema Purepecha
 evolucionAgravio c = Sistema
   { sisNombre   = NombreSistema "evolucion_agravio"
@@ -67,16 +64,16 @@ evolucionAgravio c = Sistema
   , sisEjecutar = \_ est ->
       let p    = persistenteJuego (estadoPersistente est)
           t    = ppTasas p
-          dT   = tasaTributo t  - cNeutralTasa c
-          dI   = tasaImpuesto t - cNeutralTasa c
-          fs   = formulasAgravio c
-          dT'  = maybe (Fijo 0) ($ dT) (Map.lookup "agravio_por_tributo" fs)
-          dI'  = maybe (Fijo 0) ($ dI) (Map.lookup "agravio_por_impuesto" fs)
+          alts = ppAltepetl p
           pops = ppPops p
           delta pid = case Map.lookup pid pops of
-            Just pop -> (dT' .+. dI') .*. estratoW pop
+            Just pop -> case Map.lookup (popAltepetl pop) alts of
+              Just a  -> deltaAgravio c (popParts c t (isNothing (altSujetoA a))
+                                            (popEstrato pop) (popIdentidad pop)
+                                            (altDistancia a)
+                                            (adminDe p (altGobernador a)))
+              Nothing -> Fijo 0
             Nothing  -> Fijo 0
-          estratoW pop = if popEstrato pop == "nobleza" then fiD 5 else uno
           alm  = comunMagnitudes (persistenteComun (estadoPersistente est))
           upd (k@(r, Magnitud "agravio"), x) = case r of
             EntRef "pop" i ->

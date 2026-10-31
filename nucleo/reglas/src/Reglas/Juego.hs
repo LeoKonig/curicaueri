@@ -21,6 +21,12 @@ catalogoMag = Map.fromList
   [ (Magnitud "agravio",
      DefMagnitud "agravio" (RangoMag (Fijo 0) (fi 100))
                   "m.agravio" Nothing False)
+  , (magTesoro,
+     DefMagnitud "tesoro" rangoTesoro "m.tesoro" Nothing False)
+  , (magPrestigio,
+     DefMagnitud "prestigio" rangoPrestigio "m.prestigio" Nothing False)
+  , (magLegitimidad,
+     DefMagnitud "legitimidad" rangoLegitimidad "m.legitimidad" Nothing False)
   ]
 
 aplicarComando :: Constantes -> Estado Purepecha -> Sellado Comando
@@ -81,16 +87,17 @@ proyectar est =
         , ("lealtad",   VFijo   (popLealtad pop))
         ])
       | pop <- Map.elems (ppPops p)]
-   ++ [EntidadJuego (EntRef "faccion" 1) (Map.fromList
-        [ ("tesoro",    VFijo   (facTesoro (ppFaccion p)))
-        , ("prestigio", VEntero (facPrestigio (ppFaccion p)))
+   ++ [EntidadJuego entFaccion (Map.fromList
+        [ ("tesoro",      VFijo (baseFaccion magTesoro est))
+        , ("prestigio",   VFijo (baseFaccion magPrestigio est))
+        , ("legitimidad", VFijo (baseFaccion magLegitimidad est))
         ])]
 
 type JuegoPurepecha = Juego Purepecha Comando
 
 juego :: Constantes -> Juego Purepecha Comando
 juego c = Juego
-  { juegoSistemas    = [recaudacion c, pago c, evolucionAgravio c]
+  { juegoSistemas    = [hacienda c, evolucionAgravio c]
   , juegoAplicarCmd  = aplicarComando c
   , juegoDerivar     = \_ _ _ -> ()
   , juegoProyectar   = proyectar

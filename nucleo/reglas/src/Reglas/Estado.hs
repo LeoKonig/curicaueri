@@ -2,19 +2,21 @@
 module Reglas.Estado where
 
 import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import Data.Aeson (ToJSON, FromJSON)
 import GHC.Generics (Generic)
 
 import Motor.Base
 import Motor.Estado
+import Motor.Magnitudes
 import Reglas.Base
 
 data Purepecha = Purepecha
   { ppAltepetl    :: Map AltId Altepetl
   , ppPops        :: Map PopId Pop
   , ppPersonajes  :: Map PerId Personaje
-  , ppFaccion     :: Faccion
+  , ppCazonci     :: PerId          -- ^ quien gobierna; su administración mueve la eficiencia
   , ppTasas       :: Tasas
   , ppPresupuesto :: Presupuesto
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
@@ -47,11 +49,32 @@ data Personaje = Personaje
   , perVivo   :: Bool
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
-data Faccion = Faccion
-  { facTesoro      :: Fijo
-  , facPrestigio   :: Int
-  , facLegitimidad :: Int
-  } deriving (Eq, Show, Generic, ToJSON, FromJSON)
+-- | La facción no es un registro: su tesoro, prestigio y legitimidad son
+-- magnitudes de la entidad @faccion 1@, en el almacén común. Así los sistemas
+-- los declaran como escritos o leídos, y el validador de orden los ve.
+entFaccion :: EntRef
+entFaccion = EntRef "faccion" 1
+
+magTesoro, magPrestigio, magLegitimidad :: Magnitud
+magTesoro      = Magnitud "tesoro"
+magPrestigio   = Magnitud "prestigio"
+magLegitimidad = Magnitud "legitimidad"
+
+-- | Rango del tesoro: nunca negativo. El límite superior es provisional: el
+-- prototipo no lo tiene, y la cifra solo evita desbordar el punto fijo.
+rangoTesoro :: RangoMag
+rangoTesoro = RangoMag (fi 0) (fi 1000000000)
+
+-- | Rango del prestigio y la legitimidad. Provisional, como el del tesoro.
+rangoPrestigio, rangoLegitimidad :: RangoMag
+rangoPrestigio   = RangoMag (fi (-1000000)) (fi 1000000)
+rangoLegitimidad = RangoMag (fi 0) (fi 100)
+
+-- | El valor base de una magnitud de la facción, sin modificadores.
+baseFaccion :: Magnitud -> Estado Purepecha -> Fijo
+baseFaccion m st =
+  maybe (Fijo 0) almacenBase
+    (Map.lookup (entFaccion, m) (comunMagnitudes (persistenteComun (estadoPersistente st))))
 
 data Tasas = Tasas
   { tasaTributo  :: Int

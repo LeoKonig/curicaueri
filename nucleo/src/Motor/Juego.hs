@@ -14,6 +14,7 @@ import Motor.Hechos
 import Motor.Mapa
 import Motor.Guion
 import Motor.Director
+import Motor.Moneda (pasoMoneda)
 import Motor.Sistema
 import Motor.Magnitudes
 import Motor.Vista (EntidadJuego)
@@ -63,8 +64,9 @@ pasoDetallado j ent sigma t cmds s = let (s', hs, r, _) = pasoCompleto j ent sig
 --
 -- Orden: fases (al empezar el tick, para que los sistemas de la fase nueva
 -- corran ese mismo día), vencimiento de modificadores, agentes (paso 0),
--- cola de comandos y respuestas (paso 1), sistemas (pasos 2 a 15),
--- derivado (16) y director (17).
+-- cola de comandos y respuestas (paso 1), sistemas (pasos 2 a 15), moneda
+-- (precios e inflación, con lo que dejaron los sistemas), derivado (16) y
+-- director (17).
 pasoCompleto :: Juego s c -> Entorno -> Semilla -> Tick -> [Sellado c] -> [Respuesta] -> Estado s
              -> (Estado s, [Hecho], [(Sellado c, Rechazo)], [(Respuesta, Rechazo)])
 pasoCompleto j ent sigma t cmdsJugador respuestas s00 = (sFinal, hsF ++ hs0 ++ hs1 ++ hsR ++ hs2 ++ hsD, rechazos, rechazosR)
@@ -82,7 +84,7 @@ pasoCompleto j ent sigma t cmdsJugador respuestas s00 = (sFinal, hsF ++ hs0 ++ h
       Right (e', hs') -> (e', hs ++ hs', rs)
       Left m          -> (e, hs, rs ++ [(r, Rechazo m)])
     (s2, hs2)     = correr sigma t (juegoSistemas j) s1
-    s3            = pasoDerivar j mapa t s2
+    s3            = pasoDerivar j mapa t (pasoMoneda (entEconomia ent) t s2)
     (sFinal, hsD) = pasoDirector (juegoCatalogoMag j) guion (rng sigma "director" t) t s3
 
 pasoAgentes :: Juego s c -> Semilla -> Tick -> Estado s -> ([Sellado c], Estado s)

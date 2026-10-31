@@ -77,6 +77,15 @@ data EstadoDirector = EstadoDirector
 directorInicial :: EstadoDirector
 directorInicial = EstadoDirector (-1) Nothing mempty Nothing [] mempty 1
 
+-- | La moneda de una entidad (una facción) que la designó (ver Motor.Moneda).
+-- Es persistente: la inflación compara con lo ya visto, y sin el historial
+-- una partida cargada no sabría cuánto subieron los precios.
+data EstadoMonetario = EstadoMonetario
+  { emMoneda    :: Text              -- ^ el bien designado como moneda
+  , emDesde     :: Tick              -- ^ día de la designación
+  , emHistorial :: [(Tick, Fijo)]    -- ^ precio de la moneda al empezar cada periodo; el más reciente primero; acotado
+  } deriving (Eq, Show)
+
 data Comun s = Comun
   { comunMagnitudes :: Almacen
   , comunDecisiones :: Map Int DecisionPendiente
@@ -84,6 +93,7 @@ data Comun s = Comun
   , comunCronica    :: Seq EntradaCronica
   , comunCalendario :: CalendarioInterno   -- del escenario: periodos y días fuera
   , comunDirector   :: EstadoDirector      -- fase en curso y memoria del director
+  , comunMonedas    :: Map EntRef EstadoMonetario  -- solo las entidades con moneda designada
   }
 
 data Persistente s = Persistente

@@ -3,3 +3,9 @@ packages: .
           app
 
 tests: True
+
+-- Fija el índice de Hackage: las mismas versiones de las dependencias en cada
+-- compilación, también en la integración continua. Sin esto, una versión nueva
+-- publicada en Hackage puede romper la compilación sin que cambie el código
+-- (pasó el 31 de octubre de 2026 con GHC 9.4). Subir la fecha es un cambio deliberado.
+index-state: 2026-10-29T00:00:00Z
