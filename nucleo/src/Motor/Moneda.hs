@@ -17,6 +17,11 @@
 -- dos magnitudes de la entidad (@bien.<id>.existencias@, @bien.<id>.produccion@)
 -- que escribe el juego. Y escribe tres: @moneda.precio@, @moneda.nivel_precios@
 -- y @moneda.inflacion@ (anual), que el cliente muestra como cualquier otra.
+--
+-- Las magnitudes nominales (@magnitudes_nominales@, típicamente el tesoro) se
+-- cuentan en la moneda: al designar, cambiar o retirar la moneda se convierten
+-- al tipo del día, sin ganar ni perder valor real. Después la inflación sí les
+-- quita valor: un tesoro guardado en una moneda que abunda vale cada vez menos.
 module Motor.Moneda
   ( -- * Bienes y parámetros
     Bien (..)
@@ -36,6 +41,8 @@ module Motor.Moneda
   , precioEn
   , precioMonedaDe
   , costoEnMoneda
+  , enCuenta
+  , aValor
   , inflacionDe
     -- * Designar y avanzar
   , designarMoneda
@@ -69,12 +76,13 @@ data Bien = Bien
   } deriving (Eq, Show)
 
 data ParamsMoneda = ParamsMoneda
-  { pmHorizonte    :: Fijo  -- ^ periodos de producción que cuentan como disponibles
-  , pmPrecioMinimo :: Fijo  -- ^ piso del precio, para que P = 1/p nunca divida entre 0
+  { pmHorizonte    :: Fijo        -- ^ periodos de producción que cuentan como disponibles
+  , pmPrecioMinimo :: Fijo        -- ^ piso del precio, para que P = 1/p nunca divida entre 0
+  , pmNominales    :: [Magnitud]  -- ^ magnitudes de la entidad que se cuentan en su moneda (el tesoro)
   } deriving (Eq, Show)
 
 paramsMonedaPorOmision :: ParamsMoneda
-paramsMonedaPorOmision = ParamsMoneda (desdeEntero 6) (Fijo 1)
+paramsMonedaPorOmision = ParamsMoneda (desdeEntero 6) (Fijo 1) []
 
 data Economia = Economia
   { ecoBienes :: Map Text Bien
@@ -137,6 +145,16 @@ precioMonedaDe ec t e ent = do
 costoEnMoneda :: Economia -> Tick -> Estado s -> EntRef -> Fijo -> Maybe Fijo
 costoEnMoneda ec t e ent c = (c ./.) <$> precioMonedaDe ec t e ent
 
+-- | Una cantidad en valor, expresada en la cuenta de la entidad: en su moneda
+-- (c · P) si designó una, o igual si no. Es lo que cuesta un comando, y en lo
+-- que se convierte un ingreso calculado en valor, al tipo del día.
+enCuenta :: Economia -> Tick -> Estado s -> EntRef -> Fijo -> Fijo
+enCuenta ec t e ent c = maybe c id (costoEnMoneda ec t e ent c)
+
+-- | La inversa: cuánto vale una cantidad de la cuenta de la entidad (n · p).
+aValor :: Economia -> Tick -> Estado s -> EntRef -> Fijo -> Fijo
+aValor ec t e ent n = maybe n (n .*.) (precioMonedaDe ec t e ent)
+
 -- | Inflación anual: cuánto subió el nivel de precios desde hace un año,
 -- P(t) / P(t − 1 año) − 1 = p(hace un año) / p(ahora) − 1. Nothing hasta que
 -- haya un año de historial.
@@ -159,13 +177,19 @@ inflacionDe cal em =
 designarMoneda :: Economia -> EntRef -> Maybe Text -> Tick -> Estado s -> Either Text (Estado s, [Hecho])
 designarMoneda ec ent destino t e =
   let actual = emMoneda <$> Map.lookup ent (comunMonedas (comun e))
+      -- Pasar de una cuenta cuyo precio es pDe a otra cuyo precio es pA: n · pDe / pA.
+      convertir pDe pA alm = foldl' (\a mg -> Map.adjust (\x -> x { almacenBase = almacenBase x .*. pDe ./. pA }) (ent, mg) a)
+                                    alm (pmNominales (ecoParams ec))
   in case destino of
        Nothing -> case actual of
          Nothing -> Left "no hay moneda designada"
          Just m  ->
-           let e' = conComun e (\c -> c { comunMonedas = Map.delete ent (comunMonedas c)
-                                        , comunMagnitudes = foldl' (\a mg -> Map.delete (ent, mg) a) (comunMagnitudes c)
-                                                              [magPrecioMoneda, magNivelPrecios, magInflacion] })
+           -- Lo nominal vuelve a contarse en valor: n · p(moneda), con el precio del día.
+           let pAnt = maybe uno id (precioMonedaDe ec t e ent)
+               e' = conComun e (\c -> c { comunMonedas = Map.delete ent (comunMonedas c)
+                                        , comunMagnitudes = convertir pAnt uno
+                                            (foldl' (\a mg -> Map.delete (ent, mg) a) (comunMagnitudes c)
+                                              [magPrecioMoneda, magNivelPrecios, magInflacion]) })
            in Right (e', [Hecho "moneda_retirada" t [ent] (Map.fromList [("moneda", m)])])
        Just b -> case Map.lookup b (ecoBienes ec) of
          Nothing -> Left ("no hay ningún bien «" <> b <> "»")
@@ -173,11 +197,14 @@ designarMoneda ec ent destino t e =
            | not (bnDesignable bien) -> Left ("«" <> b <> "» no puede ser moneda")
            | actual == Just b        -> Left ("«" <> b <> "» ya es la moneda")
            | otherwise ->
-               let p  = precioEn (ecoParams ec) t (comunMagnitudes (comun e)) ent bien
+               -- Lo nominal se convierte al tipo del día: de valor (o de la moneda
+               -- anterior) a la nueva, sin ganar ni perder valor real.
+               let p    = precioEn (ecoParams ec) t (comunMagnitudes (comun e)) ent bien
+                   pAnt = maybe uno id (precioMonedaDe ec t e ent)
                    e' = conComun e (\c -> c
                           { comunMonedas = Map.insert ent (EstadoMonetario b t []) (comunMonedas c)
                           , comunMagnitudes = Map.delete (ent, magInflacion)
-                                                (escribirPrecio ent p (comunMagnitudes c)) })
+                                                (escribirPrecio ent p (convertir pAnt p (comunMagnitudes c))) })
                in Right (e', [Hecho "moneda_designada" t [ent]
                                (Map.fromList [("moneda", b), ("anterior", maybe "" id actual)])])
 
@@ -220,25 +247,26 @@ conComun e f = let p = estadoPersistente e
 
 -- | Carga los bienes desde JSON y acumula todos los errores:
 --
--- > {"horizonte": "6", "bienes": [{"id": "plata", "valor": "2", "calidad_monetaria": "0.95",
+-- > {"horizonte": "6", "magnitudes_nominales": ["tesoro"], "bienes": [{"id": "plata", "valor": "2", "calidad_monetaria": "0.95",
 -- >                                 "referencia": "2000", "elasticidad": "0.15", "designable": true}]}
 cargarEconomia :: Text -> Value -> Validacion Economia
 cargarEconomia archivo v = case A.parseEither leer v of
   Left err -> falla (ErrorCarga ErrorEstructura archivo "" (T.pack err))
-  Right (horizonte, bienes) ->
+  Right ((horizonte, nominales), bienes) ->
     let ids = map bnId bienes
         repetidos = [ i | (k, i) <- zip [0 :: Int ..] ids, i `elem` take k ids ]
         unicos = traverse (\i -> falla (ErrorCarga ErrorEsquema archivo ("bienes." <> i) "bien repetido")) repetidos
         horizonteOk = if horizonte >= Fijo 0 then pure ()
                       else falla (ErrorCarga ErrorRango archivo "horizonte" "el horizonte no puede ser negativo")
     in (\_ _ bs -> Economia (Map.fromList [ (bnId b, b) | b <- bs ])
-                            paramsMonedaPorOmision { pmHorizonte = horizonte })
+                            paramsMonedaPorOmision { pmHorizonte = horizonte, pmNominales = nominales })
          <$> unicos <*> horizonteOk <*> traverse validar bienes
   where
     leer = A.withObject "economia" $ \o -> do
       h  <- maybe (pmHorizonte paramsMonedaPorOmision) id <$> o A..:? "horizonte"
+      ns <- maybe [] (map Magnitud) <$> o A..:? "magnitudes_nominales"
       bs <- o A..: "bienes" >>= mapM bien
-      pure (h, bs)
+      pure ((h, ns), bs)
     bien = A.withObject "bien" $ \o ->
       Bien <$> o A..: "id" <*> o A..: "valor" <*> o A..: "calidad_monetaria"
            <*> o A..: "referencia" <*> o A..: "elasticidad"

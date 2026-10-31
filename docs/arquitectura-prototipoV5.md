@@ -702,7 +702,7 @@ La unidad política básica es el señorío. El reino purépecha era más centra
 | Terreno | id, capacidad base, recursos, erosión base | `datos/terrenos.json`; la tabla de la que salen las tres cosas para cada celda |
 | Asentamiento | id, clave de nombre, celda, altépetl, rango (cabecera, sujeto; lista que crece), pops, edificios, obras en curso, fuente | Donde viven pops y producción |
 | Altépetl | id, clave de nombre, señor (personaje), gobernador (personaje), cabecera, asentamientos sujetos, lealtad, a quién tributa, prisioneros | Unidad política |
-| Personaje | id, clave de nombre, rol, altépetl, edad (+1 por año), salud (magnitud: base fija, modificada por epidemias y eventos; con la edad sube la probabilidad anual de muerte), habilidades (administración, mando, diplomacia), heredero, vivo | Los muertos no se borran: quedan como registro |
+| Personaje | id, clave de nombre, rol, altépetl, grupo de poder (opcional; ver *Los nombramientos mueven poder*), facción de pertenencia (opcional, después de 1530), edad (+1 por año), salud (magnitud: base fija, modificada por epidemias y eventos; con la edad sube la probabilidad anual de muerte), habilidades (administración, mando, diplomacia), heredero, vivo | Los muertos no se borran: quedan como registro |
 | Facción | id, altépetl miembros, tipo de gobierno, tipo de facción (perfil por defecto de ejes, comandos y personalidad; por defecto, el de su gobierno), jugable, tesoro, presupuesto, tasas, prestigio, legitimidad, culto de estado, política religiosa (magnitud; por defecto, la base de su tipo), ejes de poder (coerción, extracción, administración, red; magnitudes con base 100 por defecto), carga administrativa (derivada), plan vigente (si es IA), estado con otras facciones | Purépechas, Triple Alianza, castellanos, chichimecas; en el juego completo, también facciones sin territorio, como las órdenes religiosas |
 | Título | titular (facción), entidad, eje, origen (cédula, nombramiento, tratado, fundación, encomienda), fuerza de exclusividad (por defecto, no), otorgante (opcional: si lo tiene, es una concesión), condiciones (por defecto, ninguna), desde, hasta (opcional), fuente | Reservado para el juego completo. El soberano tiene título implícito sobre lo suyo; solo se guardan los de otras facciones, así que en el prototipo la lista está vacía |
 | Vínculo | id, partes, tipo (tregua, alianza, tributo, regalos recurrentes, alianza dinástica, rehén, guerra ritual), obligaciones, exclusiones, desde, hasta (opcional), condiciones, fuente | Generaliza la tregua y la alianza; el tributo existente se lee como vínculo sin cambiar su entidad. Reservado para el juego completo |
@@ -710,7 +710,7 @@ La unidad política básica es el señorío. El reino purépecha era más centra
 | Reforma | id, requisitos (condiciones), costo inicial, efectos, grupo que la impulsa, grupo que se opone y umbrales de bloqueo | `datos/reformas.json`; se aprueba con `AprobarReforma` |
 | Tecnología | id, tipo (producto o sistema), canales, condiciones, efectos, resistencia, umbral de dominio | `datos/tecnologias.json`; su conocimiento codificado y tácito son magnitudes de la facción. Paso 15 |
 | Pop | asentamiento, residencia (núcleo o dispersa), identidad (origen o categoría: purépecha, hñähñú, nahua, chichimeca…; lista que crece), condición legal (por defecto `comun`), autoadscripción (por defecto, la identidad), estrato (incluye `nobleza_local`), `gradiente_catolicismo` (de 0, culto tradicional, a 1, catolicismo; en el juego completo, un valor por culto), tamaño, resto de crecimiento, lealtad, agravio, necesidades | Agregado, como en Victoria II; la condición y la autoadscripción las usa el juego completo (ver *Población: origen, condición y mestizaje*) |
-| Bien | id, clave de nombre, categoría, valor base | Maíz, pescado, sal, cobre, mantas, obsidiana |
+| Bien | id, clave de nombre, categoría, valor base; para la moneda: calidad monetaria, referencia, elasticidad y si es designable (ver *La moneda designada y la inflación*) | Maíz, pescado, sal, cobre, mantas, obsidiana |
 | Edificio | id, costo, veintenas de obra, requisitos, modificadores, ámbito (asentamiento o celda), al terminar (efectos, opcional), reemplaza (edificio del nivel anterior, opcional), mantenimiento (opcional) | Datos puros; los niveles de un templo son edificios que se reemplazan |
 | Tributo | altépetl de origen; destino (un altépetl en el prototipo; un personaje o una institución, como un encomendero, la Corona o la Iglesia, en el periodo novohispano); bienes, trabajo o moneda y cantidades; periodicidad | Flujo económico central; el destino genérico es un campo con valor por defecto |
 | Ejército | dueño, celda, tick de llegada, capitán, unidades, moral, abasto (reserva; su flujo es una magnitud aparte), asentamientos de origen de sus guerreros, veintenas sin paga, costo de mantenimiento, asentamiento de guarnición (opcional), frente abstracto (opcional) | Una guarnición es un ejército asignado a un asentamiento; su estado (abastecido, forrajeo, hambre) se deriva, no se guarda |
@@ -1053,6 +1053,10 @@ Con este criterio, franciscanos y dominicos son facciones distintas, la Corona n
 
 **Límite inferior.** Ningún individuo es una facción: los personajes viven dentro de las facciones. Bajar de ahí lleva a mecánicas de corte y matrimonio que el diseño descarta.
 
+**Antes de 1530.** Hay facciones, pero son externas: la Triple Alianza, los chichimecas y los señoríos independientes de la frontera, este último un tipo de facción. Los altépetl sujetos del reino, como Zacapu o Uruapan, comparten la bolsa del cazonci y no tienen centro de decisión propio, así que no son facciones. Tienen señor, gobernador, nobleza local y lealtad (ver *Aristocracia baja, carga administrativa y señoríos locales*), y su agencia se juega con decisiones recurrentes y con la rebelión. Un sujeto que se independiza sí pasa a ser facción: un señorío independiente con su propia bolsa.
+
+**Los grupos de poder tampoco son facciones.** Viven dentro de una y comparten su bolsa (ver *Política interna*). El criterio es el de las tres preguntas de arriba, no "territorio, tesoro y títulos": una orden religiosa es facción sin tener territorio.
+
 ### Soberanía y autoridad
 
 Hoy la pertenencia es una cadena exclusiva: celda → asentamiento → altépetl → facción. Se conserva, pero solo para una de dos cosas:
@@ -1118,6 +1122,18 @@ La competencia entre una orden y un encomendero por la mano de obra de un pueblo
 ### Relaciones entre facciones: emergentes, no explícitas
 
 Las relaciones de cooperación, mutualismo, comensalismo, parasitismo, competencia y amensalismo entre facciones **no son un sistema ni un campo**. Emergen de los flujos entre titulares que comparten entidades (tributo, trabajo, protección, administración prestada, legitimidad), y pueden identificarse a partir de esos flujos con fines de análisis, depuración o crónica. En la interfaz no se usan los términos biológicos: llamar "parasitismo" a la encomienda en pantalla sería un juicio, no un dato.
+
+### Aparición y desaparición de facciones
+
+Una facción no existe siempre: los franciscanos llegan, un señorío se independiza, una orden se suprime. V5 ya prevé que en 1530 el jugador pase a dirigir "un actor que ya existía en la partida"; esto dice cómo empieza y cómo termina un actor.
+
+- **Las facciones potenciales se declaran en datos** (`datos/facciones/`), con su estado inicial, sus títulos iniciales, `desde` (una fecha) y/o `condicion_aparicion`. Cumplida cualquiera de las dos, el sistema de diplomacia (paso 13, cada veintena) la activa y emite `faccion_aparece` con la razón. La crónica lo registra.
+- **Las condiciones usan el lenguaje cerrado del guion** (sección 11b del documento funcional), ampliado con una condición sobre hechos ocurridos (`vasallaje_aceptado`). No se inventa otro lenguaje.
+- **Desaparecer siempre deja rastro.** Con `hasta` o `condicion_desaparicion` cumplidas, la facción se elimina y transfiere sus títulos, su tesoro, sus pops y sus personajes a destinos declarados en datos: herencia (al heredero designado), supresión (los títulos vuelven al soberano de cada entidad y el tesoro se pierde) o absorción (todo al absorbente). Se emite `faccion_desaparece` con la razón. Si el destino no puede recibir un título (por ejemplo, la Corona en territorio que no es suyo), el título se pierde, y el hecho lo dice.
+- **Los ids de facción nunca se reutilizan,** como los de las decisiones. El agente externo de una facción que desaparece se cierra, y el registro lo anota.
+- **Los grupos de poder no aparecen ni desaparecen:** cambian de poder y de lealtad. La única excepción, la escisión de un grupo en dos tras una reforma, se declara igual, con `desde` o condición y una transferencia de poder.
+
+**Cuándo.** En el hito 5, con la transición de 1530 (vasallaje, franciscanos, república de indios). Antes no hace falta: el prototipo tiene sus facciones desde el inicio.
 
 ### Tipos de facción y niveles de detalle
 
@@ -1271,6 +1287,20 @@ Ningún jugador puede maximizar los cinco ejes. Cada tensión de la tabla se mod
 | Administración contra red | Nombrar por habilidad o por parentesco | Administradores contra nobleza |
 | Coerción contra administración | Mucho ejército sin administración vuelve ambiciosos a los capitanes; con coerción muy por encima de la administración y una nobleza poderosa y desleal, puede presentarse un golpe | Nobleza guerrera contra administradores |
 
+### Los nombramientos mueven poder
+
+Nombrar a alguien es una decisión política, no solo técnica: importa su habilidad, pero importa sobre todo a qué grupo pertenece.
+
+- **Todo personaje puede tener un grupo** (campo `grupo`, opcional; sin grupo no mueve poder de nadie). Después de 1530 puede tener además una facción (un franciscano), y entonces su nombramiento da a esa facción un título en el eje del cargo, mientras dure el cargo.
+- **Nombrar** a alguien de un grupo añade un modificador constante al poder de su grupo (`PODER_POR_CARGO`; propuesta: +5) y otro a su lealtad, con fuente "nombramiento de X como gobernador de Y". No es "+5 por veintena": eso acumularía poder sin límite.
+- **Cada cargo declara en datos qué grupos lo pretenden** (una capitanía, la nobleza guerrera; un templo, el sacerdocio). Solo esos grupos pierden lealtad cuando el cargo va a otro. El resto no se entera.
+- **Destituir o reemplazar termina los modificadores** del nombramiento, que emiten `modificador_terminado` con la razón "su fuente desapareció". No hace falta evaluar condiciones: lo hace el mismo comando.
+- **La protesta es una situación del guion,** con condición sobre el poder y la lealtad del grupo que pierde (por ejemplo, poder ≥ 50 y lealtad ≤ 30) y opciones con plazo: mantener, revocar o compensar con otro cargo. No se abre en cada nombramiento, solo cuando el grupo puede actuar.
+
+Así los nombramientos dejan de ser óptimos: el más hábil puede ser de un grupo débil y el conveniente, de uno poderoso. Rotar los cargos evita que un grupo acumule poder, pero enoja al que pierde el cargo. El consejo, abajo, es el mismo mecanismo aplicado al cargo de consejero.
+
+**Cuándo.** Con `NombrarGobernador` y `NombrarCapitan` (hito 3). La parte de facciones y títulos, después de 1530.
+
 ### El consejo
 
 - **Los consejeros son personajes** con el rol `consejero`, un grupo, las habilidades que ya existen (administración, mando, diplomacia) y una lealtad personal propia, distinta de la de su grupo.
@@ -1344,6 +1374,33 @@ La adopción no es automática. La resistencia son modificadores negativos a la 
 
 **Lo que no se hace:** árbol lineal, puntos de investigación genéricos, adopción automática, tecnologías que solo sean una lista de bonificaciones.
 
+### La tecnología como receta alternativa
+
+Muchas tecnologías no dan una bonificación: cambian **qué insumo** se usa para algo, **cuánto** o **con qué calidad** (ver *El costo de las cosas*). La cantería permite fortalezas de piedra; el adobe, de adobe; el cultivo de trigo amplía lo que se come después de 1530.
+
+- **Cada insumo de una receta puede tener sustitutos,** y cada sustituto declara la tecnología que lo habilita (o ninguna), la cantidad que pide y su calidad: 1 es igual al insumo principal, menos es peor y más es mejor.
+- **El sustituto rinde en proporción al dominio,** como cualquier efecto de una tecnología a medias: calidad efectiva = calidad · dominio.
+- **La fragilidad sale sola del conocimiento tácito.** Un sustituto que depende de conocimiento tácito se pierde si mueren o se van quienes lo practican (epidemia, emigración). Uno que depende de conocimiento codificado sobrevive si quedan los textos. El desglose dice por qué algo quedó bloqueado: "fortaleza de piedra bloqueada: cantería tácita 20, mínimo 40; los canteros murieron en la epidemia".
+- **Sin ciclos:** ninguna receta puede depender de sí misma, y la carga lo comprueba. La receta base, sin tecnología, siempre existe.
+
+Un cuidado histórico: los purépechas eran los metalúrgicos más avanzados de Mesoamérica, así que en 1475 el cobre no es una tecnología por adquirir ni un sustituto peor que la obsidiana. Los sustitutos y sus calidades se fijan con fuentes.
+
+## El costo de las cosas: valor e insumos (hito 6 o juego completo)
+
+Hoy cada obra cuesta tesoro y veintenas (`"costo": {"tesoro": 400, "veintenas": 6}`). Eso basta para el prototipo, pero algunas cosas no se compran solo con valor: una fortaleza necesita piedra, un ejército necesita comida. Cada actividad tiene dos costos:
+
+- **El costo en valor**, el de hoy, que se paga del tesoro (en la moneda, si hay una: ver *La moneda designada y la inflación*).
+- **Los insumos**, bienes concretos que se consumen en especie y que no se pueden pagar con valor. El costo gana un campo `insumos` con valor por defecto vacío, así que nada cambia mientras no se declare.
+
+Las reglas:
+
+- **Si falta un insumo y tiene un sustituto disponible,** la actividad se hace con el sustituto (ver *La tecnología como receta alternativa*). Si no hay sustituto pero el insumo falta solo en parte, el costo en valor sube en proporción a lo que falta.
+- **Si no hay con qué, la actividad se bloquea,** y la consulta lo dice antes de confirmar: "no puedes construir la fortaleza: necesitas 20 de piedra y no tienes piedra ni madera".
+- **Los insumos de construcción salen de las celdas** (bosque: madera; cantera: piedra), que ya tienen recursos por terreno. No hace falta añadir bienes al catálogo de seis para eso.
+- **La comida del ejército es el abasto** que ya diseña *La coerción como cadena*: no se duplica.
+
+**Cuándo.** En el hito 6, si las obras del hito 3 se sienten demasiado fáciles; si no, en el juego completo. Requiere existencias de bienes, como la moneda.
+
 ## Mercado parcial (juego completo, paso 6)
 
 La economía del prototipo es extractiva: tasas, tributo y gasto. El mercado completo (oferta y demanda, mercaderes individuales, rutas explícitas) sería un sistema entero con su IA, su interfaz y su balance. Lo previsto es un mercado parcial:
@@ -1377,11 +1434,15 @@ El tesoro sigue siendo **una sola cifra**, y los costos de los comandos también
 - **Determinista y sin dado:** el precio es una función de las existencias y la producción, que escriben los sistemas del juego. El historial de precios se guarda con la partida.
 - **Sin conversión libre:** no hay comando para cambiar bienes por valor; sin eso no hay arbitraje.
 
-**Qué está hecho y qué falta.** El mecanismo está en el motor (`Motor.Moneda`) y probado con el juego de juguete: una mina de plata que hace subir los precios, oro estable y maíz que fluctúa con la cosecha. Falta conectarlo al juego real, y eso pide tres decisiones de diseño:
+**Qué está hecho.** El mecanismo está en el motor (`Motor.Moneda`) y probado con el juego de juguete: una mina de plata que hace subir los precios, oro estable y maíz que fluctúa con la cosecha. Para conectarlo al juego real se tomaron tres decisiones:
 
-1. **Qué cantidades son nominales.** La propuesta: con moneda designada, el tesoro se cuenta en unidades de la moneda y los tributos fijados en moneda no se ajustan solos. Así la inflación erosiona el tesoro acumulado y los tributos fijos, y beneficia al que debe, como hizo la plata americana en el siglo XVI. Los costos de los comandos siguen en valor.
-2. **De dónde salen las existencias y la producción de cada bien,** que hoy el juego no lleva. El mercado parcial (sección anterior) usa los mismos seis bienes y puede compartir el precio base: su precio administrado sería este precio con los ajustes que decida la facción.
-3. **Qué bienes son designables en cada época.** En el prototipo, 1475–1530, la economía es tributaria y ningún bien se designa por defecto. Mantas, cacao y hachas de cobre son candidatos, por verificar con fuentes. En el periodo novohispano, la plata y el oro.
+1. **El tesoro se cuenta en la moneda; los flujos, en valor.** Con moneda designada, las magnitudes que el escenario declara nominales (`magnitudes_nominales`; en la práctica, `tesoro`) se cuentan en unidades de la moneda. Al designar, cambiar o retirar la moneda se convierten al tipo del día, sin ganar ni perder valor. Los costos de los comandos siguen en valor y se cobran al tipo del día (C · P). Los ingresos se calculan en valor y entran al tesoro al tipo del día. Así **la inflación no toca los flujos: se come lo guardado.** Un tesoro acumulado en una moneda que abunda vale cada vez menos, y uno guardado en oro conserva su valor. La decisión del jugador es gastar o ahorrar, y en qué moneda. Las cantidades fijadas en moneda que lleguen después (tributos de encomienda, deudas) también pierden valor con la inflación, y eso beneficia al que debe, como hizo la plata americana en el siglo XVI. *Hecho en el motor:* la conversión al designar (`pmNominales`), `enCuenta` (valor → moneda) y `aValor` (moneda → valor), con su prueba: designar, cambiar y retirar la moneda conserva el valor, y la plata de la mina erosiona el tesoro mientras el oro no.
+2. **Las existencias y la producción salen de la producción del hito 3.** Cada facción lleva `bien.<id>.existencias` (el almacén de su capital) y `bien.<id>.produccion` (lo que entra por veintena: la producción de sus altépetl más el tributo en especie que recibe, menos el que paga). Las escribe el sistema de producción del paso 6, su único escritor, cuando exista. Lo que consume bienes (obras, ejército, regalos) los resta de las existencias. Hasta que haya producción de bienes, el escenario no declara economía y nada cambia. El mercado parcial (sección anterior) parte del mismo precio: su precio administrado será este con los ajustes que decida la facción.
+3. **Qué puede ser moneda lo decide cada escenario.** El catálogo de bienes es un dato por escenario (`datos/bienes_<escenario>.json`), y `designable` marca lo que se puede designar. En 1475, la economía es tributaria y **ninguna moneda viene designada**. Las mantas y las hachas de cobre son designables, como palanca opcional: las mantas como medio de pago del tributo y el mercado, y las hachas como hachas-moneda del Occidente de México. Ambas, por verificar con fuentes antes de fijar sus parámetros. El cacao entra si las fuentes confirman su circulación en Michoacán. En el periodo novohispano, la plata y el oro.
+
+**Lo que falta en `reglas`:** el comando `DesignarMoneda`; que la hacienda pase sus ingresos por `enCuenta` y los comandos con costo cobren con `enCuenta`; y el catálogo de bienes del escenario, cuando la producción de bienes exista.
+
+**Descartado por ahora:** el tesoro como portafolio de bienes o de categorías (alimento, pago, equipo, suntuario). Multiplica la interfaz, la IA y el balance, y la moneda designada da la misma decisión con una sola cifra. También quedan fuera el crédito, las flotas, las aduanas y la devaluación; son del periodo novohispano o de otro escenario.
 
 **Pospuesto:** pagar con otros bienes al tipo del día (`PagarConBien`), la volatilidad como indicador (la desviación de los precios recientes) y una cesta de precios distinta del valor. Se añaden sobre esto, sin cambiar lo hecho.
 

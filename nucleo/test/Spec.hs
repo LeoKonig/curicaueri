@@ -1251,7 +1251,8 @@ estadoMoneda =
   let alm = foldl' (\a (b, m, v) -> fijarBase faccionJ (m b) (fi v) a)
               (comunMagnitudes (persistenteComun (estadoPersistente estadoInicial)))
               [ ("plata", magExistencias, 2000), ("plata", magProduccion, 100)
-              , ("oro", magExistencias, 200), ("maiz", magExistencias, 1000) ]
+              , ("oro", magExistencias, 200), ("maiz", magExistencias, 1000)
+              , ("", const (Magnitud "tesoro"), 1000) ]
       e = conAlmacen estadoInicial alm
   in e { estadoOrigen = Origen (Tick 0) (estadoPersistente e) }
 
@@ -1348,6 +1349,27 @@ monedaPruebas = do
       costoEnMoneda economiaJuguete (Tick 0) eo faccionJ (fi 300) `shouldBe` Just (fi 50)
       costoEnMoneda economiaJuguete (Tick 0) ep faccionJ (fi 300) `shouldBe` Just (fi 300 ./. precioBien (ecoParams economiaJuguete) (ecoBienes economiaJuguete Map.! "plata") (fi 2000) (fi 100))
       costoEnMoneda economiaJuguete (Tick 0) estadoMoneda faccionJ (fi 300) `shouldBe` Nothing
+
+  describe "moneda: el tesoro se cuenta en la moneda" $ do
+    let tesoro = magDe (Magnitud "tesoro")
+        designarEn m t e = either (error . T.unpack) fst (designarMoneda economiaJuguete faccionJ m (Tick t) e)
+        valorReal e = aValor economiaJuguete (estadoTick e) e faccionJ (maybe (Fijo 0) id (tesoro e))
+    it "al designar oro (p = 6), 1000 de valor pasan a ser 166,6666 oros" $
+      tesoro (designarEn (Just "oro") 0 estadoMoneda) `shouldBe` Just (fi 1000 ./. fi 6)
+    it "designar, cambiar y retirar la moneda no crea ni destruye valor (salvo el redondeo)" $ do
+      let eOro = designarEn (Just "oro") 0 estadoMoneda
+          ePlata = designarEn (Just "plata") 0 eOro
+          eNada = designarEn Nothing 0 ePlata
+      map (\e -> cerca 10 (valorReal e) (1000 * 10000)) [eOro, ePlata, eNada] `shouldBe` [True, True, True]
+      tesoro eNada `shouldSatisfy` maybe False (\v -> cerca 10 v (1000 * 10000))
+    it "enCuenta convierte un costo en valor a la moneda; sin moneda no cambia" $ do
+      enCuenta economiaJuguete (Tick 0) estadoMoneda faccionJ (fi 300) `shouldBe` fi 300
+      enCuenta economiaJuguete (Tick 0) (designarEn (Just "oro") 0 estadoMoneda) faccionJ (fi 300) `shouldBe` fi 50
+    it "la inflación se come un tesoro guardado en plata; en oro no pierde valor" $ do
+      let ePlata = jugarConMoneda "plata" (2 * 365)
+          eOro = jugarConMoneda "oro" (2 * 365)
+      valorReal ePlata `shouldSatisfy` (< fi 900)
+      cerca 10 (valorReal eOro) (1000 * 10000) `shouldBe` True
 
   describe "moneda: inflación" $ do
     let dosAnios = 2 * 365
