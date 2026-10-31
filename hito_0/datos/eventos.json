@@ -310,7 +310,7 @@
           "efectos": [
             {
               "tipo": "estado",
-              "campo": "capitan",
+              "campo": "captain",
               "fijar": "ambicioso"
             }
           ],

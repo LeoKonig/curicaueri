@@ -546,7 +546,7 @@ class Component extends DCLogic {
     const g = this.g, ws = this.warStrength(), C = this.D.C;
     switch (k) {
       case 'fuerza_guerra': return Math.round(ws).toLocaleString('es-MX');
-      case 'enemigo_alianza': return f(this.enemigoAlianza());
+      case 'enemigo_alianza': return Math.round(this.enemigoAlianza()).toLocaleString('es-MX');
       case 'ratio': return Math.round(ws / this.enemigoAlianza() * 100) + '%';
       case 'odds': case 'odds_alianza': return this.odds(ws / this.enemigoAlianza()).txt;
       case 'odds_chichimeca': return this.odds(ws / C.guerra.enemigo_chichimeca).txt;
