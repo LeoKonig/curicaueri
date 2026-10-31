@@ -1,5 +1,5 @@
 {
-  "version_esquema": 1,
+  "version_esquema": 2,
   "idioma": "es",
   "_convencion": "Claves: seccion.subseccion.id.campo. Los {placeholders} se interpolan con el mismo fmt() del prototipo. Ver _pendiente_migracion para lo que aún vive en código.",
   "_pendiente_migracion": [
