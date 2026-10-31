@@ -142,242 +142,6 @@
       "cuerpo_clave": "crisis.rebelion.cuerpo"
     },
     {
-      "id": "guerra_alianza",
-      "tipo": "crisis",
-      "disparador": {
-        "tipo": "cola"
-      },
-      "condicion_entrada": [
-        {
-          "tipo": "tick_min",
-          "t": 54
-        },
-        {
-          "tipo": "flag",
-          "campo": "flags.war",
-          "es": false
-        },
-        {
-          "tipo": "tick_min",
-          "t": "$faccion.flags.truce"
-        }
-      ],
-      "precondicion": [
-        {
-          "tipo": "probabilidad",
-          "formula": "p_ataque_alianza",
-          "args": {
-            "ratio": {
-              "formula": "fuerza_guerra",
-              "args": {
-                "faccion": "$faccion"
-              }
-            }
-          }
-        }
-      ],
-      "marca_estado": {
-        "campo": "flags.war",
-        "fijar": true
-      },
-      "opciones": [
-        {
-          "id": "luchar",
-          "de_rumbo": true,
-          "efectos": [
-            {
-              "tipo": "resolver",
-              "formula": "roll_guerra",
-              "args": {
-                "ratio": {
-                  "formula": "fuerza_guerra",
-                  "args": {
-                    "faccion": "$faccion"
-                  }
-                }
-              },
-              "victoria": [
-                {
-                  "tipo": "magnitud",
-                  "entidad": "$faccion",
-                  "magnitud": "prestigio",
-                  "sumar": 5
-                },
-                {
-                  "tipo": "magnitud",
-                  "entidad": "$faccion",
-                  "magnitud": "tesoro",
-                  "sumar": 300
-                },
-                {
-                  "tipo": "para_cada",
-                  "entidad": "altepetl",
-                  "filtro": {
-                    "independent": false
-                  },
-                  "efectos": [
-                    {
-                      "tipo": "magnitud",
-                      "entidad": "$alts",
-                      "magnitud": "lealtad",
-                      "sumar": 5,
-                      "clamp": [
-                        0,
-                        100
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "tipo": "prisioneros",
-                  "sumar": 400
-                },
-                {
-                  "tipo": "cronica",
-                  "tipo_cronica": "consequence",
-                  "texto_clave": "cronica_efectos.crisis.guerra_alianza.1"
-                }
-              ],
-              "derrota": [
-                {
-                  "tipo": "magnitud",
-                  "entidad": "$faccion",
-                  "magnitud": "prestigio",
-                  "sumar": -5
-                },
-                {
-                  "tipo": "magnitud",
-                  "entidad": "$faccion",
-                  "magnitud": "tesoro",
-                  "sumar": -300,
-                  "clamp_min": 0
-                },
-                {
-                  "tipo": "para_cada",
-                  "entidad": "altepetl",
-                  "filtro": {
-                    "independent": false
-                  },
-                  "efectos": [
-                    {
-                      "tipo": "magnitud",
-                      "entidad": "$alts",
-                      "magnitud": "lealtad",
-                      "sumar": -15,
-                      "clamp": [
-                        0,
-                        100
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "tipo": "cronica",
-                  "tipo_cronica": "consequence",
-                  "texto_clave": "cronica_efectos.crisis.guerra_alianza.2"
-                }
-              ],
-              "empate": [
-                {
-                  "tipo": "magnitud",
-                  "entidad": "$faccion",
-                  "magnitud": "prestigio",
-                  "sumar": -2
-                },
-                {
-                  "tipo": "magnitud",
-                  "entidad": "$faccion",
-                  "magnitud": "tesoro",
-                  "sumar": -100,
-                  "clamp_min": 0
-                },
-                {
-                  "tipo": "prisioneros",
-                  "sumar": 100
-                },
-                {
-                  "tipo": "cronica",
-                  "tipo_cronica": "consequence",
-                  "texto_clave": "cronica_efectos.crisis.guerra_alianza.3"
-                }
-              ]
-            },
-            {
-              "tipo": "estado",
-              "campo": "flags.war",
-              "fijar": false
-            },
-            {
-              "tipo": "estado",
-              "campo": "flags.truce",
-              "fijar": {
-                "formula": "tick_mas",
-                "args": {
-                  "t": "$tick",
-                  "n": "TREGUA_ALIANZA"
-                }
-              }
-            }
-          ],
-          "titulo_clave": "crisis.guerra_alianza.opciones.luchar.titulo",
-          "costo_visible_clave": "crisis.guerra_alianza.opciones.luchar.costo_visible"
-        },
-        {
-          "id": "pagar",
-          "de_rumbo": true,
-          "efectos": [
-            {
-              "tipo": "magnitud",
-              "entidad": "$faccion",
-              "magnitud": "tesoro",
-              "sumar": -200,
-              "clamp_min": 0
-            },
-            {
-              "tipo": "estado",
-              "campo": "tributeOut",
-              "fijar": {
-                "amount": 120,
-                "left": 36
-              }
-            },
-            {
-              "tipo": "magnitud",
-              "entidad": "$faccion",
-              "magnitud": "prestigio",
-              "sumar": -3
-            },
-            {
-              "tipo": "estado",
-              "campo": "flags.war",
-              "fijar": false
-            },
-            {
-              "tipo": "estado",
-              "campo": "flags.truce",
-              "fijar": {
-                "formula": "tick_mas",
-                "args": {
-                  "t": "$tick",
-                  "n": "TREGUA_ALIANZA"
-                }
-              }
-            },
-            {
-              "tipo": "cronica",
-              "tipo_cronica": "consequence",
-              "texto_clave": "cronica_efectos.crisis.guerra_alianza.4"
-            }
-          ],
-          "titulo_clave": "crisis.guerra_alianza.opciones.pagar.titulo",
-          "costo_visible_clave": "crisis.guerra_alianza.opciones.pagar.costo_visible"
-        }
-      ],
-      "descripcion_clave": "crisis.guerra_alianza.descripcion",
-      "titulo_clave": "crisis.guerra_alianza.titulo",
-      "cuerpo_clave": "crisis.guerra_alianza.cuerpo"
-    },
-    {
       "id": "sucesion",
       "tipo": "crisis",
       "disparador": {
@@ -445,7 +209,8 @@
             }
           ],
           "titulo_clave": "crisis.sucesion.opciones.aceptar_heredero.titulo",
-          "costo_visible_clave": "crisis.sucesion.opciones.aceptar_heredero.costo_visible"
+          "costo_visible_clave": "crisis.sucesion.opciones.aceptar_heredero.costo_visible",
+          "consecuencia_de": "Haber designado heredero en vida del cazonci"
         },
         {
           "id": "tangaxoan",
@@ -543,6 +308,409 @@
       "descripcion_clave": "crisis.sucesion.descripcion",
       "titulo_clave": "crisis.sucesion.titulo",
       "cuerpo_clave": "crisis.sucesion.cuerpo"
+    },
+    {
+      "id": "ultimatum",
+      "tipo": "crisis",
+      "disparador": {
+        "tipo": "cola"
+      },
+      "condicion_entrada": [
+        {
+          "tipo": "flag",
+          "campo": "ultimatum.estado",
+          "es": "pendiente"
+        }
+      ],
+      "precondicion": [],
+      "opciones": [
+        {
+          "id": "pagar",
+          "costo": {
+            "tesoro": "TRIBUTO_EXIGIDO"
+          },
+          "efectos": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": -3
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$capital",
+              "magnitud": "lealtad",
+              "sumar": -5,
+              "clamp": [
+                0,
+                100
+              ]
+            },
+            {
+              "tipo": "estado",
+              "campo": "invasionAnio",
+              "fijar": {
+                "formula": "tick_mas",
+                "args": {
+                  "t": "$faccion.invasionAnio",
+                  "n": 3
+                }
+              }
+            },
+            {
+              "tipo": "estado",
+              "campo": "ultimatum.estado",
+              "fijar": "pagado"
+            },
+            {
+              "tipo": "cronica",
+              "tipo_cronica": "consequence",
+              "texto_clave": "cronica_efectos.crisis.ultimatum.pagar"
+            }
+          ]
+        },
+        {
+          "id": "ganar_tiempo",
+          "costo": {
+            "tesoro": 150
+          },
+          "efectos": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": -1
+            },
+            {
+              "tipo": "estado",
+              "campo": "invasionAnio",
+              "fijar": {
+                "formula": "tick_mas",
+                "args": {
+                  "t": "$faccion.invasionAnio",
+                  "n": 1
+                }
+              }
+            },
+            {
+              "tipo": "estado",
+              "campo": "ultimatum.estado",
+              "fijar": "negociado"
+            },
+            {
+              "tipo": "cronica",
+              "tipo_cronica": "consequence",
+              "texto_clave": "cronica_efectos.crisis.ultimatum.ganar_tiempo"
+            }
+          ]
+        },
+        {
+          "id": "rechazar",
+          "de_rumbo": true,
+          "efectos": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": 3
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$capital",
+              "magnitud": "lealtad",
+              "sumar": 5,
+              "clamp": [
+                0,
+                100
+              ]
+            },
+            {
+              "tipo": "estado",
+              "campo": "ultimatum.estado",
+              "fijar": "rechazado"
+            },
+            {
+              "tipo": "cronica",
+              "tipo_cronica": "crisis",
+              "texto_clave": "cronica.ultimatum_rechazado"
+            }
+          ],
+          "riesgo": "La invasión mexica llega a su tiempo"
+        }
+      ]
+    },
+    {
+      "id": "invasion",
+      "tipo": "crisis",
+      "disparador": {
+        "tipo": "cola"
+      },
+      "condicion_entrada": [
+        {
+          "tipo": "flag",
+          "campo": "invasor",
+          "es": true
+        },
+        {
+          "tipo": "flag",
+          "campo": "invasor.decidido",
+          "es": false
+        }
+      ],
+      "precondicion": [],
+      "opciones": [
+        {
+          "id": "frontera",
+          "de_rumbo": true,
+          "efectos": [
+            {
+              "tipo": "estado",
+              "campo": "defensa",
+              "fijar": "frontera"
+            },
+            {
+              "tipo": "estado",
+              "campo": "invasor.decidido",
+              "fijar": true
+            },
+            {
+              "tipo": "cronica",
+              "tipo_cronica": "consequence",
+              "texto_clave": "cronica_efectos.crisis.invasion.frontera"
+            }
+          ],
+          "riesgo": "Batalla en campo abierto sin ventaja defensiva; si se pierde, el enemigo sigue hacia la capital"
+        },
+        {
+          "id": "capital",
+          "de_rumbo": true,
+          "efectos": [
+            {
+              "tipo": "estado",
+              "campo": "defensa",
+              "fijar": "capital"
+            },
+            {
+              "tipo": "estado",
+              "campo": "invasor.decidido",
+              "fijar": true
+            },
+            {
+              "tipo": "para_cada",
+              "entidad": "altepetl",
+              "filtro": {
+                "independent": false,
+                "id": {
+                  "cmp": "!=",
+                  "valor": "tzintzuntzan"
+                }
+              },
+              "efectos": [
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$alts",
+                  "magnitud": "lealtad",
+                  "sumar": -10,
+                  "clamp": [
+                    0,
+                    100
+                  ]
+                }
+              ]
+            },
+            {
+              "tipo": "cronica",
+              "tipo_cronica": "consequence",
+              "texto_clave": "cronica_efectos.crisis.invasion.capital"
+            }
+          ]
+        },
+        {
+          "id": "pagar",
+          "costo": {
+            "tesoro": "TRIBUTO_PAZ"
+          },
+          "efectos": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": -6
+            },
+            {
+              "tipo": "para_cada",
+              "entidad": "altepetl",
+              "filtro": {
+                "independent": false
+              },
+              "efectos": [
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$alts",
+                  "magnitud": "lealtad",
+                  "sumar": -8,
+                  "clamp": [
+                    0,
+                    100
+                  ]
+                }
+              ]
+            },
+            {
+              "tipo": "estado",
+              "campo": "tributeOut",
+              "fijar": {
+                "amount": 150,
+                "left": 54
+              }
+            },
+            {
+              "tipo": "estado",
+              "campo": "invasionAnio",
+              "fijar": {
+                "formula": "tick_mas",
+                "args": {
+                  "t": "$faccion.year",
+                  "n": 4
+                }
+              }
+            },
+            {
+              "tipo": "estado",
+              "campo": "invasor",
+              "fijar": null
+            },
+            {
+              "tipo": "cronica",
+              "tipo_cronica": "consequence",
+              "texto_clave": "cronica_efectos.crisis.invasion.pagar"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "matlatzinca",
+      "tipo": "crisis",
+      "disparador": {
+        "tipo": "cola"
+      },
+      "_nota": "Por verificar con fuentes: la conquista mexica del valle de Toluca (matlatzincas) hacia 1474-1476, en la frontera oriental del reino.",
+      "condicion_entrada": [
+        {
+          "tipo": "tick_min",
+          "t": 3
+        },
+        {
+          "tipo": "flag",
+          "campo": "flags.matlatzinca",
+          "es": null
+        }
+      ],
+      "precondicion": [],
+      "marca_estado": {
+        "campo": "flags.matlatzinca",
+        "fijar": "abierta"
+      },
+      "opciones": [
+        {
+          "id": "apoyar",
+          "costo": {
+            "tesoro": 300
+          },
+          "de_rumbo": true,
+          "efectos": [
+            {
+              "tipo": "estado",
+              "campo": "invTropas",
+              "fijar": 24000
+            },
+            {
+              "tipo": "estado",
+              "campo": "invasionAnio",
+              "fijar": {
+                "formula": "tick_mas",
+                "args": {
+                  "t": "$faccion.invasionAnio",
+                  "n": -1
+                }
+              }
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": 2
+            },
+            {
+              "tipo": "estado",
+              "campo": "flags.matlatzinca",
+              "fijar": "apoyada"
+            },
+            {
+              "tipo": "cronica",
+              "tipo_cronica": "consequence",
+              "texto_clave": "cronica_efectos.crisis.matlatzinca.apoyar"
+            }
+          ]
+        },
+        {
+          "id": "refugio",
+          "efectos": [
+            {
+              "tipo": "crear_pop",
+              "entidad": "$capital",
+              "identidad": "matlatzinca",
+              "estrato": "comun",
+              "tamano": 2500,
+              "lealtad": 55,
+              "agravio": 35
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": 1
+            },
+            {
+              "tipo": "estado",
+              "campo": "flags.matlatzinca",
+              "fijar": "refugio"
+            },
+            {
+              "tipo": "cronica",
+              "tipo_cronica": "consequence",
+              "texto_clave": "cronica_efectos.crisis.matlatzinca.refugio"
+            }
+          ]
+        },
+        {
+          "id": "margen",
+          "efectos": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": -2
+            },
+            {
+              "tipo": "estado",
+              "campo": "invTropas",
+              "fijar": 34000
+            },
+            {
+              "tipo": "estado",
+              "campo": "flags.matlatzinca",
+              "fijar": "margen"
+            },
+            {
+              "tipo": "cronica",
+              "tipo_cronica": "consequence",
+              "texto_clave": "cronica_efectos.crisis.matlatzinca.margen"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

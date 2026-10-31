@@ -14,7 +14,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const htmlPath = join(raiz, 'hito_0', 'Hito 0 v4 - Reino purepecha.dc.html');
+const htmlPath = join(raiz, 'hito_0', 'Hito 0 v5 - Reino purepecha.dc.html');
 const constPath = join(raiz, 'hito_0', 'datos', 'constantes.json');
 const salida = join(raiz, 'nucleo', 'reglas', 'test', 'tablas_hito0.json');
 
@@ -207,7 +207,7 @@ for (const [T, I] of [[3, 3], [5, 3], [1, 3], [3, 5], [3, 1], [5, 5], [1, 1]]) {
 }
 
 const salidaJson = {
-  fuente: 'hito_0/Hito 0 v4 - Reino purepecha.dc.html (métodos extraídos por nombre)',
+  fuente: 'hito_0/Hito 0 v5 - Reino purepecha.dc.html (métodos extraídos por nombre)',
   generador: 'hito_0/tablas/generar.mjs',
   ticks_por_anio: TY,
   constantes: { economia: C.economia, eficiencia: C.eficiencia },

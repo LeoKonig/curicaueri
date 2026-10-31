@@ -11,7 +11,9 @@
     "tesoro_por_punto_presupuesto": 6,
     "tasa_base": 3,
     "agravio_subir_impuesto": 4,
-    "agravio_bajar_impuesto": 2
+    "agravio_bajar_impuesto": 2,
+    "_nota_agravio": "Cambio 3: el agravio alto reduce lo que se recauda (ingreso × (1 − agravio · penal_agravio_ingreso)).",
+    "penal_agravio_ingreso": 0.005
   },
   "eficiencia": {
     "base": 40,
@@ -36,7 +38,7 @@
     "efecto_eficiencia": 0.5
   },
   "rebelion": {
-    "umbral_lealtad": 30,
+    "umbral_lealtad": 45,
     "prob_por_tick": 0.05,
     "guarnicion_div": 1500,
     "calma_veintenas": 36,
@@ -74,6 +76,17 @@
       "slope": 0.3,
       "max": 0.9,
       "escala_prototipo": 0.6
+    },
+    "expedicion": {
+      "_nota": "Cambio 4: la expedición manda un destacamento, no el ejército entero, y puede perder.",
+      "destacamento": 4000,
+      "enemigo": 4500,
+      "por_mando": 0.08,
+      "bono_casus": 0.1,
+      "base": 0.7,
+      "varianza": 0.6,
+      "victoria": 1.0,
+      "derrota": 0.85
     }
   },
   "personajes": {
@@ -86,7 +99,8 @@
     "duracion": {
       "yacata": 8,
       "fortaleza": 6,
-      "troje": 4
+      "troje": 4,
+      "gran_yacata": 18
     },
     "presupuesto_minimo": 20,
     "prestigio_yacata": 1,
@@ -94,14 +108,17 @@
     "costo": {
       "yacata": 400,
       "fortaleza": 400,
-      "troje": 300
-    }
+      "troje": 300,
+      "gran_yacata": 1500
+    },
+    "prestigio_gran_yacata": 6
   },
   "incursion": {
     "prob_por_tick": 0.0278,
     "guarnicion_div": 2000,
     "perdida_poblacion": 0.98,
-    "marca_veintenas": 27
+    "marca_veintenas": 27,
+    "agravio": 3
   },
   "deuda": {
     "moral_cada": 6,
@@ -151,12 +168,17 @@
     "reclutar_costo": 200,
     "reclutar_tropas": 500,
     "regalos_costo": 150,
-    "regalos_prestigio": 3
+    "regalos_prestigio": 3,
+    "fiesta_costo": 250,
+    "fiesta_agravio": 8,
+    "fiesta_veintenas": 18,
+    "bloqueo_tasas": 36,
+    "capitan_lealtad": 8
   },
   "invasion": {
     "ultimatum_anio": 1476,
     "tributo_exigido": 400,
-    "tropas": 24000,
+    "tropas": 30000,
     "fuerza_mexica": 1.6,
     "objetivo_ratio": 0.62,
     "refuerzo_por_paso": 2000,
@@ -171,6 +193,45 @@
     "pospuesta_anios": 4,
     "descanso_pasos": 12,
     "recuperacion_anios": 4,
-    "prob_rendicion": 0.25
+    "_nota": "Cambio 1: la batalla depende de lo decidido (capitán, moral, fortaleza y guarnición de la capital) con poco azar; el asedio dura lo que dan las trojes y la fortaleza.",
+    "ruido": 0.1,
+    "por_mando": 0.08,
+    "por_moral": 0.03,
+    "bono_defensa": 0.05,
+    "bono_fortaleza": 0.25,
+    "resistencia_base": 2,
+    "resistencia_por_troje": 3,
+    "resistencia_por_fortaleza": 4,
+    "desgaste_asedio": 0.04,
+    "retirada_fraccion": 0.5,
+    "prestigio_victoria": 5,
+    "prisioneros_victoria": 300,
+    "tributo_paz": 600
+  },
+  "metas": {
+    "_nota": "Metas del reinado para 1485 (cambio 5). El veredicto final cuenta cuántas se cumplen.",
+    "prestigio": 35,
+    "lealtad": 60
+  },
+  "autonomia": {
+    "factor_tributo": 0.5,
+    "veintenas": 90
+  },
+  "presion": {
+    "_nota": "Cambio 3: la presión interna no se apaga sola.",
+    "desgaste_anual": 4,
+    "desgaste_capital": 1,
+    "alivio_gran_yacata": 3,
+    "techo_lealtad": 92,
+    "techo_por_distancia": 6,
+    "techo_identidad": 10
+  },
+  "sequia": {
+    "_nota": "Presagio de sequía (por verificar: la Relación de Michoacán menciona hambrunas por falta de lluvia). Avisa con tiempo para prepararse.",
+    "prob_por_tick": 0.025,
+    "aviso_veintenas": 6,
+    "duracion": 12,
+    "penalizacion": 45,
+    "penal_preparado": 10
   }
 }
