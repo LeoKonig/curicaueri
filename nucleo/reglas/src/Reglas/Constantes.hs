@@ -47,6 +47,12 @@ data Constantes = Constantes
   , cCostoTransporte       :: Fijo   -- COSTO_TRANSPORTE: valor por unidad y km de llano
   , cAlcanceTributo        :: Fijo   -- ALCANCE_TRIBUTO: hasta dónde se pide material
   , cAgravioTributoObra    :: Fijo   -- AGRAVIO_TRIBUTO_OBRA: puntos por año en quien lo envía
+    -- Fusión de pops (V5, *Escala de la simulación*). PROVISIONALES: es una
+    -- mecánica de rendimiento, como POP_MERGE_MAX_WORKFORCE de Victoria 3.
+  , cFusionTamano          :: Int    -- FUSION_TAMANO: un pop más chico que esto se funde; 0, ninguno
+  , cFusionGradiente       :: Fijo   -- FUSION_GRADIENTE: diferencia máxima de gradiente de catolicismo
+  , cFusionLealtad         :: Fijo   -- FUSION_LEALTAD: diferencia máxima de lealtad, en puntos
+  , cFusionAgravio         :: Fijo   -- FUSION_AGRAVIO: diferencia máxima de agravio, en puntos
   } deriving (Eq, Show)
 
 constantesDefault :: Constantes
@@ -89,4 +95,11 @@ constantesDefault = Constantes
   , cCostoTransporte       = Fijo 100        -- 0,01, provisional
   , cAlcanceTributo        = fi 300
   , cAgravioTributoObra    = fi 2
+    -- Un pop de menos de 1 000 personas es una aldea o un barrio: por debajo
+    -- de eso, distinguir dos con la misma clave y casi los mismos valores no
+    -- cambia ninguna decisión. Las diferencias son de relleno.
+  , cFusionTamano          = 1000
+  , cFusionGradiente       = Fijo 500        -- 0,05, provisional
+  , cFusionLealtad         = fi 10
+  , cFusionAgravio         = fi 10
   }

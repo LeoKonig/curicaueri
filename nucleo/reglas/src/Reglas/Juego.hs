@@ -28,12 +28,15 @@ import Motor.Terrenos (DefTerreno)
 import Reglas.Estado
 import Reglas.Grupos
 import Reglas.Sistemas
+import Reglas.Fusion (fusion)
 
 catalogoMag :: Map.Map Magnitud DefMagnitud
 catalogoMag = Map.fromList
-  [ (Magnitud "agravio",
+  [ -- Dos escritores: el agravio de cada veintena y la fusión de pops, que
+    -- deja en el pop que queda la media ponderada de los que se juntan.
+    (Magnitud "agravio",
      DefMagnitud "agravio" (RangoMag (Fijo 0) (fi 100))
-                  "m.agravio" Nothing False)
+                  "m.agravio" Nothing True)
     -- Dos escritores: la hacienda y la construcción, que cobra el transporte
     -- del tributo en especie al llegar (V5, *Las obras*, etapa 2).
   , (magTesoro,
@@ -238,11 +241,12 @@ juegoCon c gs = juegoDatos c datosVacios { drGrupos = gs }
 --
 -- La construcción corre antes que la producción, la hacienda y el agravio: un
 -- edificio que se termina en una veintena ya cuenta en ella, y así ningún
--- sistema lee lo que escribe otro posterior.
+-- sistema lee lo que escribe otro posterior. La fusión de pops va al final:
+-- cada pop recibe su agravio de la veintena antes de juntarse.
 juegoDatos :: Constantes -> DatosReglas -> Juego Purepecha Comando
 juegoDatos c dr = let bienes = bienesDe (drTerrenos dr) in Juego
   { juegoSistemas    = [ construccion c (drEdificios dr), produccion c bienes
-                       , hacienda c, evolucionAgravio c ]
+                       , hacienda c, evolucionAgravio c, fusion c ]
   , juegoAplicarCmd  = aplicarComando c dr
   , juegoDerivar     = \g _ p -> derivarPurepecha c dr g (persistenteJuego p)
   , juegoProyectar   = proyectar
