@@ -33,21 +33,9 @@ import Motor.Base
 import Motor.Calendario (Fecha (..), diaJuliano)
 import Motor.Carga (CategoriaError (..), ErrorCarga (..), Validacion (..), falla)
 import Motor.Efectos (Programa, compilarPrograma)
-import Motor.Magnitudes (Magnitud (..))
+import Motor.Magnitudes (Condicion (..), Magnitud (..))
 import Motor.Mapa (Mapa)
 import Motor.Moneda (Economia, economiaVacia)
-
--- | Condiciones sobre el estado visible. Un lenguaje pequeño y cerrado: se
--- valida al cargar y se evalúa sin efectos.
-data Condicion
-  = Siempre
-  | Mayor EntRef Magnitud Fijo        -- ^ valor efectivo > umbral
-  | Menor EntRef Magnitud Fijo        -- ^ valor efectivo < umbral
-  | DesdeTick Int64                  -- ^ a partir de un día (en el JSON, "desde_fecha")
-  | Todas [Condicion]
-  | Alguna [Condicion]
-  | No Condicion
-  deriving (Eq, Show)
 
 -- | Una fase del escenario. Empieza cuando llega su día o se cumple su
 -- condición, lo que ocurra primero, y nunca vuelve atrás. Mientras dura,

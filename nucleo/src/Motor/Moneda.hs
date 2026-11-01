@@ -52,6 +52,7 @@ module Motor.Moneda
 import Data.Aeson (Value)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Types as A
+import Data.IntSet (IntSet)
 import Data.List (foldl')
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -126,11 +127,12 @@ precioBien pm b x y =
   in max (pmPrecioMinimo pm) (bnValor b .*. bnCalidad b .*. escasez)
 
 -- | El precio de un bien para una entidad, leyendo sus existencias y su
--- producción (valores efectivos; 0 si la entidad no las tiene).
-precioEn :: ParamsMoneda -> Tick -> Almacen -> EntRef -> Bien -> Fijo
-precioEn pm t alm ent b = precioBien pm b (leer (magExistencias (bnId b))) (leer (magProduccion (bnId b)))
+-- producción (valores efectivos, con los modificadores condicionales
+-- vigentes que diga @vig@; 0 si la entidad no las tiene).
+precioEn :: ParamsMoneda -> IntSet -> Tick -> Almacen -> EntRef -> Bien -> Fijo
+precioEn pm vig t alm ent b = precioBien pm b (leer (magExistencias (bnId b))) (leer (magProduccion (bnId b)))
   where
-    leer m = maybe (Fijo 0) (valorEn t rangoAmplio) (Map.lookup (ent, m) alm)
+    leer m = maybe (Fijo 0) (valorEn vig t rangoAmplio) (Map.lookup (ent, m) alm)
     rangoAmplio = RangoMag (Fijo minBound) (Fijo maxBound)
 
 -- | El precio actual de la moneda de una entidad, si designó una.
@@ -138,7 +140,7 @@ precioMonedaDe :: Economia -> Tick -> Estado s -> EntRef -> Maybe Fijo
 precioMonedaDe ec t e ent = do
   em <- Map.lookup ent (comunMonedas (comun e))
   b  <- Map.lookup (emMoneda em) (ecoBienes ec)
-  pure (precioEn (ecoParams ec) t (comunMagnitudes (comun e)) ent b)
+  pure (precioEn (ecoParams ec) (derivadoVigentes (estadoDerivado e)) t (comunMagnitudes (comun e)) ent b)
 
 -- | Cuántas unidades de moneda cuesta algo que vale @c@: c · P = c / p(moneda).
 -- Nothing si la entidad no designó moneda (entonces se paga en valor).
@@ -199,7 +201,7 @@ designarMoneda ec ent destino t e =
            | otherwise ->
                -- Lo nominal se convierte al tipo del día: de valor (o de la moneda
                -- anterior) a la nueva, sin ganar ni perder valor real.
-               let p    = precioEn (ecoParams ec) t (comunMagnitudes (comun e)) ent bien
+               let p    = precioEn (ecoParams ec) (derivadoVigentes (estadoDerivado e)) t (comunMagnitudes (comun e)) ent bien
                    pAnt = maybe uno id (precioMonedaDe ec t e ent)
                    e' = conComun e (\c -> c
                           { comunMonedas = Map.insert ent (EstadoMonetario b t []) (comunMonedas c)
@@ -225,7 +227,7 @@ pasoMoneda ec t e
     anotar (ms, alm) ent em = case Map.lookup (emMoneda em) (ecoBienes ec) of
       Nothing -> (ms, alm)            -- el bien ya no está en el escenario: no se anota
       Just b ->
-        let p   = precioEn (ecoParams ec) t alm ent b
+        let p   = precioEn (ecoParams ec) (derivadoVigentes (estadoDerivado e)) t alm ent b
             em' = em { emHistorial = take (n + 1) ((t, p) : emHistorial em) }
             alm1 = escribirPrecio ent p alm
             alm2 = maybe alm1 (\i -> fijarBase ent magInflacion i alm1) (inflacionDe cal em')

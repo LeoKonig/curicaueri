@@ -294,6 +294,9 @@ desglose :: Magnitud -> Fijo -> [Modificador] -> Desglose   -- la misma lista, c
 - **El orden no importa** (conmutatividad): el valor es el mismo para cualquier permutación de la lista.
 - **El retorno a la base es automático.** Una magnitud cuyas fuentes son modificadores temporales (la legitimidad) vuelve a su base cuando estos expiran: es constante a trozos y no necesita una regla de decaimiento.
 - **Quién escribe qué.** Los sistemas escriben la base o crean y terminan modificadores; nunca el valor efectivo.
+- **Las condiciones usan el lenguaje del guion.** Un modificador puede llevar una `Condicion` (la misma de la sección 11b; no hay otro lenguaje). Se evalúa en el paso 16, al empezar la veintena, y el conjunto de ids de los modificadores condicionales cuya condición se cumple es `derivadoVigentes`. Un condicional cuenta en `valorEn` solo si su id está en ese conjunto (`cuentaEn`); uno sin condición cuenta siempre que esté en su ventana.
+- **Qué leen las condiciones: el valor sin condicionales.** Al evaluar la condición de un modificador, las magnitudes que lee se calculan sin los modificadores condicionales (con un conjunto de vigentes vacío). Es deliberado: si una condición pudiera leer algo que otro condicional modifica, el resultado dependería del orden de evaluación o de un punto fijo, y `derivar` dejaría de ser una función pura de `(tick, persistente)`, que es lo que exige la ley del derivado reproducible (sección 4). Las condiciones de fases y situaciones, que se evalúan después del derivado, sí ven los vigentes.
+- **Dejar de cumplirse no es terminar.** Cuando un modificador vigente deja de estarlo en el paso 16, emite `modificador_terminado` con la razón `condicion`, pero no se quita del almacén: si su condición vuelve a cumplirse, vuelve a contar. Un modificador que además venció ya emitió su hecho con la razón `expiro` y no se anuncia dos veces.
 
 ## 7. Sistemas y el tick
 

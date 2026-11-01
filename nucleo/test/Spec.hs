@@ -8,6 +8,7 @@ import Data.List (foldl', sort)
 import Test.Hspec
 import Test.QuickCheck
 import qualified Data.IntMap.Strict as IntMap
+import qualified Data.IntSet as IntSet
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Data.Sequence as Seq
@@ -133,7 +134,7 @@ migracionSistema = Sistema
           alm  = comunMagnitudes com
           ids  = alIds jue
           mag i m = maybe (Fijo 0) id (Map.lookup (EntRef "aldea" i, Magnitud m) alm >>= \x ->
-                      fmap (\dm -> valorEn t (dmRango dm) x) (Map.lookup (Magnitud m) catalogoToy))
+                      fmap (\dm -> valorEn (derivadoVigentes (estadoDerivado est)) t (dmRango dm) x) (Map.lookup (Magnitud m) catalogoToy))
           pob  = Map.fromList [ (i, parteEntera (mag i "poblacion")) | i <- ids ]
           desc i = mag i "descontento"
           flujos = Map.fromList
@@ -291,7 +292,7 @@ avanzarCon :: Entorno -> [Int64] -> Estado Aldeas -> (Estado Aldeas, [Hecho])
 avanzarCon ent ts s0 = foldl' (\(e, hs) t -> let (e', h) = paso juguete ent (Semilla 1) (Tick t) [] e in (e', hs ++ h)) (s0, []) ts
 
 presionEn :: Estado Aldeas -> Fijo
-presionEn e = maybe (Fijo 0) (valorEn (estadoTick e) (RangoMag (Fijo 0) (fi 100)))
+presionEn e = maybe (Fijo 0) (valorEn (derivadoVigentes (estadoDerivado e)) (estadoTick e) (RangoMag (Fijo 0) (fi 100)))
   (Map.lookup (EntRef "frontera" 1, Magnitud "presion") (comunMagnitudes (persistenteComun (estadoPersistente e))))
 
 directorDe :: Estado Aldeas -> EstadoDirector
@@ -862,7 +863,7 @@ main = hspec $ do
   describe "ruta: modificador que expira" $ do
     let s5   = case aplicarCola juguete [Sellado (Tick 5) (FaccionId 1) 0 (CelebrarFiesta 1)] (avanzar [0..4] estadoInicial) of
                  (e, _, _) -> e
-        efectivo t e = (\x -> valorEn (Tick t) (RangoMag (Fijo 0) (fi 100)) x) <$>
+        efectivo t e = (\x -> valorEn (derivadoVigentes (estadoDerivado e)) (Tick t) (RangoMag (Fijo 0) (fi 100)) x) <$>
                          Map.lookup (EntRef "aldea" 1, Magnitud "descontento") (comunMagnitudes (persistenteComun (estadoPersistente e)))
         base e = baseMag 1 (Magnitud "descontento") e
         correrConHechos ts e0 = foldl' (\(e, hs) t -> let (e', h) = paso juguete entornoPrueba (Semilla 1) (Tick t) [] e in (e', hs ++ h)) (e0, []) ts
@@ -891,6 +892,109 @@ main = hspec $ do
           (a1, i1) = agregarModificador m Map.empty
           (_,  i2) = agregarModificador m a1
       (i1, i2) `shouldBe` (1, 2)
+
+  describe "modificadores condicionales" $ do
+    -- Aldea 1 empieza con 100 de población y la cosecha le suma 1 por veintena,
+    -- así que tras los pasos de los días 0, 20, 40 y 60 tiene 101, 102, 103 y 104.
+    -- Las veintenas empiezan en los días múltiplos de 20.
+    let pobAldea1 = (EntRef "aldea" 1, Magnitud "poblacion")
+        descAldea1 = (EntRef "aldea" 1, Magnitud "descontento")
+        condMas10 c = Modificador 0 (Magnitud "descontento") (EntRef "aldea" 1)
+                        (Aporte (fi 10) (Fijo 0)) (Fuente "prueba" "condicional")
+                        Nothing Nothing (Just c) AlcancePropia
+        -- El estado inicial con el modificador ya en el almacén, y su derivado y su origen
+        -- calculados de nuevo, como los dejaría el paso 16.
+        conMod c =
+          let p0 = estadoPersistente estadoInicial
+              com = persistenteComun p0
+              (alm, _) = agregarModificador (condMas10 c) (comunMagnitudes com)
+              p1 = p0 { persistenteComun = com { comunMagnitudes = alm } }
+          in estadoInicial { estadoPersistente = p1
+                           , estadoOrigen = Origen (Tick 0) p1
+                           , estadoDerivado = derivar juguete mapaPrueba (Tick 0) p1 }
+        efectivoDesc e = (\x -> valorEn (derivadoVigentes (estadoDerivado e)) (estadoTick e) (RangoMag (Fijo 0) (fi 100)) x)
+                           <$> Map.lookup descAldea1 (comunMagnitudes (persistenteComun (estadoPersistente e)))
+        baseDesc = baseMag 1 (Magnitud "descontento")
+        aporteDeCondicion e = (.-.) <$> efectivoDesc e <*> baseDesc e
+        corre ts e0 = foldl' (\(e, hs) t -> let (e', h) = pasoConHechos t e in (e', hs ++ h)) (e0, []) ts
+        masDe103 = Mayor (EntRef "aldea" 1) (Magnitud "poblacion") (fi 103)
+        modsDe e = maybe [] almacenMods (Map.lookup descAldea1 (comunMagnitudes (persistenteComun (estadoPersistente e))))
+        terminadosPorCondicion hs = [ hechoTick h | h <- hs, hechoTipo h == "modificador_terminado"
+                                                  , Map.lookup "razon" (hechoParams h) == Just "condicion" ]
+        sMas = fst (corre [0..60] (conMod masDe103))
+    it "cuenta solo cuando se cumple su condición: población > 103" $ do
+      aporteDeCondicion (fst (corre [0..59] (conMod masDe103))) `shouldBe` Just (Fijo 0)
+      aporteDeCondicion sMas `shouldBe` Just (fi 10)
+    it "la población que decide es la de los días 0, 20, 40 y 60 (la premisa de las pruebas)" $
+      almacenBase <$> Map.lookup pobAldea1 (comunMagnitudes (persistenteComun (estadoPersistente sMas)))
+        `shouldBe` Just (fi 104)
+    it "los vigentes son ids de modificadores condicionales; sin condicionales, el conjunto es vacío" $ do
+      IntSet.size (derivadoVigentes (estadoDerivado sMas)) `shouldBe` 1
+      derivadoVigentes (estadoDerivado (avanzar [0..60] estadoInicial)) `shouldBe` IntSet.empty
+    it "un modificador sin condición cuenta aunque no esté entre los vigentes" $ do
+      let m = (condMas10 Siempre) { modCondicion = Nothing }
+      (cuentaEn IntSet.empty (Tick 0) m, cuentaEn IntSet.empty (Tick 0) (condMas10 Siempre)) `shouldBe` (True, False)
+    it "una condición que se cumple no salta la ventana del modificador" $ do
+      let m = (condMas10 Siempre) { modId = 7, modInicio = Just (Tick 10) }
+      (cuentaEn (IntSet.singleton 7) (Tick 9) m, cuentaEn (IntSet.singleton 7) (Tick 10) m) `shouldBe` (False, True)
+    it "la vista solo muestra el aporte condicional mientras está vigente" $ do
+      let aportes e = fmap (length . mvAportes) (Map.lookup (Magnitud "descontento")
+            . evMagnitudes =<< Map.lookup (EntRef "aldea" 1) (vEntidades (proyeccion juguete e)))
+      (aportes (fst (corre [0..59] (conMod masDe103))), aportes sMas) `shouldBe` (Just 0, Just 1)
+    -- Una condición que deja de cumplirse y vuelve: verdadera hasta el día 39 (y no desde el 40
+    -- hasta el 99), y otra vez verdadera desde el 100.
+    let intermitente = Alguna [No (DesdeTick 40), DesdeTick 100]
+        (s39, hs39)   = corre [0..39] (conMod intermitente)
+        (s40, hs40)   = corre [40] s39
+        (s99, hs99)   = corre [41..99] s40
+        (s100, hs100) = corre [100] s99
+    it "mientras se cumple, cuenta" $
+      aporteDeCondicion s39 `shouldBe` Just (fi 10)
+    it "al dejar de cumplirse emite modificador_terminado con la razón condicion, y deja de contar" $ do
+      terminadosPorCondicion (hs39 ++ hs40) `shouldBe` [Tick 40]
+      aporteDeCondicion s40 `shouldBe` Just (Fijo 0)
+    it "no se borra: sigue en el almacén y no vuelve a anunciarse mientras no cambie" $ do
+      length (modsDe s99) `shouldBe` 1
+      terminadosPorCondicion hs99 `shouldBe` []
+      aporteDeCondicion s99 `shouldBe` Just (Fijo 0)
+    it "puede volver a cumplirse y vuelve a contar" $ do
+      aporteDeCondicion s100 `shouldBe` Just (fi 10)
+      terminadosPorCondicion hs100 `shouldBe` []
+    it "un modificador condicional no vigente en la primera derivación no anuncia nada" $
+      terminadosPorCondicion (snd (corre [0..39] (conMod masDe103))) `shouldBe` []
+    it "no se anuncia dos veces si además vence: al expirar solo emite `expiro`" $ do
+      let conFin = (conMod intermitente)
+          p0 = estadoPersistente conFin
+          com = persistenteComun p0
+          alm = Map.adjust (\x -> x { almacenMods = [ m { modFin = Just (Tick 40) } | m <- almacenMods x ] })
+                  descAldea1 (comunMagnitudes com)
+          p1 = p0 { persistenteComun = com { comunMagnitudes = alm } }
+          e0 = conFin { estadoPersistente = p1, estadoOrigen = Origen (Tick 0) p1
+                      , estadoDerivado = derivar juguete mapaPrueba (Tick 0) p1 }
+          (_, hs) = corre [0..40] e0
+      [ Map.lookup "razon" (hechoParams h) | h <- hs, hechoTipo h == "modificador_terminado" ]
+        `shouldBe` [Just "expiro"]
+    it "guardar y cargar a mitad de veintena conserva la condición y los vigentes" $ do
+      let s65 = fst (corre [61..65] sMas)
+          Right cargado = cargar juguete mapaPrueba (guardar s65)
+      modCondicion <$> modsDe cargado `shouldBe` [Just masDe103]
+      derivadoVigentes (estadoDerivado cargado) `shouldBe` derivadoVigentes (estadoDerivado s65)
+      aporteDeCondicion cargado `shouldBe` aporteDeCondicion s65
+    it "y la partida cargada sigue igual que la original, incluida la vuelta de la condición" $ do
+      let Right cargado = cargar juguete mapaPrueba (guardar s99)
+      comunMagnitudes (persistenteComun (estadoPersistente (avanzar [100..130] cargado)))
+        `shouldBe` comunMagnitudes (persistenteComun (estadoPersistente (avanzar [100..130] s99)))
+      derivadoVigentes (estadoDerivado (avanzar [100] cargado)) `shouldBe` derivadoVigentes (estadoDerivado s100)
+    it "toda condición sobrevive a guardar y cargar" $ do
+      let todas = Todas [ Siempre, Mayor (EntRef "aldea" 1) (Magnitud "poblacion") (fi 3)
+                        , Menor (EntRef "aldea" 2) (Magnitud "descontento") (Fijo 5)
+                        , No (DesdeTick 40), Alguna [DesdeTick 1, Siempre] ]
+          e = conMod todas
+          Right cargado = cargar juguete mapaPrueba (guardar e)
+      modCondicion <$> modsDe cargado `shouldBe` [Just todas]
+    it "un guardado sin condición (campo nulo) sigue cargando" $ do
+      let Right cargado = cargar juguete mapaPrueba (guardar (avanzar [0..30] conFiesta))
+      modCondicion <$> modsDe cargado `shouldBe` [Nothing]
 
   describe "ruta: población con restos" $ do
     it "crecer con resto: 0,1 persona por paso suma 1 cada 10 pasos" $
