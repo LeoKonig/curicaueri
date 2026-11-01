@@ -1,0 +1,39 @@
+{
+  "_nota": "Edificios del hito 3 (V5, Las palancas: Construcción; Modelo de datos: Edificio). Costos, veintenas de obra, efectos y prestigio salen del prototipo del hito 0 (hito_0/datos/constantes.json, bloque construccion, y el código de incomeParts, popParts y resistenciaAsedio). Los porcentajes están en puntos (10 = +10 %) y se suman entre sí, como cualquier modificador: yácata y fortaleza juntas dan +5 %, no el 1,1 × 0,95 = +4,5 % del prototipo. Lo que el prototipo hace y aquí todavía no tiene magnitud que lo lea queda fuera: la lealtad de la yácata (+2 por año), la subsistencia de la troje (+15) y la fuerza de guerra de la fortaleza (+800). El costo acepta insumos (sección 14h del documento funcional), pero todavía deben ir vacíos.",
+  "version": 1,
+  "edificios": [
+    {
+      "id": "yacata",
+      "costo": {"valor": "400", "veintenas": 8, "insumos": []},
+      "modificadores": [
+        {"entidad": "altepetl", "magnitud": "produccion", "porcentaje": "10"},
+        {"entidad": "altepetl", "magnitud": "tasa_agravio", "sumar": "-5"}
+      ],
+      "al_terminar": [
+        {"tipo": "sumar_mag", "entidad": "faccion", "magnitud": "prestigio", "valor": "1"}
+      ]
+    },
+    {
+      "id": "fortaleza",
+      "costo": {"valor": "400", "veintenas": 6, "insumos": []},
+      "modificadores": [
+        {"entidad": "altepetl", "magnitud": "produccion", "porcentaje": "-5"},
+        {"entidad": "altepetl", "magnitud": "reservas_asedio", "sumar": "4"}
+      ],
+      "al_terminar": [
+        {"tipo": "sumar_mag", "entidad": "faccion", "magnitud": "prestigio", "valor": "2"}
+      ]
+    },
+    {
+      "id": "troje",
+      "costo": {"valor": "300", "veintenas": 4, "insumos": []},
+      "modificadores": [
+        {"entidad": "altepetl", "magnitud": "tasa_agravio", "sumar": "-3"},
+        {"entidad": "altepetl", "magnitud": "reservas_asedio", "sumar": "3"}
+      ],
+      "al_terminar": [
+        {"tipo": "sumar_mag", "entidad": "faccion", "magnitud": "prestigio", "valor": "1"}
+      ]
+    }
+  ]
+}

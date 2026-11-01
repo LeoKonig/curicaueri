@@ -11,6 +11,7 @@ library
                     Reglas.Comando
                     Reglas.Formulas
                     Reglas.Grupos
+                    Reglas.Edificios
                     Reglas.Sistemas
                     Reglas.Escenario
                     Reglas.Juego

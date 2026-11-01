@@ -18,11 +18,11 @@ escenario1475 :: Purepecha
 escenario1475 = Purepecha
   { ppAltepetl = Map.fromList
       [ (AltId 1, Altepetl (AltId 1) "Tzintzuntzan"
-                    (Just (PerId 2)) (fi 0) Nothing (fi 80) 63)
+                    (Just (PerId 2)) (fi 0) Nothing (fi 80) 63 Nothing [])
       , (AltId 2, Altepetl (AltId 2) "Zacapu"
-                    (Just (PerId 3)) (fi 2) (Just (AltId 1)) (fi 60) 33)
+                    (Just (PerId 3)) (fi 2) (Just (AltId 1)) (fi 60) 33 Nothing [])
       , (AltId 3, Altepetl (AltId 3) "Uruapan"
-                    (Just (PerId 4)) (fi 1) (Just (AltId 1)) (fi 75) 101)
+                    (Just (PerId 4)) (fi 1) (Just (AltId 1)) (fi 75) 101 Nothing [])
       ]
   , ppPops = Map.fromList
       [ (PopId 1, Pop (PopId 1) (AltId 1) "purepecha" "nobleza" 3000  (fi 80))
@@ -52,6 +52,7 @@ estadoInicial1475 =
         [ ((entRefPop (PopId i), Magnitud "agravio"), AlmacenMag (fi ag) [])
         | (i, ag) <- [(1, 10), (2, 20), (3, 40), (4, 45), (5, 15), (6, 20)]
         ] ++
+        [ ((entRefAlt (AltId i), magProduccionAlt), AlmacenMag baseProduccionAlt []) | i <- [1, 2, 3] ] ++
         [ ((entFaccion, magTesoro),      AlmacenMag (fi 1000) [])
         , ((entFaccion, magPrestigio),   AlmacenMag (fi 20) [])
         , ((entFaccion, magLegitimidad), AlmacenMag (fi 50) [])
@@ -127,11 +128,12 @@ escalar celdas n k e
           p0  = 1 + maximum (0 : [ i | PopId i <- Map.keys (ppPops j) ])
           identidades = ["purepecha", "hnahnu", "nahua"]
           alts = [ Altepetl (AltId (a0 + x)) "Sujeto de prueba" (Just (PerId 3)) (fi (1 + x `mod` 3))
-                            (Just (AltId 1)) (fi 60) ((x * 7919) `mod` max 1 celdas)
+                            (Just (AltId 1)) (fi 60) ((x * 7919) `mod` max 1 celdas) Nothing []
                  | x <- [0 .. n - 1] ]
           pops = [ Pop (PopId (p0 + x * k + y)) (AltId (a0 + x)) (identidades !! (y `mod` 3)) "comun" 500 (fi 60)
                  | x <- [0 .. n - 1], y <- [0 .. k - 1] ]
           ags  = [ ((entRefPop (popId q), Magnitud "agravio"), AlmacenMag (fi 30) []) | q <- pops ]
+              ++ [ ((entRefAlt (altId a), magProduccionAlt), AlmacenMag baseProduccionAlt []) | a <- alts ]
           j'   = j { ppAltepetl = Map.union (ppAltepetl j) (Map.fromList [ (altId a, a) | a <- alts ])
                    , ppPops     = Map.union (ppPops j) (Map.fromList [ (popId q, q) | q <- pops ]) }
           com' = com { comunMagnitudes = Map.union (comunMagnitudes com) (Map.fromList ags) }

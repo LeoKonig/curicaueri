@@ -32,6 +32,8 @@ data Constantes = Constantes
     -- Agravio del gobernador (`popParts`): (base − administración) × por punto.
   , cGobernadorAgravioBase :: Int    -- literal: 2
   , cGobernadorAgravioPunto :: Int   -- literal: 3
+    -- Obras (`step`): la partida de obras mínima para que avancen.
+  , cObrasPresupuestoMinimo :: Int   -- construccion.presupuesto_minimo
   } deriving (Eq, Show)
 
 constantesDefault :: Constantes
@@ -56,4 +58,5 @@ constantesDefault = Constantes
   , cAdminNeutral          = 3
   , cGobernadorAgravioBase = 2
   , cGobernadorAgravioPunto = 3
+  , cObrasPresupuestoMinimo = 20
   }
