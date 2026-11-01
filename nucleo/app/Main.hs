@@ -26,6 +26,10 @@
 --
 -- Ejes de poder (ver Motor.Autoridad; sin esta opción, el catálogo no trae ejes):
 --   --ejes ARCHIVO           por ejemplo datos/ejes.json
+--
+-- Grupos de poder (ver Reglas.Grupos; sin esta opción, nombrar un gobernador
+-- no mueve poder de nadie):
+--   --grupos ARCHIVO         por ejemplo datos/grupos.json
 module Main (main) where
 
 import Control.Concurrent (forkIO, threadDelay)
@@ -70,6 +74,7 @@ import Reglas.Comando
 import Reglas.Constantes (constantesDefault)
 import Reglas.Escenario
 import Reglas.Estado (Purepecha, ppAltepetl, ppPops)
+import Reglas.Grupos (cargarGrupos, conGrupos, gruposVacios, grIds)
 import qualified Reglas.Juego as RJ
 
 -- | Milisegundos por día, de la velocidad 1 (más lenta) a la 5 (más rápida).
@@ -125,13 +130,22 @@ main = do
   hSetEncoding stderr utf8
   mapaR <- either (fail . show) pure (proveedorHexagonal datosMapa1475 { hexAncho = ancho, hexAlto = alto })
   createDirectoryIfMissing True carpeta
-  let juego = RJ.juego constantesDefault
+  grupos <- case opcion "--grupos" "" of
+    "" -> pure gruposVacios
+    ruta -> do
+      bs <- BL.readFile ruta
+      case A.eitherDecode bs of
+        Left err -> fail ("grupos ilegibles (" <> ruta <> "): " <> err)
+        Right v -> validado (cargarGrupos (T.pack ruta) v)
+  unless (null (grIds grupos)) $ registro ("grupos de poder: " <> T.intercalate ", " (grIds grupos))
+  let juego = RJ.juegoCon constantesDefault grupos
       -- --escala 7500x20: altépetl y pops de prueba para medir el costo a la
       -- escala del mapa completo (solo para la prueba de rendimiento del núcleo).
       (escN, escK) = case break (== 'x') (opcion "--escala" "") of
                        (a, _ : b) | [(x, "")] <- reads a, [(y, "")] <- reads b -> (x, y)
                        _ -> (0, 0)
-      e0    = escalar (ancho * alto) escN escK (reubicar ancho alto estadoInicial1475)
+      eSinGrupos = escalar (ancho * alto) escN escK (reubicar ancho alto estadoInicial1475)
+  e0 <- validado (conGrupos (T.pack (opcion "--grupos" "")) grupos tipoFaccion1475 eSinGrupos)
   agente <- case opcion "--agente" "" of
     "" -> case opcion "--reproducir-agente" "" of
       "" -> pure Nothing
