@@ -14,6 +14,7 @@ library
                     Reglas.Edificios
                     Reglas.Produccion
                     Reglas.Sistemas
+                    Reglas.Fusion
                     Reglas.Escenario
                     Reglas.Juego
   hs-source-dirs:   src

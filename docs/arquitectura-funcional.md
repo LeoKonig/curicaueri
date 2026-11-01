@@ -620,6 +620,14 @@ W_a = \max\Big(0,\ \sum_{p \in P(a)} \big\lfloor N_p \cdot \phi \big\rfloor - R_
 
 con φ = `FRACCION_TRABAJADORA` y R_a los trabajadores retirados por leva o trabajo obligatorio (`retirar_trabajadores`). El comando que recluta valida R_a contra los trabajadores disponibles. Aun así, el `max` hace falta: una epidemia puede bajar la población *después* de la leva, y los retirados siguen fuera.
 
+**Fusión de pops pequeños** (sistema `fusion_pops`, cada periodo, después del agravio). Dentro de cada clave (asentamiento, identidad, estrato; la condición y la residencia se añaden cuando existan), los pops se recorren de mayor a menor tamaño, con empate por id. Un pop p con N_p < `FUSION_TAMANO` se funde con el primero k de los ya recorridos que sea compatible:
+
+```math
+|g_k - g_p| \le \Delta_g,\qquad |\ell_k - \ell_p| \le \Delta_\ell,\qquad |A_k - A_p| \le \Delta_A
+```
+
+con g el gradiente de catolicismo, ℓ la lealtad y A el agravio, y siempre que ninguno tenga modificadores propios ni magnitudes distintas. k conserva su id; N_k ← N_k + N_p, y el gradiente, la lealtad y la base de cada magnitud quedan como la media ponderada x ← ⌊(x_k N_k + x_p N_p) / (N_k + N_p)⌋. Las magnitudes de p salen del almacén y el sistema emite `pops_fusionados` con el pop que queda y los absorbidos. El agravio tiene así dos escritores declarados: su sistema de veintena y la fusión. Leyes: el tamaño total de cada clave se conserva; las sumas ponderadas Σ N·x bajan menos de una unidad por persona de cada pop que absorbe; ningún pop de `FUSION_TAMANO` o más desaparece, ni ninguno con modificadores propios; con `FUSION_TAMANO` = 0, o sin dos pops pequeños compatibles, el estado no cambia.
+
 **Producción: tierra y brazos, el factor escaso manda.** Cada celda c tiene un rendimiento y(c) cuando se trabaja completa y necesita ℓ(c) trabajadores para ello; las dos son magnitudes, así que el terreno, las terrazas, la erosión y la estación las mueven. Los trabajadores van primero a las mejores celdas: se ordenan las celdas asignadas K(a) por κ(c)·y(c)/ℓ(c) descendente, con empates por id, y se llenan en ese orden.
 
 ```math
@@ -1488,6 +1496,7 @@ Las reglas del diseño, escritas como propiedades. En un lenguaje puro, "la mism
 | Rechazo sin daño | Si `aplicarComando s c` rechaza, el estado no cambia |
 | Conservación en la migración | La población total antes y después de la migración es la misma |
 | Piso de población | Ningún pop queda bajo `POP_MINIMO` |
+| Conservación en la fusión | El tamaño total de cada clave de pop es el mismo antes y después de la fusión, y ningún pop grande o con modificadores propios desaparece |
 | Relajación estable | Con 0 < α ≤ 1, la lealtad nunca sobrepasa su objetivo |
 | Simetría del mapa | Toda conexión aparece en ambos sentidos |
 | Influencia correcta | El resultado del Dijkstra multifuente coincide con el mínimo por fuerza bruta en mapas pequeños |

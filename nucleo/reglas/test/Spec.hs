@@ -33,6 +33,7 @@ import Reglas.Formulas
 import Reglas.Grupos
 import Reglas.Edificios
 import Reglas.Produccion
+import Reglas.Fusion (fusionarPops, clavePop)
 import Motor.Terrenos (DefTerreno (..), cargarTerrenos, conCostoDeTerreno)
 import Motor.Moneda (magExistencias, magProduccion)
 import Test.QuickCheck
@@ -717,6 +718,82 @@ main = do
         `shouldBe` [ ("edificio", POpcion ["yacata", "fortaleza", "troje", "gran_yacata"])
                    , ("altepetl", PEntero 1 1000000), ("cuadrilla", PEntero 0 100000) ]
       validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j) `shouldBe` []
+
+  describe "reglas: fusión de pops pequeños (V5, Escala de la simulación)" $ do
+    let c = constantesDefault
+        -- Cinco altépetl de prueba con 20 pops de 500 cada uno, de tres
+        -- identidades: 7, 7 y 6 pops con la misma clave en cada uno.
+        e0 = escalar 140 5 20 estadoInicial1475
+        jue st = persistenteJuego (estadoPersistente st)
+        almDe st = comunMagnitudes (persistenteComun (estadoPersistente st))
+        fundir cs st = fusionarPops cs (Tick 0) (jue st) (almDe st)
+        porClave ps = Map.fromListWith (+) [ (clavePop q, popTamano q) | q <- Map.elems ps ]
+        nuevos ps = [ q | q <- Map.elems ps, let AltId a = popAltepetl q, a > 3 ]
+        conPops f st = let per = estadoPersistente st; ju = persistenteJuego per
+                       in st { estadoPersistente = per { persistenteJuego = ju { ppPops = Map.map f (ppPops ju) } } }
+        agravioDe alm q = maybe (Fijo 0) almacenBase (Map.lookup (entRefPop (popId q), Magnitud "agravio") alm)
+        ponderada ps f = sum [ toInteger (popTamano q) * (let Fijo x = f q in toInteger x) | q <- ps ]
+
+    it "los pops pequeños con la misma clave se funden: 20 por altépetl quedan en 3, con el id menor" $ do
+      let (p', alm', hs) = fundir c e0
+      length (nuevos (ppPops p')) `shouldBe` 15
+      porClave (ppPops p') `shouldBe` porClave (ppPops (jue e0))
+      length hs `shouldBe` 15
+      map hechoTipo hs `shouldBe` replicate 15 "pops_fusionados"
+      -- Del grupo de la primera identidad del primer altépetl queda el de id menor.
+      let primero = minimum [ popId q | q <- nuevos (ppPops (jue e0)) ]
+      Map.member primero (ppPops p') `shouldBe` True
+      -- Los absorbidos ya no tienen magnitudes en el almacén.
+      [ r | ((r, _), _) <- Map.toList alm', entClase r == "pop", Map.notMember (PopId (entId r)) (ppPops p') ] `shouldBe` []
+
+    it "conserva el tamaño de cada clave y, salvo el redondeo, las sumas ponderadas" $ do
+      let varia q = let PopId i = popId q in q { popGradiente = Fijo (fromIntegral (i `mod` 5) * 100)
+                                                , popLealtad = fi 55 .+. Fijo (fromIntegral (i `mod` 7) * 10000) }
+          e1 = conPops varia e0
+          (p', alm', hs) = fundir c e1
+          antes = nuevos (ppPops (jue e1))
+          despues = nuevos (ppPops p')
+          -- Cada fusión redondea hacia abajo una media: pierde menos de una
+          -- unidad por persona del pop que resulta.
+          parametro k h = maybe 0 (read . T.unpack) (Map.lookup k (hechoParams h)) :: Integer
+          cota = sum [ parametro "tamano" h * parametro "absorbidos" h | h <- hs ]
+          dentro f g = let d = ponderada antes f - ponderada despues g in d >= 0 && d < cota
+      porClave (ppPops p') `shouldBe` porClave (ppPops (jue e1))
+      dentro popGradiente popGradiente `shouldBe` True
+      dentro popLealtad popLealtad `shouldBe` True
+      dentro (agravioDe (almDe e1)) (agravioDe alm') `shouldBe` True
+
+    it "no se funden: los grandes, los que tienen modificadores, los incompatibles, ni nada con el umbral en 0" $ do
+      let base = nuevos (ppPops (jue e0))
+          [conMod, lejano] = take 2 base
+          lejos = conPops (\q -> if popId q == popId lejano then q { popGradiente = Fijo 3000 } else q) e0
+          modif = Modificador 900 (Magnitud "agravio") (entRefPop (popId conMod)) (Aporte (fi 1) (Fijo 0))
+                    (Fuente "prueba" "x") Nothing Nothing Nothing AlcancePropia []
+          conM st = let per = estadoPersistente st; com = persistenteComun per
+                    in st { estadoPersistente = per { persistenteComun = com { comunMagnitudes =
+                              Map.adjust (\x -> x { almacenMods = [modif] }) (entRefPop (popId conMod), Magnitud "agravio") (comunMagnitudes com) } } }
+          (pM, _, _) = fundir c (conM e0)
+          (pL, _, _) = fundir c lejos
+          (p0, alm0, hs0) = fundir c { cFusionTamano = 0 } e0
+          (pI, almI, hsI) = fundir c estadoInicial1475
+      Map.lookup (popId conMod) (ppPops pM) `shouldBe` Map.lookup (popId conMod) (ppPops (jue e0))
+      Map.member (popId lejano) (ppPops pL) `shouldBe` True
+      (p0, alm0, hs0) `shouldBe` (jue e0, almDe e0, [])
+      -- El escenario de 1475 no tiene dos pops con la misma clave.
+      (pI, almI, hsI) `shouldBe` (jue estadoInicial1475, almDe estadoInicial1475, [])
+      -- Ningún pop de 1 000 o más desaparece.
+      let (pF, _, _) = fundir c e0
+      [ popId q | q <- Map.elems (ppPops (jue e0)), popTamano q >= cFusionTamano c, Map.notMember (popId q) (ppPops pF) ]
+        `shouldBe` []
+
+    it "en la partida, la fusión corre en la veintena y la vista incremental sigue siendo la completa" $ do
+      let j = Reglas.Juego.juego c
+          ent = entornoSimple mapaVacio
+          inicial = e0 { estadoDerivado = derivar j (entGrafo ent) (Tick 0) (estadoPersistente e0) }
+          estados = scanl (\e t -> fst (paso j ent (Semilla 1) (Tick t) [] e)) inicial [0 .. 45]
+          vistas = scanl (\v (a, b) -> proyeccionIncremental j a v b) (proyeccion j inicial) (zip estados (drop 1 estados))
+      length (nuevos (ppPops (jue (last estados)))) `shouldBe` 15
+      [ estadoTick e | (v, e) <- zip vistas estados, v /= proyeccion j e ] `shouldBe` []
 
   describe "reglas: producción de bienes por territorio (hito 3)" $ do
     let mapa = conCostoDeTerreno terrenosArchivo (either (error . show) id (proveedorHexagonal datosMapa1475))
