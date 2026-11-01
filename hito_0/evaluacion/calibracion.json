@@ -1,0 +1,83 @@
+{
+ "facil": {
+  "experto": {
+   "triunfo": 97,
+   "caida": 2,
+   "metas": 3.95
+  },
+  "constructor": {
+   "triunfo": 100,
+   "caida": 0,
+   "metas": 4
+  },
+  "militar": {
+   "triunfo": 78,
+   "caida": 0,
+   "metas": 3.78
+  },
+  "primera opción": {
+   "triunfo": 52,
+   "caida": 0,
+   "metas": 3.52
+  },
+  "azar": {
+   "triunfo": 5,
+   "caida": 23,
+   "metas": 2.43
+  }
+ },
+ "normal": {
+  "experto": {
+   "triunfo": 93,
+   "caida": 7,
+   "metas": 3.9
+  },
+  "constructor": {
+   "triunfo": 55,
+   "caida": 0,
+   "metas": 3.55
+  },
+  "militar": {
+   "triunfo": 50,
+   "caida": 0,
+   "metas": 3.47
+  },
+  "primera opción": {
+   "triunfo": 23,
+   "caida": 0,
+   "metas": 3.22
+  },
+  "azar": {
+   "triunfo": 3,
+   "caida": 23,
+   "metas": 2.28
+  }
+ },
+ "dificil": {
+  "experto": {
+   "triunfo": 32,
+   "caida": 28,
+   "metas": 3.02
+  },
+  "constructor": {
+   "triunfo": 43,
+   "caida": 0,
+   "metas": 3.42
+  },
+  "militar": {
+   "triunfo": 27,
+   "caida": 0,
+   "metas": 3.18
+  },
+  "primera opción": {
+   "triunfo": 8,
+   "caida": 0,
+   "metas": 3.02
+  },
+  "azar": {
+   "triunfo": 0,
+   "caida": 37,
+   "metas": 1.8
+  }
+ }
+}

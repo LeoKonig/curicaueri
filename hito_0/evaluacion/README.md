@@ -8,6 +8,8 @@ Juega el prototipo HTML (`../Hito 0 v5 - Reino purepecha.dc.html`) desde dentro 
 | `correr.js` | Ocho estrategias × 60 partidas, y el experimento de divergencia: invierte una sola decisión de un evento y la compara con perturbar solo el azar. Escribe `estrategias.json`, `divergencia.json` y `cronicas.json` |
 | `analizar.py` | Resume esos JSON: tabla de estrategias, criterios de tensión (a)–(e) y modelo de espera |
 | `validar_opciones.py` | Criterio (c): falla si alguna opción de evento o crisis no tiene costo, riesgo diferido declarado (`riesgo`) ni es consecuencia de una decisión anterior (`consecuencia_de`) |
+| `calibrar_dificultad.js` | Juega cada nivel de dificultad con cinco estrategias y mide triunfo y caída de la capital. Con un JSON de candidatos como argumento, prueba valores sin tocar los archivos |
+| `captura_dificultad.js` | Comprueba el selector de dificultad en la interfaz real |
 | `ablacion.js` | La estrategia experta cambiando una sola cosa cada vez |
 | `voz.js`, `ver.sh` | Partida "en voz alta": avanza hasta la siguiente situación sin postura fijada y la muestra como la ve el jugador. Las posturas de los perfiles están en `posturas_*.json` |
 | `i18n.js` | Comprueba que los textos no tengan marcadores sin resolver |
