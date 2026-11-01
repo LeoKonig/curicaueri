@@ -14,6 +14,7 @@ agentes/mercury/*.err
 result
 result-*
 .direnv/
+.nix-store/
 hito_0/evaluacion/vendor/
 hito_0/evaluacion/estrategias.json
 hito_0/evaluacion/divergencia.json
