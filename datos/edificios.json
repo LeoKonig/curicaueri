@@ -1,60 +1,196 @@
 {
-  "_nota": "Edificios del hito 3, etapa 1 (V5, Las obras; documento funcional, sección 14i). El costo en valor, la duración mínima, el prestigio al terminar y el aporte de cada efecto salen del prototipo del hito 0 (hito_0/datos/constantes.json, bloque construccion, y el código de incomeParts, popParts y resistenciaAsedio). El trabajo (trabajador·veintena), los materiales, la cuadrilla máxima, la capacidad de los templos y los sacerdotes por templo SON DE RELLENO: se calibran en el hito 3. Los porcentajes están en puntos (10 = +10 %). Fórmulas: fija (el aporte si hay al menos una copia), lineal (por copia), logaritmica (a · ln(1 + n)) y por_asistentes (a · ln(1 + S / referencia), con S los fieles de la tradición que atienden los templos y sus sacerdotes). Con los fieles de Tzintzuntzan, una yácata atiende 5 000 y da ln 2 ≈ 0,69 veces su aporte: −4,85 de agravio por año y +6,9 % de producción, cerca del −5 y el +10 % del prototipo. La troje resta agravio con el logaritmo de las copias (−4,3 · ln 2 ≈ −3 la primera, como en el prototipo); fortaleza y reservas de asedio son lineales. Lo que el prototipo hace y aquí todavía no tiene magnitud que lo lea queda fuera: la lealtad de la yácata, la subsistencia de la troje y la fuerza de guerra de la fortaleza. Tradiciones: la purépecha la siguen los pops purépechas con afinidad 1 − g; la católica, todos con afinidad g (el gradiente de catolicismo). Qué otras identidades comparten templos con la purépecha está por verificar; por ahora, ninguna.",
-  "version": 2,
+  "_nota": "Edificios del hito 3, etapa 1 (V5, Las obras; documento funcional, sección 14i). El costo en valor, la duración mínima, el prestigio al terminar y el aporte de cada efecto salen del prototipo del hito 0 (hito_0/datos/constantes.json, bloque construccion, y el código de incomeParts, popParts y resistenciaAsedio). El trabajo (trabajador·veintena), los materiales, la cuadrilla máxima, la capacidad de los templos y los sacerdotes por templo SON DE RELLENO: se calibran en el hito 3. Los porcentajes están en puntos (10 = +10 %). Fórmulas: fija (el aporte si hay al menos una copia), lineal (por copia), logaritmica (a · ln(1 + n)) y por_asistentes (a · ln(1 + S / referencia), con S los fieles de la tradición que atienden los templos y sus sacerdotes). Con los fieles de Tzintzuntzan, una yácata atiende 5 000 y da ln 2 ≈ 0,69 veces su aporte: −4,85 de agravio por año y +6,9 % de producción, cerca del −5 y el +10 % del prototipo. La troje resta agravio con el logaritmo de las copias (−4,3 · ln 2 ≈ −3 la primera, como en el prototipo); fortaleza y reservas de asedio son lineales. Lo que el prototipo hace y aquí todavía no tiene magnitud que lo lea queda fuera: la lealtad de la yácata, la subsistencia de la troje y la fuerza de guerra de la fortaleza. Tradiciones: la purépecha la siguen los pops purépechas con afinidad 1 − g; la católica, todos con afinidad g (el gradiente de catolicismo). Qué otras identidades comparten templos con la purépecha está por verificar; por ahora, ninguna. Oficio (etapa 3): cada edificio puede pedir un conocimiento con un dominio mínimo; el dominio es el mínimo del conocimiento codificado y el tácito de la facción, escala lo que rinden la cuadrilla y el tributo (η = dominio / 100), y cada obra terminada con ese oficio suma al tácito practica · ln(1 + n). Las bases de 1475 son de relleno: la arquitectura ceremonial empieza en 45 de dominio, así que la gran yácata (mínimo 50) se desbloquea con dos yácatas terminadas; los purépechas eran grandes canteros y metalúrgicos (por verificar con Pollard), de ahí la cantería en 55.",
+  "version": 3,
   "tradiciones": [
-    {"id": "purepecha", "identidades": ["purepecha"]},
-    {"id": "catolica", "por_gradiente": true}
+    {
+      "id": "purepecha",
+      "identidades": [
+        "purepecha"
+      ]
+    },
+    {
+      "id": "catolica",
+      "por_gradiente": true
+    }
+  ],
+  "conocimientos": [
+    {
+      "id": "arquitectura_ceremonial",
+      "codificado": "80",
+      "tacito": "45",
+      "practica": "5"
+    },
+    {
+      "id": "canteria",
+      "codificado": "70",
+      "tacito": "55",
+      "practica": "5"
+    }
   ],
   "edificios": [
     {
       "id": "yacata",
-      "costo": {"valor": "400", "veintenas": 8, "trabajo": "2400", "materiales": {"piedra": "200", "madera": "40"}, "insumos": []},
+      "costo": {
+        "valor": "400",
+        "veintenas": 8,
+        "trabajo": "2400",
+        "materiales": {
+          "piedra": "200",
+          "madera": "40"
+        },
+        "insumos": []
+      },
       "cuadrilla_maxima": 600,
-      "culto": {"tradicion": "purepecha", "nivel": "local", "capacidad": "5000", "sacerdotes": "20", "referencia": "5000"},
+      "culto": {
+        "tradicion": "purepecha",
+        "nivel": "local",
+        "capacidad": "5000",
+        "sacerdotes": "20",
+        "referencia": "5000"
+      },
       "modificadores": [
-        {"entidad": "altepetl", "magnitud": "produccion", "porcentaje": "10", "formula": "por_asistentes"},
-        {"entidad": "altepetl", "magnitud": "tasa_agravio", "sumar": "-7", "formula": "por_asistentes"}
+        {
+          "entidad": "altepetl",
+          "magnitud": "produccion",
+          "porcentaje": "10",
+          "formula": "por_asistentes"
+        },
+        {
+          "entidad": "altepetl",
+          "magnitud": "tasa_agravio",
+          "sumar": "-7",
+          "formula": "por_asistentes"
+        }
       ],
       "al_terminar": [
-        {"tipo": "sumar_mag", "entidad": "faccion", "magnitud": "prestigio", "valor": "1"}
-      ]
+        {
+          "tipo": "sumar_mag",
+          "entidad": "faccion",
+          "magnitud": "prestigio",
+          "valor": "1"
+        }
+      ],
+      "oficio": {
+        "conocimiento": "arquitectura_ceremonial",
+        "dominio_minimo": "30"
+      }
     },
     {
       "id": "fortaleza",
-      "costo": {"valor": "400", "veintenas": 6, "trabajo": "3000", "materiales": {"piedra": "400", "madera": "100"}, "insumos": []},
+      "costo": {
+        "valor": "400",
+        "veintenas": 6,
+        "trabajo": "3000",
+        "materiales": {
+          "piedra": "400",
+          "madera": "100"
+        },
+        "insumos": []
+      },
       "cuadrilla_maxima": 800,
       "modificadores": [
-        {"entidad": "altepetl", "magnitud": "produccion", "porcentaje": "-5", "formula": "lineal"},
-        {"entidad": "altepetl", "magnitud": "reservas_asedio", "sumar": "4", "formula": "lineal"}
+        {
+          "entidad": "altepetl",
+          "magnitud": "produccion",
+          "porcentaje": "-5",
+          "formula": "lineal"
+        },
+        {
+          "entidad": "altepetl",
+          "magnitud": "reservas_asedio",
+          "sumar": "4",
+          "formula": "lineal"
+        }
       ],
       "al_terminar": [
-        {"tipo": "sumar_mag", "entidad": "faccion", "magnitud": "prestigio", "valor": "2"}
-      ]
+        {
+          "tipo": "sumar_mag",
+          "entidad": "faccion",
+          "magnitud": "prestigio",
+          "valor": "2"
+        }
+      ],
+      "oficio": {
+        "conocimiento": "canteria",
+        "dominio_minimo": "40"
+      }
     },
     {
       "id": "troje",
-      "costo": {"valor": "300", "veintenas": 4, "trabajo": "1200", "materiales": {"madera": "150"}, "insumos": []},
+      "costo": {
+        "valor": "300",
+        "veintenas": 4,
+        "trabajo": "1200",
+        "materiales": {
+          "madera": "150"
+        },
+        "insumos": []
+      },
       "cuadrilla_maxima": 300,
       "modificadores": [
-        {"entidad": "altepetl", "magnitud": "tasa_agravio", "sumar": "-4.3", "formula": "logaritmica"},
-        {"entidad": "altepetl", "magnitud": "reservas_asedio", "sumar": "3", "formula": "lineal"}
+        {
+          "entidad": "altepetl",
+          "magnitud": "tasa_agravio",
+          "sumar": "-4.3",
+          "formula": "logaritmica"
+        },
+        {
+          "entidad": "altepetl",
+          "magnitud": "reservas_asedio",
+          "sumar": "3",
+          "formula": "lineal"
+        }
       ],
       "al_terminar": [
-        {"tipo": "sumar_mag", "entidad": "faccion", "magnitud": "prestigio", "valor": "1"}
+        {
+          "tipo": "sumar_mag",
+          "entidad": "faccion",
+          "magnitud": "prestigio",
+          "valor": "1"
+        }
       ]
     },
     {
       "id": "gran_yacata",
-      "costo": {"valor": "1500", "veintenas": 18, "trabajo": "12000", "materiales": {"piedra": "1500", "madera": "200"}, "insumos": []},
+      "costo": {
+        "valor": "1500",
+        "veintenas": 18,
+        "trabajo": "12000",
+        "materiales": {
+          "piedra": "1500",
+          "madera": "200"
+        },
+        "insumos": []
+      },
       "cuadrilla_maxima": 2000,
       "maximo": 1,
-      "culto": {"tradicion": "purepecha", "nivel": "centro", "capacidad": "60000", "sacerdotes": "200", "referencia": "20000"},
+      "culto": {
+        "tradicion": "purepecha",
+        "nivel": "centro",
+        "capacidad": "60000",
+        "sacerdotes": "200",
+        "referencia": "20000"
+      },
       "modificadores": [
-        {"entidad": "faccion", "magnitud": "legitimidad", "sumar": "8", "formula": "por_asistentes"}
+        {
+          "entidad": "faccion",
+          "magnitud": "legitimidad",
+          "sumar": "8",
+          "formula": "por_asistentes"
+        }
       ],
       "al_terminar": [
-        {"tipo": "sumar_mag", "entidad": "faccion", "magnitud": "prestigio", "valor": "6"}
-      ]
+        {
+          "tipo": "sumar_mag",
+          "entidad": "faccion",
+          "magnitud": "prestigio",
+          "valor": "6"
+        }
+      ],
+      "oficio": {
+        "conocimiento": "arquitectura_ceremonial",
+        "dominio_minimo": "50"
+      }
     }
   ]
 }
