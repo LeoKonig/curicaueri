@@ -71,9 +71,11 @@ import qualified Data.Set as Set
 
 import Motor.Calendario (esInicioDePeriodo)
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe)
+import Data.Foldable (toList)
+import Data.Maybe (fromMaybe, isJust)
 import Motor.Guion
 import Motor.Moneda (economiaVacia)
+import Motor.Cronica (terminada)
 import Motor.Director (metricas, cumpleVariedad, Metricas (..))
 import Motor.Carga (Validacion (..), ErrorCarga (..))
 import Motor.Autoridad
@@ -121,6 +123,8 @@ data Partida = Partida
   , pInteres   :: Interes                     -- ^ de qué entidades pidió el cliente el detalle
   , pRespuestas :: [Respuesta]                -- ^ respuestas a decisiones para el tick siguiente
   , pDecisionesEnviadas :: [Int]              -- ^ decisiones que el cliente ya conoce
+  , pCronicaEnviada :: Int                    -- ^ entradas de la crónica que el cliente ya conoce
+  , pFinEnviado :: Bool                       -- ^ si el cliente ya sabe que la partida terminó
   }
 
 main :: IO ()
@@ -234,6 +238,7 @@ main = do
   forM_ agente $ \_ -> registro ("agente externo para la facción " <> T.pack (opcion "--agente-faccion" "1"))
   ref <- newIORef Partida
     { pEstado = e0, pSiguiente = 0, pPendientes = [], pRespuestas = [], pDecisionesEnviadas = []
+    , pCronicaEnviada = 0, pFinEnviado = False
     , pVelocidad = velocidadNormal, pPausado = True
     , pVista = proyeccionCon juegoN sinDetalle e0, pInteres = sinDetalle }
   if "--sin-cliente" `elem` args
@@ -324,9 +329,17 @@ relojDePartida p = relojDe visible1475 inicio1475 (comunCalendario (persistenteC
 -- | Un tick de la partida: si empieza un periodo, primero el turno del agente
 -- externo (lo único con efectos), y después el paso puro. Devuelve la partida
 -- de antes, la de después, los hechos y los rechazos.
+--
+-- Una partida terminada no avanza: devuelve la misma partida, sin hechos.
 avanzar :: Config -> RJ.JuegoPurepecha -> Mapa -> IORef Partida
         -> IO (Partida, Partida, [Hecho], [(Sellado Comando, Rechazo)], [(Respuesta, Rechazo)])
-avanzar conf juego _mapa ref = do
+avanzar conf juego mapaR ref = do
+  p <- readIORef ref
+  if terminada (pEstado p) then pure (p, p, [], [], []) else avanzarUno conf juego mapaR ref
+
+avanzarUno :: Config -> RJ.JuegoPurepecha -> Mapa -> IORef Partida
+           -> IO (Partida, Partida, [Hecho], [(Sellado Comando, Rechazo)], [(Respuesta, Rechazo)])
+avanzarUno conf juego _mapa ref = do
   p <- readIORef ref
   let t = pSiguiente p
       cal = comunCalendario (persistenteComun (estadoPersistente (pEstado p)))
@@ -409,8 +422,9 @@ sesion conf juego mapaR ref conn = do
                        (comunCalendario (persistenteComun (estadoPersistente (pEstado p)))) (cEjes conf)))
           enviar (NMapa (mapaCliente (cAncho conf) (cAlto conf) mapaR))
           enviar (NInstantanea (reloj p) v')
-          modifyIORef' ref (\q -> q { pDecisionesEnviadas = [] })
+          modifyIORef' ref (\q -> q { pDecisionesEnviadas = [], pCronicaEnviada = 0, pFinEnviado = False })
           sincronizarDecisiones enviar
+          sincronizarCronica enviar reloj
       Right (CComando sec v) -> case A.fromJSON v of
         A.Error err -> enviar (NError (Just sec) ("comando inválido: " <> T.pack err))
         A.Success c -> modifyIORef' ref $ \p ->
@@ -455,10 +469,11 @@ sesion conf juego mapaR ref conn = do
                 -- respuestas pendientes. También se olvida qué decisiones
                 -- conocía el cliente: la instantánea vacía su espejo y el
                 -- núcleo debe reenviar todas las pendientes del guardado.
-                modifyIORef' ref (\p -> p { pEstado = e, pSiguiente = sig, pPendientes = [], pRespuestas = [], pDecisionesEnviadas = [], pPausado = True, pVista = proyeccionCon juego (pInteres p) e })
+                modifyIORef' ref (\p -> p { pEstado = e, pSiguiente = sig, pPendientes = [], pRespuestas = [], pDecisionesEnviadas = [], pCronicaEnviada = 0, pFinEnviado = False, pPausado = True, pVista = proyeccionCon juego (pInteres p) e })
                 p <- readIORef ref
                 enviar (NInstantanea (reloj p) (pVista p))
                 sincronizarDecisiones enviar
+                sincronizarCronica enviar reloj
                 enviar (NAviso ("partida cargada: " <> nombre))
       -- Pedir el detalle de unas entidades: entra el que se pide y sale el
       -- que se deja, como cambios del mismo tick.
@@ -496,6 +511,26 @@ sesion conf juego mapaR ref conn = do
       forM_ cerradas (enviar . NDecisionCerrada)
       writeIORef ref p { pDecisionesEnviadas = Map.keys pendientes }
 
+    -- Avisa al cliente de las entradas nuevas de la crónica y, una sola vez, del
+    -- fin de la partida (con la crónica completa). Al terminar, el reloj se
+    -- detiene: una partida terminada no avanza.
+    sincronizarCronica :: (MensajeNucleo -> IO ()) -> (Partida -> Reloj) -> IO ()
+    sincronizarCronica enviar reloj = do
+      p <- readIORef ref
+      let com = persistenteComun (estadoPersistente (pEstado p))
+          todas = toList (comunCronica com)
+          nuevas = drop (pCronicaEnviada p) todas
+          paraCliente = map (entradaCliente visible1475 inicio1475)
+          avisarFin = isJust (comunFin com) && not (pFinEnviado p)
+          p' = p { pCronicaEnviada = length todas
+                 , pFinEnviado = pFinEnviado p || isJust (comunFin com)
+                 , pPausado = pPausado p || isJust (comunFin com) }
+      unless (null nuevas) $ enviar (NCronica (paraCliente nuevas))
+      writeIORef ref p'
+      forM_ (comunFin com) $ \f -> when avisarFin $ do
+        enviar (NFin (fpRazon f) (reloj p') (paraCliente todas))
+        enviar (NReloj (reloj p'))
+
     -- Solo letras, dígitos, guion y guion bajo: el nombre no puede salir de la carpeta.
     rutaPartida nombre
       | not (T.null nombre) && T.all (\ch -> isAlphaNum ch || ch == '-' || ch == '_') nombre && T.length nombre <= 64
@@ -511,6 +546,7 @@ sesion conf juego mapaR ref conn = do
       forM_ rechazosR $ \(r, Rechazo motivo) -> enviar (NError (Just (reSecuencia r)) motivo)
       enviar (NCambios (reloj p') (cambios (pVista p) (pVista p')) (hs :: [Hecho]))
       sincronizarDecisiones enviar
+      sincronizarCronica enviar reloj
       when (t `mod` 20 == 0) $ registro ("tick " <> T.pack (show t))
 
 

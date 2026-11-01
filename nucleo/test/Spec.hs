@@ -4,7 +4,8 @@ module Main where
 import Control.Monad (forM_, when)
 import Data.Aeson (Value)
 import qualified Data.Aeson as A
-import Data.List (foldl', sort)
+import Data.Foldable (toList)
+import Data.List (foldl', isPrefixOf, sort)
 import Test.Hspec
 import Test.QuickCheck
 import qualified Data.IntMap.Strict as IntMap
@@ -30,6 +31,7 @@ import Motor.Agentes
 import Motor.Mapa
 import Motor.Guion
 import Motor.Director
+import Motor.Cronica (terminada)
 import Motor.Poblacion
 import Motor.Protocolo
 import Motor.Calendario
@@ -424,6 +426,7 @@ estadoInicial = Estado
           , comunCalendario = calendarioVeintenas 0
           , comunDirector   = directorInicial
           , comunMonedas    = Map.empty
+          , comunFin        = Nothing
           }
       , persistenteJuego = aldeas
       }
@@ -1372,6 +1375,11 @@ main = hspec $ do
     it "cambios"     $ dorado "protocolo/cambios.json"
                          (A.toJSON (NCambios (relojJuguete s65) (cambios (proyeccion juguete s64) (proyeccion juguete s65)) h65))
     it "reloj"       $ dorado "protocolo/reloj.json" (A.toJSON (NReloj (relojDe SoloJuliano inicioJuguete (calendarioVeintenas 0) 2 True (Tick 365))))
+    let entradaPrueba = EntradaCronica (Tick 365) "fase" [EntRef "aldea" 1] "c.fase" (Map.fromList [("fase", "frontera")])
+        entradaVista = entradaCliente SoloJuliano inicioJuguete entradaPrueba
+    it "cronica"     $ dorado "protocolo/cronica.json" (A.toJSON (NCronica [entradaVista]))
+    it "fin"         $ dorado "protocolo/fin.json"
+                         (A.toJSON (NFin "fecha" (relojDe SoloJuliano inicioJuguete (calendarioVeintenas 0) 2 True (Tick 365)) [entradaVista]))
     it "error"       $ dorado "protocolo/error.json" (A.toJSON (NError (Just 7) "impuesto negativo"))
     it "aviso"       $ dorado "protocolo/aviso.json" (A.toJSON (NAviso "partida guardada: partida1"))
     it "decision"    $ dorado "protocolo/decision.json"
@@ -1583,6 +1591,7 @@ main = hspec $ do
           mP = metricas 3650 10950 (directorDe sP)
       (cumpleVariedad 0.25 2 mP, mTotal mP > 0) `shouldBe` (False, True)
 
+  cronicaPruebas
   monedaPruebas
   where
     mkSys :: NombreSistema -> Cadencia
@@ -1701,6 +1710,85 @@ genBien = do
   r <- Fijo <$> choose (1, 50000000)
   e <- Fijo <$> choose (0, 10000)
   pure (Bien "g" v q r e True)
+
+-- ---------------------------------------------------------------------------
+-- Crónica y fin de partida
+-- ---------------------------------------------------------------------------
+
+entornoCon :: Guion -> Entorno
+entornoCon g = entorno mapaPrueba g economiaVacia
+
+cronicaPruebas :: Spec
+cronicaPruebas = describe "crónica y fin de partida" $ do
+  let tabla = Map.fromList [("fase", "c.fase"), ("situacion", "c.situacion"), ("fin_partida", "c.fin")]
+      conCronica = entornoCon guionJuguete { guCronica = tabla }
+      cronicaDe = toList . comunCronica . persistenteComun . estadoPersistente
+      finDe = comunFin . persistenteComun . estadoPersistente
+      (s3000, hs3000) = avanzarCon conCronica [0 .. 2999] estadoInicial
+      finEn n = entornoCon guionJuguete { guCronica = tabla, guFin = Just (FinGuion (Just n) []) }
+      conDerrotas ds = entornoCon guionJuguete { guFin = Just (FinGuion Nothing ds) }
+  describe "la crónica" $ do
+    it "sin tabla en el guion, la crónica queda vacía" $
+      cronicaDe (fst (avanzarCon entornoGuion [0 .. 2999] estadoInicial)) `shouldBe` []
+    it "cada hecho de la tabla deja una entrada con su clave, su tick y sus parámetros" $ do
+      let esperadas = [ EntradaCronica (hechoTick h) (hechoTipo h) (hechoEntidades h) (tabla Map.! hechoTipo h) (hechoParams h)
+                      | h <- hs3000, hechoTipo h `Map.member` tabla ]
+      (length esperadas > 1, cronicaDe s3000) `shouldBe` (True, esperadas)
+    it "la primera entrada cuenta la fase con que empieza la partida" $
+      take 1 (map ecClave (cronicaDe s3000)) `shouldBe` ["c.fase"]
+    it "es de solo añadir: la crónica de un día es prefijo de la de un día posterior" $ do
+      let (s1000, _) = avanzarCon conCronica [0 .. 999] estadoInicial
+      (cronicaDe s1000 `isPrefixOf` cronicaDe s3000, length (cronicaDe s1000) < length (cronicaDe s3000))
+        `shouldBe` (True, True)
+    it "sobrevive a guardar y cargar" $ do
+      let Right cargado = cargar juguete mapaPrueba (guardar s3000)
+      cronicaDe cargado `shouldBe` cronicaDe s3000
+  describe "el fin de la partida" $ do
+    it "sin fin en el guion, la partida no termina" $
+      (terminada s3000, finDe s3000) `shouldBe` (False, Nothing)
+    it "termina en la fecha del guion: un tick antes sigue, y en el tick termina con la razón «fecha»" $ do
+      let (antes, _) = avanzarCon (finEn 400) [0 .. 399] estadoInicial
+          (en, hs)   = avanzarCon (finEn 400) [0 .. 400] estadoInicial
+      (fmap fpRazon (finDe antes), fmap fpRazon (finDe en), fmap fpTick (finDe en)) `shouldBe` (Nothing, Just "fecha", Just (Tick 400))
+      [ Map.lookup "razon" (hechoParams h) | h <- hs, hechoTipo h == "fin_partida" ] `shouldBe` [Just "fecha"]
+    it "una partida terminada ya no avanza: ni el tick, ni el estado, ni los hechos" $ do
+      let ent = finEn 400
+          (terminado, _) = avanzarCon ent [0 .. 400] estadoInicial
+          (despues, hs)  = paso juguete ent (Semilla 1) (Tick 401) [] terminado
+      (estadoTick despues, hs, guardar despues == guardar terminado) `shouldBe` (Tick 400, [], True)
+    it "el fin entra a la crónica si la tabla lo menciona" $ do
+      let (s, _) = avanzarCon (finEn 400) [0 .. 400] estadoInicial
+      ecClave (last (cronicaDe s)) `shouldBe` "c.fin"
+    it "una condición de derrota termina la partida con su razón" $ do
+      let (s, _) = avanzarCon (conDerrotas [("revuelta", Siempre)]) [0] estadoInicial
+      fmap fpRazon (finDe s) `shouldBe` Just "revuelta"
+    it "entre varias derrotas gana la primera que se cumple, y una derrota gana a la fecha del mismo día" $ do
+      let ds = [("nunca", No Siempre), ("primera", Siempre), ("segunda", Siempre)]
+          (s, _) = avanzarCon (conDerrotas ds) [0] estadoInicial
+          (s', _) = avanzarCon (entornoCon guionJuguete { guFin = Just (FinGuion (Just 0) [("revuelta", Siempre)]) }) [0] estadoInicial
+      (fmap fpRazon (finDe s), fmap fpRazon (finDe s')) `shouldBe` (Just "primera", Just "revuelta")
+    it "el fin sobrevive a guardar y cargar, y la partida cargada sigue terminada" $ do
+      let ent = finEn 400
+          (s, _) = avanzarCon ent [0 .. 400] estadoInicial
+          Right cargado = cargar juguete mapaPrueba (guardar s)
+          (despues, hs) = paso juguete ent (Semilla 1) (Tick 401) [] cargado
+      (finDe cargado, estadoTick despues, hs) `shouldBe` (finDe s, Tick 400, [])
+  describe "el guion" $ do
+    let v ds = A.object
+          [ "tipos" A..= ([] :: [Text])
+          , "cronica" A..= A.object ["fase" A..= ("c.fase" :: Text)]
+          , "fin" A..= A.object
+              [ "fecha" A..= ("1607-12-31" :: Text)
+              , "derrotas" A..= [ A.object [ "razon" A..= (r :: Text), "condicion" A..= A.object ["tipo" A..= ("siempre" :: Text)] ] | r <- ds ] ] ]
+    it "carga la tabla de la crónica y el fin, con su fecha y sus derrotas" $ do
+      let Just g = valValor (cargarGuion "x.json" inicioJuguete (v ["caida"]))
+      (guCronica g, fmap (map fst . fgDerrotas) (guFin g),
+       fmap fgTick (guFin g) == Just (Just (fromIntegral (diaJuliano (Fecha 1607 12 31) - diaJuliano inicioJuguete))))
+        `shouldBe` (Map.fromList [("fase", "c.fase")], Just ["caida"], True)
+    it "sin esos campos, el guion carga como siempre: sin tabla y sin fin" $
+      (guCronica guionJuguete, guFin guionJuguete) `shouldBe` (Map.empty, Nothing)
+    it "una derrota sin razón es un error de carga" $
+      length (valErrores (cargarGuion "x.json" inicioJuguete (v [""]))) `shouldBe` 1
 
 monedaPruebas :: Spec
 monedaPruebas = do

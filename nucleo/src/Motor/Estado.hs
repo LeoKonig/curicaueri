@@ -53,6 +53,14 @@ data EntradaCronica = EntradaCronica
   , ecParams    :: Map Text Text
   } deriving (Eq, Show)
 
+-- | El fin de la partida: cuándo ocurrió y por qué (la fecha del guion o la
+-- razón de la condición de derrota que se cumplió). Una partida terminada ya
+-- no avanza (ver 'Motor.Juego.pasoCompleto').
+data FinPartida = FinPartida
+  { fpTick  :: Tick
+  , fpRazon :: Text
+  } deriving (Eq, Show)
+
 -- | Una situación que el director presentó al jugador.
 data Disparo = Disparo
   { diTick      :: Tick
@@ -94,6 +102,7 @@ data Comun s = Comun
   , comunCalendario :: CalendarioInterno   -- del escenario: periodos y días fuera
   , comunDirector   :: EstadoDirector      -- fase en curso y memoria del director
   , comunMonedas    :: Map EntRef EstadoMonetario  -- solo las entidades con moneda designada
+  , comunFin        :: Maybe FinPartida      -- Nothing mientras la partida sigue
   }
 
 data Persistente s = Persistente

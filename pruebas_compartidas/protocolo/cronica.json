@@ -1,0 +1,25 @@
+{
+    "entradas": [
+        {
+            "clave": "c.fase",
+            "entidades": [
+                {
+                    "clase": "aldea",
+                    "id": 1
+                }
+            ],
+            "fecha": {
+                "anio": 1476,
+                "calendario": "juliano",
+                "dia": 1,
+                "mes": 1
+            },
+            "params": {
+                "fase": "frontera"
+            },
+            "tick": 365,
+            "tipo": "fase"
+        }
+    ],
+    "tipo": "cronica"
+}

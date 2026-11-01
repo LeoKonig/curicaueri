@@ -24,6 +24,7 @@ library
                     Motor.Protocolo
                     Motor.Guion
                     Motor.Director
+                    Motor.Cronica
                     Motor.Autoridad
                     Motor.Moneda
                     Motor.Terrenos

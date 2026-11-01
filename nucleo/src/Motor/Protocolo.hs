@@ -31,6 +31,8 @@ module Motor.Protocolo
   , relojDe
   , declMagnitudes
   , mapaCliente
+  , EntradaCliente (..)
+  , entradaCliente
     -- * Agentes externos
   , versionAgente
   , turnoAgente
@@ -62,7 +64,7 @@ import Motor.Hechos
 import Motor.Magnitudes
 import Motor.Mapa
 import Motor.Vista
-import Motor.Estado (Pregunta (..))
+import Motor.Estado (EntradaCronica (..), Pregunta (..))
 import Motor.Proyeccion (Diferencia (..))
 
 versionProtocolo :: Int
@@ -85,6 +87,8 @@ data MensajeNucleo
   | NAviso Text                         -- ^ información para el jugador (partida guardada…)
   | NDecision Int Text Text Pregunta (Maybe Tick)  -- ^ id, situación, tipo, pregunta y plazo
   | NDecisionCerrada Int                -- ^ ya no espera respuesta (respondida o vencida)
+  | NCronica [EntradaCliente]           -- ^ entradas nuevas de la crónica (todas, tras una instantánea)
+  | NFin Text Reloj [EntradaCliente]    -- ^ la partida terminó: razón, reloj y la crónica completa
   deriving (Eq, Show)
 
 -- | Del cliente al núcleo. El comando viaja como JSON opaco: lo decodifica el
@@ -161,6 +165,19 @@ relojDe visible inicio cal velocidad pausado t =
   let (f, nombre) = fechaVisible visible inicio t
   in Reloj t f nombre (infoPeriodo cal t) velocidad pausado
 
+-- | Una entrada de la crónica como la ve el cliente: con la fecha visible de su
+-- tick, que solo el núcleo sabe calcular (calendario juliano o gregoriano).
+data EntradaCliente = EntradaCliente
+  { ecvFecha      :: Fecha
+  , ecvCalendario :: Text      -- ^ "juliano" o "gregoriano"
+  , ecvEntrada    :: EntradaCronica
+  } deriving (Eq, Show)
+
+entradaCliente :: CalendarioVisible -> Fecha -> EntradaCronica -> EntradaCliente
+entradaCliente visible inicio e =
+  let (f, nombre) = fechaVisible visible inicio (ecTick e)
+  in EntradaCliente f nombre e
+
 declMagnitudes :: Map Magnitud DefMagnitud -> [DeclMagnitud]
 declMagnitudes cat =
   [ DeclMagnitud (dmId d) (dmClave d) (dmFormato d) (minMag (dmRango d)) (maxMag (dmRango d))
@@ -208,6 +225,8 @@ instance ToJSON MensajeNucleo where
       [ tipo "decision", "id" .= i, "situacion" .= sit, "tipo_situacion" .= tp
       , "pregunta" .= preguntaJ preg, "plazo" .= fmap tickJ plazo ]
     NDecisionCerrada i -> object [tipo "decision_cerrada", "id" .= i]
+    NCronica es -> object [tipo "cronica", "entradas" .= map entradaJ es]
+    NFin razon r es -> object [tipo "fin", "razon" .= razon, "reloj" .= r, "cronica" .= map entradaJ es]
 
 instance FromJSON MensajeCliente where
   parseJSON = withObject "mensaje" $ \o -> do
@@ -313,6 +332,16 @@ diferenciaJ d = object
   [ "ref" .= dRef d, "nombre" .= dNombre d
   , "clase" .= (if dEsMagnitud d then "magnitud" else "campo" :: Text)
   , "antes" .= fmap valorJ (dAntes d), "despues" .= fmap valorJ (dDespues d) ]
+
+entradaJ :: EntradaCliente -> Value
+entradaJ x = object
+  [ "tick" .= tickJ (ecTick e)
+  , "fecha" .= object [ "anio" .= fAnio f, "mes" .= fMes f, "dia" .= fDia f
+                      , "calendario" .= ecvCalendario x ]
+  , "tipo" .= ecTipo e, "entidades" .= ecEntidades e
+  , "clave" .= ecClave e, "params" .= ecParams e ]
+  where e = ecvEntrada x
+        f = ecvFecha x
 
 hechoJ :: Hecho -> Value
 hechoJ h = object [ "tipo" .= hechoTipo h, "tick" .= tickJ (hechoTick h)

@@ -15,6 +15,7 @@ import Motor.Hechos
 import Motor.Recorrido (Grafo)
 import Motor.Guion
 import Motor.Director
+import Motor.Cronica (pasoCronica, pasoFin, terminada)
 import Motor.Moneda (pasoMoneda)
 import Motor.Sistema
 import Motor.Magnitudes
@@ -74,12 +75,17 @@ pasoDetallado j ent sigma t cmds s = let (s', hs, r, _) = pasoCompleto j ent sig
 -- Orden: fases (al empezar el tick, para que los sistemas de la fase nueva
 -- corran ese mismo día), vencimiento de modificadores, agentes (paso 0),
 -- cola de comandos y respuestas (paso 1), sistemas (pasos 2 a 15), moneda
--- (precios e inflación, con lo que dejaron los sistemas), derivado (16) y
--- director (17).
+-- (precios e inflación, con lo que dejaron los sistemas), derivado (16),
+-- director (17), fin de la partida y crónica (18). Una partida terminada
+-- devuelve el mismo estado, sin hechos.
 pasoCompleto :: Juego s c -> Entorno -> Semilla -> Tick -> [Sellado c] -> [Respuesta] -> Estado s
              -> (Estado s, [Hecho], [(Sellado c, Rechazo)], [(Respuesta, Rechazo)])
-pasoCompleto j ent sigma t cmdsJugador respuestas s00 = (sFinal, hsF ++ hs0 ++ hs1 ++ hsR ++ hs2 ++ hsV ++ hsD, rechazos, rechazosR)
+pasoCompleto j ent sigma t cmdsJugador respuestas s00
+  -- Una partida terminada ya no avanza: ni tick, ni comandos, ni hechos.
+  | terminada s00 = (s00, [], [], [])
+  | otherwise = (sCronica, hechos, rechazos, rechazosR)
   where
+    hechos = hsF ++ hs0 ++ hs1 ++ hsR ++ hs2 ++ hsV ++ hsD ++ hsFin
     guion = entGuion ent
     grafo = entGrafo ent
     -- Durante el paso, y al terminar, el estado está en el tick t: estadoTick
@@ -95,6 +101,10 @@ pasoCompleto j ent sigma t cmdsJugador respuestas s00 = (sFinal, hsF ++ hs0 ++ h
     (s2, hs2)     = correr sigma t (juegoSistemas j) s1
     (s3, hsV)     = pasoDerivar j grafo t (pasoMoneda (entEconomia ent) t s2)
     (sFinal, hsD) = pasoDirector (juegoCatalogoMag j) guion (rng sigma "director" t) t s3
+    (sFin, hsFin)  = pasoFin (juegoCatalogoMag j) guion t sFinal
+    -- La crónica se escribe al final, con todos los hechos del tick (incluido
+    -- el fin de la partida, si lo hubo).
+    sCronica      = pasoCronica guion hechos sFin
 
 pasoAgentes :: Juego s c -> Semilla -> Tick -> Estado s -> ([Sellado c], Estado s)
 pasoAgentes j sigma t s =

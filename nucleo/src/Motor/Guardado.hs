@@ -218,6 +218,11 @@ instance FromJSON EntradaCronica where
       <*> o .: "clave"
       <*> o .: "params"
 
+instance ToJSON FinPartida where
+  toJSON x = object [ "tick" .= fpTick x, "razon" .= fpRazon x ]
+instance FromJSON FinPartida where
+  parseJSON = withObject "FinPartida" $ \o -> FinPartida <$> o .: "tick" <*> o .: "razon"
+
 instance ToJSON Disparo where
   toJSON x = object [ "tick" .= diTick x, "situacion" .= diSituacion x, "tipo" .= diTipo x, "fase" .= diFase x ]
 instance FromJSON Disparo where
@@ -260,6 +265,7 @@ instance (ToJSON (PlanDe s)) => ToJSON (Comun s) where
     , "calendario" .= comunCalendario c
     , "director"   .= comunDirector c
     , "monedas"    .= monedasAJson (comunMonedas c)
+    , "fin"        .= comunFin c
     ]
 instance (FromJSON (PlanDe s)) => FromJSON (Comun s) where
   parseJSON = withObject "Comun" $ \o ->
@@ -271,6 +277,7 @@ instance (FromJSON (PlanDe s)) => FromJSON (Comun s) where
       <*> o .: "calendario"
       <*> (maybe directorInicial id <$> o .:? "director")   -- guardados anteriores al director
       <*> (maybe (pure Map.empty) monedasDeJson =<< o .:? "monedas")   -- guardados anteriores a la moneda
+      <*> o .:? "fin"                                                  -- guardados anteriores al fin de partida: sigue
 
 instance (ToJSON s, ToJSON (PlanDe s)) => ToJSON (Persistente s) where
   toJSON p = object
