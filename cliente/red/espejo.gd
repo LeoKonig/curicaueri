@@ -15,6 +15,8 @@ var calendario := {}       # calendario interno del escenario: nombres y longitu
 var mapa := {}
 var ejes := []             # ejes de poder activos del escenario (puede ser vacío)
 var decisiones := {}       # id -> mensaje "decision" del núcleo, mientras espera respuesta
+var cronica := []          # entradas de la crónica del reino, de la más antigua a la más reciente
+var fin := {}              # vacío mientras se juega; con la razón cuando la partida terminó
 
 
 static func clave(ref: Dictionary) -> String:
@@ -49,12 +51,22 @@ func recibir(m: Dictionary) -> void:
 			decisiones[int(m["id"])] = m
 		"decision_cerrada":
 			decisiones.erase(int(m["id"]))
+		"cronica":
+			cronica.append_array(m["entradas"])
+		"fin":
+			# El fin trae la crónica completa: sustituye a lo acumulado.
+			fin = {"razon": str(m["razon"])}
+			reloj = m["reloj"]
+			cronica = m["cronica"].duplicate()
 
 
 func instantanea(m: Dictionary) -> void:
 	entidades.clear()
 	# El núcleo vuelve a mandar las decisiones pendientes tras cada instantánea.
 	decisiones.clear()
+	# Y la crónica completa y, si la partida ya terminó, el fin.
+	cronica.clear()
+	fin = {}
 	for e in m["entidades"]:
 		entidades[clave(e["ref"])] = e
 	reloj = m["reloj"]

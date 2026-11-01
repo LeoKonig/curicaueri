@@ -1,0 +1,10 @@
+{
+  "_nota": "Guion para la prueba del fin de partida: la partida termina el día 10 y el fin entra a la crónica.",
+  "tipos": [],
+  "cronica": {
+    "fin_partida": "cronica.fin"
+  },
+  "fin": {
+    "fecha": "1475-01-11"
+  }
+}

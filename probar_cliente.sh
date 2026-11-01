@@ -25,4 +25,10 @@ if [ -n "${NUCLEO:-}" ]; then
   trap 'kill $PID $PID2 2>/dev/null || true' EXIT
   sleep 1
   "$GODOT" --headless --path cliente --script res://pruebas/prueba_decisiones.gd -- --puerto 4791 2>&1 | grep -v "^Godot Engine"
+  echo "== fin de partida"
+  "$NUCLEO" --puerto 4792 --partidas "$PARTIDAS" --guion pruebas_compartidas/guion_fin.json 2>/dev/null &
+  PID3=$!
+  trap 'kill $PID $PID2 $PID3 2>/dev/null || true' EXIT
+  sleep 1
+  "$GODOT" --headless --path cliente --script res://pruebas/prueba_fin.gd -- --puerto 4792 2>&1 | grep -v "^Godot Engine"
 fi
