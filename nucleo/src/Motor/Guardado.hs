@@ -89,7 +89,7 @@ instance FromJSON Alcance where
     _        -> fail ("Alcance desconocido: " <> T.unpack t)
 
 instance ToJSON Modificador where
-  toJSON m = object
+  toJSON m = object $
     [ "id"        .= modId m
     , "magnitud"  .= modMagnitud m
     , "entidad"   .= modEntidad m
@@ -99,7 +99,7 @@ instance ToJSON Modificador where
     , "fin"       .= modFin m
     , "condicion" .= modCondicion m
     , "alcance"   .= modAlcance m
-    ]
+    ] ++ [ "detalle" .= [ object ["nombre" .= n, "valor" .= v] | (n, v) <- modDetalle m ] | not (null (modDetalle m)) ]
 instance FromJSON Modificador where
   parseJSON = withObject "Modificador" $ \o ->
     Modificador
@@ -112,6 +112,7 @@ instance FromJSON Modificador where
       <*> o .:? "fin"
       <*> o .:? "condicion"
       <*> (fromMaybeDefault <$> o .:? "alcance")
+      <*> (maybe (pure []) (mapM (withObject "detalle" (\d -> (,) <$> d .: "nombre" <*> d .: "valor"))) =<< o .:? "detalle")
     where fromMaybeDefault = maybe AlcancePropia id
 
 instance ToJSON AlmacenMag where

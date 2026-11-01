@@ -21,6 +21,8 @@ import Motor.Sistema
 import Motor.Juego
 import Motor.Hechos
 import Motor.Vista
+import qualified Data.Aeson.Key as Key
+import qualified Data.Aeson.KeyMap as KM
 import Motor.Proyeccion
 import Motor.Carga
 import Motor.Efectos
@@ -181,7 +183,7 @@ fronteraSistema = Sistema
       let Tick t = estadoTick est
           m = Modificador 0 (Magnitud "presion") (EntRef "frontera" 1)
                 (Aporte (intensidad "frontera" est) (Fijo 0)) (Fuente "frontera" "")
-                (Just (Tick t)) (Just (Tick (t + 60))) Nothing AlcancePropia
+                (Just (Tick t)) (Just (Tick (t + 60))) Nothing AlcancePropia []
           com = persistenteComun (estadoPersistente est)
           (alm', _) = agregarModificador m (comunMagnitudes com)
       in (est { estadoPersistente = (estadoPersistente est) { persistenteComun = com { comunMagnitudes = alm' } } }, [])
@@ -372,7 +374,7 @@ aplicarCmdJuguete est sell = case sellCmd sell of
         let Tick t = sellTick sell
             m = Modificador 0 (Magnitud "descontento") (EntRef "aldea" i)
                   (Aporte (fi (-10)) (Fijo 0)) (Fuente "fiesta" "")
-                  (Just (Tick t)) (Just (Tick (t + 60))) Nothing AlcancePropia
+                  (Just (Tick t)) (Just (Tick (t + 60))) Nothing AlcancePropia []
             com = persistenteComun (estadoPersistente est)
             (alm', _) = agregarModificador m (comunMagnitudes com)
         in Right (est { estadoPersistente = (estadoPersistente est)
@@ -473,14 +475,14 @@ main = hspec $ do
     it "con sumando + porcentaje" $ do
       let m = Modificador 1 (Magnitud "x") (EntRef "e" 1)
                           (Aporte (Fijo 1000) (Fijo 1000))
-                          (Fuente "t" "r") Nothing Nothing Nothing AlcancePropia
+                          (Fuente "t" "r") Nothing Nothing Nothing AlcancePropia []
       -- (5000 + 1000) * (1 + 0.1) = 6600
       valorEfectivo (RangoMag (Fijo 0) (Fijo 100000)) (Fijo 5000) [m]
         `shouldBe` Fijo 6600
     it "clamp al techo" $ do
       let m = Modificador 1 (Magnitud "x") (EntRef "e" 1)
                           (Aporte (Fijo 100000) (Fijo 0))
-                          (Fuente "t" "r") Nothing Nothing Nothing AlcancePropia
+                          (Fuente "t" "r") Nothing Nothing Nothing AlcancePropia []
       valorEfectivo (RangoMag (Fijo 0) (Fijo 10000)) (Fijo 5000) [m]
         `shouldBe` Fijo 10000
 
@@ -748,6 +750,18 @@ main = hspec $ do
           sinLago = Map.delete (Terreno "lago") t
       map (\e -> (errCategoria e, errRuta e)) (valErrores (validarTerrenosDelMapa "terrenos.json" sinLago mapaPrueba))
         `shouldBe` [(ErrorReferencia, "terrenos.lago")]
+
+  describe "detalle de un modificador (para el desglose)" $ do
+    let m = Modificador 7 (Magnitud "x") (EntRef "e" 1) (Aporte (fi 3) (Fijo 0)) (Fuente "edificio" "yacata:2")
+                        Nothing Nothing Nothing AlcancePropia [("copias", fi 2), ("fieles", fi 12000)]
+    it "se guarda y se carga; un modificador guardado sin detalle carga con el detalle vacío" $ do
+      A.decode (A.encode m) `shouldBe` Just m
+      let sinDetalle = m { modDetalle = [] }
+      A.decode (A.encode sinDetalle) `shouldBe` Just sinDetalle
+      ("detalle" `elem` [ k | Just (A.Object o) <- [A.decode (A.encode sinDetalle)], k <- map Key.toText (KM.keys o) ]) `shouldBe` False
+    it "la vista lo manda en los argumentos, después de la referencia de la fuente" $
+      avArgumentos (aAporteVista m)
+        `shouldBe` [VTexto "yacata:2", VLista [VTexto "copias", VFijo (fi 2)], VLista [VTexto "fieles", VFijo (fi 12000)]]
 
   describe "azar estable" $
     it "valor dorado: si cambia, cambió el generador y se rompen las repeticiones guardadas" $
@@ -1134,7 +1148,7 @@ main = hspec $ do
       comunMagnitudes (persistenteComun (estadoPersistente e'))
         `shouldBe` comunMagnitudes (persistenteComun (estadoPersistente s64))
     it "dos modificadores reciben ids distintos" $ do
-      let m = Modificador 0 (Magnitud "x") (EntRef "e" 1) mempty (Fuente "t" "") Nothing Nothing Nothing AlcancePropia
+      let m = Modificador 0 (Magnitud "x") (EntRef "e" 1) mempty (Fuente "t" "") Nothing Nothing Nothing AlcancePropia []
           (a1, i1) = agregarModificador m Map.empty
           (_,  i2) = agregarModificador m a1
       (i1, i2) `shouldBe` (1, 2)
@@ -1147,7 +1161,7 @@ main = hspec $ do
         descAldea1 = (EntRef "aldea" 1, Magnitud "descontento")
         condMas10 c = Modificador 0 (Magnitud "descontento") (EntRef "aldea" 1)
                         (Aporte (fi 10) (Fijo 0)) (Fuente "prueba" "condicional")
-                        Nothing Nothing (Just c) AlcancePropia
+                        Nothing Nothing (Just c) AlcancePropia []
         -- El estado inicial con el modificador ya en el almacén, y su derivado y su origen
         -- calculados de nuevo, como los dejaría el paso 16.
         conMod c =

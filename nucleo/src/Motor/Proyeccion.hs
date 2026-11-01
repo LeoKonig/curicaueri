@@ -52,7 +52,8 @@ aAporteVista :: Modificador -> AporteVista
 aAporteVista m =
   AporteVista
     { avFuente     = ClaveLoc (fuenteTipo (modFuente m))
-    , avArgumentos = [VTexto (fuenteRef (modFuente m))]
+    , avArgumentos = VTexto (fuenteRef (modFuente m))
+                     : [ VLista [VTexto n, VFijo v] | (n, v) <- modDetalle m ]
     , avAporte     = modAporte m
     , avVence      = modFin m
     }

@@ -212,7 +212,7 @@ main = do
         `shouldBe` ["4:gobernador:3"]
     it "añadir varios de una vez da el mismo almacén que añadirlos uno a uno" $ do
       let mk k (e, m) = Modificador 0 (Magnitud m) (EntRef e 1) (Aporte (fi k) (Fijo 0)) (Fuente "prueba" (T.pack (show k)))
-                                    Nothing Nothing Nothing AlcancePropia
+                                    Nothing Nothing Nothing AlcancePropia []
           ms = zipWith mk [1 ..] [("a", "x"), ("b", "x"), ("a", "x"), ("a", "y"), ("a", "x"), ("b", "x")]
       agregarVarios ms (alm s0) `shouldBe` foldl' (\a m -> fst (agregarModificador m a)) (alm s0) ms
     it "las magnitudes de los grupos están en el catálogo del juego" $
@@ -618,6 +618,13 @@ main = do
       efectivo (entRefAlt (AltId 2)) magProduccionAlt conYacata `shouldSatisfy` (> fi 1)
       [ modFuente m | m <- maybe [] almacenMods (Map.lookup (entRefAlt (AltId 2), magTasaAgravio) (alm conYacata)) ]
         `shouldBe` [fuenteEdificio "yacata" (AltId 2)]
+      -- El desglose dice de qué salió el número: copias, fieles, atendidos y sacerdotes.
+      [ map fst (modDetalle m) | m <- maybe [] almacenMods (Map.lookup (entRefAlt (AltId 2), magTasaAgravio) (alm conYacata)) ]
+        `shouldBe` [["copias", "fieles", "atendidos", "sacerdotes"]]
+      [ lookup "copias" (modDetalle m) | m <- maybe [] almacenMods (Map.lookup (entRefAlt (AltId 2), magTasaAgravio) (alm conYacata)) ]
+        `shouldBe` [Just (fi 1)]
+      [ lookup "sacerdotes" (modDetalle m) | m <- maybe [] almacenMods (Map.lookup (entRefAlt (AltId 2), magTasaAgravio) (alm conYacata)) ]
+        `shouldBe` [Just (fi 60)]
 
     it "sin sacerdotes una yácata no atiende a nadie" $ do
       let sinSacerdotes = conPops (\pop -> if popEstrato pop == "sacerdote" then pop { popTamano = 0 } else pop) conYacata
@@ -760,7 +767,7 @@ main = do
 
     it "las obras mueven la producción: +10 % en un altépetl sube lo que produce" $ do
       let mods = [ Modificador 0 magProduccionAlt (entRefAlt (AltId a)) (Aporte (Fijo 0) (Fijo 1000))
-                     (fuenteEdificio "yacata" (AltId a)) Nothing Nothing Nothing AlcancePropia | a <- [1, 2, 3] ]
+                     (fuenteEdificio "yacata" (AltId a)) Nothing Nothing Nothing AlcancePropia [] | a <- [1, 2, 3] ]
           conMods e = let p = estadoPersistente e; com = persistenteComun p
                       in e { estadoPersistente = p { persistenteComun = com { comunMagnitudes = agregarVarios mods (comunMagnitudes com) } } }
           q st = base (magProduccion "maiz") st

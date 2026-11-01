@@ -23,11 +23,28 @@ static func texto(nombre: String, mag: Dictionary) -> String:
 			partes.append(con_signo(a["sumando"]))
 		if float(a["porcentaje"]) != 0.0:
 			partes.append(con_signo(float(a["porcentaje"]) * 100.0) + " %")
-		var linea := "  %s  %s" % [" ".join(partes), a["fuente"]]
+		var linea := "  %s  %s%s" % [" ".join(partes), a["fuente"], argumentos(a.get("args", []))]
 		if a["vence"] != null:
 			linea += "  (vence el día %d)" % int(a["vence"])
 		lineas.append(linea)
 	return "\n".join(lineas)
+
+
+## Los argumentos de una fuente: la referencia entre paréntesis y, después,
+## de qué salió el valor (pares nombre y número), separados por « · ». Por
+## ejemplo: «edificio (yacata:2) · copias 1 · fieles 12000».
+static func argumentos(args: Array) -> String:
+	var ref := ""
+	var detalle := []
+	for x in args:
+		if x.get("t", "") == "lista" and x["v"].size() == 2:
+			detalle.append("%s %s" % [valor(x["v"][0]), valor(x["v"][1])])
+		elif valor(x) != "":
+			ref = valor(x)
+	var texto := (" (%s)" % ref) if ref != "" else ""
+	for d in detalle:
+		texto += " · " + d
+	return texto
 
 
 ## Un campo como texto, sea del tipo que sea.
