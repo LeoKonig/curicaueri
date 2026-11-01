@@ -193,7 +193,7 @@ fronteraSistema = Sistema
 proyectarAldeas :: Estado Aldeas -> [EntidadJuego]
 proyectarAldeas est =
   let ids = alIds (persistenteJuego (estadoPersistente est))
-  in [EntidadJuego (EntRef "aldea" i) Map.empty | i <- ids]
+  in [EntidadJuego (EntRef "aldea" i) Nothing Map.empty | i <- ids]
 
 -- Efectos del evento Sequía: pide cuánto grano repartir, luego resta ese
 -- grano del descontento de la aldea 1.
@@ -997,7 +997,7 @@ main = hspec $ do
     forM_ pares $ \(nombre, s0, s1) -> it ("coinciden · " ++ nombre) $ do
       let v0 = proyeccion juguete s0
           v1 = proyeccion juguete s1
-          vInc = proyeccionIncremental juguete s0 v0 s1
+          vInc = proyeccionIncremental juguete Todo s0 v0 s1
       cambios v0 v1 `shouldBe` cambiosRef v0 v1
       vInc `shouldBe` v1
       cambios v0 vInc `shouldBe` cambiosRef v0 v1
@@ -1005,9 +1005,39 @@ main = hspec $ do
 
     it "incremental a lo largo de 120 ticks, encadenada sobre sí misma" $ do
       let estados = scanl (\e t -> fst (paso juguete entornoPrueba (Semilla 1) (Tick t) [] e)) estadoInicial [1 .. 120]
-          vistas = scanl (\v (a, b) -> proyeccionIncremental juguete a v b) (proyeccion juguete estadoInicial)
+          vistas = scanl (\v (a, b) -> proyeccionIncremental juguete Todo a v b) (proyeccion juguete estadoInicial)
                          (zip estados (drop 1 estados))
       and (zipWith (\v e -> v == proyeccion juguete e) vistas estados) `shouldBe` True
+
+  describe "detalle a pedido (interés del cliente)" $ do
+    -- El juguete con detalle: la aldea 2 es detalle de la 1, y la 3 (que no
+    -- existe en el juego) tiene campos que no se deben armar nunca.
+    let hija = EntRef "aldea" 2
+        madre = EntRef "aldea" 1
+        conDueno ej | ejRef ej == hija = ej { ejDueno = Just madre }
+                    | otherwise        = ej
+        bomba = EntidadJuego (EntRef "aldea" 3) (Just (EntRef "aldea" 9)) (error "se armaron los campos de un detalle que nadie pidió")
+        conDetalle = juguete
+          { juegoProyectar   = \est -> map conDueno (proyectarAldeas est) ++ [bomba]
+          , juegoProyectarDe = \est r -> lookup r [ (ejRef ej, ej) | ej <- map conDueno (proyectarAldeas est) ++ [bomba] ] }
+        ninguno = Detalle Set.empty
+        laMadre = Detalle (Set.singleton madre)
+        refs v = Map.keys (vEntidades v)
+        estados = scanl (\e t -> fst (paso juguete entornoPrueba (Semilla 1) (Tick t) [] e)) estadoInicial [1 .. 60]
+    it "sin interés, el detalle no se ve ni se arma; con el de su dueño, sí" $ do
+      refs (proyeccionCon conDetalle ninguno estadoInicial) `shouldBe` [madre]
+      refs (proyeccionCon conDetalle laMadre estadoInicial) `shouldBe` [madre, hija]
+    it "cambiar el interés da la vista con el interés nuevo, en los dos sentidos" $ do
+      let v0 = proyeccionCon conDetalle ninguno estadoInicial
+          v1 = proyeccionCon conDetalle laMadre estadoInicial
+      cambiarInteres conDetalle estadoInicial ninguno laMadre v0 `shouldBe` v1
+      cambiarInteres conDetalle estadoInicial laMadre ninguno v1 `shouldBe` v0
+      cambios v0 v1 `shouldBe` cambiosRef v0 v1
+    forM_ [("sin interés", ninguno), ("con el dueño", laMadre)] $ \(nombre, i) ->
+      it ("la vista incremental con interés es la completa en 60 ticks · " ++ nombre) $ do
+        let vistas = scanl (\v (a, b) -> proyeccionIncremental conDetalle i a v b) (proyeccionCon conDetalle i estadoInicial)
+                           (zip estados (drop 1 estados))
+        and (zipWith (\v e -> v == proyeccionCon conDetalle i e) vistas estados) `shouldBe` True
 
   describe "clavesCambiadas" $ do
     let ingenua a b = [ k | k <- Set.toList (Map.keysSet a <> Map.keysSet b), Map.lookup k a /= Map.lookup k b ]
@@ -1377,7 +1407,8 @@ main = hspec $ do
           , ("cliente_consulta.json", CConsulta 8 (A.object ["tipo" A..= ("subir_impuesto" :: Text), "aldea" A..= (1 :: Int), "valor" A..= (5 :: Int)]))
           , ("cliente_guardar.json", CControl (Guardar "partida1"))
           , ("cliente_cargar.json", CControl (Cargar "partida1"))
-          , ("cliente_responder.json", CResponder 9 3 "resistir") ]
+          , ("cliente_responder.json", CResponder 9 3 "resistir")
+          , ("cliente_interes.json", CInteres [EntRef "aldea" 1]) ]
     forM_ esperados $ \(n, m) -> it n $ do
       regenerar <- lookupEnv "REGENERAR_DORADOS"
       case regenerar of

@@ -2,7 +2,8 @@
 ##   nucleo --puerto 4790 &
 ##   godot --headless --path cliente --script res://pruebas/prueba_integracion.gd -- --puerto 4790
 ## Saluda, recibe catálogo, mapa e instantánea, quita la pausa a la velocidad
-## máxima, manda un comando válido y uno inválido, y espera a la veintena 2.
+## máxima, pide el detalle de Tzintzuntzan, manda un comando válido y uno
+## inválido, y espera a la veintena 2.
 extends SceneTree
 
 const Conexion = preload("res://red/conexion.gd")
@@ -22,6 +23,7 @@ var prediccion := {}
 var avisos := []
 var tick_guardado := -1
 var instantaneas := 0
+var pops_sin_interes := -1
 
 
 func _init() -> void:
@@ -41,6 +43,9 @@ func _al_recibir(m: Dictionary) -> void:
 			instantaneas += 1
 			if fase == "conectando":
 				fase = "corriendo"
+				# Sin pedirlo, no llega ningún pop; con el interés llegan los de Tzintzuntzan.
+				pops_sin_interes = espejo.de_clase("pop").size()
+				conexion.enviar(Protocolo.interes([{"clase": "altepetl", "id": 1}]))
 				sec_consulta = conexion.enviar_consulta({"tipo": "fijar_impuesto_interno", "valor": 5})
 				conexion.enviar_comando({"tipo": "fijar_impuesto_interno", "valor": 5})
 				sec_invalido = conexion.enviar_comando({"tipo": "fijar_impuesto_interno", "valor": 9})
@@ -88,8 +93,15 @@ func _terminar(listo: bool) -> void:
 		fallos.append("el comando inválido no fue rechazado con su secuencia")
 	if prediccion.is_empty():
 		fallos.append("no llegó la predicción de la consulta")
-	elif not prediccion["diferencias"].any(func(d): return d["nombre"] == "agravio"):
-		fallos.append("la predicción de subir el impuesto no muestra el agravio")
+	elif not prediccion["diferencias"].any(func(d): return d["nombre"] == "agravio_medio"):
+		fallos.append("la predicción de subir el impuesto no muestra el agravio medio de los altépetl")
+	if pops_sin_interes != 0:
+		fallos.append("sin pedir detalle llegaron %d pops" % pops_sin_interes)
+	var pops: Array = espejo.de_clase("pop")
+	if pops.is_empty():
+		fallos.append("con el interés en Tzintzuntzan no llegó ningún pop")
+	elif not pops.all(func(q): return Espejo.clave(q["campos"]["altepetl"]["v"]) == "altepetl:1"):
+		fallos.append("llegaron pops de un altépetl que no se pidió")
 	if instantaneas < 2:
 		fallos.append("cargar la partida no envió una instantánea nueva")
 	if int(espejo.reloj.get("tick", -1)) != tick_guardado:
@@ -101,6 +113,7 @@ func _terminar(listo: bool) -> void:
 		print("  ✘ ", f)
 	if fallos.is_empty():
 		print("  ✔ catálogo, mapa e instantánea recibidos; 3 altépetl en el espejo")
+		print("  ✔ sin interés no llegan pops; con el de Tzintzuntzan llegan sus %d pops, también tras cargar" % pops.size())
 		print("  ✔ el comando inválido fue rechazado con su secuencia; el válido no")
 		print("  ✔ el reloj llegó a la veintena 2 (%s)" % JSON.stringify(espejo.reloj["fecha"]))
 		print("  ✔ el espejo recalcula cada valor efectivo igual que el núcleo")

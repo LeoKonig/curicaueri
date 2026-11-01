@@ -59,8 +59,8 @@ Los archivos dorados del protocolo y del espejo viven fuera, en `../pruebas_comp
 | `Motor.Estado` | `Estado s`, `Persistente s`, `Comun s`, `Derivado s`, `Origen s`; contexto, preguntas y decisiones pendientes |
 | `Motor.Sistema` | `Sistema s` con `lee`/`escribe`, cadencias y `correr` |
 | `Motor.Juego` | El registro `Juego s c`, `paso` y `pasoDetallado`, la cola de comandos, los agentes, el vencimiento de modificadores, `derivar` y `consultar` |
-| `Motor.Vista` | Tipos genéricos del espejo: `Vista`, `EntidadVista`, `Cambios` |
-| `Motor.Proyeccion` | `proyeccion`, `proyeccionIncremental` (la vista de un estado hecha sobre la del anterior, proyectando solo las entidades sucias), `cambios` y su referencia `cambiosRef`, `aplicar` y `diferencias` (lo que muestra una predicción) |
+| `Motor.Vista` | Tipos genéricos del espejo: `Vista`, `EntidadVista`, `Cambios`; `EntidadJuego` con su dueño y sus campos perezosos, e `Interes` (qué detalle pidió el cliente) |
+| `Motor.Proyeccion` | `proyeccion` (con todo el detalle) y `proyeccionCon` (con el que pide el cliente), `proyeccionIncremental` (la vista de un estado hecha sobre la del anterior, proyectando solo las entidades sucias y sus dueños), `cambiarInteres`, `cambios` y su referencia `cambiosRef`, `aplicar` y `diferencias` (lo que muestra una predicción) |
 | `Motor.Compartido` | `clavesCambiadas`: las claves que difieren entre dos mapas persistentes, saltando los subárboles que comparten |
 | `Motor.Carga` | Carga de datos con errores acumulados, versión de esquema, compilación de eventos, `validarOrdenSistemas` |
 | `Motor.Efectos` | Efectos compilados (`Programa`) y su intérprete con suspensión y reanudación |

@@ -1,0 +1,9 @@
+{
+    "entidades": [
+        {
+            "clase": "aldea",
+            "id": 1
+        }
+    ],
+    "tipo": "interes"
+}

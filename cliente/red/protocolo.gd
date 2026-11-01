@@ -3,7 +3,7 @@
 ## comprueba que coinciden.
 extends RefCounted
 
-const VERSION := 2
+const VERSION := 3
 
 
 static func hola() -> Dictionary:
@@ -36,3 +36,9 @@ static func cargar(nombre: String) -> Dictionary:
 
 static func responder(secuencia: int, decision: int, respuesta: String) -> Dictionary:
 	return {"tipo": "responder", "secuencia": secuencia, "decision": decision, "respuesta": respuesta}
+
+
+## Las entidades cuyo detalle se quiere ver (los pops de un altépetl). El
+## núcleo responde con cambios: entra el detalle pedido y sale el que se deja.
+static func interes(refs: Array) -> Dictionary:
+	return {"tipo": "interes", "entidades": refs}

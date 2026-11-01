@@ -71,7 +71,7 @@ func _armar_interfaz() -> void:
 	lienzo = LienzoMapa.new()
 	lienzo.espejo = espejo
 	lienzo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lienzo.seleccion.connect(func(c): panel.mostrar(c))
+	lienzo.seleccion.connect(_seleccionar)
 	cuerpo.add_child(lienzo)
 
 	# A la derecha, pestañas: así cada panel tiene toda la altura.
@@ -146,11 +146,26 @@ func porcentaje_en_pausa() -> float:
 	return 0.0 if total <= 0.0 else 100.0 * segundos_en_pausa / total
 
 
+## Al seleccionar un altépetl se pide su detalle (sus pops): el núcleo solo
+## manda el detalle de lo que se mira (V5, *Escala de la simulación*).
+func _seleccionar(c: String) -> void:
+	panel.mostrar(c)
+	_pedir_detalle()
+
+
+func _pedir_detalle() -> void:
+	var refs := [] if panel.clave_actual == "" else [Espejo.ref_de(panel.clave_actual)]
+	conexion.enviar(preload("res://red/protocolo.gd").interes(refs))
+
+
 func _al_recibir(m: Dictionary) -> void:
 	espejo.recibir(m)
 	match m.get("tipo", ""):
 		"hola":
 			estado.text = "núcleo listo (protocolo v%d)" % int(m["version"])
+			# Una conexión nueva empieza sin detalle: se vuelve a pedir el de lo seleccionado.
+			if panel.clave_actual != "":
+				_pedir_detalle()
 		"catalogo":
 			comandos.construir(espejo.comandos)
 			barra.velocidades = espejo.velocidades

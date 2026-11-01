@@ -53,6 +53,8 @@ func _init() -> void:
 		redondo.call(Protocolo.consulta(8, {"tipo": "subir_impuesto", "aldea": 1, "valor": 5})), leer.call("cliente_consulta.json")))
 	_comprobar("guardar coincide con el dorado", Comun.igual(redondo.call(Protocolo.guardar("partida1")), leer.call("cliente_guardar.json")))
 	_comprobar("cargar coincide con el dorado", Comun.igual(redondo.call(Protocolo.cargar("partida1")), leer.call("cliente_cargar.json")))
+	_comprobar("interés coincide con el dorado", Comun.igual(
+		redondo.call(Protocolo.interes([Espejo.ref_de("aldea:1")])), leer.call("cliente_interes.json")))
 	_comprobar("el catálogo trae las cinco velocidades", espejo.velocidades.size() == 5)
 	_comprobar("el catálogo trae los ejes activos del escenario", espejo.ejes.size() == 2 and espejo.ejes[1]["id"] == "fe")
 	var por_tipo := {}

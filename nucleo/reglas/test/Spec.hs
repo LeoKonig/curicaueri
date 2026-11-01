@@ -18,8 +18,9 @@ import Motor.Estado
 import Motor.Juego
 import Motor.Magnitudes
 import Motor.Mapa
-import Motor.Proyeccion (proyeccion, proyeccionIncremental)
-import Motor.Vista (EntidadJuego (..))
+import Motor.Proyeccion (proyeccionCon, proyeccionIncremental, cambiarInteres)
+import Motor.Vista (EntidadJuego (..), EntidadVista (..), Interes (..), Vista (..), ValorVista (..))
+import qualified Data.Set as Set
 import Motor.Guion (Entorno (..), entornoSimple)
 
 import qualified Reglas.Juego
@@ -491,8 +492,10 @@ main = do
             45 -> construir "troje" 3 100
             _  -> []
           estados = scanl (\e t -> fst (paso j ent (Semilla 1) (Tick t) (cmdsDe t) e)) e0 [0 .. 600]
-          vistas = scanl (\v (a, b) -> proyeccionIncremental j a v b) (proyeccion j e0) (zip estados (drop 1 estados))
-      [ estadoTick e | (v, e) <- zip vistas estados, v /= proyeccion j e ] `shouldBe` []
+          -- Con todo, sin detalle y con el de Zacapu (el de la obra).
+      forM_ [Todo, Detalle Set.empty, Detalle (Set.singleton (entRefAlt (AltId 2)))] $ \i -> do
+        let vistas = scanl (\v (a, b) -> proyeccionIncremental j i a v b) (proyeccionCon j i e0) (zip estados (drop 1 estados))
+        [ estadoTick e | (v, e) <- zip vistas estados, v /= proyeccionCon j i e ] `shouldBe` []
       -- Y la última sigue siendo la completa aunque haya pasado por todas.
       fmap altEdificios (Map.lookup (AltId 2) (ppAltepetl (jue (last estados)))) `shouldBe` Just ["yacata"]
 
@@ -791,9 +794,31 @@ main = do
           ent = entornoSimple mapaVacio
           inicial = e0 { estadoDerivado = derivar j (entGrafo ent) (Tick 0) (estadoPersistente e0) }
           estados = scanl (\e t -> fst (paso j ent (Semilla 1) (Tick t) [] e)) inicial [0 .. 45]
-          vistas = scanl (\v (a, b) -> proyeccionIncremental j a v b) (proyeccion j inicial) (zip estados (drop 1 estados))
       length (nuevos (ppPops (jue (last estados)))) `shouldBe` 15
-      [ estadoTick e | (v, e) <- zip vistas estados, v /= proyeccion j e ] `shouldBe` []
+      -- Los pops que se funden salen de la vista que tenía su detalle.
+      forM_ [Todo, Detalle (Set.singleton (entRefAlt (AltId 4)))] $ \i -> do
+        let vistas = scanl (\v (a, b) -> proyeccionIncremental j i a v b) (proyeccionCon j i inicial) (zip estados (drop 1 estados))
+        [ estadoTick e | (v, e) <- zip vistas estados, v /= proyeccionCon j i e ] `shouldBe` []
+
+    it "pops a pedido: sin interés no viajan; el altépetl resume su población y su agravio medio" $ do
+      let j = Reglas.Juego.juego c
+          zacapu = entRefAlt (AltId 2)
+          sinDetalle = proyeccionCon j (Detalle Set.empty) estadoInicial1475
+          conZacapu = proyeccionCon j (Detalle (Set.singleton zacapu)) estadoInicial1475
+          clases v = Set.fromList (map entClase (Map.keys (vEntidades v)))
+          popsDe v = [ r | r <- Map.keys (vEntidades v), entClase r == "pop" ]
+          campo r nombre v = Map.lookup r (vEntidades v) >>= Map.lookup nombre . evCampos
+          deZacapu = [ q | q <- Map.elems (ppPops (jue estadoInicial1475)), popAltepetl q == AltId 2 ]
+          agr q = maybe (Fijo 0) almacenBase (Map.lookup (entRefPop (popId q), Magnitud "agravio") (almDe estadoInicial1475))
+          n = sum (map popTamano deZacapu)
+          medio = Fijo (fromInteger (sum [ toInteger (popTamano q) * (let Fijo x = agr q in toInteger x) | q <- deZacapu ] `div` toInteger n))
+      clases sinDetalle `shouldBe` Set.fromList ["altepetl", "faccion"]
+      popsDe conZacapu `shouldBe` map (entRefPop . popId) deZacapu
+      campo zacapu "poblacion" sinDetalle `shouldBe` Just (VEntero n)
+      campo zacapu "agravio_medio" sinDetalle `shouldBe` Just (VFijo medio)
+      -- Pedir el detalle sobre la vista que había da la vista con ese interés, y soltarlo la devuelve.
+      cambiarInteres j estadoInicial1475 (Detalle Set.empty) (Detalle (Set.singleton zacapu)) sinDetalle `shouldBe` conZacapu
+      cambiarInteres j estadoInicial1475 (Detalle (Set.singleton zacapu)) (Detalle Set.empty) conZacapu `shouldBe` sinDetalle
 
   describe "reglas: producción de bienes por territorio (hito 3)" $ do
     let mapa = conCostoDeTerreno terrenosArchivo (either (error . show) id (proveedorHexagonal datosMapa1475))
