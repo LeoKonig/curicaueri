@@ -11,6 +11,9 @@ const BarraSuperior = preload("res://ui/barra_superior.gd")
 const PanelEntidad = preload("res://ui/panel_entidad.gd")
 const PanelComandos = preload("res://ui/panel_comandos.gd")
 const PanelDecisiones = preload("res://ui/panel_decisiones.gd")
+const PanelCronica = preload("res://ui/panel_cronica.gd")
+const PantallaInicio = preload("res://ui/pantalla_inicio.gd")
+const PantallaFinal = preload("res://ui/pantalla_final.gd")
 
 var espejo = Espejo.new()
 var conexion
@@ -19,6 +22,8 @@ var lienzo
 var panel
 var comandos
 var decisiones
+var cronica
+var pantalla_final = null
 var estado := Label.new()
 var informe := Label.new()      # informe de veintena, no modal
 var pestanas: TabContainer
@@ -81,7 +86,8 @@ func _armar_interfaz() -> void:
 	pestanas = TabContainer.new()
 	pestanas.tab_changed.connect(func(i):
 		if i == 2: pestanas.set_tab_title(2, "Informe")
-		if i == 3: pestanas.set_tab_title(3, "Decisiones"))
+		if i == 3: pestanas.set_tab_title(3, "Decisiones")
+		if i == 4: pestanas.set_tab_title(4, "Crónica"))
 	pestanas.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	lateral.add_child(pestanas)
 
@@ -125,11 +131,24 @@ func _armar_interfaz() -> void:
 	desplazamiento_decisiones.add_child(decisiones)
 	decisiones.refrescar()
 
+	var desplazamiento_cronica := ScrollContainer.new()
+	desplazamiento_cronica.name = "Crónica"
+	desplazamiento_cronica.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	pestanas.add_child(desplazamiento_cronica)
+	cronica = PanelCronica.new()
+	cronica.espejo = espejo
+	cronica.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	desplazamiento_cronica.add_child(cronica)
+	cronica.refrescar()
+
 	var partida := VBoxContainer.new()
 	partida.name = "Partida"
 	pestanas.add_child(partida)
 	partida.add_child(barra.controles_partida())
 	lateral.add_child(estado)
+
+	# El epígrafe cubre todo hasta que el jugador pulsa «Comenzar».
+	add_child(PantallaInicio.new())
 
 
 func _process(delta: float) -> void:
@@ -183,6 +202,9 @@ func _al_recibir(m: Dictionary) -> void:
 			_informe_de_veintena(m["tipo"] == "instantanea")
 			if m["tipo"] == "instantanea":
 				decisiones.refrescar()
+				cronica.refrescar()
+				# Cargar otra partida cierra la pantalla final; si la cargada ya terminó, el núcleo manda "fin" de nuevo.
+				_cerrar_pantalla_final()
 		"reloj":
 			barra.actualizar(espejo.reloj)
 		"error":
@@ -191,11 +213,36 @@ func _al_recibir(m: Dictionary) -> void:
 			comandos.prediccion(m, espejo)
 		"aviso":
 			estado.text = m["texto"]
+		"cronica":
+			cronica.refrescar()
+			# Como el informe: se marca la pestaña, no se detiene el juego.
+			if pestanas.current_tab != 4:
+				pestanas.set_tab_title(4, "Crónica •")
+		"fin":
+			barra.actualizar(espejo.reloj)
+			cronica.refrescar()
+			_mostrar_pantalla_final()
 		"decision", "decision_cerrada":
 			decisiones.refrescar()
 			# Como el informe: se marca la pestaña, no se detiene el juego.
 			if m["tipo"] == "decision" and pestanas.current_tab != 3:
 				pestanas.set_tab_title(3, "Decisiones •")
+
+
+func _mostrar_pantalla_final() -> void:
+	_cerrar_pantalla_final()
+	pantalla_final = PantallaFinal.new()
+	pantalla_final.espejo = espejo
+	pantalla_final.cargar_pedido.connect(func():
+		_cerrar_pantalla_final()
+		pestanas.current_tab = pestanas.get_tab_count() - 1)   # la pestaña «Partida»
+	add_child(pantalla_final)
+
+
+func _cerrar_pantalla_final() -> void:
+	if pantalla_final != null:
+		pantalla_final.queue_free()
+		pantalla_final = null
 
 
 ## Al cerrar una veintena, resume lo que cambió desde la anterior: los mayores
