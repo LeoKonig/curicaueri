@@ -67,7 +67,7 @@ estadoInicial1475 =
         , comunMonedas    = Map.empty
         }
       per  = Persistente com p
-  in Estado (Tick 0) per (Origen (Tick 0) per) (Derivado IntSet.empty ())
+  in Estado (Tick 0) per (Origen (Tick 0) per) (Derivado IntSet.empty derivadoPurepechaVacio)
 
 -- | El tipo de facción del reino purépecha, que elige las bases de sus grupos
 -- de poder en @datos/grupos.json@ (V5, *Tipos de facción*).

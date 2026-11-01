@@ -33,6 +33,10 @@
 --
 -- Edificios (ver Reglas.Edificios; sin esta opción, no hay nada que construir):
 --   --edificios ARCHIVO      por ejemplo datos/edificios.json
+--
+-- Terrenos (ver Motor.Terrenos y Reglas.Produccion; sin esta opción, el
+-- territorio no produce bienes):
+--   --terrenos ARCHIVO       por ejemplo datos/terrenos.json
 module Main (main) where
 
 import Control.Concurrent (forkIO, threadDelay)
@@ -78,6 +82,8 @@ import Reglas.Constantes (constantesDefault)
 import Reglas.Escenario
 import Reglas.Estado (Purepecha, ppAltepetl, ppPops)
 import Reglas.Edificios (cargarEdificios, edificiosVacios, idsEdificios)
+import Reglas.Produccion (bienesDe)
+import Motor.Terrenos (cargarTerrenos, validarTerrenosDelMapa)
 import Reglas.Grupos (cargarGrupos, conGrupos, gruposVacios, grIds)
 import qualified Reglas.Juego as RJ
 
@@ -150,15 +156,31 @@ main = do
         Left err -> fail ("edificios ilegibles (" <> ruta <> "): " <> err)
         Right v -> validado (cargarEdificios (T.pack ruta) RJ.catalogoMag v)
   unless (null (idsEdificios edificios)) $ registro ("edificios: " <> T.intercalate ", " (idsEdificios edificios))
+  terrenos <- case opcion "--terrenos" "" of
+    "" -> pure Map.empty
+    ruta -> do
+      bs <- BL.readFile ruta
+      case A.eitherDecode bs of
+        Left err -> fail ("terrenos ilegibles (" <> ruta <> "): " <> err)
+        Right v -> do
+          t <- validado (cargarTerrenos (T.pack ruta) v)
+          validado (validarTerrenosDelMapa (T.pack ruta) t mapaR)
+          pure t
+  unless (Map.null terrenos) $ registro ("bienes del territorio: " <> T.intercalate ", " (bienesDe terrenos))
   let comandos = catalogoComandosCon (idsEdificios edificios)
-      juego = RJ.juegoDatos constantesDefault (RJ.DatosReglas grupos edificios)
+      juego = RJ.juegoDatos constantesDefault (RJ.DatosReglas grupos edificios terrenos)
       -- --escala 7500x20: altépetl y pops de prueba para medir el costo a la
       -- escala del mapa completo (solo para la prueba de rendimiento del núcleo).
       (escN, escK) = case break (== 'x') (opcion "--escala" "") of
                        (a, _ : b) | [(x, "")] <- reads a, [(y, "")] <- reads b -> (x, y)
                        _ -> (0, 0)
       eSinGrupos = escalar (ancho * alto) escN escK (reubicar ancho alto estadoInicial1475)
-  e0 <- validado (conGrupos (T.pack (opcion "--grupos" "")) grupos tipoFaccion1475 eSinGrupos)
+  eConGrupos <- validado (conGrupos (T.pack (opcion "--grupos" "")) grupos tipoFaccion1475 eSinGrupos)
+  -- El derivado del estado inicial (qué celdas trabaja cada altépetl), para
+  -- que la primera veintena ya produzca. Es el mismo que daría cargar la
+  -- partida en el tick 0.
+  let e0 = eConGrupos { estadoDerivado = derivar juego mapaR (estadoTick eConGrupos)
+                                                (origenPersistente (estadoOrigen eConGrupos)) }
   agente <- case opcion "--agente" "" of
     "" -> case opcion "--reproducir-agente" "" of
       "" -> pure Nothing

@@ -605,6 +605,7 @@ donde κ(c) ∈ {1, κ_disp, κ_enem} es el factor de control de la celda.
 - **Más tierra da más producción** si sobran brazos; **más brazos dan más producción** si sobra tierra.
 - **Rendimientos decrecientes.** Cada trabajador nuevo va a una celda peor que la anterior, y pasado el último ℓ ya no añade nada. Eso es lo que hace atractiva la roturación cuando crece la población.
 - **Sin celdas, sin producción.** Si K(a) está vacío, Q_a = 0 sin dividir entre nada.
+- **Varios bienes por celda.** El rendimiento de una celda es un vector por bien (`rendimiento` en `datos/terrenos.json`), y cada bien recibe la misma fracción trabajada de la celda. Para ordenar las celdas, y(c) es la suma de sus rendimientos, sin pesos, mientras los bienes no tengan valor en el juego. Con esa y, Q_a es la suma de todos los bienes, y es lo que cumple la ley de monotonía. Un trabajador más no baja ningún bien. Una celda más puede bajar un bien, porque atrae trabajadores de otra celda, pero no baja el total.
 - **Por qué no `min(W, Cap) · ȳ`.** La capacidad Cap mide cuánta gente sostiene la tierra, no cuántos trabajadores emplea. Mezclarlas acopla dos cosas que el diseño mueve por separado: una terraza sube el rendimiento, y la erosión baja la capacidad.
 
 **Capacidad y presión:**

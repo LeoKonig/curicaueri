@@ -34,6 +34,10 @@ data Constantes = Constantes
   , cGobernadorAgravioPunto :: Int   -- literal: 3
     -- Obras (`step`): la partida de obras mínima para que avancen.
   , cObrasPresupuestoMinimo :: Int   -- construccion.presupuesto_minimo
+    -- Producción (documento funcional, sección 12). PROVISIONALES: el
+    -- prototipo no las tiene; se fijan al calibrar el hito 3.
+  , cFraccionTrabajadora   :: Fijo   -- FRACCION_TRABAJADORA: parte de un pop productivo que trabaja
+  , cRadioProduccionKm     :: Fijo   -- RADIO_PRODUCCION_KM: hasta dónde trabaja un altépetl
   } deriving (Eq, Show)
 
 constantesDefault :: Constantes
@@ -59,4 +63,9 @@ constantesDefault = Constantes
   , cGobernadorAgravioBase = 2
   , cGobernadorAgravioPunto = 3
   , cObrasPresupuestoMinimo = 20
+  , cFraccionTrabajadora   = Fijo 2500       -- 0,25, provisional
+    -- Provisional. V5 propone 10 km con celdas de unos 5 km (dos anillos);
+    -- el mapa provisional del escenario tiene celdas de 20 km, así que dos
+    -- anillos son 40 km.
+  , cRadioProduccionKm     = fi 40
   }
