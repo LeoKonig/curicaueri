@@ -27,13 +27,28 @@ Prompts listos para pegar en distintas IA (Claude Code, otros asistentes con acc
 
 T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan, el segundo se rebasa sobre `main`.
 
+**Estado al 1 de noviembre de 2026.** Hechas: T1, T2, T3, T4, T8 y T9. Pendientes del hito 3: T10, T11, y camino, terrazas, roturación y mercado parcial (sin prompt todavía). T7, por confirmar. T5 queda como el guion del **tutorial** 1475–1530. T6 se reemplaza por el inventario de 1418 (abajo).
+
+**Ronda 4: la campaña 1418–1605** (V5, *Alcance* y la tabla nueva de *Hitos*). T12, T14, T15 y T6 tocan áreas distintas y pueden correr en paralelo; T13 espera a T12.
+
+| Ronda | Tarea | Área (archivos principales) | Depende de | Hito |
+| --- | --- | --- | --- | --- |
+| 4 | T12 Varias facciones en las reglas | `reglas`: `Estado`, `Juego`, `Sistemas`, `Comando` | — | 4 |
+| 4 | T13 Escenarios como datos y campaña 1418 de juguete | `escenarios/`, `datos/facciones/`, `reglas`: `Escenario`; `app` | T12 | 4 |
+| 4 | T14 Condiciones y efectos nuevos | `motor`: `Magnitudes`, `Guion`, `Efectos` | — | 4 |
+| 4 | T15 Herramienta de mapa | `herramientas/mapa/` (Python) | — | 5 |
+| 4 | T6 Inventario histórico de 1418 | `docs/fuentes/` (sin código) | — | 10 |
+
 ---
 
 ## Contexto común (pegar antes de cada tarea)
 
 ```
 Trabajas en "Curicaueri: Flor y Canto", un juego de gran estrategia de código abierto
-sobre el reino purépecha (1475–1530). Repositorio: https://github.com/LeoKonig/curicaueri
+sobre Mesoamérica de 1418 a 1605, jugado desde el reino purépecha: las demás facciones las
+juega una IA sencilla y solo la purépecha tiene eventos escritos. Primero se construyen los
+sistemas completos con contenido de juguete; la calibración y el contenido histórico vienen
+después. Repositorio: https://github.com/LeoKonig/curicaueri
 
 Antes de escribir código, lee completos:
 - CLAUDE.md (reglas del repositorio: invariantes, vocabulario, cómo se trabaja)
@@ -175,11 +190,12 @@ Pruebas en nucleo/reglas/test: nombrar sube el poder del grupo y lo mantiene con
 recaudación. Rama: claude/nombramientos.
 ```
 
-## T5. Guion real de 1475 (datos)
+## T5. Guion del tutorial 1475–1530 (datos)
 
 ```
-Tarea: reemplazar el guion ilustrativo datos/guion_1475.json por uno construido con las
-decisiones recurrentes del prototipo del hito 0.
+Tarea: reemplazar el guion ilustrativo datos/guion_1475.json por el guion del tutorial
+(escenario 1475–1530, V5 *Alcance*), construido con las decisiones recurrentes del
+prototipo del hito 0.
 
 Lee: V5 *Decisiones recurrentes*, *Actos modulares* y *Una veintena en la vida del cazonci*;
 documento funcional, sección 11b; hito_0/datos/eventos.json (rebaja, autonomía, excedente,
@@ -199,29 +215,31 @@ Haz:
 Rama: claude/guion-1475. Solo toca datos/guion_1475.json y, si hace falta, docs/.
 ```
 
-## T6. Investigación histórica (sin código; asistente con búsqueda web)
+## T6. Inventario histórico de 1418 (sin código; asistente con búsqueda web)
 
 ```
-Contexto: diseño un juego de estrategia sobre el reino purépecha (Michoacán) entre 1475 y
-1530. Necesito datos con fuentes verificables para fijar parámetros del juego. Para cada
+Contexto: diseño un juego de estrategia sobre Mesoamérica de 1418 a 1605, jugado desde el
+reino purépecha. Necesito el estado político de partida, con fuentes verificables. Para cada
 afirmación da la fuente (autor, obra, año, página si es posible) y marca el grado de
-certeza. Si las fuentes discrepan, muestra las posturas. No inventes citas.
+certeza (alta, media, baja). Si las fuentes discrepan, muestra las posturas. No inventes
+citas: si no puedes comprobar una página, dilo.
 
 Preguntas:
-1. Sucesos documentados de 1485 a 1519 en Michoacán y su frontera (guerras con la Triple
-   Alianza, campañas en la frontera chichimeca y otomí, sucesiones, epidemias, sequías,
-   rebeliones), con fecha o ventana de años y fuente. Fuente principal esperada: la
-   *Relación de Michoacán*; contrasta con Pollard (*Taríacuri's Legacy*), Warren, Roskamp.
-2. Medios de pago en el reino purépecha: ¿circulaban mantas, cacao, hachas de cobre (las
-   "hachas-moneda" del Occidente de México, Hosler) u otros como moneda o medio de cambio?
-   ¿Qué se tributaba y en qué especie?
-3. Estimaciones de población hacia 1520 de Tzintzuntzan, Pátzcuaro, Ihuatzio, Zacapu,
-   Uruapan y Taximaroa, y del reino entero, con su rango.
-4. Organización política: ¿cómo nombraba el cazonci a los señores locales y gobernadores?
-   ¿Qué grupos (nobleza guerrera, sacerdotes, mercaderes, administradores) tenían poder y
-   cómo se manifestaba?
-5. Cronología de la llegada de los franciscanos a Michoacán (1525–1530) y del vasallaje del
-   cazonci Tangáxoan II.
+1. Michoacán hacia 1418: ¿qué cronologías proponen los autores para Taríacuri y los tres
+   señores (Hirípan en Ihuatzio, Tangáxoan en Tzintzuntzan, Hiquíngare en Pátzcuaro), y
+   para Tzitzispandáquare? ¿Hay en 1418 un reino, tres señoríos aliados o algo anterior?
+   Fuentes: Relación de Michoacán, Pollard, Warren, Roskamp, Martínez Baracs.
+2. Altiplano Central en 1418: entidades políticas (Azcapotzalco, Tenochtitlan, Tlatelolco,
+   Tetzcoco, Tlacopan, Coyoacan, Chalco, Xochimilco, Tlaxcala, Huexotzinco, Cholula,
+   Metztitlán y los señoríos menores que se documenten), quién gobernaba, quién tributaba a
+   quién. Fuentes: Carrasco, Santamarina, Gibson, Hassig.
+3. Lista de facciones de 1418 en el resto del mapa (Oaxaca, mundo maya, Golfo y Huasteca,
+   Occidente, Gran Chichimeca), con tipo de organización (reino, señorío, confederación,
+   pueblo nómada) y certeza. Ojo: Mayapán no se había disgregado en 1418 (1441–1461, por
+   verificar).
+4. Revisión de las listas de eventos purépechas y de la Triple Alianza que el autor reunió
+   (pídeselas): por cada evento, si la fecha y la cita se sostienen, y si los términos en
+   purépecha son correctos ("tepuztli", por ejemplo, es náhuatl).
 
 Entrega: un documento en Markdown por pregunta, listo para guardar en docs/fuentes/.
 ```
@@ -332,4 +350,97 @@ Haz:
    ≥ 15 decisiones con costo en 10 años, ≥ 3 que cambian el rumbo.
 
 Rama: claude/arnes-0a. No cambies las reglas para que pase: si no pasa, el informe lo dice.
+```
+
+## T12. Varias facciones en las reglas (reglas, hito 4)
+
+```
+Tarea: que el juego de reglas tenga muchas facciones con los mismos sistemas. Hoy hay una
+sola: `entFaccion = EntRef "faccion" 1`, con un cazonci, unas tasas y un presupuesto.
+
+Lee: V5 *Alcance: el juego del motor y el tutorial*, *Qué es una facción*, *Tipos de
+facción y niveles de detalle*, *Aparición y desaparición de facciones* y la fila del
+hito 4 en *Hitos*; documento funcional, secciones 1, 4 y 14b (aparición y desaparición).
+
+Haz:
+1. Una entidad Faccion en Reglas.Estado (id, nombre, tipo, estado potencial/activa/
+   eliminada, gobernante, tasas, presupuesto, jugable). Tesoro, prestigio y legitimidad
+   siguen siendo magnitudes, ahora de `faccion <id>`.
+2. Cada altépetl pertenece a una facción y tiene condición (sujeto, señorío, independiente).
+3. Los sistemas (hacienda, agravio, obras, producción, nombramientos) recorren todas las
+   facciones activas por id. Los comandos actúan sobre la facción que los sella.
+4. Un agente nulo por cada facción no jugable (`juegoAgentes`).
+5. Aparición por fecha y desaparición por absorción, con la transferencia y su ley de
+   conservación.
+6. Guardados: sube versionGuardado en un commit propio si no se puede dar valor por defecto.
+
+Pruebas: con agentes nulos, cambiar cuál facción es la jugable no cambia la traza; dos
+facciones con los mismos datos evolucionan igual; una facción absorbida transfiere todo
+lo que no se declara perdido. Mide con `--escala` (CLAUDE.md, *Pensado para el juego
+completo*). Rama: claude/varias-facciones.
+```
+
+## T13. Escenarios como datos y campaña 1418 de juguete (después de T12)
+
+```
+Tarea: sacar el escenario del código y cargar la campaña 1418–1605 con contenido de
+juguete.
+
+Lee: V5 *Alcance*, *La rebanada vertical*, *Tipos de facción y niveles de detalle* (la
+lista de facciones por región) y la fila del hito 4; documento funcional, sección 17.
+
+Haz:
+1. escenarios/campana_1418.json y escenarios/tutorial_1475.json con fecha inicial y final,
+   desfase del calendario, facciones, altépetl, pops, personajes, sistemas activos y ejes.
+   El tutorial reproduce el escenario actual de Reglas.Escenario.
+2. datos/facciones/ con la lista de juguete de V5 (unas decenas de facciones, uno a tres
+   altépetl cada una), marcada con "_provisional": true. No busques fuentes: eso es T6.
+3. Cáscara: --escenario ARCHIVO; sin él, el tutorial.
+4. Errores de carga acumulados, como el guion.
+
+Criterio: `nucleo --sin-cliente --escenario escenarios/campana_1418.json --ticks 68000`
+corre hasta 1605, guarda y carga a mitad y sigue igual; el tutorial da la misma traza que
+el escenario de hoy. Rama: claude/escenarios-datos.
+```
+
+## T14. Condiciones y efectos nuevos (motor, hito 4)
+
+```
+Tarea: ampliar el lenguaje cerrado de condiciones y el conjunto de efectos, para que los
+eventos purépechas y la aparición de facciones puedan escribirse en datos.
+
+Lee: documento funcional, secciones 10, 11, 11b y 14b; V5 *Sistema de eventos* y
+*Aparición y desaparición de facciones*.
+
+Haz, en el motor y probado con el juego de juguete:
+1. Condiciones: `ocurrio` (un tipo de hecho está en la crónica, con ventana opcional) y
+   las que necesitan datos del juego como funciones que el juego aporta (soberano de una
+   entidad, facción activa, personaje vivo), sin que el motor importe reglas.
+2. Efectos: añadir un modificador temporal con fuente (magnitud, valor o porcentaje,
+   duración); los que transfieren entidades o activan facciones van como efectos propios
+   del juego (`efectosPropios`, documento funcional sección 1).
+3. Carga: tipos y referencias comprobados al cargar, con todos los errores acumulados.
+
+No toques reglas salvo para registrar los efectos propios si T12 ya se fusionó.
+Rama: claude/condiciones-efectos.
+```
+
+## T15. Herramienta de mapa (Python, hito 5)
+
+```
+Tarea: la herramienta que genera el paquete del mapa completo.
+
+Lee: V5 *El mapa como grafo*, *El mapa completo: celdas iguales e ids globales* y
+*Escala de la simulación*; documento funcional, sección 8 (ids globales y ley de
+ampliación); Motor.Mapa y Motor.Terrenos para el formato que lee el núcleo.
+
+Haz: herramientas/mapa/ en Python con versiones fijas (GDAL, rasterio, shapely), que lea
+elevación (Copernicus), ríos (HydroSHEDS) y ecorregiones, trace hexágonos de 5 km sobre
+una proyección de área igual, asigne terreno por celda y escriba el paquete compacto
+(tramos por fila, vecinos deducidos, excepciones en listas). Sumas de verificación de
+cada fuente; misma entrada, misma salida. Un mapa de prueba pequeño (Michoacán) va en el
+repositorio; el mapa entero se genera.
+
+Criterio: el núcleo carga el mapa de prueba con validarMapa sin errores, y la misma celda
+tiene el mismo id en el mapa de prueba y en el entero. Rama: claude/herramienta-mapa.
 ```

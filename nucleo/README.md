@@ -1,6 +1,6 @@
 # Curicaueri: Flor y Canto — núcleo del juego (motor y reglas)
 
-Núcleo en Haskell de *Curicaueri: Flor y Canto*, juego de gran estrategia sobre Mesoamérica (prototipo: el reino purépecha, 1475–1530). El núcleo decide todo el estado del juego; el cliente en Godot solo dibuja y captura la entrada.
+Núcleo en Haskell de *Curicaueri: Flor y Canto*, juego de gran estrategia sobre Mesoamérica (la campaña 1418–1605 jugada desde el reino purépecha; el escenario actual es todavía el provisional de 1475). El núcleo decide todo el estado del juego; el cliente en Godot solo dibuja y captura la entrada.
 
 Este código implementa dos documentos de diseño, que conviene leer antes de tocarlo:
 

@@ -1,6 +1,6 @@
 # Curicaueri: Flor y Canto — reglas para trabajar en este repositorio
 
-Juego de gran estrategia de código abierto sobre el reino purépecha (1475–1530). Núcleo en Haskell (`nucleo/`: paquetes `motor`, `reglas` y la cáscara `app`) y cliente en Godot (`cliente/`). El diseño manda: `docs/arquitectura-prototipoV5.md` (qué es el juego) y `docs/arquitectura-funcional.md` (cómo se modela). Léelos antes de cambiar algo que no sea trivial.
+Juego de gran estrategia de código abierto sobre Mesoamérica de 1418 a 1605, jugado desde el reino purépecha (las demás facciones las juega una IA; el tutorial es el escenario 1475–1530). Núcleo en Haskell (`nucleo/`: paquetes `motor`, `reglas` y la cáscara `app`) y cliente en Godot (`cliente/`). El diseño manda: `docs/arquitectura-prototipoV5.md` (qué es el juego) y `docs/arquitectura-funcional.md` (cómo se modela). Léelos antes de cambiar algo que no sea trivial.
 
 ## Idioma
 
