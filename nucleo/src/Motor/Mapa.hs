@@ -104,11 +104,12 @@ mkCelda ancho c r =
 
 -- | Convención pointy-top, paridad de fila. Genera conexiones simétricas.
 -- Entre dos celdas vecinas hay un paso: la longitud es la escala del mapa
--- (km por celda, V5 *El mapa como grafo*). El costo de movimiento todavía no
--- lo usa nadie y queda en 0 hasta que lo pida el movimiento.
+-- (km por celda, V5 *El mapa como grafo*). El costo de la conexión coincide
+-- con su longitud: para fines prácticos es la distancia en km, el peso del
+-- grafo. Las rutas marítimas tendrán un costo mayor cuando existan.
 ady :: Fijo -> Int -> Int -> Int -> Int -> [(CeldaId, Conexion)]
 ady longitud ancho alto c r =
-  [ (CeldaId (r' * ancho + c'), Conexion longitud (Fijo 0) Set.empty)
+  [ (CeldaId (r' * ancho + c'), Conexion longitud longitud Set.empty)
   | (dc, dr) <- offsets, let { c' = c + dc; r' = r + dr }
   , c' >= 0, c' < ancho, r' >= 0, r' < alto ]
   where
@@ -121,16 +122,15 @@ ady longitud ancho alto c r =
 --
 -- > asig(c) = argmin_a (d_km(c, celda(a)), id(a))   con d_km ≤ R_prod
 --
--- Un Dijkstra multifuente sobre la longitud en km de las conexiones (no sobre
--- el costo: la cercanía física no cambia si se construye un camino, V5 *El
--- mapa como grafo*). Cada celda recibe el asentamiento más cercano; el empate
+-- Un Dijkstra multifuente sobre el costo de las conexiones, que equivale a
+-- los km entre un punto y otro (5 en tierra, más por mar). Cada celda recibe el asentamiento más cercano; el empate
 -- lo rompe el id menor. Las celdas a más de @radio@ km de todo asentamiento
 -- no aparecen en el resultado. Es derivado: se recalcula, no se guarda.
 --
 -- La etiqueta de un camino es el par (distancia, id de la fuente), que se
 -- ordena lexicográficamente. Sumar una longitud no negativa conserva ese
 -- orden, así que el Dijkstra sigue siendo correcto con empates y con
--- conexiones de longitud 0. Un asentamiento cuya celda no está en el mapa se
+-- conexiones de costo 0. Un asentamiento cuya celda no está en el mapa se
 -- ignora; si dos comparten celda, gana el de id menor.
 asignarCeldas :: Fijo -> Mapa -> [(AsentId, CeldaId)] -> IntMap AsentId
 asignarCeldas radio mapa fuentes = IntMap.map AsentId (visitar inicial IntMap.empty)
@@ -150,6 +150,6 @@ asignarCeldas radio mapa fuentes = IntMap.map AsentId (visitar inicial IntMap.em
                 nuevas = [ (d', a, v)
                          | (CeldaId v, con) <- fromMaybe [] (IntMap.lookup c (mapaVecinos mapa))
                          , not (IntMap.member v fijadas')
-                         , let d' = d .+. connLongitud con
+                         , let d' = d .+. connCosto con
                          , d' <= radio ]
             in visitar (foldr Set.insert resto nuevas) fijadas'

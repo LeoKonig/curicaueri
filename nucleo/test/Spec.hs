@@ -511,7 +511,7 @@ main = hspec $ do
         -- Reasigna a cada conexión una longitud de 0 a 3 km, la misma en los dos sentidos
         -- (depende solo del par de celdas), para que haya empates y conexiones de longitud 0.
         reponderar sem m = m { mapaVecinos = IntMap.mapWithKey (\a vs ->
-          [ (CeldaId b, con { connLongitud = Fijo (fromIntegral ((min a b * 7 + max a b * 13 + sem) `mod` 4) * 10000) })
+          [ (CeldaId b, con { connCosto = Fijo (fromIntegral ((min a b * 7 + max a b * 13 + sem) `mod` 4) * 10000) })
           | (CeldaId b, con) <- vs ]) (mapaVecinos m) }
         -- La definición, sin Dijkstra: la distancia de cada fuente a cada celda por
         -- relajación repetida, y para cada celda el mínimo de (distancia, id) dentro del radio.
@@ -524,7 +524,7 @@ main = hspec $ do
           , let (_, a) = minimum cands ]
         distDesde m f = iterate (relajar m) (IntMap.singleton f (Fijo 0)) !! IntMap.size (mapaCeldas m)
         relajar m ds = IntMap.unionWith min ds (IntMap.fromListWith min
-          [ (b, d .+. connLongitud con) | (a, d) <- IntMap.toList ds
+          [ (b, d .+. connCosto con) | (a, d) <- IntMap.toList ds
                                         , (CeldaId b, con) <- IntMap.findWithDefault [] a (mapaVecinos m) ])
         casoAzar = do
           w <- choose (1, 5); h <- choose (1, 4); sem <- choose (0, 1000)
@@ -535,8 +535,8 @@ main = hspec $ do
           ids <- vectorOf k (choose (1, 50))
           radio <- Fijo . (* 5000) <$> choose (0, 16)
           pure (m, zip ids celdas, radio)
-    it "el proveedor hexagonal pone a cada conexión la longitud de la escala" $
-      all (\con -> connLongitud con == mapaEscala mapaPrueba)
+    it "el proveedor hexagonal pone a cada conexión la escala como longitud y como costo" $
+      all (\con -> connLongitud con == mapaEscala mapaPrueba && connCosto con == mapaEscala mapaPrueba)
           [ con | vs <- IntMap.elems (mapaVecinos mapaPrueba), (_, con) <- vs ]
         `shouldBe` True
     it "ley: coincide con el mínimo por fuerza bruta en mapas pequeños, con empates y conexiones de longitud 0" $
