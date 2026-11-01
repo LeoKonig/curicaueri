@@ -27,10 +27,14 @@ completar t alm catalogo ej =
   EntidadVista (ejRef ej) (ejCampos ej) mags
   where
     ref  = ejRef ej
+    -- Las claves del almacén se ordenan por entidad primero: las magnitudes de
+    -- esta entidad forman un tramo contiguo, que se toma en O(log n). Recorrer
+    -- todo el almacén por cada entidad hacía la proyección cuadrática.
+    deLaEntidad = Map.takeWhileAntitone ((== ref) . fst)
+                    (Map.dropWhileAntitone ((< ref) . fst) alm)
     mags = Map.fromList
       [ (m, magnitudVista dm (almacenBase x) (filter (activoEn t) (almacenMods x)))
-      | ((r, m), x) <- Map.toList alm
-      , r == ref
+      | ((_, m), x) <- Map.toList deLaEntidad
       , Just dm <- [Map.lookup m catalogo]
       ]
 
