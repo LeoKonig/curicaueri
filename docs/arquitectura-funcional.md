@@ -4,7 +4,7 @@
 
 Este documento acompaña a `arquitectura-prototipoV5.md`. V5 dice **qué** es el juego; este dice **cómo** se modela: el juego como sistema dinámico discreto, cada mecánica como función pura y cada regla del diseño como una ley comprobable. Cuando los dos documentos difieran en una cifra o una regla de diseño, manda V5; cuando difieran en un tipo, una firma o una ley, manda este.
 
-**Alcance.** Desde el 1 de noviembre de 2026, el juego del motor es la campaña 1418–1605 sobre el mapa completo, con una sola facción jugable (V5, *Alcance: el juego del motor y el tutorial*). Donde este documento dice "prototipo", léase el juego del motor con contenido de juguete; el tutorial 1475–1530 es un escenario más. Los números de hito siguen la tabla nueva de V5.
+**Alcance.** Desde el 1 de noviembre de 2026, el juego del motor es la campaña 1418–1607 sobre el mapa completo, con una sola facción jugable (V5, *Alcance: el juego del motor y el tutorial*). Donde este documento dice "prototipo", léase el juego del motor con contenido de juguete; el tutorial 1475–1530 es un escenario más. Los números de hito siguen la tabla nueva de V5.
 
 **Notación.** `t` es un tick (un día); `S` el estado; `σ` la semilla de la partida; `⌊x⌋` la parte entera; `⌊x⌉ = ⌊x + ½⌋` el redondeo al entero más cercano, con medios hacia arriba; `clamp(x, a, b)` limita x al intervalo [a, b]. Las firmas se escriben en Haskell. Toda cantidad que afecta al estado es de tipo `Fijo` (punto fijo, ver sección 15).
 

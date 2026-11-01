@@ -29,7 +29,7 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 
 **Estado al 1 de noviembre de 2026.** Hechas: T1, T2, T3, T4, T8 y T9. Pendientes del hito 3: T10, T11, y camino, terrazas, roturación y mercado parcial (sin prompt todavía). T7, por confirmar. T5 queda como el guion del **tutorial** 1475–1530. T6 se reemplaza por el inventario de 1418 (abajo).
 
-**Ronda 4: la campaña 1418–1605** (V5, *Alcance* y la tabla nueva de *Hitos*). T12, T14, T15 y T6 tocan áreas distintas y pueden correr en paralelo; T13 espera a T12.
+**Ronda 4: la campaña 1418–1607** (V5, *Alcance* y la tabla nueva de *Hitos*). T12, T14, T15 y T6 tocan áreas distintas y pueden correr en paralelo; T13 espera a T12.
 
 | Ronda | Tarea | Área (archivos principales) | Depende de | Hito |
 | --- | --- | --- | --- | --- |
@@ -45,7 +45,7 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 
 ```
 Trabajas en "Curicaueri: Flor y Canto", un juego de gran estrategia de código abierto
-sobre Mesoamérica de 1418 a 1605, jugado desde el reino purépecha: las demás facciones las
+sobre Mesoamérica de 1418 a 1607, jugado desde el reino purépecha: las demás facciones las
 juega una IA sencilla y solo la purépecha tiene eventos escritos. Primero se construyen los
 sistemas completos con contenido de juguete; la calibración y el contenido histórico vienen
 después. Repositorio: https://github.com/LeoKonig/curicaueri
@@ -218,7 +218,7 @@ Rama: claude/guion-1475. Solo toca datos/guion_1475.json y, si hace falta, docs/
 ## T6. Inventario histórico de 1418 (sin código; asistente con búsqueda web)
 
 ```
-Contexto: diseño un juego de estrategia sobre Mesoamérica de 1418 a 1605, jugado desde el
+Contexto: diseño un juego de estrategia sobre Mesoamérica de 1418 a 1607, jugado desde el
 reino purépecha. Necesito el estado político de partida, con fuentes verificables. Para cada
 afirmación da la fuente (autor, obra, año, página si es posible) y marca el grado de
 certeza (alta, media, baja). Si las fuentes discrepan, muestra las posturas. No inventes
@@ -383,7 +383,7 @@ completo*). Rama: claude/varias-facciones.
 ## T13. Escenarios como datos y campaña 1418 de juguete (después de T12)
 
 ```
-Tarea: sacar el escenario del código y cargar la campaña 1418–1605 con contenido de
+Tarea: sacar el escenario del código y cargar la campaña 1418–1607 con contenido de
 juguete.
 
 Lee: V5 *Alcance*, *La rebanada vertical*, *Tipos de facción y niveles de detalle* (la
@@ -398,8 +398,8 @@ Haz:
 3. Cáscara: --escenario ARCHIVO; sin él, el tutorial.
 4. Errores de carga acumulados, como el guion.
 
-Criterio: `nucleo --sin-cliente --escenario escenarios/campana_1418.json --ticks 68000`
-corre hasta 1605, guarda y carga a mitad y sigue igual; el tutorial da la misma traza que
+Criterio: `nucleo --sin-cliente --escenario escenarios/campana_1418.json --ticks 69000`
+corre hasta 1607, guarda y carga a mitad y sigue igual; el tutorial da la misma traza que
 el escenario de hoy. Rama: claude/escenarios-datos.
 ```
 
