@@ -4,10 +4,13 @@ module Reglas.Juego where
 import qualified Data.Aeson as A
 import Data.List (foldl')
 import qualified Data.Map.Strict as Map
+import Data.Maybe (isJust)
+import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
 
 import Motor.Base
+import Motor.Compartido (clavesCambiadas)
 import Motor.Estado
 import Motor.Hechos
 import Motor.Juego
@@ -118,12 +121,57 @@ aplicarComando c dr est sell = let gs = drGrupos dr in case sellCmd sell of
 proyectar :: Estado Purepecha -> [EntidadJuego]
 proyectar est =
   let p = persistenteJuego (estadoPersistente est)
+  in  [ proyectarAlt est a | a <- Map.elems (ppAltepetl p) ]
+   ++ [ proyectarPop pop | pop <- Map.elems (ppPops p) ]
+   ++ [ proyectarFaccion est ]
+
+-- | Lo que aporta una sola entidad: el mismo elemento que en 'proyectar'.
+proyectarDe :: Estado Purepecha -> EntRef -> Maybe EntidadJuego
+proyectarDe est r
+  | r == entFaccion                   = Just (proyectarFaccion est)
+  | entClase r == entClase altCualquiera = proyectarAlt est <$> Map.lookup (AltId (entId r)) (ppAltepetl p)
+  | entClase r == entClase popCualquiera = proyectarPop <$> Map.lookup (PopId (entId r)) (ppPops p)
+  | otherwise                         = Nothing
+  where
+    p = persistenteJuego (estadoPersistente est)
+    altCualquiera = entRefAlt (AltId 0)
+    popCualquiera = entRefPop (PopId 0)
+
+-- | Las entidades cuyos campos pudieron cambiar de un estado a otro
+-- ('juegoSucias'). Los altépetl y los pops que cambiaron se encuentran con
+-- 'clavesCambiadas', que salta lo que los dos estados comparten. Un altépetl
+-- también muestra lo que dice el derivado de él (sus fieles y sus celdas) y
+-- el nombre de los que le envían tributo; los nombres no cambian, pero si
+-- cambiaran, se marcan todos los que tienen obra. La facción muestra
+-- magnitudes del almacén: siempre está sucia (es una).
+sucias :: Estado Purepecha -> Estado Purepecha -> Maybe (Set.Set EntRef)
+sucias e0 e1 = Just (Set.fromList (entFaccion : map entRefAlt alts ++ map entRefPop pops))
+  where
+    p0 = persistenteJuego (estadoPersistente e0)
+    p1 = persistenteJuego (estadoPersistente e1)
+    d0 = derivadoJuego (estadoDerivado e0)
+    d1 = derivadoJuego (estadoDerivado e1)
+    cambiados = clavesCambiadas (ppAltepetl p0) (ppAltepetl p1)
+    nombre q a = altNombre <$> Map.lookup a (ppAltepetl q)
+    conObra | any (\a -> nombre p0 a /= nombre p1 a) cambiados = [ altId a | a <- Map.elems (ppAltepetl p1), isJust (altObra a) ]
+            | otherwise = []
+    alts = cambiados ++ conObra
+        ++ clavesCambiadas (dpCeldas d0) (dpCeldas d1)
+        ++ map fst (clavesCambiadas (dpFielesLocal d0) (dpFielesLocal d1))
+        ++ map fst (clavesCambiadas (dpFielesCentro d0) (dpFielesCentro d1))
+    pops = clavesCambiadas (ppPops p0) (ppPops p1)
+
+proyectarAlt :: Estado Purepecha -> Altepetl -> EntidadJuego
+proyectarAlt est a =
+  let p = persistenteJuego (estadoPersistente est)
       der = derivadoJuego (estadoDerivado est)
-      celdas = dpCeldas der
-      fieles a = foldl' (.+.) (Fijo 0) [ f | ((b, _), f) <- Map.toList (dpFielesLocal der) ++ Map.toList (dpFielesCentro der), b == a ]
+      -- Las claves de los fieles empiezan por el altépetl: los suyos son un
+      -- tramo contiguo, que se toma en O(log n).
+      deAlt = Map.takeWhileAntitone ((== altId a) . fst) . Map.dropWhileAntitone ((< altId a) . fst)
+      fieles = foldl' (.+.) (Fijo 0) (Map.elems (deAlt (dpFielesLocal der)) ++ Map.elems (deAlt (dpFielesCentro der)))
       nombreAlt b = maybe "?" altNombre (Map.lookup b (ppAltepetl p))
       acopio o = VLista [ VTexto (g <> " " <> textoFijo q) | (g, q) <- Map.toList (obAcopio o) ]
-  in  [EntidadJuego (entRefAlt (altId a)) (Map.fromList
+  in  EntidadJuego (entRefAlt (altId a)) (Map.fromList
         [ ("nombre",   VTexto (altNombre a))
         , ("lealtad",  VFijo  (altLealtad a))
         , ("distancia",VFijo  (altDistancia a))
@@ -140,24 +188,26 @@ proyectar est =
                                                               <> ", llega el día " <> T.pack (show (enLlega en))
                                                               <> ", transporte " <> textoFijo (enCosto en))
                                                    | en <- obEnCamino o ]) (altObra a))
-        , ("fieles",         VFijo (fieles (altId a)))
+        , ("fieles",         VFijo fieles)
         , ("edificios", VLista (map VTexto (altEdificios a)))
-        , ("celdas_trabajadas", VEntero (length (Map.findWithDefault [] (altId a) celdas)))
+        , ("celdas_trabajadas", VEntero (length (Map.findWithDefault [] (altId a) (dpCeldas der))))
         ])
-      | a <- Map.elems (ppAltepetl p)]
-   ++ [EntidadJuego (entRefPop (popId pop)) (Map.fromList
-        [ ("altepetl",  VRef    (entRefAlt (popAltepetl pop)))
-        , ("identidad", VTexto  (popIdentidad pop))
-        , ("estrato",   VTexto  (popEstrato pop))
-        , ("tamano",    VEntero (popTamano pop))
-        , ("lealtad",   VFijo   (popLealtad pop))
-        ])
-      | pop <- Map.elems (ppPops p)]
-   ++ [EntidadJuego entFaccion (Map.fromList
-        [ ("tesoro",      VFijo (baseFaccion magTesoro est))
-        , ("prestigio",   VFijo (baseFaccion magPrestigio est))
-        , ("legitimidad", VFijo (baseFaccion magLegitimidad est))
-        ])]
+
+proyectarPop :: Pop -> EntidadJuego
+proyectarPop pop = EntidadJuego (entRefPop (popId pop)) (Map.fromList
+  [ ("altepetl",  VRef    (entRefAlt (popAltepetl pop)))
+  , ("identidad", VTexto  (popIdentidad pop))
+  , ("estrato",   VTexto  (popEstrato pop))
+  , ("tamano",    VEntero (popTamano pop))
+  , ("lealtad",   VFijo   (popLealtad pop))
+  ])
+
+proyectarFaccion :: Estado Purepecha -> EntidadJuego
+proyectarFaccion est = EntidadJuego entFaccion (Map.fromList
+  [ ("tesoro",      VFijo (baseFaccion magTesoro est))
+  , ("prestigio",   VFijo (baseFaccion magPrestigio est))
+  , ("legitimidad", VFijo (baseFaccion magLegitimidad est))
+  ])
 
 textoFijo :: Fijo -> Text
 textoFijo f = case A.toJSON f of
@@ -196,6 +246,8 @@ juegoDatos c dr = let bienes = bienesDe (drTerrenos dr) in Juego
   , juegoAplicarCmd  = aplicarComando c dr
   , juegoDerivar     = \g _ p -> derivarPurepecha c dr g (persistenteJuego p)
   , juegoProyectar   = proyectar
+  , juegoProyectarDe = proyectarDe
+  , juegoSucias      = sucias
   , juegoAgentes     = Map.empty
   , juegoCatalogoMag = Map.unions [ catalogoMag, catalogoGrupos (drGrupos dr), catalogoBienes bienes
                                   , catalogoConocimientos (drEdificios dr) ]

@@ -18,6 +18,8 @@ import Motor.Estado
 import Motor.Juego
 import Motor.Magnitudes
 import Motor.Mapa
+import Motor.Proyeccion (proyeccion, proyeccionIncremental)
+import Motor.Vista (EntidadJuego (..))
 import Motor.Guion (Entorno (..), entornoSimple)
 
 import qualified Reglas.Juego
@@ -480,6 +482,25 @@ main = do
                     , fuenteTipo (modFuente m) == "tributo_obra" ] `shouldBe` []
       [ () | h <- hs, hechoTipo h == "modificador_terminado", Map.lookup "fuente" (hechoParams h) == Just "tributo_obra" ]
         `shouldBe` [()]
+
+    it "ley: la proyección incremental es la completa cada día de una partida con obras y tributo" $ do
+      let cmdsDe t = case t of
+            0  -> construir "yacata" 2 500
+            1  -> [Sellado (Tick 1) (FaccionId 1) 0 (PedirTributoObra (AltId 2) "piedra" (AltId 1) 300)]
+            45 -> construir "troje" 3 100
+            _  -> []
+          estados = scanl (\e t -> fst (paso j ent (Semilla 1) (Tick t) (cmdsDe t) e)) e0 [0 .. 600]
+          vistas = scanl (\v (a, b) -> proyeccionIncremental j a v b) (proyeccion j e0) (zip estados (drop 1 estados))
+      [ estadoTick e | (v, e) <- zip vistas estados, v /= proyeccion j e ] `shouldBe` []
+      -- Y la última sigue siendo la completa aunque haya pasado por todas.
+      fmap altEdificios (Map.lookup (AltId 2) (ppAltepetl (jue (last estados)))) `shouldBe` Just ["yacata"]
+
+    it "proyectarDe da el mismo elemento que proyectar, y nada para lo que no existe" $ do
+      let (s, _) = correrDias (construir "yacata" 2 500) 0 30 e0
+      forM_ [e0, s] $ \e ->
+        [ juegoProyectarDe j e (ejRef ej) | ej <- juegoProyectar j e ] `shouldBe` map Just (juegoProyectar j e)
+      juegoProyectarDe j s (EntRef "altepetl" 999) `shouldBe` Nothing
+      juegoProyectarDe j s (EntRef "grupo" 1) `shouldBe` Nothing
 
     it "rechazos sin daño del tributo: sin obra, material no pedido, a sí mismo, inexistente, sin gente, repetido, recién empezada" $ do
       let (s0, _) = correrDias (construir "yacata" 2 500) 0 0 e0

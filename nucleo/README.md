@@ -60,7 +60,8 @@ Los archivos dorados del protocolo y del espejo viven fuera, en `../pruebas_comp
 | `Motor.Sistema` | `Sistema s` con `lee`/`escribe`, cadencias y `correr` |
 | `Motor.Juego` | El registro `Juego s c`, `paso` y `pasoDetallado`, la cola de comandos, los agentes, el vencimiento de modificadores, `derivar` y `consultar` |
 | `Motor.Vista` | Tipos genéricos del espejo: `Vista`, `EntidadVista`, `Cambios` |
-| `Motor.Proyeccion` | `proyeccion`, `cambiosRef`, `cambiosOpt`, `aplicar` y `diferencias` (lo que muestra una predicción) |
+| `Motor.Proyeccion` | `proyeccion`, `proyeccionIncremental` (la vista de un estado hecha sobre la del anterior, proyectando solo las entidades sucias), `cambios` y su referencia `cambiosRef`, `aplicar` y `diferencias` (lo que muestra una predicción) |
+| `Motor.Compartido` | `clavesCambiadas`: las claves que difieren entre dos mapas persistentes, saltando los subárboles que comparten |
 | `Motor.Carga` | Carga de datos con errores acumulados, versión de esquema, compilación de eventos, `validarOrdenSistemas` |
 | `Motor.Efectos` | Efectos compilados (`Programa`) y su intérprete con suspensión y reanudación |
 | `Motor.Agentes` | Agente nulo y agente aleatorio |
@@ -129,7 +130,7 @@ Vive en `test/Spec.hs`. Son aldeas con población y descontento, tres sistemas (
 | Restos | `ruta: población con restos` |
 | Modificador que expira | `ruta: modificador que expira` |
 | Fases, director y plazos | `guion: fases`, `guion: director`, `guion: responder`, `guion: métricas del hito 0 como prueba permanente` |
-| Cambio de proyección | `espejo`, `cambiosOpt ≡ cambiosRef` |
+| Cambio de proyección | `espejo`, `cambios ≡ cambiosRef; proyección incremental ≡ completa`, `clavesCambiadas` |
 
 ## Convenciones
 

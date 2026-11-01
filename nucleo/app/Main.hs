@@ -315,20 +315,22 @@ avanzar conf juego _mapa ref = do
   p <- readIORef ref
   let t = pSiguiente p
       cal = comunCalendario (persistenteComun (estadoPersistente (pEstado p)))
-  deAgente <- if esInicioDePeriodo cal (Tick t) then turnoDelAgente conf juego p t else pure []
+  deAgente <- if esInicioDePeriodo cal (Tick t) then turnoDelAgente conf p t else pure []
   let (e', hs, rechazos, rechazosR) = pasoCompleto juego (cEntorno conf) (Semilla 1475) (Tick t) (pPendientes p ++ deAgente) (pRespuestas p) (pEstado p)
-      p' = p { pEstado = e', pSiguiente = t + 1, pPendientes = [], pRespuestas = [], pVista = proyeccion juego e' }
+      -- La vista nueva se hace sobre la anterior: solo se proyecta lo que el
+      -- tick tocó, y 'cambios' compara solo eso.
+      p' = p { pEstado = e', pSiguiente = t + 1, pPendientes = [], pRespuestas = [], pVista = proyeccionIncremental juego (pEstado p) (pVista p) e' }
   writeIORef ref p'
   forM_ [ (s, m) | (s, Rechazo m) <- rechazos, sellSecuencia s >= secuenciaAgente ] $ \(_, m) ->
     registro ("agente: comando rechazado en el tick " <> T.pack (show t) <> ": " <> m)
   pure (p, p', hs, rechazos, rechazosR)
 
-turnoDelAgente :: Config -> RJ.JuegoPurepecha -> Partida -> Int64 -> IO [Sellado Comando]
-turnoDelAgente conf juego p t = case cAgente conf of
+turnoDelAgente :: Config -> Partida -> Int64 -> IO [Sellado Comando]
+turnoDelAgente conf p t = case cAgente conf of
   Nothing -> pure []
   Just (f@(FaccionId n), fuente, mregistro) -> do
     -- En el prototipo el agente ve todo; en el juego completo, la vista de su facción.
-    let turno = turnoAgente (Semilla 1475) f (Tick t) (relojDePartida p) (proyeccion juego (pEstado p))
+    let turno = turnoAgente (Semilla 1475) f (Tick t) (relojDePartida p) (pVista p)
     r <- pedirPlan fuente t turno
     forM_ mregistro $ \h -> BL.hPut h (lineaDeRegistro t n r) >> hFlush h
     forM_ (rMotivo r) $ \m -> registro ("agente, tick " <> T.pack (show t) <> ": " <> m)
@@ -406,7 +408,9 @@ sesion conf juego mapaR ref conn = do
           case consultar juego (cEntorno conf) (Semilla 1475) t (pPendientes p) (Sellado t faccionJugador sec c) (pEstado p) of
             Left (Rechazo motivo) -> enviar (NError (Just sec) motivo)
             Right (h, sinC, conC) ->
-              enviar (NPrediccion sec h (diferencias (proyeccion juego sinC) (proyeccion juego conC)))
+              let vSin = proyeccionIncremental juego (pEstado p) (pVista p) sinC
+                  vCon = proyeccionIncremental juego sinC vSin conC
+              in enviar (NPrediccion sec h (diferencias vSin vCon))
       Right (CControl (Guardar nombre)) -> case rutaPartida nombre of
         Nothing -> enviar (NError Nothing ("nombre de partida inválido: " <> nombre))
         Just r -> do
