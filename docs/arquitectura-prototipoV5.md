@@ -139,7 +139,7 @@ Cada palanca es un bucle cerrado: decisión → costo → consecuencia visible �
 | --- | --- | --- | --- | --- |
 | Tesoro y presupuesto | Tasa de tributo, impuesto interno y reparto del gasto entre ejército, administración, obras, diplomacia y culto | Más ingreso sube el agravio; gastar de más vacía el tesoro y baja la moral; descuidar el culto baja la legitimidad | Un tesoro, dos tasas, cinco partidas | Mercado y precios |
 | Nombramientos | Gobernadores y capitanes entre los personajes disponibles | Los no nombrados se resienten; un mal nombramiento baja recaudación y lealtad | Personajes con habilidad de administración, mando y diplomacia; eficiencia por altépetl | Facciones cortesanas que reaccionan |
-| Construcción | Qué edificio levantar y dónde | Tesoro y veintenas de obra; el asentamiento produce menos mientras construye; la roturación es irreversible | Siete obras: yácata, mercado, fortaleza, troje, camino, y terrazas y roturación sobre hexágonos (ver *La tierra y la gente*) | Edificios desbloqueados por difusión tecnológica |
+| Construcción | Qué edificio levantar, dónde y con cuánta gente | Tesoro, una cuadrilla que deja de producir, materiales de las celdas o del tributo en especie, y oficio (ver *Las obras*); cada copia de un edificio rinde según a quién sirve; la roturación es irreversible | Siete obras: yácata, mercado, fortaleza, troje, camino, y terrazas y roturación sobre hexágonos (ver *La tierra y la gente*) | Edificios desbloqueados por difusión tecnológica |
 | Guerra con casus belli y treguas | Cuándo y contra quién ir a la guerra | Guerra sin casus belli cuesta prestigio y relaciones; tras la paz hay tregua | Tres casus belli (tributo impagado, alianza rota, guerra ritual, ver *Temporada de guerra y guerra ritual*), tregua de 10 veintenas | Crisis con rondas entre potencias, esferas de influencia |
 
 **Indicadores.** No son palancas: el jugador no los decide, pero resultan de sus decisiones y pesan en ellas.
@@ -343,7 +343,7 @@ La población no flota entre las celdas: vive en una jerarquía de asentamientos
 
 La leva no depende de dónde esté el ejército: en el reino purépecha se organizaba desde arriba, a través de los señores y de los funcionarios que contaban a la gente por grupos de casas (*Relación de Michoacán*). Lo que depende de la ocupación es la requisa del enemigo.
 
-**Una sola mecánica para retirar gente de la producción.** La leva militar del prototipo y el repartimiento de trabajo del periodo novohispano son lo mismo: retirar pops trabajadores con un costo en producción y agravio. Se implementa una vez, como `retirar_trabajadores`, con un motivo (leva, trabajo obligatorio) y una duración.
+**Una sola mecánica para retirar gente de la producción.** La leva militar del prototipo, la cuadrilla de una obra y el repartimiento de trabajo del periodo novohispano son lo mismo: retirar pops trabajadores con un costo en producción y agravio. Se implementa una vez, como `retirar_trabajadores`, con un motivo (leva, trabajo obligatorio, obra, tributo de obra) y una duración.
 
 ### La influencia cuesta recursos; la población se pierde despacio
 
@@ -387,7 +387,7 @@ La leva no depende de dónde esté el ejército: en el reino purépecha se organ
 
 | Hito | Qué entra |
 | --- | --- |
-| 3 | Rango de asentamiento (cabecera y sujeto), nobleza local como estrato, carga administrativa, leva con `retirar_trabajadores` |
+| 3 | Rango de asentamiento (cabecera y sujeto), nobleza local y sacerdotes como estratos, carga administrativa, leva y cuadrillas de obra con `retirar_trabajadores` |
 | 3b | Residencia dispersa como estado almacenado, proporción objetivo, fuga y reocupación, migración interna |
 | 4 | Incursiones, saqueo, requisa, producción reducida en celdas enemigas o disputadas |
 | 6 | Migración entre facciones, colonos de frontera, petición de señorío local, fundación de asentamientos |
@@ -729,7 +729,7 @@ La unidad política básica es el altépetl, que puede ser sujeto, señorío o i
 | Tecnología | id, tipo (producto o sistema), canales, condiciones, efectos, resistencia, umbral de dominio | `datos/tecnologias.json`; su conocimiento codificado y tácito son magnitudes de la facción. Paso 15 |
 | Pop | asentamiento, residencia (núcleo o dispersa), identidad (origen o categoría: purépecha, hñähñú, nahua, chichimeca…; lista que crece), condición legal (por defecto `comun`), autoadscripción (por defecto, la identidad), estrato (incluye `nobleza_local`), `gradiente_catolicismo` (de 0, culto tradicional, a 1, catolicismo; en el juego completo, un valor por culto), tamaño, resto de crecimiento, lealtad, agravio, necesidades | Agregado, como en Victoria II; la condición y la autoadscripción las usa el juego completo (ver *Población: origen, condición y mestizaje*) |
 | Bien | id, clave de nombre, categoría, valor base; para la moneda: calidad monetaria, referencia, elasticidad y si es designable (ver *La moneda designada y la inflación*) | Maíz, pescado, sal, cobre, mantas, obsidiana |
-| Edificio | id, costo, veintenas de obra, requisitos, modificadores, ámbito (asentamiento o celda), al terminar (efectos, opcional), reemplaza (edificio del nivel anterior, opcional), mantenimiento (opcional) | Datos puros; los niveles de un templo son edificios que se reemplazan |
+| Edificio | id, costo (valor, veintenas mínimas, trabajo, materiales, oficio), cuadrilla máxima, requisitos, modificadores (fijos o con fórmula de beneficio), ámbitos (asentamiento, celda o los dos; por defecto, asentamiento), al terminar (efectos, opcional), reemplaza (edificio del nivel anterior, opcional), mantenimiento (opcional), máximo por asentamiento (opcional, para lo único) | Datos puros; los niveles de un templo son edificios que se reemplazan; ver *Las obras* |
 | Tributo | altépetl de origen; destino (un altépetl en el prototipo; un personaje o una institución, como un encomendero, la Corona o la Iglesia, en el periodo novohispano); bienes, trabajo o moneda y cantidades; periodicidad | Flujo económico central; el destino genérico es un campo con valor por defecto |
 | Ejército | dueño, celda, tick de llegada, capitán, unidades, moral, abasto (reserva; su flujo es una magnitud aparte), asentamientos de origen de sus guerreros, veintenas sin paga, costo de mantenimiento, asentamiento de guarnición (opcional), frente abstracto (opcional) | Una guarnición es un ejército asignado a un asentamiento; su estado (abastecido, forrajeo, hambre) se deriva, no se guarda |
 | Casus belli | tipo, facción que lo tiene, objetivo, veintenas de validez | Derivado de hechos (por ejemplo, `tributo_impagado`) |
@@ -1441,7 +1441,7 @@ Muchas tecnologías no dan una bonificación: cambian **qué insumo** se usa par
 
 Un cuidado histórico: los purépechas eran los metalúrgicos más avanzados de Mesoamérica, así que en 1475 el cobre no es una tecnología por adquirir ni un sustituto peor que la obsidiana. Los sustitutos y sus calidades se fijan con fuentes.
 
-## El costo de las cosas: valor e insumos (hito 6 o juego completo)
+## El costo de las cosas: valor e insumos (hito 3 para las obras; juego completo para lo demás)
 
 Hoy cada obra cuesta tesoro y veintenas (`"costo": {"tesoro": 400, "veintenas": 6}`). Eso basta para el prototipo, pero algunas cosas no se compran solo con valor: una fortaleza necesita piedra, un ejército necesita comida. Cada actividad tiene dos costos:
 
@@ -1452,10 +1452,75 @@ Las reglas:
 
 - **Si falta un insumo y tiene un sustituto disponible,** la actividad se hace con el sustituto (ver *La tecnología como receta alternativa*). Si no hay sustituto pero el insumo falta solo en parte, el costo en valor sube en proporción a lo que falta.
 - **Si no hay con qué, la actividad se bloquea,** y la consulta lo dice antes de confirmar: "no puedes construir la fortaleza: necesitas 20 de piedra y no tienes piedra ni madera".
-- **Los insumos de construcción salen de las celdas** (bosque: madera; cantera: piedra), que ya tienen recursos por terreno. No hace falta añadir bienes al catálogo de seis para eso.
+- **Los insumos de construcción salen de las celdas** (bosque: madera; sierra: piedra), que ya tienen recursos por terreno. No son bienes del catálogo de seis ni tienen existencias: los extrae la cuadrilla de la obra o los entrega un sujeto como tributo en especie (ver *Las obras*).
 - **La comida del ejército es el abasto** que ya diseña *La coerción como cadena*: no se duplica.
 
-**Cuándo.** En el hito 6, si las obras del hito 3 se sienten demasiado fáciles; si no, en el juego completo. Requiere existencias de bienes, como la moneda.
+**Cuándo.** Los insumos de las obras entran en el hito 3, con *Las obras*. Los de otras actividades, y los insumos que son bienes con existencias, quedan para el juego completo.
+
+## Las obras: mano de obra, materiales, conocimiento y rendimientos (hito 3)
+
+El freno a llenar el reino de edificios no es un límite de casillas ni un "uno de cada": es la economía. Una obra cuesta tesoro, gente que deja de producir, materiales que hay que sacar de la tierra y oficio, y lo que da cada edificio adicional depende de para quién sirve. Así, construir cinco yácatas es posible, pero caro y cada vez menos útil, y la decisión es del jugador.
+
+### Qué pide una obra
+
+| Costo | Qué es | Cómo se paga |
+| --- | --- | --- |
+| Valor | Tesoro, como hoy | Al empezar; sin tesoro, se rechaza |
+| Trabajo | Jornadas de obra, en trabajador·veintena | Lo hace la cuadrilla en el sitio |
+| Materiales | Piedra, madera… (lista que crece) | Los extrae la cuadrilla de las celdas del altépetl o los entrega un sujeto como tributo en especie |
+| Oficio | Un conocimiento con dominio mínimo (cantería, arquitectura ceremonial) | No se gasta: sin él no se empieza, y con más dominio se trabaja más rápido |
+| Veintenas | Duración mínima | Ninguna cuadrilla, por grande que sea, termina antes |
+
+**La cuadrilla es una leva.** Al empezar la obra, el jugador elige su tamaño (hasta el máximo que declara el edificio). La cuadrilla sale con `retirar_trabajadores`, con el motivo `obra`, y vuelve al terminar. Mientras dura, esos trabajadores no producen, así que la cosecha baja sola (el factor escaso de la producción) y, en temporada agrícola, la obra cuesta más que en la seca. Su sustento sale de la partida de obras del presupuesto. Si la partida no alcanza, solo trabaja la parte de la cuadrilla que se puede sostener, y el desglose lo dice. Reemplaza el umbral fijo del prototipo (partida de obras ≥ 20).
+
+**Los materiales salen de la tierra.** La tabla de terrenos declara qué material rinde cada terreno y cuántos trabajadores pide su extracción (sierra: piedra; bosque: madera). Cada veintena, la cuadrilla va primero a sacar el material que falta, de las celdas del altépetl que lo tienen (las mejores primero, como en la producción), y el resto trabaja en el sitio. Lo extraído se acopia en la obra, que avanza solo hasta donde le alcanza el material. Una fortaleza de piedra en un llano sin sierra cerca no avanza con su propia cuadrilla: necesita tributo en especie o un sustituto (adobe, si se domina; ver *La tecnología como receta alternativa*).
+
+**El tributo en especie: material de fuera, más caro y más lento.** Si el material no está en las celdas del altépetl, la obra puede pedirlo a un sujeto que sí lo tenga. El sujeto lo extrae con sus propios trabajadores (`retirar_trabajadores`, motivo `tributo_obra`, con agravio en su altépetl como cualquier tributo) y lo envía. Cuesta más tiempo y más dinero que extraerlo en casa:
+
+- **Tiempo:** el material llega con un retraso que crece con la distancia por el grafo (días de marcha), en veintenas enteras.
+- **Dinero:** cada entrega cobra al tesoro un costo de transporte que crece con la cantidad y la distancia. Si el tesoro no alcanza, la entrega espera; no se pierde.
+- **Visible antes de confirmar:** la consulta de predicción muestra, para cada fuente, cuánto material, en cuántas veintenas y a qué costo.
+
+Un camino entre los dos asentamientos acorta el retraso y abarata el transporte sin regla especial, porque los dos se miden con el costo del grafo.
+
+**El oficio: conocimiento codificado y tácito.** Cada edificio puede pedir un conocimiento (V5, *Tecnología y educación*) con un dominio mínimo para empezar, y el dominio escala el rendimiento de la cuadrilla. En el prototipo no hay difusión (el paso 15 sigue vacío): las bases de cada conocimiento las da el escenario, y la práctica las mueve. Cada obra terminada aporta al conocimiento tácito un modificador con fuente "práctica", que crece con el logaritmo de las obras hechas: los primeros canteros aprenden mucho, los siguientes poco. Como el tácito baja con la mortalidad, la viruela de 1520 también frena las obras, sin código especial.
+
+### Lo que da cada edificio adicional
+
+Un edificio no aporta un número fijo por copia. Cada tipo de edificio aporta, por altépetl y magnitud, **un solo modificador** cuyo valor calcula una fórmula con nombre a partir de cuántos hay y de para quién sirven. El sistema de construcción lo recalcula cada veintena, y el desglose lo explica: "+6 % producción: yácatas (3), 12 000 fieles, 30 sacerdotes".
+
+| Fórmula | Forma | Para | Por qué |
+| --- | --- | --- | --- |
+| `lineal` | a · n | Trojes, caminos | Cada copia rinde lo mismo |
+| `logaritmica` | a · ln(1 + n) | Monumentos | Cada copia añade prestigio, cada vez menos |
+| `por_asistentes` | a · ln(1 + S / ref), con S los fieles atendidos | Yácatas | Una yácata sirve a quienes pueden asistir y a lo que sus sacerdotes atienden |
+| `por_guarnicion` | a · Σ min(1, guarnición / guarnición por edificio) | Fortalezas, cuarteles | Una fortaleza sin guerreros no defiende; cada fortaleza guarnecida rinde lo mismo |
+
+- **Fieles atendidos (yácata).** S = min(población que puede asistir, n · capacidad por yácata · min(1, sacerdotes / (n · sacerdotes por yácata))). Una yácata de más sin sacerdotes no atiende a nadie, y una yácata en un pueblo chico no tiene a quién atender.
+- **Guarnición (fortaleza y cuartel).** Hasta que existan las guarniciones (hito 4), cada fortaleza cuenta entera. Los cuarteles, cuando lleguen, usan la leva disponible en lugar de la guarnición.
+- **Leyes.** Toda fórmula de beneficio es no decreciente en el número de edificios y en la población a la que sirve. Las logarítmicas son cóncavas: la copia n + 1 nunca aporta más que la n.
+
+**Sacerdotes.** Hoy `sacerdocio` es un grupo de poder de la facción, no un estrato de pops. Para que la yácata dependa de los sacerdotes del lugar, entra un estrato de pops `sacerdote`, que no trabaja la tierra, como la nobleza. El grupo de poder sigue siendo de la facción (V5, *Los grupos*), y su poder puede crecer con los sacerdotes que hay, pero eso es una decisión aparte.
+
+### Dónde se construye: ciudad o casilla
+
+Cada edificio declara en `ambitos` dónde puede levantarse: en el asentamiento (yácata, mercado, troje), en una celda dentro del radio de producción de un asentamiento propio (terrazas, roturación, atalaya) o en los dos (fortaleza, cuartel). El ámbito por defecto sigue siendo el asentamiento, así que los datos actuales no cambian.
+
+- **Una obra en celda solo rinde bajo control propio.** Sus modificadores llevan la condición de que la celda esté bajo control de su dueño. Si el enemigo la ocupa, la terraza no da capacidad y la atalaya no vigila, y el desglose lo dice.
+- **Influencia.** Un edificio puede aportar a la fuerza de una fuente de influencia en su celda (*Mapa: influencia, dueño y control*). Una fortaleza de frontera empuja la frontera aunque no haya asentamiento detrás.
+- **Escala.** Los edificios en celdas se guardan dispersos, por celda ocupada: el mapa del juego completo no lleva un campo vacío en cada una de sus celdas.
+- **Qué pasa con un edificio cuando su celda cambia de dueño** (sigue siendo de quien lo construyó, pasa a quien controla la celda o se daña en el saqueo) se decide con la guerra del hito 4.
+
+### Etapas
+
+| Etapa | Qué entra | Hito |
+| --- | --- | --- |
+| 1 | Cuadrilla con `retirar_trabajadores`, trabajo, sustento de la partida de obras, duración mínima, materiales extraídos en las celdas del altépetl, beneficio por fórmula (lineal, logarítmica, por asistentes), estrato `sacerdote` | 3 |
+| 2 | Tributo en especie de materiales, con retraso y costo de transporte | 3 |
+| 3 | Oficio: conocimientos con bases del escenario, dominio mínimo, productividad y aprender haciendo | 3 |
+| 4 | Ámbito de celda para cualquier edificio, condición de control, aporte a la influencia, beneficio por guarnición | 4 |
+
+**Compatibilidad.** Un edificio que no declara trabajo, materiales, oficio ni fórmula se comporta como en el primer corte del hito 3: sin cuadrilla, avanza una veintena de obra por cada veintena en que la partida de obras llega al umbral del prototipo, hasta sus veintenas, y aporta un modificador fijo. Los datos y los guardados de ese corte siguen valiendo (regla 8).
 
 ## Mercado parcial (juego completo, paso 6)
 
@@ -2006,7 +2071,7 @@ Los eventos conectan la historia con los sistemas: dan bonificaciones, desencade
 | `cambiar_terreno` | Cambia el terreno de un hexágono (roturación; en el juego completo, congregaciones) y emite `terreno_modificado` |
 | `ajustar_poblacion` | Deja un ajuste pendiente de población para un pop, por cantidad o por porcentaje (refugiados, mala cosecha); lo aplica la demografía en el paso 11 de la siguiente veintena |
 | `cronica` | Escribe una entrada en la crónica del reino |
-| `retirar_trabajadores` | Saca pops trabajadores de la producción por un motivo (leva, trabajo obligatorio) y una duración |
+| `retirar_trabajadores` | Saca pops trabajadores de la producción por un motivo (leva, trabajo obligatorio, obra, tributo de obra) y una duración |
 | `fundar_asentamiento` | Crea un asentamiento en una celda (colonos de frontera; en el juego completo, villas, reales y misiones) |
 | `reubicar_pops` | Mueve población entre asentamientos (migración forzada; en el juego completo, congregaciones) |
 | `abandonar_asentamiento` | Reservado: para el colapso de asentamientos y las congregaciones del juego completo |
@@ -2417,9 +2482,9 @@ Los criterios de tensión (a)–(e) y el modelo de espera de ese documento se su
 | 1a | Motor | Paquete `motor`: punto fijo, azar determinista, interfaz de grafo del mapa con proveedor hexagonal y validador, magnitudes, modificadores, hechos, pliegue de sistemas con `lee`/`escribe` y ciclo completo con pasos vacíos, cola de comandos sellados, intérprete de condiciones y efectos con suspensión, proyección y cambios genéricos, contrato de agentes con agente nulo, escenarios con máscara, carga de datos con versión de esquema, guardado. El juego de juguete con sus seis rutas en las pruebas. Empieza en paralelo con el hito 0; plazo de tres semanas. Quedan fuera hasta que algo los pida: mods, migraciones de esquema, mapa irregular, agente aleatorio | **Criterio mínimo, sin añadidos:** el juego de juguete corre al menos 100 ticks con veintenas y nemontemi, guarda y carga a mitad de una decisión suspendida y sigue igual; pasan las leyes de repetición, rechazo sin daño, explicación, conservación y las dos del espejo; `validar-mapa` rechaza un mapa con conexiones asimétricas; añadir un segundo comando y un tercer sistema al juguete no cambia la interfaz `Juego`; el paquete `motor` compila sin el paquete `reglas` |
 | 1b | Primer juego | Paquete `reglas`: tesoro, presupuesto, pops con agravio, catálogo de comandos del juego, fórmulas con nombre y constantes del hito 0; el escenario inicial. Empieza cuando el hito 0 pasa su parte 0a | Las tablas de casos del hito 0 pasan como pruebas de Haskell dentro de su tolerancia; subir el impuesto sube el ingreso y el agravio; las leyes del hito 1a siguen pasando con el juego real |
 | 2 | Protocolo y atlas | Godot con catálogo, espejo con modificadores, malla del mapa con colores planos, biblioteca de componentes, paneles genéricos, panel de tesoro (en cuanto exista el hito 1b; lo demás solo necesita el 1a y el juego de juguete), consulta de predicción, versión del protocolo | El mapa dibuja los ~2 700 hexes a 60 FPS; con las cinco velocidades, una veintena dura lo previsto y la barra superior muestra fecha, veintena y días restantes; una magnitud nueva aparece en la interfaz sin código nuevo en el cliente; el costo se ve antes de confirmar; pasan las cuatro pruebas del espejo (proyección, corpus dorado en GDScript, escenarios a mano y tooltips) |
-| 3 | Administración y construcción | Nombramientos, eficiencia, cinco edificios, terrazas y roturación (obras de hexágono), campos `condicion` y `alcance` en modificadores, efecto `cambiar_terreno`, tabla de terrenos, producción y tributo entre altépetl, crónica, primeras decisiones recurrentes, material de atlas sobre la malla del mapa, legitimidad con modificadores temporales, partida de culto e identidades de pops, rango de asentamiento, nobleza local, carga administrativa, leva con `retirar_trabajadores` | Un mal gobernador baja la recaudación; un edificio cambia la producción y el desglose lo explica; un camino acelera la marcha y sube la producción solo si hay un vecino con camino (el desglose lo muestra); las terrazas suben la capacidad y la roturación cambia el terreno, con su costo visible antes de confirmar; descuidar el culto baja la legitimidad y la lealtad, y el desglose lo explica |
+| 3 | Administración y construcción | Nombramientos, eficiencia, cinco edificios con cuadrilla, materiales de las celdas, tributo en especie, oficio y beneficio por fórmula (*Las obras*, etapas 1 a 3), terrazas y roturación (obras de hexágono), campos `condicion` y `alcance` en modificadores, efecto `cambiar_terreno`, tabla de terrenos, producción y tributo entre altépetl, crónica, primeras decisiones recurrentes, material de atlas sobre la malla del mapa, legitimidad con modificadores temporales, partida de culto e identidades de pops, rango de asentamiento, nobleza local, carga administrativa, leva con `retirar_trabajadores` | Un mal gobernador baja la recaudación; un edificio cambia la producción y el desglose lo explica; un camino acelera la marcha y sube la producción solo si hay un vecino con camino (el desglose lo muestra); las terrazas suben la capacidad y la roturación cambia el terreno, con su costo visible antes de confirmar; una obra baja la producción mientras su cuadrilla trabaja, una fortaleza sin piedra cerca tarda más y cuesta más con tributo en especie, y la segunda yácata de un pueblo chico aporta menos que la primera, todo con el costo visible antes de confirmar; descuidar el culto baja la legitimidad y la lealtad, y el desglose lo explica |
 | 3b | Demografía | Sistema de crecimiento en el paso 11, capacidad y presión derivadas, efecto `ajustar_poblacion`, epidemia como modificador de la tasa, residencia dispersa, fuga, reocupación y migración interna, decisión recurrente de presión sobre la tierra, constantes de crecimiento | Misma semilla y mismos comandos dan el mismo estado; el tamaño de un pop nunca queda bajo el piso y la tasa efectiva es base más modificadores (propiedades de QuickCheck); en 10 años sin comandos del jugador (pero con todos los modificadores activos) la población crece según su tasa efectiva y el desglose lo explica; ingresos, agravio y necesidades quedan en un rango acordado tras correr entero el arnés de partidas simuladas. Sin esto, el hito 4 no fija sus umbrales |
-| 4 | Guerra y diplomacia | Casus belli, treguas, prestigio, combate automático, asedio, rebeliones, IA mínima con sus cuatro reglas, separada en planificador (por veintena) y ejecutor (por tick), resto de las decisiones recurrentes, temporada de guerra, guerra ritual, legitimidad por victorias, derrotas, hambrunas y fiestas, incursiones, saqueo, requisa, producción reducida en celdas enemigas o disputadas | Una guerra sin casus belli cuesta prestigio; cada ataque de la IA se explica con su poder relativo o su oportunismo; en una partida de prueba de 1485 a 1519 el jugador toma al menos 1,5 decisiones con costo por año sin eventos históricos escritos; una campaña en temporada agrícola baja la producción de forma visible antes y después de declararla |
+| 4 | Guerra y diplomacia | Ámbito de celda para cualquier edificio con condición de control y aporte a la influencia, beneficio por guarnición (*Las obras*, etapa 4), casus belli, treguas, prestigio, combate automático, asedio, rebeliones, IA mínima con sus cuatro reglas, separada en planificador (por veintena) y ejecutor (por tick), resto de las decisiones recurrentes, temporada de guerra, guerra ritual, legitimidad por victorias, derrotas, hambrunas y fiestas, incursiones, saqueo, requisa, producción reducida en celdas enemigas o disputadas | Una guerra sin casus belli cuesta prestigio; cada ataque de la IA se explica con su poder relativo o su oportunismo; en una partida de prueba de 1485 a 1519 el jugador toma al menos 1,5 decisiones con costo por año sin eventos históricos escritos; una campaña en temporada agrícola baja la producción de forma visible antes y después de declararla |
 | 5 | Escenario de crisis 1519 | Sistema de crisis, alianza de 1520, frente abstracto del Valle, viruela, personajes y sucesión, prisioneros con destino ritual en la legitimidad, efecto del vasallaje y los franciscanos, cadena hasta 1530; benchmarks con `criterion` en CI | El demo de crisis se reproduce con los sistemas genéricos; aceptar o rechazar la alianza lleva a partidas distintas |
 | 6 | Campaña 1475–1530 | Escenario completo, ganchos entre lo construido y la crisis, pantalla final con la crónica, migración entre facciones, colonos de frontera, petición de señorío y fundación de asentamientos; decisión sobre el lenguaje de expresiones con datos de recompilación | Dos partidas con reinos distintos llegan a 1520 y la crisis se resuelve distinto por lo que cada uno construyó |
 | 6a | Erosión del suelo | Sistema de degradación en el paso 11, `celda.degradacion` y `celda.tasa_erosion`, modificador de erosión sobre la capacidad, efecto de terrazas y roturación sobre la tasa, modo de mapa por capacidad | En una partida de 55 años con presión sostenida y sin obras, los hexágonos habitados pierden una fracción visible de capacidad; con terrazas pierden menos de la mitad que sin ellas; en 10 años se pierde menos del 2 % de capacidad (por diseño); el escenario de crisis funciona con el sistema activo o inactivo. Solo se empieza si el hito 3b pasó su criterio |
@@ -2509,6 +2574,12 @@ El mayor riesgo es el alcance: un juego que mezcla dos géneros completos puede 
 - [ ] Aportes al flujo de abasto, `UMBRAL_FORRAJEO`, tasas de deserción y de pérdida de moral por hambre, `DIAS_RETORNO` y `VEINTENAS_PARA_MOTIN`, calibrados para que una campaña purépecha no pase de unos días de sus trojes (hito 0 en la hoja; hito 4 en el núcleo)
 - [ ] Si forrajeo, asentamiento de desertores, relevo y salida entran en el hito 4 o en el 6, según lo que muestre el arnés (hito 4)
 - [ ] Base de `asentamiento.reservas_asedio` por terreno (hito 3)
+- [ ] Obras: trabajo, materiales, cuadrilla máxima, veintenas mínimas y oficio de cada edificio; sustento por trabajador de la cuadrilla; rendimiento y trabajadores de la extracción por terreno (hito 3)
+- [ ] Tributo en especie de materiales: velocidad de transporte (días de marcha por veintena de retraso), costo de transporte por unidad y distancia, y qué sujetos pueden enviar (los del altépetl o cualquiera de la facción) (hito 3)
+- [ ] Beneficio de las yácatas: capacidad de fieles y sacerdotes por yácata, quién cuenta como "puede asistir" (el altépetl, el radio de producción o una distancia), y la proporción de sacerdotes por asentamiento, con fuentes (*Relación de Michoacán*) (hito 3)
+- [ ] Si el estrato `sacerdote` mueve el poder del grupo de poder `sacerdocio` (con la política interna)
+- [ ] Conocimientos del prototipo (cantería, arquitectura ceremonial, metalurgia…), sus bases por facción y la escala de "aprender haciendo" (hito 3)
+- [ ] Qué pasa con un edificio en una celda que cambia de dueño: sigue siendo de su constructor, pasa a quien la controla o se daña en el saqueo (hito 4)
 - [ ] `P_max`, `k` y recompensas de la alianza (hito 5)
 - [ ] Valores iniciales de `K_ASEDIO`, `TASA_BAJAS` y `FACTOR_VIRUELA_VALLE` (hito 5)
 - [ ] Qué mide exactamente la pantalla final (hito 6)
@@ -2560,6 +2631,9 @@ El mayor riesgo es el alcance: un juego que mezcla dos géneros completos puede 
 - Crónica del reino como estado almacenado y base de la pantalla final
 - Caminos, crecimiento y erosión entran al prototipo en etapas con hitos separados (3, 3b y 6a); cada una pasa su criterio antes de empezar la siguiente
 - Terrazas y roturación son obras de celda definidas en datos; la roturación cambia el terreno con el efecto `cambiar_terreno` y es irreversible en el prototipo
+- El freno a multiplicar edificios es económico, no un límite de casillas: tesoro, una cuadrilla que sale con `retirar_trabajadores`, materiales extraídos en las celdas o recibidos como tributo en especie (más lento y más caro), oficio con conocimiento codificado y tácito, y un beneficio por tipo de edificio que calcula una fórmula con nombre (lineal, logarítmica, por asistentes o por guarnición)
+- Los materiales de construcción no son bienes con existencias: se extraen para cada obra y se acopian en ella
+- Cada edificio declara sus ámbitos (asentamiento, celda o los dos); una obra en celda solo rinde bajo control de su dueño
 - Un solo sistema escribe `pop.tamano`; la epidemia aporta modificadores a la tasa de crecimiento
 - La erosión actúa sobre la capacidad con un modificador, nunca sobre un valor efectivo guardado
 - Núcleo en Haskell como proceso aparte; Godot como cliente que solo dibuja, conectado por socket local

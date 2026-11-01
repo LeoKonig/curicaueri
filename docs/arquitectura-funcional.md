@@ -1241,6 +1241,88 @@ Para cada insumo, con x las existencias del bien:
 
 Los insumos no se pueden pagar con valor ni con moneda, y la consulta muestra qué se consumiría.
 
+Esta regla vale para los insumos que son bienes con existencias (juego completo). Los **materiales de una obra** no tienen existencias: se extraen o se reciben para esa obra y se acopian en ella (sección 14i). Por eso una obra sin material a mano no se rechaza al empezar: se detiene hasta que el material llegue, y la consulta dice cuánto tardará.
+
+## 14i. Obras: cuadrilla, acopio, oficio y beneficio
+
+V5 (*Las obras*). Todo vive en `reglas`; la interfaz `Juego` no cambia. El costo de un edificio crece con campos que tienen valor por defecto, de modo que el edificio del primer corte (solo valor y veintenas) es el caso con T = 0, sin materiales y sin oficio:
+
+```haskell
+data CostoObra = CostoObra
+  { coValor      :: Fijo                  -- tesoro, al empezar
+  , coVeintenas  :: Int                   -- duración mínima, D
+  , coTrabajo    :: Fijo                  -- T, en trabajador·veintena; 0 por defecto
+  , coMateriales :: Map Material Fijo     -- M_g; vacío por defecto
+  , coOficio     :: Maybe (Conocimiento, Fijo) }   -- conocimiento y dominio mínimo; Nothing por defecto
+
+data Obra = Obra                          -- en el altépetl (o en la celda, etapa 4); persistente
+  { obEdificio :: Text
+  , obCuadrilla :: Int                    -- C, la que eligió el jugador, ≤ cuadrilla máxima
+  , obAvance   :: Fijo                    -- P ∈ [0, 1]
+  , obAcopio   :: Map Material Fijo       -- A_g ∈ [0, M_g]
+  , obEnCamino :: [Entrega]               -- tributo en especie que viene en camino
+  , obVeintenas :: Int }                  -- veintenas de obra transcurridas
+data Entrega = Entrega { enDe :: AltId, enMaterial :: Material, enCantidad :: Fijo, enLlega :: Tick, enCosto :: Fijo }
+```
+
+`Material` es texto, como los bienes: un dato de la tabla de terrenos (`materiales`, con su rendimiento y sus trabajadores por celda, igual que `rendimiento` en la sección 12, pero sin existencias en la facción).
+
+**Cuadrilla.** Al empezar, la cuadrilla se retira con `retirar_trabajadores` (motivo `obra`): R_a sube en C y W_a de la sección 12 baja en lo mismo, con su `max` para que nunca sea negativo. Al terminar, R_a vuelve. Cada veintena trabaja la parte sostenida por la partida de obras:
+
+```math
+C^{\text{ef}} = \min\Big(C,\ \Big\lfloor \frac{\text{partida de obras disponible}}{s} \Big\rfloor\Big)
+```
+
+con s = `SUSTENTO_CUADRILLA` por trabajador y veintena, en valor. Si hay varias obras, la partida se reparte en orden de altépetl, y el desglose dice cuántos trabajan de cuántos.
+
+**Un paso de obra** (paso 10, cada veintena). Con η = dominio(oficio) / 100 (1 sin oficio; la fórmula `dominio_tecnologia` de la sección 14e) y F_g = M_g − A_g − (lo que viene en camino) lo que falta de cada material:
+
+1. **Extracción.** La cuadrilla va primero a los materiales que faltan, en orden de material. Para cada g, sobre las celdas del altépetl que rinden g, ordenadas como en la sección 12, se calcula con la misma fórmula del factor escaso cuántos trabajadores E_g sacan F_g, sin pasar de los que quedan libres. Lo extraído, x_g = η · produccionCeldas(E_g, celdas_g), se acopia: A_g ← min(M_g, A_g + x_g).
+2. **Entregas.** Las entregas con `enLlega` ≤ t se suman al acopio si el tesoro paga su costo; si no, esperan a la veintena siguiente.
+3. **Obra en el sitio.** Con L = C^ef − Σ_g E_g:
+
+```math
+P_{t+1} = \min\Big(1,\ P_t + \frac{1}{D},\ P_t + \frac{\eta\, L}{T},\ \min_g \frac{A_g}{M_g}\Big)
+```
+
+donde cada término falta si no aplica: sin T, no hay tope por trabajo; sin materiales, no hay tope por acopio. Con T = 0 y sin materiales no hay cuadrilla, y P avanza 1/D en cada veintena en que la partida de obras llega a `cObrasPresupuestoMinimo`: es la obra del primer corte.
+
+4. **Fin.** Cuando P = 1 y las veintenas de obra llegan a D, la obra termina: R_a baja en C, se recalcula el beneficio de su tipo (abajo), se aplican los efectos al terminar y se emite `edificio_terminado`.
+
+**Tributo en especie** (etapa 2). El comando que empieza la obra puede nombrar, por material, un sujeto s que lo enviará. El sujeto extrae con sus propios trabajadores (`retirar_trabajadores`, motivo `tributo_obra`, con el agravio del tributo) y cada veintena crea una entrega:
+
+```math
+\text{llega} = t + 20\cdot\Big\lceil \frac{d_{\text{costo}}(s, a)}{v} \Big\rceil, \qquad \text{costo} = k \cdot q \cdot d_{\text{costo}}(s, a)
+```
+
+con v = `VELOCIDAD_TRANSPORTE` (costo del grafo que recorre una carga por veintena), k = `COSTO_TRANSPORTE` y q la cantidad. Como d_costo es la distancia del grafo, un camino acorta el retraso y abarata el costo sin regla propia. La consulta suma, por fuente, cantidad, retraso y costo.
+
+**Oficio** (etapa 3). Si el edificio pide (κ, d_min), la obra se rechaza al empezar con dominio(κ) < d_min, sin cambiar el estado. Al terminar una obra con oficio κ, el sistema actualiza en la facción un modificador de `conocimiento.κ.tacito` con fuente "práctica", de instancia estable y valor
+
+```math
+a_{\text{práctica}}(n) = \alpha_\kappa \cdot \ln(1 + n)
+```
+
+con n las obras terminadas con ese oficio. No escribe la base, que sigue siendo del sistema de difusión (sección 14e), vacío en el prototipo.
+
+**Beneficio por tipo de edificio.** Cada modificador de un edificio declara una fórmula con nombre f. Para un altépetl a, un tipo e y una magnitud m hay **un solo** modificador, con fuente `edificio:<e>:<a>`, cuyo valor recalcula el sistema de construcción cada veintena, con los valores de la anterior:
+
+```math
+\text{aporte}_{e,m}(a) = f(n_e(a),\ \text{contexto}(a))
+```
+
+| Fórmula | f | Contexto |
+| --- | --- | --- |
+| `fija` | a, si n ≥ 1 (el primer corte; por defecto) | — |
+| `lineal` | a · n | — |
+| `logaritmica` | a · ln(1 + n) | — |
+| `por_asistentes` | a · ln(1 + S / ref), S = min(N_a, n · cap · min(1, Σ sacerdotes_a / (n · s))) | N_a: población que puede asistir; sacerdotes del estrato `sacerdote` del altépetl |
+| `por_guarnicion` | a · Σ_i min(1, g_i / g) | g_i: guarnición asignada al edificio i; hasta el hito 4, g_i = g |
+
+El ln se calcula con la tabla de la sección 15. El desglose lleva los argumentos del contexto (n, N_a, sacerdotes), así que explica el número aunque cambie cada veintena.
+
+**Ámbito de celda** (etapa 4). Una obra en celda c guarda sus edificios en un `IntMap [Text]` por celda ocupada. Sus modificadores llevan la condición `controla(dueño, c)`, evaluada en el paso 16 como cualquier condición de modificador (sección 6). Esa condición no existe hoy en el lenguaje cerrado de `Motor.Guion`: entra como un constructor nuevo (`Controla FaccionId CeldaId`), evaluado con `control` de la sección 9. Un edificio puede aportar además a la fuerza F de una fuente de influencia con origen en c (sección 9).
+
 ## 15. Punto fijo y aritmética determinista
 
 ```haskell
@@ -1383,6 +1465,10 @@ Las reglas del diseño, escritas como propiedades. En un lenguaje puro, "la mism
 | Nombramiento sin trinquete | Mientras dura un cargo, su aporte al poder del grupo es constante; al terminar el cargo, es 0 y sus modificadores emiten `modificador_terminado` (sección 14d) |
 | Facciones con rastro | Toda aparición emite `faccion_aparece` y toda desaparición `faccion_desaparece`; lo que tenía la facción llega a un destino declarado o se pierde por declaración; los ids no se reutilizan (sección 14b) |
 | Insumos en especie | Un insumo nunca se paga con valor; sin insumo ni sustituto, la actividad se rechaza sin cambiar el estado; la penalización es proporcional a la fracción que falta (sección 14h) |
+| Obra acotada | 0 ≤ P ≤ 1 y P no decrece; 0 ≤ A_g ≤ M_g; ninguna obra termina antes de D veintenas; con T = 0 y sin materiales, la obra es la del primer corte (sección 14i) |
+| Cuadrilla conservada | Mientras dura la obra, R_a la incluye y W_a ≥ 0; al terminar o cancelarse, R_a vuelve a su valor sin la obra |
+| Materiales sin trampa | Ningún material se paga con valor: solo con extracción o entrega; una entrega no llega antes de su retraso ni sin pagar su transporte |
+| Beneficio monótono | Toda fórmula de beneficio es no decreciente en n y en su contexto; `logaritmica` y `por_asistentes` son cóncavas en n: la copia n + 1 nunca aporta más que la n |
 | Recetas sin ciclos | Ninguna receta depende, directa o indirectamente, de sí misma; la carga lo rechaza (sección 14e) |
 | Migración de guardados | Un guardado de la versión anterior se carga, se vuelve a guardar y es válido en la actual |
 | Autoridad neutra en el prototipo | Sin títulos almacenados y con `Requiere` por defecto, ningún comando del soberano se rechaza por autoridad y su eficacia es 1: la traza es la misma que sin la capa de autoridad (sección 14b) |
