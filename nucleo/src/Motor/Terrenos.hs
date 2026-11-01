@@ -8,6 +8,7 @@
 -- valores sueltos. Ver V5, *La tierra y la gente*.
 module Motor.Terrenos
   ( DefTerreno (..)
+  , MaterialTerreno (..)
   , cargarTerrenos
   , validarTerrenosDelMapa
   ) where
@@ -33,27 +34,40 @@ data DefTerreno = DefTerreno
   , dtErosion   :: Fijo         -- ^ degradación base por veintena (la usa la erosión, hito 6a)
   , dtTrabajadores :: Fijo      -- ^ ℓ: trabajadores que trabajan la celda entera; 0 si no se trabaja
   , dtRendimiento  :: Map Text Fijo  -- ^ y: bienes por periodo de una celda trabajada entera; vacío por omisión
+  , dtMateriales   :: Map Text MaterialTerreno  -- ^ materiales de obra que se extraen de la celda; vacío por omisión
+  } deriving (Eq, Show)
+
+-- | Un material de construcción que rinde un terreno (V5, *Las obras*): lo que
+-- da por periodo una celda extraída entera y cuántos trabajadores lo extraen.
+-- No es un bien: no tiene existencias; lo acopia cada obra.
+data MaterialTerreno = MaterialTerreno
+  { mtRendimiento  :: Fijo
+  , mtTrabajadores :: Fijo
   } deriving (Eq, Show)
 
 -- | Carga @terrenos.json@ acumulando todos los errores: terrenos repetidos,
 -- capacidad o erosión negativas, recursos repetidos dentro de un terreno,
--- trabajadores o rendimientos negativos, y un terreno que rinde algo sin
--- declarar cuántos trabajadores lo trabajan.
+-- trabajadores o rendimientos negativos, un terreno que rinde algo sin
+-- declarar cuántos trabajadores lo trabajan, y materiales con rendimiento
+-- negativo o sin trabajadores.
 cargarTerrenos :: Text -> Value -> Validacion (Map Terreno DefTerreno)
 cargarTerrenos archivo v = case A.parseEither leer v of
   Left err -> falla (ErrorCarga ErrorEstructura archivo "" (T.pack err))
   Right ts ->
-    let ids = [ i | (i, _, _, _, _, _) <- ts ]
+    let ids = [ i | ((i, _, _, _, _, _), _) <- ts ]
         repetidos = traverse (\i -> if length (filter (== i) ids) > 1
                                       then falla (ErrorCarga ErrorEsquema archivo ("terrenos." <> i) "terreno repetido")
                                       else pure ()) (nub ids)
     in repetidos *> (Map.fromList . map (\t -> (dtTerreno t, t)) <$> traverse validar ts)
   where
     leer = A.withObject "terrenos" $ \o -> o A..: "terrenos" >>= mapM terreno
-    terreno = A.withObject "terreno" $ \o ->
-      (,,,,,) <$> o A..: "id" <*> o A..: "capacidad" <*> o A..:? "recursos" A..!= [] <*> o A..: "erosion"
-              <*> o A..:? "trabajadores" A..!= Fijo 0 <*> o A..:? "rendimiento" A..!= Map.empty
-    validar (i, cap, recs, ero, trab, rend) =
+    terreno = A.withObject "terreno" $ \o -> do
+      base <- (,,,,,) <$> o A..: "id" <*> o A..: "capacidad" <*> o A..:? "recursos" A..!= [] <*> o A..: "erosion"
+                      <*> o A..:? "trabajadores" A..!= Fijo 0 <*> o A..:? "rendimiento" A..!= Map.empty
+      mats <- o A..:? "materiales" A..!= Map.empty >>= traverse (A.withObject "material" (\m ->
+                MaterialTerreno <$> m A..: "rendimiento" <*> m A..: "trabajadores"))
+      pure (base, mats)
+    validar ((i, cap, recs, ero, trab, rend), mats) =
       let ruta = "terrenos." <> i
           capOk = if cap >= Fijo 0 then pure ()
                   else falla (ErrorCarga ErrorRango archivo (ruta <> ".capacidad") "la capacidad no puede ser negativa")
@@ -70,8 +84,16 @@ cargarTerrenos archivo v = case A.parseEither leer v of
           rindeOk = if Map.null rend || trab > Fijo 0 then pure ()
                     else falla (ErrorCarga ErrorEsquema archivo (ruta <> ".trabajadores")
                                   "un terreno que rinde algo necesita trabajadores mayores que 0")
-      in DefTerreno (Terreno i) cap (map Recurso recs) ero trab rend
-           <$ capOk <* eroOk <* recsOk <* trabOk <* rendOk <* rindeOk
+          matsOk = traverse (\(g, mt) ->
+                     (if mtRendimiento mt >= Fijo 0 then pure ()
+                      else falla (ErrorCarga ErrorRango archivo (ruta <> ".materiales." <> g <> ".rendimiento")
+                                    "el rendimiento no puede ser negativo"))
+                     *> (if mtTrabajadores mt > Fijo 0 then pure ()
+                         else falla (ErrorCarga ErrorRango archivo (ruta <> ".materiales." <> g <> ".trabajadores")
+                                       "la extracción necesita trabajadores mayores que 0")))
+                   (Map.toList mats)
+      in DefTerreno (Terreno i) cap (map Recurso recs) ero trab rend mats
+           <$ capOk <* eroOk <* recsOk <* trabOk <* rendOk <* rindeOk <* matsOk
 
 -- | Todo terreno que el mapa usa tiene que estar en la tabla: se rechaza al
 -- cargar, no en el tick 47. Un error por terreno, no por celda.

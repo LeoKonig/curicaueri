@@ -710,6 +710,16 @@ main = hspec $ do
       Map.keys (Map.unions (map dtRendimiento (Map.elems t)))
         `shouldBe` ["cobre", "maiz", "mantas", "obsidiana", "pescado", "sal"]
       all (\d -> Map.null (dtRendimiento d) || dtTrabajadores d > Fijo 0) (Map.elems t) `shouldBe` True
+    it "materiales: por omisión ninguno; la sierra da piedra y el bosque madera; se rechazan negativos y sin trabajadores" $ do
+      let Just t = valValor tablaReal
+          malo = A.object [ "terrenos" A..=
+            [ A.object ["id" A..= ("sierra" :: Text), "capacidad" A..= ("1" :: Text), "erosion" A..= ("0" :: Text)
+                       , "materiales" A..= A.object ["piedra" A..= A.object ["rendimiento" A..= ("-1" :: Text), "trabajadores" A..= ("0" :: Text)]]] ] ]
+      fmap (Map.keys . dtMateriales) (Map.lookup (Terreno "sierra") t) `shouldBe` Just ["piedra"]
+      fmap (Map.keys . dtMateriales) (Map.lookup (Terreno "bosque") t) `shouldBe` Just ["madera"]
+      fmap (Map.null . dtMateriales) (Map.lookup (Terreno "llano") t) `shouldBe` Just True
+      map errRuta (valErrores (cargarTerrenos "malo.json" malo))
+        `shouldBe` ["terrenos.sierra.materiales.piedra.rendimiento", "terrenos.sierra.materiales.piedra.trabajadores"]
     it "rechaza trabajadores o rendimientos negativos y un terreno que rinde sin trabajadores" $ do
       let malo = A.object [ "terrenos" A..=
             [ A.object ["id" A..= ("llano" :: Text), "capacidad" A..= ("1" :: Text), "erosion" A..= ("0" :: Text)
