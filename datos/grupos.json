@@ -1,0 +1,19 @@
+{
+  "_nota": "Grupos de poder (V5, Política interna: grupos, consejo y reformas). No son facciones: comparten la bolsa de la suya. Las bases por tipo de facción son las ilustrativas de V5 y TODOS LOS NÚMEROS SON DE RELLENO hasta calibrarlos jugando. Los pretendientes de cada cargo también son de relleno (por verificar con la Relación de Michoacán): para el gobierno de un altépetl se eligió la tensión de V5 entre nombrar por linaje (nobleza guerrera) o por habilidad (administradores).",
+  "version": 1,
+  "grupos": ["nobleza_guerrera", "administradores", "sacerdocio", "mercaderes"],
+  "bases": {
+    "reino_centralizado": {
+      "nobleza_guerrera": {"poder": "60", "lealtad": "70"},
+      "administradores":  {"poder": "40", "lealtad": "50"},
+      "sacerdocio":       {"poder": "50", "lealtad": "60"},
+      "mercaderes":       {"poder": "30", "lealtad": "50"}
+    }
+  },
+  "cargos": {
+    "gobernador": {"pretendientes": ["nobleza_guerrera", "administradores"]}
+  },
+  "poder_por_cargo": "5",
+  "lealtad_por_cargo": "5",
+  "lealtad_por_cargo_perdido": "3"
+}
