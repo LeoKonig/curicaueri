@@ -13,6 +13,7 @@ import Motor.Carga (validarOrdenSistemas, Validacion (..), ErrorCarga (..))
 import Motor.Autoridad
 import Motor.Protocolo (DeclComando (..), DeclParametro (..), TipoParametro (..))
 import qualified Data.Aeson as A
+import qualified Data.Aeson.KeyMap as KM
 import Data.Aeson.Types (Parser, parseEither, withObject, (.:))
 import Motor.Estado
 import Motor.Juego
@@ -88,6 +89,10 @@ leerGrupos = do
       Validacion [] (Just g) -> Right g
       Validacion errs _      -> Left (map errMensaje errs)
 
+-- | La facción del escenario único.
+f1 :: FaccionId
+f1 = FaccionId 1
+
 main :: IO ()
 main = do
  gruposArchivo <- leerGrupos
@@ -122,7 +127,7 @@ main = do
   describe "reglas: subir el impuesto sube el ingreso y el agravio" $ do
     let j  = Reglas.Juego.juego constantesDefault
         s0 = estadoInicial1475
-        tesoro = baseFaccion magTesoro
+        tesoro = baseFaccion f1 magTesoro
         agravioPop k st =
           case Map.lookup (entRefPop (PopId k), Magnitud "agravio")
                           (comunMagnitudes
@@ -171,19 +176,19 @@ main = do
       case rs of
         [Rechazo _] -> pure ()
         _           -> expectationFailure "se esperaba un rechazo"
-      ppTasas (persistenteJuego (estadoPersistente s'))
-        `shouldBe` ppTasas (persistenteJuego (estadoPersistente estadoInicial1475))
+      fmap facTasas (Map.lookup f1 (ppFacciones (persistenteJuego (estadoPersistente s'))))
+        `shouldBe` fmap facTasas (Map.lookup f1 (ppFacciones (persistenteJuego (estadoPersistente estadoInicial1475))))
 
   describe "reglas: nombramientos y grupos de poder (hito 3)" $ do
     let gs = either (error . show) id gruposArchivo
         j  = Reglas.Juego.juegoCon constantesDefault gs
-        Validacion erroresEsc mEsc = conGrupos "datos/grupos.json" gs tipoFaccion1475 estadoInicial1475
+        Validacion erroresEsc mEsc = conGrupos "datos/grupos.json" gs estadoInicial1475
         s0 = maybe (error (show erroresEsc)) id mEsc
         alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
         efectivo m st = maybe (Fijo 0)
           (valorEn (derivadoVigentes (estadoDerivado st)) (estadoTick st) (RangoMag (Fijo 0) (fi 100)))
-          (Map.lookup (entFaccion, m) (alm st))
-        baseDe m st = maybe (Fijo 0) almacenBase (Map.lookup (entFaccion, m) (alm st))
+          (Map.lookup ((entFac f1), m) (alm st))
+        baseDe m st = maybe (Fijo 0) almacenBase (Map.lookup ((entFac f1), m) (alm st))
         aporte m st = efectivo m st .-. baseDe m st
         cmd t n c st = aplicarCola j [Sellado (Tick t) (FaccionId 1) n c] st
         estadoDe (e, _, _) = e
@@ -212,7 +217,7 @@ main = do
       -- los administradores pretendían los dos cargos de la nobleza: 2 × (−3), y +5 por el suyo
       aporte admLeal s0 `shouldBe` fi (-1)
     it "el desglose nombra el nombramiento" $
-      [ fuenteRef (modFuente m) | Just x <- [Map.lookup (entFaccion, admPoder) (alm s0)], m <- almacenMods x ]
+      [ fuenteRef (modFuente m) | Just x <- [Map.lookup ((entFac f1), admPoder) (alm s0)], m <- almacenMods x ]
         `shouldBe` ["4:gobernador:3"]
     it "añadir varios de una vez da el mismo almacén que añadirlos uno a uno" $ do
       let mk k (e, m) = Modificador 0 (Magnitud m) (EntRef e 1) (Aporte (fi k) (Fijo 0)) (Fuente "prueba" (T.pack (show k)))
@@ -264,7 +269,7 @@ main = do
       intento s0 (DestituirGobernador (AltId 9)) `shouldBe` ([Rechazo "el altépetl no existe"], True, True)
     it "un mal gobernador nombrado por comando sigue bajando la recaudación" $ do
       let paso0 st = fst (paso j (entornoSimple mapaVacio) (Semilla 1) (Tick 0) [] st)
-      baseFaccion magTesoro (paso0 (estadoDe sReemp)) `shouldSatisfy` (< baseFaccion magTesoro (paso0 sVacante))
+      baseFaccion f1 magTesoro (paso0 (estadoDe sReemp)) `shouldSatisfy` (< baseFaccion f1 magTesoro (paso0 sVacante))
     it "sin archivo de grupos, nombrar solo cambia el gobernador" $ do
       let jSin = Reglas.Juego.juego constantesDefault
           (r, hs, rs) = aplicarCola jSin [Sellado (Tick 0) (FaccionId 1) 0 (DestituirGobernador (AltId 3))] estadoInicial1475
@@ -285,7 +290,7 @@ main = do
       let raro = estadoInicial1475 { estadoPersistente = (estadoPersistente estadoInicial1475) { persistenteJuego =
             (persistenteJuego (estadoPersistente estadoInicial1475)) { ppPersonajes = Map.adjust (\pe -> pe { perGrupo = Just "brujos" })
                 (PerId 1) (ppPersonajes (persistenteJuego (estadoPersistente estadoInicial1475))) } } }
-      map errMensaje (valErrores (conGrupos "grupos.json" gs tipoFaccion1475 raro)) `shouldBe` ["grupo desconocido: brujos"]
+      map errMensaje (valErrores (conGrupos "grupos.json" gs raro)) `shouldBe` ["grupo desconocido: brujos"]
     it "los comandos coinciden con sus archivos dorados, de ida y de vuelta" $ do
       (A.decode dorNombrar, A.decode dorDestituir)
         `shouldBe` (Just (A.toJSON (NombrarGobernador (AltId 3) (PerId 2))), Just (A.toJSON (DestituirGobernador (AltId 2))))
@@ -293,7 +298,7 @@ main = do
         `shouldBe` (Just (NombrarGobernador (AltId 3) (PerId 2)), Just (DestituirGobernador (AltId 2)))
     it "un personaje guardado sin grupo (guardados anteriores) carga sin grupo" $
       (A.decode "{\"perId\":1,\"perNombre\":\"Z\",\"perAdmin\":3,\"perMando\":2,\"perEdad\":40,\"perVivo\":true}" :: Maybe Personaje)
-        `shouldBe` Just (Personaje (PerId 1) "Z" 3 2 40 True Nothing)
+        `shouldBe` Just (Personaje (PerId 1) "Z" 3 2 40 True Nothing f1)
 
   describe "reglas: cifras de la recaudación" $
     -- Con las eficiencias del escenario (93, 31 y 68 puntos) el ingreso anual
@@ -302,7 +307,7 @@ main = do
     it "tick 0 a tasas neutras: 1000 + (526,32 − 70 × 6) ÷ 18 = 1005,9066" $ do
       let j = Reglas.Juego.juego constantesDefault
           (s1, _) = paso j (entornoSimple mapaVacio) (Semilla 1) (Tick 0) [] estadoInicial1475
-      cercaCon 3 (baseFaccion magTesoro s1) 1005.906666
+      cercaCon 3 (baseFaccion f1 magTesoro s1) 1005.906666
 
   describe "reglas: gobernadores (hito 3, primer corte)" $ do
     let j = Reglas.Juego.juego constantesDefault
@@ -318,10 +323,10 @@ main = do
         conInepto = unTick (conGobernador (AltId 1) (PerId 3) estadoInicial1475)
 
     it "un mal gobernador baja la recaudación" $
-      baseFaccion magTesoro conInepto `shouldSatisfy` (< baseFaccion magTesoro base)
+      baseFaccion f1 magTesoro conInepto `shouldSatisfy` (< baseFaccion f1 magTesoro base)
 
     it "un buen gobernador la sube" $
-      baseFaccion magTesoro sinInepto `shouldSatisfy` (> baseFaccion magTesoro base)
+      baseFaccion f1 magTesoro sinInepto `shouldSatisfy` (> baseFaccion f1 magTesoro base)
 
     it "un mal gobernador sube el agravio de su altépetl" $
       agravioPop 1 conInepto `shouldSatisfy` (> agravioPop 1 base)
@@ -353,11 +358,10 @@ main = do
                                         (Map.lookup (r, m) (alm st))
         aplicar1 c st = aplicarCola j [Sellado (Tick 0) (FaccionId 1) 0 c] st
         conPresupuestoObras n st = let p = estadoPersistente st; ju = persistenteJuego p
-                                   in st { estadoPersistente = p { persistenteJuego = ju { ppPresupuesto =
-                                             (ppPresupuesto ju) { pbObras = n } } } }
+                                   in st { estadoPersistente = p { persistenteJuego = ju { ppFacciones = Map.adjust (\fa -> fa { facPresupuesto = (facPresupuesto fa) { pbObras = n } }) f1 (ppFacciones ju) } } }
         conTesoro x st = let p = estadoPersistente st; com = persistenteComun p
                          in st { estadoPersistente = p { persistenteComun = com { comunMagnitudes =
-                                   fijarBase entFaccion magTesoro x (comunMagnitudes com) } } }
+                                   fijarBase (entFac f1) magTesoro x (comunMagnitudes com) } } }
         conPops f st = let p = estadoPersistente st; ju = persistenteJuego p
                        in conDerivado st { estadoPersistente = p { persistenteJuego = ju { ppPops = Map.map f (ppPops ju) } } }
         terminadoEn hs = [ t | h <- hs, hechoTipo h == "edificio_terminado", let Tick t = hechoTick h ]
@@ -411,7 +415,7 @@ main = do
     it "empezar cobra el valor y retira la cuadrilla de los trabajadores del altépetl" $
       case aplicar1 (ConstruirEdificio "yacata" (AltId 2) 500) e0 of
         (st, _, []) -> do
-          baseFaccion magTesoro st `shouldBe` (baseFaccion magTesoro e0 .-. desdeEntero 400)
+          baseFaccion f1 magTesoro st `shouldBe` (baseFaccion f1 magTesoro e0 .-. desdeEntero 400)
           altObra (altDe 2 st) `shouldBe` Just (Obra "yacata" 0 8 500 (Fijo 0) Map.empty Map.empty [])
           retiradosDe (jue st) `shouldBe` Map.fromList [(AltId 2, 500)]
           Map.lookup (AltId 2) (trabajadoresDe constantesDefault (jue st)) `shouldBe` Just 2500
@@ -541,10 +545,10 @@ main = do
 
     it "oficio: datos/edificios.json declara los conocimientos y el dominio es el mínimo de codificado y tácito" $ do
       map cnId (conocimientos eds) `shouldBe` ["arquitectura_ceremonial", "canteria"]
-      dominio e0 "arquitectura_ceremonial" `shouldBe` fi 45
-      dominio e0 "canteria" `shouldBe` fi 55
-      productividad e0 (def "yacata") `shouldBe` Fijo 4500
-      productividad e0 (def "troje") `shouldBe` uno
+      dominio e0 f1 "arquitectura_ceremonial" `shouldBe` fi 45
+      dominio e0 f1 "canteria" `shouldBe` fi 55
+      productividad e0 f1 (def "yacata") `shouldBe` Fijo 4500
+      productividad e0 f1 (def "troje") `shouldBe` uno
 
     it "oficio: la carga rechaza un conocimiento desconocido, un mínimo o una base fuera de rango y uno repetido" $ do
       let o = A.object
@@ -566,8 +570,8 @@ main = do
     it "oficio: con más dominio la misma obra termina antes" $ do
       let maestros = let p = estadoPersistente e0; com = persistenteComun p
                      in conDerivado e0 { estadoPersistente = p { persistenteComun = com { comunMagnitudes =
-                          fijarBase entFaccion (magTacito "arquitectura_ceremonial") (fi 100)
-                            (fijarBase entFaccion (magCodificado "arquitectura_ceremonial") (fi 100) (comunMagnitudes com)) } } }
+                          fijarBase (entFac f1) (magTacito "arquitectura_ceremonial") (fi 100)
+                            (fijarBase (entFac f1) (magCodificado "arquitectura_ceremonial") (fi 100) (comunMagnitudes com)) } } }
           (_, hsM) = correrDias (construir "yacata" 2 500) 0 600 maestros
           (_, hsN) = correrDias (construir "yacata" 2 500) 0 600 e0
       case (terminadoEn hsM, terminadoEn hsN) of
@@ -584,12 +588,12 @@ main = do
           (s1, _) = correrDias [Sellado (Tick 1) (FaccionId 1) 0 (PedirTributoObra (AltId 3) "piedra" (AltId 1) 400)] 1 1 s0
           (dos, _) = correrDias [] 2 900 s1
           tacito st = maybe (Fijo 0) (valorEn (derivadoVigentes (estadoDerivado st)) (estadoTick st) (RangoMag (Fijo 0) (fi 100)))
-                        (Map.lookup (entFaccion, magTacito "arquitectura_ceremonial") (alm st))
+                        (Map.lookup ((entFac f1), magTacito "arquitectura_ceremonial") (alm st))
       map (altEdificios . flip altDe dos) [2, 3] `shouldBe` [["yacata"], ["yacata"]]
       cercaCon 20 (tacito dos) (45 + 5 * log 3)   -- el ln en punto fijo tiene error de unas diezmilésimas
-      [ modFuente m | m <- maybe [] almacenMods (Map.lookup (entFaccion, magTacito "arquitectura_ceremonial") (alm dos)) ]
+      [ modFuente m | m <- maybe [] almacenMods (Map.lookup ((entFac f1), magTacito "arquitectura_ceremonial") (alm dos)) ]
         `shouldBe` [fuentePractica "arquitectura_ceremonial"]
-      dominio dos "arquitectura_ceremonial" `shouldSatisfy` (>= fi 50)
+      dominio dos f1 "arquitectura_ceremonial" `shouldSatisfy` (>= fi 50)
       case aplicar1 (ConstruirEdificio "gran_yacata" (AltId 1) 1000) dos of
         (_, _, []) -> pure ()
         (_, _, rs) -> expectationFailure ("rechazado: " <> show rs)
@@ -610,7 +614,7 @@ main = do
 
     it "factor escaso: la cuadrilla baja la producción solo donde deja tierra sin trabajar" $ do
       let q st = foldl' (.+.) (Fijo 0) [ base (magProduccion b) st | b <- bienesDe terrenosArchivo ]
-          base m st = maybe (Fijo 0) almacenBase (Map.lookup (entFaccion, m) (alm st))
+          base m st = maybe (Fijo 0) almacenBase (Map.lookup ((entFac f1), m) (alm st))
           -- Uruapan con menos gente: ahí faltan brazos.
           pocos = conPops (\pop -> if popId pop == PopId 5 then pop { popTamano = 4000 } else pop) e0
           celdas est a = Map.findWithDefault [] (AltId a) (dpCeldas (derivadoJuego (estadoDerivado est)))
@@ -684,7 +688,7 @@ main = do
       centro `shouldSatisfy` (> deTzintzuntzan)
       centro `shouldSatisfy` (< purepechas)
       let (st, _) = correrDias [] 0 0 conGran
-      efectivo entFaccion magLegitimidad st `shouldSatisfy` (> fi 50)
+      efectivo (entFac f1) magLegitimidad st `shouldSatisfy` (> fi 50)
 
     it "ley del beneficio: no decrece con las copias ni con los fieles, y la copia n + 1 aporta menos que la n" $
       property $ forAll (choose (1, 30)) $ \n -> forAll (choose (0, 200000)) $ \f -> forAll (choose (0, 2000)) $ \sac ->
@@ -829,7 +833,7 @@ main = do
         e0   = conDerivado estadoInicial1475
         correrDias desde hasta e = foldl' (\st t -> fst (paso j ent (Semilla 1) (Tick t) [] st)) e [desde .. hasta]
         alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
-        base m st = maybe (Fijo 0) almacenBase (Map.lookup (entFaccion, m) (alm st))
+        base m st = maybe (Fijo 0) almacenBase (Map.lookup ((entFac f1), m) (alm st))
         llano = CeldaTrabajo 1 (fi 500) (Map.fromList [("maiz", fi 40), ("mantas", fi 4)])
         lago  = CeldaTrabajo 2 (fi 400) (Map.fromList [("pescado", fi 20), ("sal", fi 3)])
 
@@ -907,6 +911,8 @@ main = do
 
     it "los sistemas del juego con terrenos pasan validarOrdenSistemas" $
       validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j) `shouldBe` []
+
+  pruebasFacciones
 
   describe "reglas: tablas de casos del hito 0a (prototipo HTML)" $ do
     tablas <- runIO (fmap (>>= parseEither parseTablas)
@@ -1059,3 +1065,105 @@ parseTablas = withObject "tablas" $ \o -> do
       CasoAgravio <$> o .: "tributo" <*> o .: "impuesto" <*> o .: "capital"
                   <*> o .: "estrato" <*> o .: "identidad" <*> o .: "distancia"
                   <*> o .: "adminGobernador" <*> o .: "componentes" <*> o .: "porVeintena"
+
+
+-- ---------------------------------------------------------------------------
+-- Varias facciones (T12, hito 4)
+-- ---------------------------------------------------------------------------
+
+-- | El escenario con una segunda facción, la 2, copia de la primera: sus
+-- altépetl, pops y personajes llevan los ids de la primera más 10, y su
+-- tesoro, prestigio y legitimidad son los mismos. No es jugable.
+conCopia :: Estado Purepecha -> Estado Purepecha
+conCopia e =
+  let per = estadoPersistente e
+      p   = persistenteJuego per
+      com = persistenteComun per
+      f2  = FaccionId 2
+      dA (AltId i) = AltId (i + 10)
+      dP (PopId i) = PopId (i + 10)
+      dE (PerId i) = PerId (i + 10)
+      alts = [ a { altId = dA (altId a), altNombre = altNombre a <> " II"
+                 , altGobernador = dE <$> altGobernador a, altSujetoA = dA <$> altSujetoA a
+                 , altFaccion = f2
+                 , altCondicion = case altCondicion a of { Cabecera _ -> Cabecera f2; c -> c } }
+             | a <- Map.elems (ppAltepetl p) ]
+      pops = [ q { popId = dP (popId q), popAltepetl = dA (popAltepetl q) } | q <- Map.elems (ppPops p) ]
+      pers = [ pe { perId = dE (perId pe), perFaccion = f2 } | pe <- Map.elems (ppPersonajes p) ]
+      fac1 = ppFacciones p Map.! f1
+      fac2 = fac1 { facId = f2, facNombre = "Copia", facGobernante = dE (facGobernante fac1), facJugable = False }
+      desplazar (EntRef c i)
+        | c == "faccion" = EntRef c 2
+        | otherwise      = EntRef c (i + 10)
+      copiadas = Map.fromList [ ((desplazar r, m), x) | ((r, m), x) <- Map.toList (comunMagnitudes com) ]
+      p' = p { ppAltepetl = Map.union (ppAltepetl p) (Map.fromList [ (altId a, a) | a <- alts ])
+             , ppPops = Map.union (ppPops p) (Map.fromList [ (popId q, q) | q <- pops ])
+             , ppPersonajes = Map.union (ppPersonajes p) (Map.fromList [ (perId pe, pe) | pe <- pers ])
+             , ppFacciones = Map.insert f2 fac2 (ppFacciones p) }
+      per' = per { persistenteJuego = p', persistenteComun = com { comunMagnitudes = Map.union (comunMagnitudes com) copiadas } }
+  in e { estadoPersistente = per', estadoOrigen = Origen (estadoTick e) per' }
+
+pruebasFacciones :: Spec
+pruebasFacciones = describe "reglas: varias facciones (T12, hito 4)" $ do
+  let j    = Reglas.Juego.juego constantesDefault
+      f2   = FaccionId 2
+      dos  = conCopia estadoInicial1475
+      jue st = persistenteJuego (estadoPersistente st)
+      alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
+      correrT n st = foldl' (\e t -> fst (paso j (entornoSimple mapaVacio) (Semilla 3) (Tick t) [] e)) st [0 .. n - 1]
+      tesoro f st = baseFaccion f magTesoro st
+      cmd f c st = aplicarCola j [Sellado (Tick 0) f 0 c] st
+
+  it "un guardado anterior a las varias facciones carga con la facción 1" $ do
+    let nuevo = A.toJSON (jue estadoInicial1475)
+        quitar k (A.Object o) = A.Object (KM.delete k o)
+        quitar _ v = v
+        sinAlt = case nuevo of
+          A.Object o -> A.Object (KM.insert "ppAltepetl" (viejoAlt (KM.lookup "ppAltepetl" o)) o)
+          v -> v
+        viejoAlt (Just (A.Object as)) = A.Object (KM.map (quitar "altFaccion" . quitar "altCondicion") as)
+        viejoAlt v = maybe A.Null id v
+        fac = (ppFacciones (jue estadoInicial1475)) Map.! f1
+        viejo = case sinAlt of
+          A.Object o -> A.Object (KM.insert "ppCazonci" (A.toJSON (facGobernante fac))
+                       (KM.insert "ppTasas" (A.toJSON (facTasas fac))
+                       (KM.insert "ppPresupuesto" (A.toJSON (facPresupuesto fac))
+                       (KM.delete "ppFacciones" o))))
+          v -> v
+    A.fromJSON viejo `shouldBe` A.Success (jue estadoInicial1475)
+
+  it "una facción de más no cambia la hacienda de la primera" $ do
+    let solo = correrT 60 estadoInicial1475
+        con2 = correrT 60 dos
+    tesoro f1 con2 `shouldBe` tesoro f1 solo
+    tesoro f2 con2 `shouldBe` tesoro f1 solo
+
+  it "dos facciones con los mismos datos evolucionan igual, cada una en su bolsa" $ do
+    let st = correrT 60 dos
+    tesoro f2 st `shouldSatisfy` (/= tesoro f2 dos)
+    [ almacenBase x | ((EntRef "pop" i, Magnitud "agravio"), x) <- Map.toList (alm st), i <= 10 ]
+      `shouldBe` [ almacenBase x | ((EntRef "pop" i, Magnitud "agravio"), x) <- Map.toList (alm st), i > 10 ]
+
+  it "un comando actúa sobre la facción que lo sella" $ do
+    let (s1, _, rs) = cmd f2 (FijarTasaTributo 5) dos
+    rs `shouldBe` []
+    fmap (tasaTributo . facTasas) (Map.lookup f2 (ppFacciones (jue s1))) `shouldBe` Just 5
+    fmap (tasaTributo . facTasas) (Map.lookup f1 (ppFacciones (jue s1))) `shouldBe` Just 3
+
+  it "un comando de una facción que no existe se rechaza sin tocar el estado" $ do
+    let (s1, _, rs) = cmd (FaccionId 9) (FijarTasaTributo 5) dos
+    length rs `shouldBe` 1
+    (jue s1, alm s1) `shouldBe` (jue dos, alm dos)
+
+  it "no se nombra, destituye ni construye en un altépetl de otra facción" $ do
+    let intentos = [ NombrarGobernador (AltId 11) (PerId 4), DestituirGobernador (AltId 13)
+                   , ConstruirEdificio "yacata" (AltId 11) 0 ]
+    forM_ intentos $ \c -> do
+      let (s1, _, rs) = cmd f1 c dos
+      length rs `shouldBe` 1
+      (jue s1, alm s1) `shouldBe` (jue dos, alm dos)
+
+  it "no se nombra a un personaje de otra facción" $ do
+    let (s1, _, rs) = cmd f1 (NombrarGobernador (AltId 3) (PerId 14)) dos
+    length rs `shouldBe` 1
+    (jue s1, alm s1) `shouldBe` (jue dos, alm dos)

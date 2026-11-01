@@ -64,60 +64,66 @@ data DatosReglas = DatosReglas
 datosVacios :: DatosReglas
 datosVacios = DatosReglas gruposVacios edificiosVacios Map.empty
 
+-- | Aplica un comando de la facción que lo sella (@sellFaccion@). Un comando
+-- de una facción que no existe o no está activa se rechaza; los que nombran
+-- un altépetl o un personaje exigen que sean de esa facción.
 aplicarComando :: Constantes -> DatosReglas -> Estado Purepecha -> Sellado Comando
                -> Either Rechazo (Estado Purepecha, [Hecho])
-aplicarComando c dr est sell = let gs = drGrupos dr in case sellCmd sell of
-  FijarTasaTributo n
-    | n < 1 || n > 5 -> Left (Rechazo "tasa fuera de rango (1..5)")
-    | otherwise ->
-        let p    = persistenteJuego (estadoPersistente est)
-            t    = ppTasas p
-            p'   = p { ppTasas = t { tasaTributo = n } }
-            est' = est { estadoPersistente = (estadoPersistente est)
-                          { persistenteJuego = p' } }
-        in Right (est', [])
-  FijarImpuestoInterno n
-    | n < 1 || n > 5 -> Left (Rechazo "tasa fuera de rango (1..5)")
-    | otherwise ->
-        let p    = persistenteJuego (estadoPersistente est)
-            t    = ppTasas p
-            p'   = p { ppTasas = t { tasaImpuesto = n } }
-            est' = est { estadoPersistente = (estadoPersistente est)
-                          { persistenteJuego = p' } }
-        in Right (est', [])
-  AsignarPresupuesto parte n
-    | n < 0 || n > 100 -> Left (Rechazo "presupuesto fuera de rango")
-    | otherwise ->
-        let p     = persistenteJuego (estadoPersistente est)
-            pres  = ppPresupuesto p
-            pres' = case parte of
-              PEjercito       -> pres { pbEjercito = n }
-              PAdministracion -> pres { pbAdministracion = n }
-              PObras          -> pres { pbObras = n }
-              PDiplomacia     -> pres { pbDiplomacia = n }
-              PCulto          -> pres { pbCulto = n }
-            p'    = p { ppPresupuesto = pres' }
-            est'  = est { estadoPersistente = (estadoPersistente est)
-                            { persistenteJuego = p' } }
-        in Right (est', [])
-  ReclutarEjercito _ -> Left (Rechazo "no_implementado")
-  NombrarGobernador alt per -> do
-    let p = persistenteJuego (estadoPersistente est)
-    a  <- maybe (Left (Rechazo "el altépetl no existe")) Right (Map.lookup alt (ppAltepetl p))
-    pe <- maybe (Left (Rechazo "el personaje no existe")) Right (Map.lookup per (ppPersonajes p))
-    if not (perVivo pe) then Left (Rechazo (perNombre pe <> " está muerto"))
-    else if altGobernador a == Just per then Left (Rechazo (perNombre pe <> " ya gobierna " <> altNombre a))
-    else case [ otro | otro <- Map.elems (ppAltepetl p), altGobernador otro == Just per ] of
-      (otro : _) -> Left (Rechazo (perNombre pe <> " ya gobierna " <> altNombre otro))
-      []         -> Right (nombrar gs (sellTick sell) alt pe est)
-  DestituirGobernador alt -> do
-    let p = persistenteJuego (estadoPersistente est)
-    a <- maybe (Left (Rechazo "el altépetl no existe")) Right (Map.lookup alt (ppAltepetl p))
-    case altGobernador a of
-      Nothing -> Left (Rechazo (altNombre a <> " no tiene gobernador"))
-      Just _  -> Right (quitarNombramiento gs (sellTick sell) alt est)
-  ConstruirEdificio e alt n -> iniciarObra c (drEdificios dr) e alt n est
-  PedirTributoObra alt g f n -> pedirTributo c (drEdificios dr) alt g f n est
+aplicarComando c dr est sell = do
+  fac <- case Map.lookup (sellFaccion sell) (ppFacciones p) of
+    Just f | facEstado f == Activa -> Right f
+    _ -> Left (Rechazo "tu facción no está activa")
+  let fid = facId fac
+      conFac f' = Right (conFaccion f' est, [])
+      suyo a = if altFaccion a == fid then Right a
+               else Left (Rechazo (altNombre a <> " no es de tu facción"))
+  case sellCmd sell of
+    FijarTasaTributo n
+      | n < 1 || n > 5 -> Left (Rechazo "tasa fuera de rango (1..5)")
+      | otherwise -> conFac fac { facTasas = (facTasas fac) { tasaTributo = n } }
+    FijarImpuestoInterno n
+      | n < 1 || n > 5 -> Left (Rechazo "tasa fuera de rango (1..5)")
+      | otherwise -> conFac fac { facTasas = (facTasas fac) { tasaImpuesto = n } }
+    AsignarPresupuesto parte n
+      | n < 0 || n > 100 -> Left (Rechazo "presupuesto fuera de rango")
+      | otherwise ->
+          let pres  = facPresupuesto fac
+              pres' = case parte of
+                PEjercito       -> pres { pbEjercito = n }
+                PAdministracion -> pres { pbAdministracion = n }
+                PObras          -> pres { pbObras = n }
+                PDiplomacia     -> pres { pbDiplomacia = n }
+                PCulto          -> pres { pbCulto = n }
+          in conFac fac { facPresupuesto = pres' }
+    ReclutarEjercito _ -> Left (Rechazo "no_implementado")
+    NombrarGobernador alt per -> do
+      a  <- maybe (Left (Rechazo "el altépetl no existe")) Right (Map.lookup alt (ppAltepetl p))
+      _  <- suyo a
+      pe <- maybe (Left (Rechazo "el personaje no existe")) Right (Map.lookup per (ppPersonajes p))
+      if perFaccion pe /= fid then Left (Rechazo (perNombre pe <> " no es de tu facción"))
+      else if not (perVivo pe) then Left (Rechazo (perNombre pe <> " está muerto"))
+      else if altGobernador a == Just per then Left (Rechazo (perNombre pe <> " ya gobierna " <> altNombre a))
+      else case [ otro | otro <- Map.elems (ppAltepetl p), altGobernador otro == Just per ] of
+        (otro : _) -> Left (Rechazo (perNombre pe <> " ya gobierna " <> altNombre otro))
+        []         -> Right (nombrar gs (sellTick sell) alt pe est)
+    DestituirGobernador alt -> do
+      a <- maybe (Left (Rechazo "el altépetl no existe")) Right (Map.lookup alt (ppAltepetl p))
+      _ <- suyo a
+      case altGobernador a of
+        Nothing -> Left (Rechazo (altNombre a <> " no tiene gobernador"))
+        Just _  -> Right (quitarNombramiento gs (sellTick sell) alt est)
+    ConstruirEdificio e alt n -> iniciarObra c (drEdificios dr) fid e alt n est
+    PedirTributoObra alt g f n -> pedirTributo c (drEdificios dr) fid alt g f n est
+  where
+    gs = drGrupos dr
+    p  = persistenteJuego (estadoPersistente est)
+
+-- | Reemplaza una facción en el estado.
+conFaccion :: Faccion -> Estado Purepecha -> Estado Purepecha
+conFaccion f est =
+  let per = estadoPersistente est
+      p   = persistenteJuego per
+  in est { estadoPersistente = per { persistenteJuego = p { ppFacciones = Map.insert (facId f) f (ppFacciones p) } } }
 
 -- El motor no conoce estos tipos; aquí los traducimos a valores genéricos
 -- de `Motor.Vista` para que el cliente pueda mostrarlos sin saber de reglas.
@@ -131,7 +137,7 @@ proyectar est =
       res = resumenes est
   in  [ proyectarAlt est res a | a <- Map.elems (ppAltepetl p) ]
    ++ [ proyectarPop pop | pop <- Map.elems (ppPops p) ]
-   ++ [ proyectarFaccion est ]
+   ++ [ proyectarFaccion est (facId f) | f <- activas p ]
 
 -- | Lo que aporta una sola entidad: el mismo elemento que en 'proyectar'.
 -- Se aplica primero al estado: los resúmenes se calculan una vez para todas
@@ -141,7 +147,8 @@ proyectarDe :: Estado Purepecha -> EntRef -> Maybe EntidadJuego
 proyectarDe est =
   let p = persistenteJuego (estadoPersistente est)
       res = resumenes est
-  in \r -> if r == entFaccion then Just (proyectarFaccion est)
+  in \r -> if entClase r == entClase (entFac (FaccionId 0))
+             then (if any ((== FaccionId (entId r)) . facId) (activas p) then Just (proyectarFaccion est (FaccionId (entId r))) else Nothing)
            else if entClase r == entClase altCualquiera then proyectarAlt est res <$> Map.lookup (AltId (entId r)) (ppAltepetl p)
            else if entClase r == entClase popCualquiera then proyectarPop <$> Map.lookup (PopId (entId r)) (ppPops p)
            else Nothing
@@ -172,11 +179,11 @@ resumenes est = Map.fromListWith juntar
 -- también muestra lo que dice el derivado de él (sus fieles y sus celdas) y
 -- el nombre de los que le envían tributo; los nombres no cambian, pero si
 -- cambiaran, se marcan todos los que tienen obra. La facción muestra
--- magnitudes del almacén: siempre está sucia (es una). El resumen de sus
+-- magnitudes del almacén: las facciones activas siempre están sucias. El resumen de sus
 -- pops no hace falta marcarlo aquí: el motor marca al dueño de cada pop
 -- sucio.
 sucias :: Estado Purepecha -> Estado Purepecha -> Maybe (Set.Set EntRef)
-sucias e0 e1 = Just (Set.fromList (entFaccion : map entRefAlt alts ++ map entRefPop pops))
+sucias e0 e1 = Just (Set.fromList (map (entFac . facId) (activas p0 ++ activas p1) ++ map entRefAlt alts ++ map entRefPop pops))
   where
     p0 = persistenteJuego (estadoPersistente e0)
     p1 = persistenteJuego (estadoPersistente e1)
@@ -238,11 +245,11 @@ proyectarPop pop = EntidadJuego (entRefPop (popId pop)) (Just (entRefAlt (popAlt
   , ("lealtad",   VFijo   (popLealtad pop))
   ])
 
-proyectarFaccion :: Estado Purepecha -> EntidadJuego
-proyectarFaccion est = EntidadJuego entFaccion Nothing (Map.fromList
-  [ ("tesoro",      VFijo (baseFaccion magTesoro est))
-  , ("prestigio",   VFijo (baseFaccion magPrestigio est))
-  , ("legitimidad", VFijo (baseFaccion magLegitimidad est))
+proyectarFaccion :: Estado Purepecha -> FaccionId -> EntidadJuego
+proyectarFaccion est f = EntidadJuego (entFac f) Nothing (Map.fromList
+  [ ("tesoro",      VFijo (baseFaccion f magTesoro est))
+  , ("prestigio",   VFijo (baseFaccion f magPrestigio est))
+  , ("legitimidad", VFijo (baseFaccion f magLegitimidad est))
   ])
 
 textoFijo :: Fijo -> Text
