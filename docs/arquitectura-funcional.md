@@ -377,16 +377,38 @@ d_{\text{km}}(a,b) = \min_{\text{camino } a \to b} \sum \text{longitudKm}
 d_{\text{costo}}(a,b) = \min_{\text{camino } a \to b} \sum \text{costo}
 ```
 
-Por decisión de diseño el costo de cada conexión coincide con su longitud en km (5 en tierra, más por mar), así que d_costo = d_km; los dos campos se conservan por si una regla futura necesita distinguirlos.
+La longitud es fija; el costo, no (V5, *Costo del grafo*). Con μ(c) el valor efectivo de `celda.costo_movimiento` (base de la tabla de terrenos, modificadores de camino y otras obras) y ρ el factor de la conexión:
+
+```math
+\text{costo}(a,b) = \text{longitud}(a,b)\cdot\frac{\mu(a)+\mu(b)}{2}\cdot\rho(a,b),
+\qquad
+\rho(a,b) = \begin{cases}
+\texttt{COSTO\_NAVEGACION} & a, b \text{ navegables} \\
+\texttt{COSTO\_SIN\_PUERTO} & \text{una navegable, la otra de tierra sin puerto} \\
+\texttt{COSTO\_CRUCE\_RIO} & \text{atributo } \texttt{Rio} \\
+1 & \text{si no}
+\end{cases}
+```
+
+El costo es simétrico por construcción: μ entra como promedio y ρ solo depende del par, así que la ley de simetría del mapa sigue valiendo. Todas las reglas usan d_costo; d_km queda para lo que es geometría.
+
+**Grafo parcheado.** El grafo compacto (`Motor.Recorrido`) guarda el costo de cada conexión. Cuando cambia μ(c) o ρ de una conexión, se reescriben solo las conexiones de las celdas afectadas:
+
+```haskell
+parchearCostos :: (CeldaId -> Fijo) -> (CeldaId -> CeldaId -> Fijo) -> [CeldaId] -> Grafo -> Grafo
+-- ley: parchearCostos μ ρ cs (grafoCon μ0 ρ0 m) == grafoCon μ ρ m   si μ y ρ solo difieren de μ0, ρ0 en cs
+```
+
+Por fuera es una función pura, aunque por dentro copie un arreglo con `ST`. Con el mapa completo (unas 900 000 conexiones), parchear las de unas decenas de celdas es lo que mantiene el paso 16 barato.
 
 **Asignación de celdas: un diagrama de Voronoi en el grafo.**
 
 ```math
-\text{asig}(c) = \arg\min_{a \in \text{Asent}} \big(d_{\text{km}}(c, \text{celda}(a)),\ \text{id}(a)\big)
-\quad \text{con } d_{\text{km}} \le R_{\text{prod}}
+\text{asig}(c) = \arg\min_{a \in \text{Asent}} \big(d_{\text{costo}}(c, \text{celda}(a)),\ \text{id}(a)\big)
+\quad \text{con } d_{\text{costo}} \le R_{\text{prod}}
 ```
 
-El orden lexicográfico (distancia, id) hace el desempate determinista. Se calcula con el mismo Dijkstra multifuente que la influencia (sección 9), con un grupo por asentamiento, una etiqueta por celda y R_prod como tope.
+El orden lexicográfico (distancia, id) hace el desempate determinista. Se calcula con el mismo Dijkstra multifuente que la influencia (sección 9), con un grupo por asentamiento, una etiqueta por celda y R_prod (`RADIO_PRODUCCION`, en km de llano) como tope. Las tierras de un pueblo son las que alcanza a pie: una ladera detrás de una sierra puede quedar fuera aunque esté cerca en línea recta.
 
 **Ids globales de celda (V5, *El mapa completo*).** La malla se traza en hojas con proyección de área igual; cada celda tiene coordenadas axiales (q, r) con origen fijo en su hoja h. El id las codifica en el `CeldaId` entero que ya existe, así que el tipo, el `IntMap` y el protocolo no cambian:
 
@@ -648,7 +670,7 @@ D_{t+1} = D_t + \big\lfloor \beta\,\big(\delta^*(S_t)\, N_t - D_t\big) \big\rcei
 
 donde δ* es la proporción objetivo de población dispersa (función de la tierra disponible y la seguridad) y β = `RITMO_DISPERSION`. Mover gente entre núcleo y dispersión no cambia el total.
 
-**Migración: una matriz de flujos que conserva la población.** Para cada par de asentamientos conectados, con atractivo A y peso w que decae con d_km:
+**Migración: una matriz de flujos que conserva la población.** Para cada par de asentamientos conectados, con atractivo A y peso w que decae con d_costo:
 
 ```math
 f_{ij} = \kappa \cdot \max(0,\ A_j - A_i)\cdot w_{ij}\cdot N_i
@@ -1465,6 +1487,7 @@ Las reglas del diseño, escritas como propiedades. En un lenguaje puro, "la mism
 | Nombramiento sin trinquete | Mientras dura un cargo, su aporte al poder del grupo es constante; al terminar el cargo, es 0 y sus modificadores emiten `modificador_terminado` (sección 14d) |
 | Facciones con rastro | Toda aparición emite `faccion_aparece` y toda desaparición `faccion_desaparece`; lo que tenía la facción llega a un destino declarado o se pierde por declaración; los ids no se reutilizan (sección 14b) |
 | Insumos en especie | Un insumo nunca se paga con valor; sin insumo ni sustituto, la actividad se rechaza sin cambiar el estado; la penalización es proporcional a la fracción que falta (sección 14h) |
+| Costo del grafo | El costo de toda conexión es positivo y simétrico; parchear las celdas que cambiaron da el mismo grafo que reconstruirlo (sección 8) |
 | Obra acotada | 0 ≤ P ≤ 1 y P no decrece; 0 ≤ A_g ≤ M_g; ninguna obra termina antes de D veintenas; con T = 0 y sin materiales, la obra es la del primer corte (sección 14i) |
 | Cuadrilla conservada | Mientras dura la obra, R_a la incluye y W_a ≥ 0; al terminar o cancelarse, R_a vuelve a su valor sin la obra |
 | Materiales sin trampa | Ningún material se paga con valor: solo con extracción o entrega; una entrega no llega antes de su retraso ni sin pagar su transporte |

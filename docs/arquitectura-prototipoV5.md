@@ -215,7 +215,7 @@ flowchart LR
     CAM --> MOV["Movimiento y contagio"]
 ```
 
-La capacidad es una magnitud del hexágono. La presión de un asentamiento es el cociente entre su población y la capacidad de los hexágonos que lo rodean (las que están dentro de `RADIO_PRODUCCION_KM`, las mismas que usa la producción). Ambas son derivadas: se recalculan en el paso 16 y las leen los sistemas en la veintena siguiente, por la misma razón que el paso 8 lee los valores del tick anterior.
+La capacidad es una magnitud del hexágono. La presión de un asentamiento es el cociente entre su población y la capacidad de los hexágonos que lo rodean (las que están dentro de `RADIO_PRODUCCION`, en km de llano por el costo del grafo, las mismas que usa la producción). Ambas son derivadas: se recalculan en el paso 16 y las leen los sistemas en la veintena siguiente, por la misma razón que el paso 8 lee los valores del tick anterior.
 
 ### Caminos (hito 3)
 
@@ -246,7 +246,7 @@ Los costos y porcentajes de estos ejemplos son de relleno; se fijan en el hito 0
 
 ### Terrazas y roturación (hito 3)
 
-Son obras sobre una **celda** (no sobre un asentamiento) dentro de `RADIO_PRODUCCION_KM` de un asentamiento propio. Usan `ConstruirEdificio` con un hexágono de destino: no hay comando nuevo.
+Son obras sobre una **celda** (no sobre un asentamiento) dentro de `RADIO_PRODUCCION` de un asentamiento propio. Usan `ConstruirEdificio` con un hexágono de destino: no hay comando nuevo.
 
 | Obra | Costo | Efecto | Consecuencia visible |
 | --- | --- | --- | --- |
@@ -299,7 +299,7 @@ Un sistema de demografía en el paso 11, cadencia de veintena:
 Un sistema de degradación del suelo en el paso 11, cadencia de veintena:
 
 - **Magnitudes.** `celda.degradacion` (de 0 a 100, almacenada: la base la escribe el sistema) y `celda.tasa_erosion` (su base sale de la tabla de terrenos; modificadores: terrazas −60%, y por presión la fórmula `erosion_por_presion`).
-- **Regla.** Cada veintena, en las celdas dentro de `RADIO_PRODUCCION_KM` de un asentamiento: si la presión del asentamiento supera `PRESION_UMBRAL_EROSION` (propuesta: 0.8), la degradación sube según la tasa; si está por debajo, se recupera despacio (`RECUPERACION_SUELO`). La tierra empieza a degradarse antes de que la gente deje de crecer, y ese desfase es el que el jugador puede corregir con obras.
+- **Regla.** Cada veintena, en las celdas dentro de `RADIO_PRODUCCION` de un asentamiento: si la presión del asentamiento supera `PRESION_UMBRAL_EROSION` (propuesta: 0.8), la degradación sube según la tasa; si está por debajo, se recupera despacio (`RECUPERACION_SUELO`). La tierra empieza a degradarse antes de que la gente deje de crecer, y ese desfase es el que el jugador puede corregir con obras.
 - **Efecto.** El sistema aporta a `celda.capacidad` un modificador porcentual `erosion`, de instancia estable por hexágono y valor actualizado cada veintena. El desglose queda: "capacidad 62: base 80, −12 erosión, +10 terrazas", y se mantiene la regla de que la explicación es el cálculo.
 - **Espiral.** Menos capacidad sube la presión, la presión frena y luego revierte el crecimiento, y la población baja hacia lo que la tierra degradada sostiene. No hay colapso: el piso `POP_MINIMO` lo impide.
 - **Hechos.** `suelo_degradado`, cuando la degradación de un hexágono cruza `DEGRADACION_AVISO` o `DEGRADACION_GRAVE`.
@@ -329,7 +329,7 @@ La población no flota entre las celdas: vive en una jerarquía de asentamientos
 | Población dispersa | Estancias y caseríos junto a las parcelas | Pops con `residencia: dispersa` dentro de cada asentamiento | Alta: primera víctima de incursiones y saqueos |
 
 - **Estado almacenado, un solo escritor por causa.** La población dispersa no es una fracción derivada: si lo fuera, una incursión que la diezma se "rellenaría" sola en el siguiente recálculo. Solo la mueven sistemas concretos: crecimiento, fuga, reocupación, migración y pérdidas.
-- **Proporción objetivo derivada, movimiento lento.** Cada veintena se calcula una proporción ideal de población dispersa según la tierra disponible en `RADIO_PRODUCCION_KM` y la seguridad. Los pops se acercan a ella poco a poco (`RITMO_DISPERSION`): con seguridad la gente sale a vivir junto a sus campos; con incursiones se refugia en el núcleo (**fuga**) y vuelve cuando pasa el peligro (**reocupación**).
+- **Proporción objetivo derivada, movimiento lento.** Cada veintena se calcula una proporción ideal de población dispersa según la tierra disponible en `RADIO_PRODUCCION` y la seguridad. Los pops se acercan a ella poco a poco (`RITMO_DISPERSION`): con seguridad la gente sale a vivir junto a sus campos; con incursiones se refugia en el núcleo (**fuga**) y vuelve cuando pasa el peligro (**reocupación**).
 - **El rango de asentamiento es una lista que crece.** Cabecera y sujeto en el prototipo; villa española, real de minas, estancia ganadera, presidio, misión y pueblo de indios en el periodo novohispano.
 
 ### Incursiones, saqueo, requisa y leva
@@ -794,7 +794,23 @@ El núcleo es un procesador de información, no un elemento unido a un mapa conc
 
 Todos los sistemas usan solo esta interfaz: vecinos de una celda, conexión entre dos celdas y atributos. La influencia (Dijkstra multifuente), el movimiento, el abasto, el contagio y el asedio son algoritmos sobre grafos y no pierden nada.
 
-**Longitud y costo.** Cada conexión tiene una **longitud** (la distancia entre sus dos puntos, en km) y un **costo** (su peso en el grafo). Por decisión de diseño, el costo coincide con la longitud: para fines prácticos es la distancia en km (5 en territorios de tierra, más en las rutas marítimas), y todas las reglas que recorren el grafo (producción, erosión, frontera, movimiento, abasto, influencia) usan ese peso. Los dos campos se conservan separados por si un camino o un puerto llegan a abaratar la marcha sin acortar la distancia, pero hoy nada los distingue; se separarán cuando una regla lo pida.
+**Longitud y costo.** Cada conexión tiene una **longitud** (la distancia entre sus dos puntos, en km) y un **costo** (su peso en el grafo). La longitud es geometría y no cambia. El costo es lo que cuesta cruzarla: lo mueven el terreno, los ríos, los caminos y los puertos (ver *Costo del grafo*). Todas las reglas que recorren el grafo usan el costo: producción, erosión, frontera, movimiento, abasto, influencia y el transporte del tributo en especie. Las tierras de un pueblo son las que alcanza a pie, no las que están cerca en línea recta. La longitud queda para lo que es pura geometría, como dibujar o medir el mapa.
+
+### Costo del grafo: terreno, ríos, caminos y puertos
+
+Hay **un solo costo** por conexión, el mismo para ejércitos, personas y cargas, y es **simétrico**: cruzar en un sentido cuesta lo mismo que en el otro, también en los ríos. La unidad es el **km de llano**: una conexión de 5 km entre dos llanos sin río ni camino cuesta 5. El cliente lo traduce a días de marcha.
+
+```math
+\text{costo}(a, b) = \text{longitud}(a, b) \cdot \frac{\mu(a) + \mu(b)}{2} \cdot \rho(a, b)
+```
+
+- **Terreno, μ(c).** Es el valor efectivo de `celda.costo_movimiento`, cuya base sale de la tabla de terrenos (campo `costo_movimiento`; de relleno: llano 1, bosque 1,5, sierra 3). Los modificadores de la celda lo mueven: el **camino** aporta su −30 % a las celdas de su ruta (*Caminos*), y la **roturación**, al cambiar bosque por llano, abarata el paso sin regla propia. La base no se guarda por celda: sale de la tabla, y el almacén solo guarda las celdas con modificadores.
+- **Ríos, ρ(a, b).** Una conexión con el atributo `Rio` (el río corre entre las dos celdas) multiplica su costo por `COSTO_CRUCE_RIO` (de relleno: 2). Un vado o un puente serían edificios de celda que bajan ese factor.
+- **Agua navegable y puertos.** Las conexiones entre dos celdas de agua navegable (lago o río navegable) son baratas (`COSTO_NAVEGACION`, de relleno: 0,3): en canoa se viaja y se carga más rápido que a pie. Entre tierra y agua, la conexión es muy cara (`COSTO_SIN_PUERTO`, de relleno: 20) salvo que la celda de tierra tenga un **puerto**. El puerto es un edificio de celda que baja a 1 ese factor en sus conexiones con el agua. Así, el agua solo abarata el viaje a quien embarca en un puerto, y eso cabe en un peso de conexión, sin reglas que dependan del camino recorrido. El lago de Pátzcuaro, que se recorría en canoa, sale de aquí.
+
+Como el costo de las conexiones cambia con las obras, el grafo compacto que usan los recorridos se **parchea**: al cambiar μ de una celda o ρ de una conexión, se recalculan solo sus conexiones. Una ley lo compara con reconstruir el grafo entero. Los recorridos (influencia, asignación de celdas, rutas) se rehacen en el paso 16 como siempre.
+
+**Lo que no se hace en el prototipo:** costo distinto para ejércitos y cargas, ríos con dirección (río abajo más rápido), estaciones que cambian el costo (lluvias) y capacidad de carga por vía. Cada uno sería un campo nuevo con valor por defecto.
 
 **Proveedores de grafo.** La malla hexagonal es el primer proveedor, no la definición del mapa:
 
@@ -1861,7 +1877,7 @@ No es un juego por turnos ni un RTS: es gran estrategia con pausa. Hay una jerar
 
 Los pops reaccionan a lo que vivieron en la veintena anterior, no a lo que se decide en el mismo instante; por eso el paso 8 lee los valores del tick anterior. Un modificador decidido en un evento se aplica desde el tick siguiente, porque el narrador corre después de los sistemas.
 
-**Constantes.** Los parámetros de balance reutilizables (`TASA_TRIBUTO_BASE`, `AGRAVIO_POR_IMPUESTO`, `COSTE_GUERRA_SIN_CASUS`, `TREGUA_VEINTENAS`, `PRESTIGIO_POR_VICTORIA`, `K_ASEDIO`, `TASA_BAJAS`, `FACTOR_VIRUELA_VALLE`, `RITMO_TEPEYAC`, `TASA_CRECIMIENTO_ANUAL`, `PRESION_FRENO`, `POP_MINIMO`, `PRESION_UMBRAL_EROSION`, `RECUPERACION_SUELO`, `DEGRADACION_AVISO`, `DEGRADACION_GRAVE`, `ESCALA_MAPA_KM_POR_CELDA`, `RADIO_PRODUCCION_KM`, `LEGITIMIDAD_BASE`, `LEGITIMIDAD_PESO_LEALTAD`, `RITMO_DISPERSION`, `RITMO_MIGRACION`, `PRODUCCION_CELDA_ENEMIGA`, `PRODUCCION_CELDA_DISPUTADA`, `INICIO_TEMPORADA_GUERRA`, `INICIO_TEMPORADA_AGRICOLA`, `IA_FACTOR_TEMPORADA`, `GUERRA_RITUAL_FACTOR_BAJAS`, `GUERRA_RITUAL_FACTOR_PRISIONEROS`, `FRONTERA_KM`, `ALCANCE_INFLUENCIA`, umbrales) viven con nombre en `datos/constantes.json` y nunca como números sueltos en el código. Las que miden espacio se expresan en kilómetros o días de marcha, nunca en celdas; el núcleo las convierte según la escala del mapa, así que siguen valiendo si cambia el proveedor o el tamaño de la celda. Los valores propios de un solo evento pueden ir dentro del evento.
+**Constantes.** Los parámetros de balance reutilizables (`TASA_TRIBUTO_BASE`, `AGRAVIO_POR_IMPUESTO`, `COSTE_GUERRA_SIN_CASUS`, `TREGUA_VEINTENAS`, `PRESTIGIO_POR_VICTORIA`, `K_ASEDIO`, `TASA_BAJAS`, `FACTOR_VIRUELA_VALLE`, `RITMO_TEPEYAC`, `TASA_CRECIMIENTO_ANUAL`, `PRESION_FRENO`, `POP_MINIMO`, `PRESION_UMBRAL_EROSION`, `RECUPERACION_SUELO`, `DEGRADACION_AVISO`, `DEGRADACION_GRAVE`, `ESCALA_MAPA_KM_POR_CELDA`, `RADIO_PRODUCCION`, `LEGITIMIDAD_BASE`, `LEGITIMIDAD_PESO_LEALTAD`, `RITMO_DISPERSION`, `RITMO_MIGRACION`, `PRODUCCION_CELDA_ENEMIGA`, `PRODUCCION_CELDA_DISPUTADA`, `INICIO_TEMPORADA_GUERRA`, `INICIO_TEMPORADA_AGRICOLA`, `IA_FACTOR_TEMPORADA`, `GUERRA_RITUAL_FACTOR_BAJAS`, `GUERRA_RITUAL_FACTOR_PRISIONEROS`, `FRONTERA_KM`, `ALCANCE_INFLUENCIA`, umbrales) viven con nombre en `datos/constantes.json` y nunca como números sueltos en el código. Las que miden espacio se expresan en kilómetros o días de marcha, nunca en celdas; el núcleo las convierte según la escala del mapa, así que siguen valiendo si cambia el proveedor o el tamaño de la celda. Los valores propios de un solo evento pueden ir dentro del evento.
 
 **Batallas y reloj.** Al abrir una batalla táctica, el reloj estratégico se detiene (ver *Relojes y ritmo*). El resultado entra como comando, así que la partida sigue siendo reproducible.
 
@@ -1870,7 +1886,7 @@ Los pops reaccionan a lo que vivieron en la veintena anterior, no a lo que se de
 - **Diplomacia en dos niveles.** Entre facciones hay guerra, paz o alianza, con casus belli y treguas. Entre altépetl hay una relación numérica que las acciones suben o bajan; la sujeción y el tributo exigen un mínimo.
 - **Lealtad y agravio.** El agravio de un pop sube con impuestos, tributo y necesidades no cubiertas, y baja con la eficiencia administrativa y los edificios. La lealtad del pop afecta su producción y, ponderada por tamaño, forma la del altépetl.
 - **Rebelión.** Si la lealtad de un señorío cae bajo un umbral, cada veintena tiene probabilidad de rebelarse y dejar de tributar; emite el hecho `rebelion_iniciada`.
-- **Producción.** Pops trabajadores × rendimiento de los recursos de las celdas dentro de `RADIO_PRODUCCION_KM` del asentamiento (propuesta: 10 km), con los modificadores de edificios, gobernador y estación.
+- **Producción.** Pops trabajadores × rendimiento de los recursos de las celdas dentro de `RADIO_PRODUCCION` del asentamiento (propuesta: 10 km de llano), con los modificadores de edificios, gobernador y estación.
 - **Crecimiento (hito 3b).** El tamaño de cada pop crece según una tasa que es base más modificadores (necesidades, agravio, presión sobre la capacidad, epidemia); ver *La tierra y la gente*.
 - **Erosión (hito 6a).** La presión sostenida degrada el suelo y baja la capacidad de los hexágonos; las terrazas la frenan.
 - **Epidemia.** Se propaga por las rutas entre asentamientos y con los ejércitos en movimiento; la mortalidad depende del grupo y alcanza también a los personajes. Desde el hito 3b, su mortalidad entra como modificador de la tasa de crecimiento, no como resta directa de población.
@@ -2574,6 +2590,7 @@ El mayor riesgo es el alcance: un juego que mezcla dos géneros completos puede 
 - [ ] Aportes al flujo de abasto, `UMBRAL_FORRAJEO`, tasas de deserción y de pérdida de moral por hambre, `DIAS_RETORNO` y `VEINTENAS_PARA_MOTIN`, calibrados para que una campaña purépecha no pase de unos días de sus trojes (hito 0 en la hoja; hito 4 en el núcleo)
 - [ ] Si forrajeo, asentamiento de desertores, relevo y salida entran en el hito 4 o en el 6, según lo que muestre el arnés (hito 4)
 - [ ] Base de `asentamiento.reservas_asedio` por terreno (hito 3)
+- [ ] Factores de costo del grafo: `costo_movimiento` por terreno, `COSTO_CRUCE_RIO`, `COSTO_NAVEGACION`, `COSTO_SIN_PUERTO`, y qué ríos de Michoacán son navegables, con fuentes (hito 3)
 - [ ] Obras: trabajo, materiales, cuadrilla máxima, veintenas mínimas y oficio de cada edificio; sustento por trabajador de la cuadrilla; rendimiento y trabajadores de la extracción por terreno (hito 3)
 - [ ] Tributo en especie de materiales: velocidad de transporte (días de marcha por veintena de retraso), costo de transporte por unidad y distancia, y qué sujetos pueden enviar (los del altépetl o cualquiera de la facción) (hito 3)
 - [ ] Beneficio de las yácatas: capacidad de fieles y sacerdotes por yácata, quién cuenta como "puede asistir" (el altépetl, el radio de producción o una distancia), y la proporción de sacerdotes por asentamiento, con fuentes (*Relación de Michoacán*) (hito 3)
@@ -2631,6 +2648,7 @@ El mayor riesgo es el alcance: un juego que mezcla dos géneros completos puede 
 - Crónica del reino como estado almacenado y base de la pantalla final
 - Caminos, crecimiento y erosión entran al prototipo en etapas con hitos separados (3, 3b y 6a); cada una pasa su criterio antes de empezar la siguiente
 - Terrazas y roturación son obras de celda definidas en datos; la roturación cambia el terreno con el efecto `cambiar_terreno` y es irreversible en el prototipo
+- Un solo costo por conexión, simétrico, en km de llano: longitud × terreno medio de sus celdas (`celda.costo_movimiento`, con el camino y la roturación como modificadores) × factor de río; el agua navegable es barata y solo se alcanza desde un puerto. Todas las reglas que recorren el grafo, también el radio de producción (`RADIO_PRODUCCION`), usan el costo
 - El freno a multiplicar edificios es económico, no un límite de casillas: tesoro, una cuadrilla que sale con `retirar_trabajadores`, materiales extraídos en las celdas o recibidos como tributo en especie (más lento y más caro), oficio con conocimiento codificado y tácito, y un beneficio por tipo de edificio que calcula una fórmula con nombre (lineal, logarítmica, por asistentes o por guarnición)
 - Los materiales de construcción no son bienes con existencias: se extraen para cada obra y se acopian en ella
 - Cada edificio declara sus ámbitos (asentamiento, celda o los dos); una obra en celda solo rinde bajo control de su dueño
