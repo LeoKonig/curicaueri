@@ -11,6 +11,7 @@ module Motor.Guion
   , Situacion (..)
   , ParamsDirector (..)
   , paramsPorOmision
+  , FinGuion (..)
   , Guion (..)
   , guionVacio
   , Entorno (..)
@@ -84,15 +85,25 @@ data ParamsDirector = ParamsDirector
 paramsPorOmision :: ParamsDirector
 paramsPorOmision = ParamsDirector 60 (Fijo 100) (Fijo 20) (Fijo 2000) 4 uno uno 3650
 
+-- | Cuándo termina la partida: en una fecha, o antes si se cumple una de las
+-- condiciones de derrota (cada una con la razón que se anuncia). Sin fecha ni
+-- derrotas, la partida no termina.
+data FinGuion = FinGuion
+  { fgTick     :: Maybe Int64               -- ^ tick en que termina, si es por fecha
+  , fgDerrotas :: [(Text, Condicion)]       -- ^ razón y condición, en orden: gana la primera que se cumpla
+  } deriving (Eq, Show)
+
 data Guion = Guion
   { guTipos       :: [Text]
   , guFases       :: [Fase]
   , guSituaciones :: [Situacion]
   , guDirector    :: ParamsDirector
+  , guCronica     :: Map Text Text          -- ^ tipo de hecho → clave de localización de su entrada en la crónica
+  , guFin         :: Maybe FinGuion         -- ^ Nothing: la partida no termina
   } deriving (Eq, Show)
 
 guionVacio :: Guion
-guionVacio = Guion [] [] [] paramsPorOmision
+guionVacio = Guion [] [] [] paramsPorOmision Map.empty Nothing
 
 -- | Lo inmutable de la partida (documento funcional, sección 1): no cambia
 -- durante la partida y no se guarda con el estado.
@@ -126,20 +137,35 @@ entornoSimple m = entorno m guionVacio economiaVacia
 cargarGuion :: Text -> Fecha -> Value -> Validacion Guion
 cargarGuion archivo inicio v = case A.parseEither leer v of
   Left err -> falla (ErrorCarga ErrorEstructura archivo "" (T.pack err))
-  Right (tipos, fases, sits, params) -> do
+  Right (tipos, fases, sits, params, cron, fin) -> do
     let idsFases = map faId fases
     sits' <- traverse (validarSituacion tipos idsFases) sits
     _ <- traverse (\i -> if length (filter (== i) idsFases) > 1
                            then falla (ErrorCarga ErrorEsquema archivo ("fases." <> i) "fase repetida")
                            else pure ()) (nub idsFases)
-    pure (Guion tipos fases sits' params)
+    _ <- traverse (\(r, _) -> if T.null r
+                                then falla (ErrorCarga ErrorEsquema archivo "fin.derrotas" "una derrota sin razón")
+                                else pure ()) (maybe [] fgDerrotas fin)
+    pure (Guion tipos fases sits' params cron fin)
   where
     leer = A.withObject "guion" $ \o -> do
       tipos <- o A..: "tipos"
       fases <- maybe (pure []) (mapM fase) =<< o A..:? "fases"
       sits <- maybe (pure []) (mapM situacion) =<< o A..:? "situaciones"
       params <- maybe (pure paramsPorOmision) director =<< o A..:? "director"
-      pure (tipos, fases, sits, params)
+      cron <- maybe Map.empty id <$> o A..:? "cronica"
+      fin <- traverse finDe =<< o A..:? "fin"
+      pure (tipos, fases, sits, params, cron, fin)
+
+    -- La fecha del fin y las condiciones de derrota, ambas opcionales.
+    finDe = A.withObject "fin" $ \o -> do
+      fecha <- o A..:? "fecha"
+      cuando <- traverse fechaATick fecha
+      derrotas <- maybe (pure []) (mapM derrota) =<< o A..:? "derrotas"
+      pure (FinGuion cuando derrotas)
+
+    derrota = A.withObject "derrota" $ \o ->
+      (,) <$> o A..: "razon" <*> (o A..: "condicion" >>= condicion)
 
     fase = A.withObject "fase" $ \o -> do
       fid <- o A..: "id"
