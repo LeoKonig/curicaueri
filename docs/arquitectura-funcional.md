@@ -386,7 +386,7 @@ Por decisión de diseño el costo de cada conexión coincide con su longitud en 
 \quad \text{con } d_{\text{km}} \le R_{\text{prod}}
 ```
 
-El orden lexicográfico (distancia, id) hace el desempate determinista. Se calcula con un Dijkstra multifuente sobre el costo de las conexiones (= d_km).
+El orden lexicográfico (distancia, id) hace el desempate determinista. Se calcula con el mismo Dijkstra multifuente que la influencia (sección 9), con un grupo por asentamiento, una etiqueta por celda y R_prod como tope.
 
 **Ids globales de celda (V5, *El mapa completo*).** La malla se traza en hojas con proyección de área igual; cada celda tiene coordenadas axiales (q, r) con origen fijo en su hoja h. El id las codifica en el `CeldaId` entero que ya existe, así que el tipo, el `IntMap` y el protocolo no cambian:
 
@@ -425,6 +425,11 @@ Es un producto matriz-vector en el **semianillo tropical** (ℝ ∪ {∞}, min, 
 - **Suma saturada.** En el dominio tropical, ∞ se representa con un valor centinela (por ejemplo, `maxBound / 4`) y la suma satura en él. Así π_s + d_costo nunca desborda, aunque d_costo sea grande o la celda no tenga camino.
 - **Dos mejores facciones por celda.** El Dijkstra mantiene hasta dos etiquetas por celda, de facciones distintas; el costo sigue siendo O((V + E) log V) por un factor constante.
 - **La fuerza de cada fuente es una magnitud** (población, guarnición, ejército ocupante, modificadores), así que edificios, personajes y migración la mueven sin tocar el algoritmo.
+- **Umbral: tierra de nadie.** Con influencia mínima I_min, una celda tiene dueño solo si φ(c) ≤ φ_max = −λ ln I_min. El recorrido no extiende etiquetas más allá de φ_max. Sin umbral (I_min = 0), toda celda alcanzable tiene dueño.
+- **Empates.** Las etiquetas son ternas (φ, facción, fuente) en orden lexicográfico; sumar un costo no negativo conserva el orden, así que el Dijkstra es correcto con empates y con conexiones de costo 0. Por eso dentro de una misma distancia el orden de proceso no importa: una celda solo acepta una etiqueta que mejore lo que tiene.
+- **Cola por cubetas.** Las claves que mete Dijkstra nunca bajan de la última que sacó, así que la cola es un montículo de radix: 65 cubetas según el bit más alto en que la clave difiere de la última. Meter es O(1) y cada entrada baja de cubeta a lo sumo 64 veces.
+- **Reparación incremental.** Al cambiar unas fuentes, (1) se quitan sus etiquetas de todas las celdas; (2) a cada celda que perdió una se le vuelve a ofrecer todo lo que le llega: las etiquetas de sus vecinas y las fuentes que están en ella (una fuente que otra de su facción opacaba en todas partes no tiene etiqueta desde la cual reparar); (3) las fuentes nuevas o cambiadas arrancan con su potencial; y (4) se propaga solo lo que mejora alguna celda. Ley: el resultado es idéntico al cálculo desde cero.
+- **Escalones de potencial (al conectar la influencia al juego, V5 *Rendimiento*).** Con paso δ ≥ 0, cada fuente arranca con π̂_s = δ·round(π_s/δ) (δ = 0, sin redondeo). La ley de reparación no cambia: solo las fuentes cuyo π̂ cambió cuentan como cambiadas.
 
 **El control** es una función de consulta, no estado:
 

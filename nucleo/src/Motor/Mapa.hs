@@ -3,7 +3,6 @@ module Motor.Mapa where
 
 import Data.IntMap.Strict (IntMap)
 import qualified Data.IntMap.Strict as IntMap
-import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
@@ -42,6 +41,7 @@ data ErrorMapa
   | CeldaAislada CeldaId
   | EscalaInvalida
   | VecinosSinCelda CeldaId
+  | CostoNegativo CeldaId CeldaId
   deriving (Eq, Show)
 
 validarMapa :: Mapa -> [ErrorMapa]
@@ -61,6 +61,12 @@ validarMapa m = concat
   , [ VecinosSinCelda (CeldaId vi)
     | vi <- IntMap.keys vecinos
     , not (IntMap.member vi celdas)
+    ]
+    -- Los recorridos por el grafo (Dijkstra) suponen costos no negativos.
+  , [ CostoNegativo (CeldaId ai) b
+    | (ai, vs) <- IntMap.toList vecinos
+    , (b, con) <- vs
+    , connCosto con < Fijo 0
     ]
   ]
   where
@@ -117,39 +123,3 @@ ady longitud ancho alto c r =
       if odd r
         then [(1, -1), (1, 0), (1, 1), (0, 1), (-1, 0), (0, -1)]
         else [(0, -1), (1, 0), (0, 1), (-1, 1), (-1, 0), (-1, -1)]
-
--- | A qué asentamiento trabaja cada celda (documento funcional, sección 8):
---
--- > asig(c) = argmin_a (d_km(c, celda(a)), id(a))   con d_km ≤ R_prod
---
--- Un Dijkstra multifuente sobre el costo de las conexiones, que equivale a
--- los km entre un punto y otro (5 en tierra, más por mar). Cada celda recibe el asentamiento más cercano; el empate
--- lo rompe el id menor. Las celdas a más de @radio@ km de todo asentamiento
--- no aparecen en el resultado. Es derivado: se recalcula, no se guarda.
---
--- La etiqueta de un camino es el par (distancia, id de la fuente), que se
--- ordena lexicográficamente. Sumar una longitud no negativa conserva ese
--- orden, así que el Dijkstra sigue siendo correcto con empates y con
--- conexiones de costo 0. Un asentamiento cuya celda no está en el mapa se
--- ignora; si dos comparten celda, gana el de id menor.
-asignarCeldas :: Fijo -> Mapa -> [(AsentId, CeldaId)] -> IntMap AsentId
-asignarCeldas radio mapa fuentes = IntMap.map AsentId (visitar inicial IntMap.empty)
-  where
-    celdas = mapaCeldas mapa
-    inicial = Set.fromList
-      [ (Fijo 0, a, c) | (AsentId a, CeldaId c) <- fuentes
-                       , IntMap.member c celdas, Fijo 0 <= radio ]
-    -- La cola es un conjunto ordenado por (distancia, asentamiento, celda):
-    -- el mínimo es siempre la etiqueta más pequeña aún sin fijar.
-    visitar cola fijadas = case Set.minView cola of
-      Nothing -> fijadas
-      Just ((d, a, c), resto)
-        | IntMap.member c fijadas -> visitar resto fijadas
-        | otherwise ->
-            let fijadas' = IntMap.insert c a fijadas
-                nuevas = [ (d', a, v)
-                         | (CeldaId v, con) <- fromMaybe [] (IntMap.lookup c (mapaVecinos mapa))
-                         , not (IntMap.member v fijadas')
-                         , let d' = d .+. connCosto con
-                         , d' <= radio ]
-            in visitar (foldr Set.insert resto nuevas) fijadas'
