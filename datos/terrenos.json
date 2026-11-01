@@ -1,0 +1,10 @@
+{
+  "_nota": "Tabla de terrenos (V5, La tierra y la gente). TODOS LOS VALORES SON DE RELLENO: se fijan en el hito 0 y se calibran en el 3. Capacidad: personas que sostiene una celda de ese terreno. Erosión base: puntos de degradación por veintena bajo presión (la usa el hito 6a; hasta entonces nadie la lee). Recursos: lo que la celda aporta a quien la trabaja. Los terrenos son los que genera el proveedor hexagonal; si el mapa trae otro, la carga falla. Cambiar la capacidad, los recursos o la erosión de un terreno es editar este archivo.",
+  "version": 1,
+  "terrenos": [
+    {"id": "llano",  "capacidad": "10", "recursos": ["maiz"],           "erosion": "0.5"},
+    {"id": "bosque", "capacidad": "2",  "recursos": ["madera", "caza"], "erosion": "0.2"},
+    {"id": "sierra", "capacidad": "4",  "recursos": ["piedra"],         "erosion": "1"},
+    {"id": "lago",   "capacidad": "6",  "recursos": ["pescado"],        "erosion": "0"}
+  ]
+}

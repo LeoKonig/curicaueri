@@ -53,7 +53,7 @@ Los archivos dorados del protocolo y del espejo viven fuera, en `../pruebas_comp
 | `Motor.Azar` | SplitMix64 y hash FNV-1a propios; `rng σ sistema tick` sin estado |
 | `Motor.Magnitudes` | Monoide `Aporte`, `valorEfectivo`, modificadores con ventana (`activoEn`) y condición (`Condicion`, `cuentaEn`, `valorEn` con los vigentes del derivado, `evaluarCondicion`), alta (`agregarModificador`) y vencimiento (`expirar`) |
 | `Motor.Hechos` | El tipo `Hecho` |
-| `Motor.Mapa` | Mapa como grafo, proveedor hexagonal, `validarMapa` |
+| `Motor.Mapa` | Mapa como grafo, proveedor hexagonal (cada conexión mide la escala del mapa en km), `validarMapa` y `asignarCeldas` (a qué asentamiento trabaja cada celda: Dijkstra multifuente sobre km, empate por id, dentro de `R_prod`) |
 | `Motor.Estado` | `Estado s`, `Persistente s`, `Comun s`, `Derivado s`, `Origen s`; contexto, preguntas y decisiones pendientes |
 | `Motor.Sistema` | `Sistema s` con `lee`/`escribe`, cadencias y `correr` |
 | `Motor.Juego` | El registro `Juego s c`, `paso` y `pasoDetallado`, la cola de comandos, los agentes, el vencimiento de modificadores, `derivar` y `consultar` |
@@ -67,6 +67,7 @@ Los archivos dorados del protocolo y del espejo viven fuera, en `../pruebas_comp
 | `Motor.Calendario` | Calendario interno como dato del escenario (periodos y días fuera de periodo: veintenas y nemontemi en el prototipo, meses o semanas en otra época) y calendario visible (juliano, gregoriano o el cambio entre los dos) |
 | `Motor.Guion` | El guion del escenario como dato: condiciones, fases (actos), situaciones con su tipo, parámetros del director, `Entorno` y `cargarGuion` con errores acumulados |
 | `Motor.Director` | Avance de fases, fuentes de presión (`intensidad`), el director (espaciado, tensión, variedad, novedad, plazos), `responderDecision` y las métricas del hito 0 (`metricas`, `cumpleVariedad`) |
+| `Motor.Terrenos` | La tabla de terrenos como dato (`datos/terrenos.json`): capacidad, recursos y erosión base de cada terreno; `cargarTerrenos` acumula errores y `validarTerrenosDelMapa` rechaza un mapa con un terreno sin declarar. Valores de relleno hasta el hito 0 |
 | `Motor.Moneda` | Bienes como dato (`cargarEconomia`), precio por escasez (`precioBien`), `designarMoneda`, nivel de precios, `costoEnMoneda` e inflación anual (`inflacionDe`); `pasoMoneda` anota el precio de cada moneda al empezar el periodo. Lee `bien.<id>.existencias` y `bien.<id>.produccion`; escribe `moneda.precio`, `moneda.nivel_precios` y `moneda.inflacion` |
 | `Motor.Autoridad` | Ejes de poder como dato (`cargarEjes`, `ejesActivos`) y el requisito de autoridad de cada comando (`Requisito`, por omisión `{eje: todo, clase: exclusivo}`). En el prototipo no rechaza nada |
 | `Motor.Protocolo` | Mensajes entre núcleo y cliente con nombres JSON explícitos, versión y reglas de compatibilidad |
