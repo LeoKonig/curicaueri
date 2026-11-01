@@ -146,7 +146,7 @@ func _probar_cronica_y_fin(leer: Callable, espejo) -> void:
 	_comprobar("la pantalla final pide cargar una partida", botones_fin.size() == 1 and cargas.size() == 1)
 
 	espejo_fin.cronica.append({"tick": 400, "fecha": {"anio": 1607, "mes": 12, "dia": 1, "calendario": "juliano"},
-		"tipo": "copia_obtenida", "entidades": [], "clave": "cronica.copia_obtenida", "params": {}})
+		"tipo": "copia_pedida", "entidades": [], "clave": "cronica.copia_pedida", "params": {}})
 	var con_libro = PantallaFinal.new()
 	con_libro.espejo = espejo_fin
 	root.add_child(con_libro)

@@ -10,7 +10,7 @@ const Textos = preload("res://red/textos.gd")
 signal cargar_pedido
 
 ## La entrada de la crónica que cuenta la llegada del libro.
-const CLAVE_LIBRO := "cronica.copia_obtenida"
+const CLAVE_LIBRO := "cronica.copia_pedida"
 
 var _construida := false
 var espejo

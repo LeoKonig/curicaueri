@@ -27,7 +27,7 @@ Prompts listos para pegar en distintas IA (Claude Code, otros asistentes con acc
 
 T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan, el segundo se rebasa sobre `main`.
 
-**Estado al 1 de noviembre de 2026.** Hechas: T1, T2, T3, T4, T8 y T9. Pendientes del hito 3: T10, T11, y camino, terrazas, roturación y mercado parcial (sin prompt todavía). T7, por confirmar. T5 queda como el guion del **tutorial** 1475–1530. T6 se reemplaza por el inventario de 1418 (abajo).
+**Estado al 1 de noviembre de 2026.** Hechas: T1, T3, T4, T8 y T9. T2 (núcleo: PR #34) y T7 (cliente: PR #35) están en revisión; el contenido del cierre de 1607 está en `datos/cierre_1607.json`. Pendientes del hito 3: T10, T11, y camino, terrazas, roturación y mercado parcial (sin prompt todavía). T5 queda como el guion del **tutorial** 1475–1530. T6 se reemplaza por el inventario de 1418 (abajo).
 
 **Ronda 4: la campaña 1418–1607** (V5, *Alcance* y la tabla nueva de *Hitos*). T12, T14, T15 y T6 tocan áreas distintas y pueden correr en paralelo; T13 espera a T12.
 
