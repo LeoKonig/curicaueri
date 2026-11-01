@@ -853,11 +853,11 @@ El altépetl era primero un pueblo y después un territorio, y sus tierras podí
 
 1. En el prototipo, el grafo lo genera una malla global de hexágonos de unos 5 km sobre la topografía real; el escenario define qué parte es jugable.
 2. Cada veintena se calcula la influencia con un Dijkstra multifuente sobre el costo de movimiento del grafo, donde cada fuente empieza con un costo inicial de −λ·ln F. Así un solo recorrido da la influencia máxima de cada hexágono aunque las fuentes tengan fuerzas distintas; guardando las dos mejores fuentes por hexágono se detectan las zonas disputadas.
-3. Cada hexágono pertenece a la influencia más fuerte; es zona disputada si la segunda alcanza al menos 80% de la primera.
+3. Cada hexágono pertenece a la influencia más fuerte; es zona disputada si la segunda alcanza al menos 80% de la primera. Por debajo de una influencia mínima (`UMBRAL_INFLUENCIA`) el hexágono no tiene dueño: es **tierra de nadie**, y el recorrido no se extiende por ella. Casi siempre la ocuparán grupos chichimecas, pero tiene que existir: no toda la tierra es de alguien. El umbral no está para ahorrar cálculo, porque con los chichimecas casi no queda tierra vacía; el costo lo bajan la cola por cubetas y la reparación incremental (ver *Rendimiento*).
 4. Los pops, el tributo y la lealtad viven en los asentamientos, no en los hexágonos.
 5. Las fronteras se dibujan como degradados; las fortificadas, como línea sólida.
 
-Influencia sugerida, con F = fuerza de la fuente (una magnitud, así que edificios y personajes pueden modificarla), c = costo acumulado de movimiento en el grafo y λ = alcance (`ALCANCE_INFLUENCIA`, en días de marcha, porque c es un costo):
+Influencia sugerida, con F = fuerza de la fuente (una magnitud, así que edificios y personajes pueden modificarla), c = costo acumulado en el grafo (en km, porque el costo de cada conexión es su distancia) y λ = alcance (`ALCANCE_INFLUENCIA`, en km, las mismas unidades que c):
 
 ```math
 I = F \, e^{-c/\lambda}
@@ -872,7 +872,17 @@ I = F \, e^{-c/\lambda}
 
 **Dueño y control.** El dueño de un hexágono se deriva de la influencia y se recalcula cada veintena. El control se consulta al momento: si un ejército enemigo ocupa el hexágono, controla el ocupante; si no, el dueño. Si hay varios ocupantes, controla el que llegó primero; los empates se resuelven por id de facción y luego de ejército.
 
-**Rendimiento.** Con unos 2 700 celdas, un recorrido multifuente con vectores sin boxing en `ST` tarda milisegundos y corre una vez por veintena. Los grafos irregulares tienen menos celdas pero grado variable; el algoritmo no cambia, y el mapa irregular de prueba del hito 1a lo comprueba. Para el mapa completo (diferido): recalcular solo la región afectada, vigilar las asignaciones en los picos de cálculo y paralelizar en CPU con un orden fijo de reducción. El cálculo se queda siempre en el núcleo.
+**Rendimiento.** El recorrido se diseña para el mapa completo, no para el prototipo. Medido con 150 000 celdas y 7 500 fuentes de ocho facciones, sin umbral (`Motor.Recorrido` y `Motor.Influencia`):
+
+| Qué | Cómo | Tiempo |
+| --- | --- | --- |
+| Construir el grafo compacto | Arreglos contiguos sin boxing; una vez por mapa cargado | ~0,4 s |
+| Influencia desde cero | Dijkstra multifuente en `ST` con cola por cubetas (montículo de radix); por fuera es una función pura | ~0,2–0,3 s |
+| Influencia cuando cambia 1 de cada 1 000 fuentes | Reparación incremental sobre mapas persistentes: solo se tocan las celdas que cambian | ~13 ms |
+| Influencia cuando cambia 1 de cada 100 | La misma reparación | ~45 ms |
+| Asignación de celdas con radio de 10 km | El mismo recorrido, un grupo por asentamiento | ~70 ms |
+
+La reparación cuesta más que recalcular cuando cambia más o menos una de cada 20 fuentes; `actualizarInfluencia` elige sola, y una ley comprueba que las dos vías dan exactamente lo mismo. Si la fuerza de todas las fuentes cambia cada veintena (la población crece), la reparación no ayuda y se recalcula todo. Redondear la fuerza para que cambie menos seguido abarataría la reparación, pero cambiaría el resultado: es una decisión de diseño pendiente. Pendiente para el mapa completo: vigilar las asignaciones en los picos de cálculo y paralelizar en CPU con un orden fijo de reducción. El cálculo se queda siempre en el núcleo.
 
 **Fuentes de topografía:** Continuo de Elevaciones Mexicano (INEGI) para México y SRTM para Centroamérica. La hidrografía del siglo XVI era distinta (lagos del Valle de México, Pátzcuaro, Cuitzeo) y hay que corregirla a mano.
 
@@ -2509,7 +2519,7 @@ El mayor riesgo es el alcance: un juego que mezcla dos géneros completos puede 
 - [ ] Exportador de mapas desde el editor de Godot (después del prototipo; no ahora)
 - [ ] Scripting general en el juego completo: conjunto cerrado con fórmulas con nombre, lenguaje de expresiones, DSL, Lua o WASM (antes de publicar la documentación para modders)
 
-**Diferido al juego completo:** colapso de asentamientos, línea de suministros, comercio entre ciudades, patrón regional de erosión del periodo hispánico, influencia incremental, paralelización, presupuestos de rendimiento para el mapa de 45 000 celdas, formato binario del protocolo táctico.
+**Diferido al juego completo:** colapso de asentamientos, línea de suministros, comercio entre ciudades, patrón regional de erosión del periodo hispánico, paralelización, presupuestos de rendimiento para el mapa de 45 000 celdas, formato binario del protocolo táctico.
 
 **Decisiones tomadas**
 

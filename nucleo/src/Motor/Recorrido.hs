@@ -4,8 +4,16 @@
 -- secciones 8 y 9): la asignación de celdas a asentamientos y la base de la
 -- influencia.
 --
--- 'propagarGrafo' calcula desde cero sobre el 'Grafo' compacto, con arreglos
--- sin boxing dentro de 'ST'; por fuera es una función pura.
+-- Hay dos implementaciones del mismo recorrido, y una ley dice que dan lo
+-- mismo:
+--
+-- * 'propagarGrafo', para calcular desde cero. Trabaja sobre el 'Grafo'
+--   compacto con arreglos sin boxing dentro de 'ST'; por fuera es una función
+--   pura. Es la que corre cuando cambia mucho.
+--
+-- * 'propagar', sobre mapas persistentes. Parte de un resultado anterior y
+--   toca solo las celdas que mejoran; es la que repara cuando cambia poco
+--   (la actualización incremental de 'Motor.Influencia').
 module Motor.Recorrido
   ( -- * Etiquetas
     Etiqueta (..)
@@ -13,6 +21,7 @@ module Motor.Recorrido
   , primera
   , listaMejores
   , Cupo (..)
+  , insertarMejor
     -- * El grafo compacto
   , Grafo
   , grafoDe
@@ -20,6 +29,8 @@ module Motor.Recorrido
   , numCeldas
     -- * Recorridos
   , propagarGrafo
+  , propagar
+  , semillasDeVecinas
   , asignarCeldas
   ) where
 
@@ -31,7 +42,8 @@ import Data.Bits (countLeadingZeros, finiteBitSize, xor)
 import Data.Array.Unboxed (UArray, listArray)
 import Data.IntMap.Strict (IntMap)
 import qualified Data.IntMap.Strict as IntMap
-import Data.Maybe (catMaybes)
+import Data.List (foldl')
+import Data.Maybe (catMaybes, isJust)
 import Motor.Base
 import Motor.Mapa
 
@@ -63,6 +75,25 @@ listaMejores (Dos a b) = [a, b]
 -- segundo (para las zonas disputadas).
 data Cupo = UnGrupo | DosGrupos
   deriving (Eq, Show)
+
+-- | Mete una etiqueta entre las mejores de una celda. 'Nothing' si no mejora
+-- nada: ni es mejor que la de su mismo grupo ni entra entre las mejores.
+-- Es la regla de 'propagar'; 'propagarGrafo' la repite sobre sus casillas
+-- sin caja, y la ley «el recorrido persistente da lo mismo que el de
+-- arreglos» vigila que decidan igual.
+insertarMejor :: Cupo -> Etiqueta -> Maybe Mejores -> Maybe Mejores
+insertarMejor _ e Nothing = Just (Una e)
+insertarMejor cupo e (Just (Una a))
+  | cupo == UnGrupo || etGrupo e == etGrupo a = if e < a then Just (Una e) else Nothing
+  | e < a     = Just (Dos e a)
+  | otherwise = Just (Dos a e)
+insertarMejor _ e (Just (Dos a b))
+  | etGrupo e == etGrupo a = if e < a then Just (Dos e b) else Nothing
+  | etGrupo e == etGrupo b = if e >= b then Nothing
+                             else if e < a then Just (Dos e a) else Just (Dos a e)
+  | e < a     = Just (Dos e a)
+  | e < b     = Just (Dos a e)
+  | otherwise = Nothing
 
 -- * El grafo compacto
 
@@ -148,9 +179,10 @@ propagarGrafo cupo tope gr semillas = runST $ do
         g <- unsafeRead cs (3 * desde + 1)
         f <- unsafeRead cs (3 * desde + 2)
         poner hacia d g f
-      -- Si la etiqueta (d, g, f) mejora la celda i: si es mejor que la de su
-      -- mismo grupo, o si entra entre las mejores de grupos distintos. Con
-      -- @escribe@, además la mete, sin construir etiquetas en caja.
+      -- 'insertarMejor' sobre las casillas, sin construir etiquetas en caja:
+      -- si la etiqueta (d, g, f) mejora la celda i. Con @escribe@, además la
+      -- mete. La ley «el recorrido persistente da lo mismo que el de
+      -- arreglos» vigila que decidan igual.
       intentar !escribe !i !d !g !f = do
         o <- unsafeRead ocup i
         let k1 = 2 * i
@@ -342,6 +374,54 @@ poner4 arr k d i g f = do
   unsafeWrite arr (4 * k + 1) i
   unsafeWrite arr (4 * k + 2) g
   unsafeWrite arr (4 * k + 3) f
+
+-- * La reparación, sobre mapas persistentes
+
+-- | El mismo recorrido que 'propagarGrafo', pero partiendo de las etiquetas
+-- que ya tiene cada celda (@inicial@) y sobre mapas persistentes: solo copia
+-- lo que cambia, así que su costo es proporcional a las celdas que mejoran.
+-- Con @inicial@ vacío da lo mismo que 'propagarGrafo' (es una ley).
+--
+-- Precondición para usar @inicial@: cada etiqueta inicial es la distancia de
+-- un camino real, y a cada celda que perdió una etiqueta se le vuelve a
+-- ofrecer todo lo que le llega ('semillasDeVecinas' y las fuentes que están
+-- en ella).
+propagar :: Cupo -> Maybe Fijo -> Mapa -> [(CeldaId, Etiqueta)] -> IntMap Mejores -> IntMap Mejores
+propagar cupo tope mapa semillas inicial = vaciar cola0 inicial
+  where
+    celdas = mapaCeldas mapa
+    dentro e = maybe True (etDistancia e <=) tope
+    clave e = let Fijo d = etDistancia e in fromIntegral d :: Int
+    -- La cola: un 'IntMap' de la distancia a las entradas con esa distancia.
+    empujarP q c e = IntMap.insertWith (\_ viejo -> (c, e) : viejo) (clave e) [(c, e)] q
+    cola0 = foldl' (\q (CeldaId c, e) -> if IntMap.member c celdas && dentro e then empujarP q c e else q)
+                   IntMap.empty semillas
+    vaciar q m = case IntMap.minView q of
+      Nothing -> m
+      Just (cubeta, q') -> let (q'', m') = foldl' paso (q', m) cubeta in vaciar q'' m'
+    paso (q, m) (c, e) = case insertarMejor cupo e (IntMap.lookup c m) of
+      Nothing -> (q, m)
+      Just nuevo ->
+        let m' = IntMap.insert c nuevo m
+            relajar qa (CeldaId v, con) =
+              let e' = e { etDistancia = etDistancia e .+. max (Fijo 0) (connCosto con) }
+              in if dentro e' && IntMap.member v celdas
+                      && isJust (insertarMejor cupo e' (IntMap.lookup v m'))
+                   then empujarP qa v e' else qa
+        in (foldl' relajar q (IntMap.findWithDefault [] c (mapaVecinos mapa)), m')
+
+-- | Lo que llega a cada celda de @destinos@ desde las etiquetas de sus
+-- vecinas: parte de las semillas con que 'propagar' repara las celdas que
+-- perdieron una etiqueta. Cada etiqueta cruza la conexión de la vecina hacia
+-- la celda, con el mismo costo que usa 'propagar'.
+semillasDeVecinas :: Mapa -> IntMap Mejores -> [Int] -> [(CeldaId, Etiqueta)]
+semillasDeVecinas mapa m destinos =
+  [ (CeldaId c, e { etDistancia = etDistancia e .+. max (Fijo 0) (connCosto con) })
+  | c <- destinos
+  , (CeldaId u, _) <- IntMap.findWithDefault [] c (mapaVecinos mapa)
+  , Just mu <- [IntMap.lookup u m]
+  , (CeldaId x, con) <- IntMap.findWithDefault [] u (mapaVecinos mapa), x == c
+  , e <- listaMejores mu ]
 
 -- * Asignación de celdas
 
