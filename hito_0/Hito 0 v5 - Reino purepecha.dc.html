@@ -34,6 +34,11 @@
     </div>
     <div style="display:flex;align-items:center;gap:8px;padding:0 10px;height:100%;border-left:1px solid #5a4426;border-right:1px solid #5a4426;white-space:nowrap">
       <div style="text-align:center;min-width:132px"><div style="font:600 14px Spectral,serif;color:#f3dfae">{{ hud.veintena }}</div><div style="font:500 12px Spectral,serif;color:#c8b48a">{{ hud.anio }}</div><div style="display:flex;gap:2px;justify-content:center;margin-top:3px"><sc-for list="{{ cells }}" as="c" hint-placeholder-count="18"><i style="width:7px;height:4px;background:{{ c }};display:block"></i></sc-for></div></div>
+      <div style="display:flex;flex-direction:column;gap:3px;align-items:stretch">
+        <div style="display:flex;gap:3px"><button onClick="{{ reloj.alternar }}" title="{{ reloj.tip }}" style="flex:1;padding:3px 8px;background:{{ reloj.fondo }};border:1px solid #e0c48a;color:#fff1d0;cursor:pointer;font:700 12px Spectral,serif">{{ reloj.icono }}</button><select value="{{ reloj.velocidad }}" onChange="{{ reloj.cambiar }}" title="{{ reloj.velTip }}" style="background:#1a140d;color:#f3e8cf;border:1px solid #9a7a40;padding:2px;font:600 11px Spectral,serif"><sc-for list="{{ reloj.opciones }}" as="o" hint-placeholder-count="5"><option value="{{ o.id }}">{{ o.label }}</option></sc-for></select></div>
+        <div title="{{ reloj.diaTip }}" style="height:3px;background:#2a2016;border:1px solid #5a4426"><i style="display:block;height:100%;width:{{ reloj.avance }};background:#e0c48a"></i></div>
+        <div style="font:500 10px Spectral,serif;color:#c8b48a;text-align:center">{{ reloj.dia }}</div>
+      </div>
       <div style="display:flex;flex-direction:column;gap:3px">
         <button onClick="{{ endTurn }}" title="{{ hud.avanzarT }}" style="padding:3px 10px;background:linear-gradient(#8a3322,#5a1e12);border:1px solid #e0c48a;color:#fff1d0;cursor:pointer;font:600 11px Spectral,serif;letter-spacing:1px;text-transform:uppercase" style-hover="background:#a8432c">{{ hud.avanzar }}</button>
         <button onClick="{{ runUntil }}" title="{{ hud.hastaT }}" style="padding:3px 10px;background:linear-gradient(#3a2d1d,#221a11);border:1px solid #9a7a40;color:#f0d9a0;cursor:pointer;font:600 11px Spectral,serif;letter-spacing:1px;text-transform:uppercase" style-hover="background:#4a3a24">{{ hud.hasta }}</button>
@@ -252,7 +257,7 @@
 class Component extends DCLogic {
   state = { err: '', sel: 'zacapu', selSet: 'Zacapu', tab: 'resumen', layer: 'influencia', left: 'tributo', chron: false, mz: 1, mx: 0, my: 0, lo: true, ro: true };
   g = null; D = null; T = null; drag = null; GC = 16; GR = 12;
-  componentDidMount() { window.__hito0 = this; window.createHarness = () => this.makeHarness(); if (!this.D) this.load(); }
+  componentDidMount() { window.__hito0 = this; window.addEventListener('keydown', this.relojTecla); window.createHarness = () => this.makeHarness(); if (!this.D) this.load(); }
   async load() {
     try {
       // Sin caché: los cinco archivos de datos cambian entre versiones, y un navegador que conserva
@@ -372,6 +377,7 @@ class Component extends DCLogic {
     for (const k in O) { if (k[0] === '_') continue; const ps = k.split('.'), last = ps.pop(); const t = ps.reduce((o, p) => o[p], C); t[last] = O[k]; }
     return C; }
   newGame() {
+    if (this.relojOn) this.relojParar(); this.relojFrac = 0;
     if (!this.D.C0) this.D.C0 = JSON.parse(JSON.stringify(this.D.C));
     const nivel = this.nivelInicial();
     this.D = Object.assign({}, this.D, { C: this.constantesDe(nivel) });
@@ -631,7 +637,23 @@ class Component extends DCLogic {
     this.logD(title, title, !!def.de_rumbo, m0, !def.de_rumbo); this.recalc(); this.forceUpdate();
   }
   // ---------- ciclo
-  endTurn = () => { this.step(); this.forceUpdate(); }
+  endTurn = () => { this.relojFrac = 0; this.step(); this.forceUpdate(); }
+  // Reloj en tiempo real (V5, *Velocidades*): corre solo, se detiene en cada decisión y sigue al resolverla.
+  // Cada veintena dura reloj.segundos[v]; la barra muestra el día de la veintena (20 días).
+  relojVel() { const R = this.D.C.reloj; return Math.min(R.segundos.length, Math.max(1, this.relojV || R.velocidad_inicial)); }
+  relojEspera() { const g = this.g; return !g || g.ended || !!g.modal || !!g.tac || (typeof document !== 'undefined' && document.hidden); }
+  relojAlternar = () => { if (this.relojOn) this.relojParar(); else this.relojIniciar(); this.forceUpdate(); }
+  relojIniciar() { clearInterval(this.relojTimer); this.relojOn = true; this.relojFrac = this.relojFrac || 0; let prev = Date.now(), diaPrev = -1;
+    this.relojTimer = setInterval(() => { const ahora = Date.now(), dt = (ahora - prev) / 1000; prev = ahora;
+      if (!this.relojOn || this.relojEspera()) return;
+      this.relojFrac += dt / this.D.C.reloj.segundos[this.relojVel() - 1];
+      if (this.relojFrac >= 1) { this.relojFrac = 0; diaPrev = -1; this.step(); this.forceUpdate(); return; }
+      const dia = Math.floor(this.relojFrac * this.D.C.reloj.dias_por_veintena); if (dia !== diaPrev) { diaPrev = dia; this.forceUpdate(); } }, 100); }
+  relojParar() { this.relojOn = false; clearInterval(this.relojTimer); }
+  relojTecla = (e) => { const tag = (e.target && e.target.tagName) || ''; if (/INPUT|SELECT|TEXTAREA/.test(tag) || !this.g || this.g.modal) return;
+    if (e.code === 'Space') { e.preventDefault(); this.relojAlternar(); }
+    else if (/^[1-9]$/.test(e.key) && +e.key <= this.D.C.reloj.segundos.length) { this.relojV = +e.key; this.forceUpdate(); } }
+  componentWillUnmount() { this.relojParar(); if (typeof window !== 'undefined') window.removeEventListener('keydown', this.relojTecla); }
   runUntil = () => { let n = 0; while (this.g && !this.g.modal && !this.g.ended && n < 220) { this.step(); n++; } this.forceUpdate(); }
   step() {
     const g = this.g, C = this.D.C; if (!g || g.ended || g.modal) return;
@@ -870,6 +892,11 @@ class Component extends DCLogic {
     const bAct = {}; grp('edificios').forEach((v, i) => { const d = acts.filter(x => x.d.grupo === 'edificios')[i].d; bAct[d.edificio] = { v, d }; });
     return {
       ready: true, notReady: false,
+      reloj: (() => { const R = this.D.C.reloj, v = this.relojVel(), on = !!this.relojOn, espera = on && this.relojEspera(), dia = Math.floor((this.relojFrac || 0) * R.dias_por_veintena) + 1;
+        return { icono: on ? '❚❚' : '▶', fondo: on ? 'linear-gradient(#3a6a3a,#1e3a1e)' : 'linear-gradient(#8a3322,#5a1e12)', tip: this.t(on ? 'reloj.pausar' : 'reloj.correr'),
+          velocidad: String(v), velTip: this.t('reloj.velocidad_tip'), opciones: R.segundos.map((x, i) => ({ id: String(i + 1), label: this.t('reloj.velocidad', { n: i + 1, s: x }) })),
+          cambiar: (e) => { this.relojV = +e.target.value; this.forceUpdate(); },
+          avance: Math.round(100 * (this.relojFrac || 0)) + '%', dia: espera && g.modal ? this.t('reloj.detenido') : this.t('reloj.dia', { d: dia, total: R.dias_por_veintena }), diaTip: this.t('reloj.dia_tip') }; })(),
       rulerLine: this.t('hud.cazonci', { nombre: g.chars[g.ruler].name }),
       dificultad: this.dificultad || g.dificultad, dificultadTip: this.t('dificultad.tip'),
       dificultadOpts: Object.keys(this.D.C0.dificultades || {}).filter(k => k[0] !== '_').map(id => ({ id, label: this.t('dificultad.' + id) })),

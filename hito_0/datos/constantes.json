@@ -269,5 +269,17 @@
       "incursion.prob_por_tick": 0.04,
       "guerra.expedicion.enemigo": 5000
     }
+  },
+  "reloj": {
+    "_nota": "Segundos reales por veintena en cada velocidad (V5, Velocidades: la normal, la 3, unos 20 s; la más rápida unos 3; la más lenta cerca de un minuto). Se calibran en el hito 2.",
+    "segundos": [
+      60,
+      35,
+      20,
+      8,
+      3
+    ],
+    "velocidad_inicial": 3,
+    "dias_por_veintena": 20
   }
 }

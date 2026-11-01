@@ -904,5 +904,14 @@
     "normal": "Normal",
     "dificil": "Difícil",
     "tip": "Dificultad. Al empezar la partida se aplica en el acto; después, en la próxima partida."
+  },
+  "reloj": {
+    "correr": "Dejar correr el tiempo (barra espaciadora). Se detiene solo en cada decisión.",
+    "pausar": "Pausar (barra espaciadora)",
+    "velocidad": "Vel. {n} · {s} s",
+    "velocidad_tip": "Segundos reales por veintena. Teclas 1 a 5.",
+    "dia": "día {d} de {total}",
+    "detenido": "esperando tu decisión",
+    "dia_tip": "Avance de la veintena en curso"
   }
 }
