@@ -36,7 +36,7 @@ type family PlanDe s         -- el plan de su IA
 data Juego s c = Juego
   { sistemas       :: [Sistema s]
   , aplicarCmd     :: Estado s -> Sellado c -> Either Rechazo (Estado s, [Hecho])
-  , derivarJuego   :: Mapa -> Tick -> Persistente s -> DerivadoDe s
+  , derivarJuego   :: Grafo -> Tick -> Persistente s -> DerivadoDe s   -- el grafo compacto trae el mapa
   , proyectarJuego :: Estado s -> [EntidadJuego]   -- clase, ref y campos propios
   , agentes        :: Map FaccionId (Agente s c)
   , efectosPropios :: Map NombreEfecto (EfectoJSON -> Either ErrorCarga (Efecto s))
@@ -50,6 +50,7 @@ data Agente s c = Agente
 -- lo inmutable de la partida: no cambia nunca y no se guarda con el estado
 data Entorno = Entorno
   { mapa      :: Mapa
+  , grafo     :: Grafo        -- el grafo compacto del mapa (Motor.Recorrido), construido una vez
   , catalogo  :: Catalogo     -- magnitudes con sus rangos, clases, condiciones compiladas
   , desfase   :: Int          -- del escenario (sección 2)
   }
@@ -58,6 +59,7 @@ paso :: Juego s c -> Entorno -> Semilla -> Tick -> [Sellado c] -> Estado s -> (E
 ```
 
 - **Lo inmutable va en un `Entorno`, no en el estado.** El mapa, el catálogo y el desfase del calendario no cambian durante la partida, pero `paso` los necesita: `derivar` usa el mapa y `valorEfectivo` usa los rangos. Guardarlos dentro del estado los copiaría en cada guardado; dejarlos fuera de `paso` obliga a improvisar, como pasar un mapa vacío. El `Entorno` se reconstruye al cargar desde los datos y el escenario.
+- **El derivado recibe el grafo compacto, no el mapa.** Construir el grafo compacto de 150 000 celdas cuesta medio segundo y solo depende del mapa, así que el `Entorno` lo construye una vez, de forma perezosa, y `derivarJuego` lo recibe hecho. El mapa sigue a mano: el grafo lo lleva dentro (`grafoMapa`). `cargar` recibe el mapa y construye su grafo una vez por carga.
 - **El derivado del juego se calcula desde el persistente, no desde el estado.** Si `derivarJuego` recibiera `Estado s`, tendría a mano el derivado viejo y podría usarlo para calcularse a sí mismo sin que nada lo impida. Recibe `Persistente s` completo, y no solo `s`, porque necesita las magnitudes del motor: la fuerza de una fuente de influencia es un valor efectivo con modificadores.
 - **Los agentes van en un mapa por facción.** Se recorren en orden de `FaccionId`, que no depende del orden de carga, y la clave ya identifica la facción, así que `Agente` no lleva un campo de facción que pudiera contradecirla. En el paso 0 el motor quita del mapa la facción del jugador antes de recorrerlo; como el jugador puede cambiar de facción después de 1530 (`ElegirFaccion`), eso se decide en cada tick y no al cargar.
 - **El plan es del juego y lo guarda el motor.** `PlanDe s` es el tipo de plan de cada juego (`()` en el juguete). El motor lo guarda en `planes` dentro de `Comun` (sección 4), así que el agente sigue sin poder escribir en el estado: devuelve un plan y unos comandos, y el motor los guarda y los sella.
@@ -235,14 +237,14 @@ La solución es guardar **de qué** se calculó el derivado. `origen` es el pers
 ```haskell
 -- El tick hace falta porque parte del derivado depende de la fecha: casus belli
 -- y treguas con vencimiento, condiciones de modificadores con ventana, estación.
-derivar :: Juego s c -> Mapa -> Tick -> Persistente s -> Derivado s
-derivar j m t p = let dj = derivarJuego j m t p in Derivado (vigentesEn t p dj) dj
+derivar :: Juego s c -> Grafo -> Tick -> Persistente s -> Derivado s
+derivar j g t p = let dj = derivarJuego j g t p in Derivado (vigentesEn t p dj) dj
 
 guardar :: Serialise s => Estado s -> ByteString      -- persistente y origen, en CBOR
 cargar  :: Serialise s => Juego s c -> Mapa -> ByteString -> Either ErrorCarga (Estado s)
 cargar j m b = do
   (t, p, Origen tf pf) <- decodificar b
-  pure (Estado t p (Origen tf pf) (derivar j m tf pf))
+  pure (Estado t p (Origen tf pf) (derivar j (grafoDe m) tf pf))
 ```
 
 El derivado sigue sin guardarse: se guardan sus entradas, y por eso la ley se cumple exactamente. Al cambiar de versión, la migración de guardados (sección 18) migra el persistente y el origen con la misma cadena, y el derivado se recalcula con el código nuevo.
@@ -391,6 +393,8 @@ La longitud es fija; el costo, no (V5, *Costo del grafo*). Con μ(c) el valor ef
 ```
 
 El costo es simétrico por construcción: μ entra como promedio y ρ solo depende del par, así que la ley de simetría del mapa sigue valiendo. Todas las reglas usan d_costo; d_km queda para lo que es geometría.
+
+**Implementado (hito 3).** μ por terreno (`costo_movimiento` en `datos/terrenos.json`, `conCostoDeTerreno` en `Motor.Terrenos`), aplicado al cargar el mapa. Todavía es estático: ninguna obra lo cambia, así que el grafo se construye una vez en el `Entorno`. El factor ρ del río y del agua navegable entra con los puertos (V5, *Las obras*, etapa 4): sin puertos, la regla del agua dejaría a los pescadores sin lago, y el mapa provisional no tiene ríos. El parche entra con el primer modificador de μ, que es el camino.
 
 **Grafo parcheado.** El grafo compacto (`Motor.Recorrido`) guarda el costo de cada conexión. Cuando cambia μ(c) o ρ de una conexión, se reescriben solo las conexiones de las celdas afectadas:
 

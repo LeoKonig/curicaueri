@@ -19,8 +19,8 @@ import Reglas.Comando
 import Reglas.Constantes
 import Reglas.Edificios
 import Reglas.Produccion
-import Motor.Mapa (Mapa, Terreno)
-import Motor.Recorrido (grafoDe)
+import Motor.Mapa (Terreno)
+import Motor.Recorrido (Grafo, grafoMapa)
 import Motor.Terrenos (DefTerreno)
 import Reglas.Estado
 import Reglas.Grupos
@@ -156,13 +156,12 @@ textoFijo f = case A.toJSON f of
 
 type JuegoPurepecha = Juego Purepecha Comando
 
--- | El derivado del juego (paso 16). El grafo compacto se construye una vez y
--- lo comparten la asignación de celdas y la asistencia a los templos; si
--- ninguna lo necesita, la evaluación perezosa no lo construye.
-derivarPurepecha :: Constantes -> DatosReglas -> Mapa -> Purepecha -> DerivadoPurepecha
-derivarPurepecha c dr m p =
-  let gr = grafoDe m
-      (celdas, mats) = derivarTerritorio c (drTerrenos dr) m gr p
+-- | El derivado del juego (paso 16). El grafo compacto viene del entorno,
+-- construido una vez por partida, y lo comparten la asignación de celdas y la
+-- asistencia a los templos.
+derivarPurepecha :: Constantes -> DatosReglas -> Grafo -> Purepecha -> DerivadoPurepecha
+derivarPurepecha c dr gr p =
+  let (celdas, mats) = derivarTerritorio c (drTerrenos dr) (grafoMapa gr) gr p
       (loc, cen) = derivarFieles c (drEdificios dr) gr p
   in DerivadoPurepecha celdas mats loc cen
 
@@ -185,7 +184,7 @@ juegoDatos c dr = let bienes = bienesDe (drTerrenos dr) in Juego
   { juegoSistemas    = [ construccion c (drEdificios dr), produccion c bienes
                        , hacienda c, evolucionAgravio c ]
   , juegoAplicarCmd  = aplicarComando c dr
-  , juegoDerivar     = \m _ p -> derivarPurepecha c dr m (persistenteJuego p)
+  , juegoDerivar     = \g _ p -> derivarPurepecha c dr g (persistenteJuego p)
   , juegoProyectar   = proyectar
   , juegoAgentes     = Map.empty
   , juegoCatalogoMag = Map.unions [catalogoMag, catalogoGrupos (drGrupos dr), catalogoBienes bienes]

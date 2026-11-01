@@ -83,7 +83,8 @@ import Reglas.Escenario
 import Reglas.Estado (Purepecha, ppAltepetl, ppPops)
 import Reglas.Edificios (cargarEdificios, edificiosVacios, idsEdificios)
 import Reglas.Produccion (bienesDe)
-import Motor.Terrenos (cargarTerrenos, validarTerrenosDelMapa)
+import Motor.Terrenos (cargarTerrenos, conCostoDeTerreno, validarTerrenosDelMapa)
+import Motor.Recorrido (grafoDe)
 import Reglas.Grupos (cargarGrupos, conGrupos, gruposVacios, grIds)
 import qualified Reglas.Juego as RJ
 
@@ -138,7 +139,7 @@ main = do
   -- El registro lleva acentos: sin esto, con una configuración regional que no
   -- sea UTF-8, el núcleo se cae al escribir su primera línea.
   hSetEncoding stderr utf8
-  mapaR <- either (fail . show) pure (proveedorHexagonal datosMapa1475 { hexAncho = ancho, hexAlto = alto })
+  mapaHex <- either (fail . show) pure (proveedorHexagonal datosMapa1475 { hexAncho = ancho, hexAlto = alto })
   createDirectoryIfMissing True carpeta
   grupos <- case opcion "--grupos" "" of
     "" -> pure gruposVacios
@@ -164,9 +165,15 @@ main = do
         Left err -> fail ("terrenos ilegibles (" <> ruta <> "): " <> err)
         Right v -> do
           t <- validado (cargarTerrenos (T.pack ruta) v)
-          validado (validarTerrenosDelMapa (T.pack ruta) t mapaR)
+          validado (validarTerrenosDelMapa (T.pack ruta) t mapaHex)
           pure t
   unless (Map.null terrenos) $ registro ("bienes del territorio: " <> T.intercalate ", " (bienesDe terrenos))
+  -- Con la tabla de terrenos, cada conexión cuesta su longitud por el terreno
+  -- medio de sus dos celdas (V5, *Costo del grafo*); sin ella, su longitud.
+  -- El grafo compacto se construye una vez y lo comparten el estado inicial
+  -- y el entorno de toda la partida.
+  let mapaR  = if Map.null terrenos then mapaHex else conCostoDeTerreno terrenos mapaHex
+      grafoR = grafoDe mapaR
   let comandos = catalogoComandosCon (idsEdificios edificios)
       juego = RJ.juegoDatos constantesDefault (RJ.DatosReglas grupos edificios terrenos)
       -- --escala 7500x20: altépetl y pops de prueba para medir el costo a la
@@ -179,7 +186,7 @@ main = do
   -- El derivado del estado inicial (qué celdas trabaja cada altépetl), para
   -- que la primera veintena ya produzca. Es el mismo que daría cargar la
   -- partida en el tick 0.
-  let e0 = eConGrupos { estadoDerivado = derivar juego mapaR (estadoTick eConGrupos)
+  let e0 = eConGrupos { estadoDerivado = derivar juego grafoR (estadoTick eConGrupos)
                                                 (origenPersistente (estadoOrigen eConGrupos)) }
   agente <- case opcion "--agente" "" of
     "" -> case opcion "--reproducir-agente" "" of
@@ -214,7 +221,7 @@ main = do
   validado (validarRequisitos "catálogo de comandos" ejesTodos [ (dcTipo d, dcRequiere d) | d <- comandos ])
   unless (null ejes) $ registro ("ejes activos: " <> T.intercalate ", " (map ejId ejes))
   let faccionAgente = FaccionId (read (opcion "--agente-faccion" "1"))
-      conf = Config ancho alto carpeta vels (fmap (\a -> (faccionAgente, a, mregistro)) agente) (Entorno mapaR guion economiaVacia) ejes comandos
+      conf = Config ancho alto carpeta vels (fmap (\a -> (faccionAgente, a, mregistro)) agente) (Entorno mapaR guion economiaVacia grafoR) ejes comandos
   forM_ agente $ \_ -> registro ("agente externo para la facción " <> T.pack (opcion "--agente-faccion" "1"))
   ref <- newIORef Partida
     { pEstado = e0, pSiguiente = 0, pPendientes = [], pRespuestas = [], pDecisionesEnviadas = []

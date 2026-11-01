@@ -18,7 +18,7 @@ import Motor.Estado
 import Motor.Juego
 import Motor.Magnitudes
 import Motor.Mapa
-import Motor.Guion (entornoSimple)
+import Motor.Guion (Entorno (..), entornoSimple)
 
 import qualified Reglas.Juego
 import Reglas.Juego (catalogoMag)
@@ -31,7 +31,7 @@ import Reglas.Formulas
 import Reglas.Grupos
 import Reglas.Edificios
 import Reglas.Produccion
-import Motor.Terrenos (DefTerreno (..), cargarTerrenos)
+import Motor.Terrenos (DefTerreno (..), cargarTerrenos, conCostoDeTerreno)
 import Motor.Moneda (magExistencias, magProduccion)
 import Test.QuickCheck
 import Motor.Guardado (guardar, cargar)
@@ -326,11 +326,11 @@ main = do
 
   describe "reglas: obras con cuadrilla, materiales y beneficio (hito 3, etapa 1)" $ do
     let eds  = either (const edificiosVacios) id edificiosArchivo
-        mapa = either (error . show) id (proveedorHexagonal datosMapa1475)
+        mapa = conCostoDeTerreno terrenosArchivo (either (error . show) id (proveedorHexagonal datosMapa1475))
         ent  = entornoSimple mapa
         dr   = Reglas.Juego.datosVacios { Reglas.Juego.drEdificios = eds, Reglas.Juego.drTerrenos = terrenosArchivo }
         j    = Reglas.Juego.juegoDatos constantesDefault dr
-        conDerivado e = e { estadoDerivado = derivar j mapa (estadoTick e) (estadoPersistente e) }
+        conDerivado e = e { estadoDerivado = derivar j (entGrafo ent) (estadoTick e) (estadoPersistente e) }
         e0   = conDerivado estadoInicial1475
         -- Corre los días [desde .. hasta], con los comandos del primero.
         correrDias cmds desde hasta est0 =
@@ -445,16 +445,25 @@ main = do
       and (zipWith (\a b -> obAvance b >= obAvance a && obTrabajo b >= obTrabajo a) obras (drop 1 obras)) `shouldBe` True
       all (\o -> obTrabajo o <= deTrabajo d) obras `shouldBe` True
 
-    it "donde faltan brazos (Uruapan), mientras trabaja la cuadrilla el reino produce menos" $ do
+    it "factor escaso: la cuadrilla baja la producción solo donde deja tierra sin trabajar" $ do
       let q st = foldl' (.+.) (Fijo 0) [ base (magProduccion b) st | b <- bienesDe terrenosArchivo ]
           base m st = maybe (Fijo 0) almacenBase (Map.lookup (entFaccion, m) (alm st))
-          (enUruapan, _) = correrDias (construir "yacata" 3 500) 0 20 e0
-          (sinObra, _)   = correrDias [] 0 20 e0
-          celdas a = Map.findWithDefault [] (AltId a) (dpCeldas (derivadoJuego (estadoDerivado e0)))
-          tierra a = foldl' (.+.) (Fijo 0) (map ctTrabajadores (celdas a))
-          brazos a = fi (Map.findWithDefault 0 (AltId a) (trabajadoresDe constantesDefault (jue e0)))
-      brazos 3 `shouldSatisfy` (< tierra 3)
-      q enUruapan `shouldSatisfy` (< q sinObra)
+          -- Uruapan con menos gente: ahí faltan brazos.
+          pocos = conPops (\pop -> if popId pop == PopId 5 then pop { popTamano = 4000 } else pop) e0
+          celdas est a = Map.findWithDefault [] (AltId a) (dpCeldas (derivadoJuego (estadoDerivado est)))
+          tierra est a = foldl' (.+.) (Fijo 0) (map ctTrabajadores (celdas est a))
+          brazos est a = fi (Map.findWithDefault 0 (AltId a) (trabajadoresDe constantesDefault (jue est)))
+          caso (est, a, c) =
+            let (sin, _) = correrDias [] 0 20 est
+                (st, _)  = correrDias (construir "troje" a c) 0 20 est
+            in (brazos est a .-. fi c < tierra est a, q st < q sin, q st == q sin)
+          casos = [ (est, a, c) | est <- [e0, pocos], a <- [1, 2, 3], c <- [100, 300] ]
+      forM_ (zip [0 :: Int ..] casos) $ \(k, x) -> case caso x of
+        (True, baja, _)   -> (k, baja) `shouldBe` (k, True)
+        (False, _, igual) -> (k, igual) `shouldBe` (k, True)
+      -- Hay de los dos casos: si no, la prueba no probaría nada.
+      let faltan = [ () | x <- casos, let (f, _, _) = caso x, f ]
+      (null faltan, length faltan == length casos) `shouldBe` (False, False)
 
     it "el sustento: con poca partida de obras trabaja menos gente y la obra tarda más; sin partida no avanza" $ do
       let (lenta, hsL) = correrDias (construir "yacata" 2 500) 0 600 (conPresupuestoObras 6 e0)
@@ -544,11 +553,11 @@ main = do
       validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j) `shouldBe` []
 
   describe "reglas: producción de bienes por territorio (hito 3)" $ do
-    let mapa = either (error . show) id (proveedorHexagonal datosMapa1475)
+    let mapa = conCostoDeTerreno terrenosArchivo (either (error . show) id (proveedorHexagonal datosMapa1475))
         ent  = entornoSimple mapa
         dr   = Reglas.Juego.datosVacios { Reglas.Juego.drTerrenos = terrenosArchivo }
         j    = Reglas.Juego.juegoDatos constantesDefault dr
-        conDerivado e = e { estadoDerivado = derivar j mapa (estadoTick e) (estadoPersistente e) }
+        conDerivado e = e { estadoDerivado = derivar j (entGrafo ent) (estadoTick e) (estadoPersistente e) }
         e0   = conDerivado estadoInicial1475
         correrDias desde hasta e = foldl' (\st t -> fst (paso j ent (Semilla 1) (Tick t) [] st)) e [desde .. hasta]
         alm st = comunMagnitudes (persistenteComun (estadoPersistente st))

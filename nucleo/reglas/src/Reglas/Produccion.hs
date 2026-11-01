@@ -4,7 +4,7 @@
 -- hito 3).
 --
 -- Cada altépetl trabaja las celdas que le asigna 'asignarCeldas' (las más
--- cercanas a su cabecera, dentro de 'cRadioProduccionKm'). Una celda rinde,
+-- cercanas a su cabecera, dentro de 'cRadioProduccion'). Una celda rinde,
 -- trabajada entera, los bienes de su terreno ('dtRendimiento') y necesita
 -- 'dtTrabajadores' para ello. La producción la manda el factor escaso:
 --
@@ -100,7 +100,7 @@ derivarTerritorio c tabla mapa gr p
   | null (bienesDe tabla) && all (Map.null . dtMateriales) (Map.elems tabla) = (Map.empty, Map.empty)
   | otherwise =
       let fuentes = [ (AsentId i, CeldaId (altCelda a)) | a <- Map.elems (ppAltepetl p), let AltId i = altId a ]
-          asig = asignarCeldas (cRadioProduccionKm c) gr fuentes
+          asig = asignarCeldas (cRadioProduccion c) gr fuentes
           defDe cel = IntMap.lookup cel (mapaCeldas mapa) >>= \ce -> Map.lookup (celdaTerreno ce) tabla
           asignadas = [ (AltId a, cel, d) | (cel, AsentId a) <- IntMap.toList asig, Just d <- [defDe cel] ]
           porAlt = Map.fromListWith (++)
