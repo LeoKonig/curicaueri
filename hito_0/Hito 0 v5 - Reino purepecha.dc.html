@@ -255,8 +255,15 @@ class Component extends DCLogic {
   componentDidMount() { window.__hito0 = this; window.createHarness = () => this.makeHarness(); if (!this.D) this.load(); }
   async load() {
     try {
-      const f = (n) => fetch('datos/' + n + '.json').then(r => { if (!r.ok) throw new Error('datos/' + n + '.json: ' + r.status); return r.json(); });
+      // Sin caché: los cinco archivos de datos cambian entre versiones, y un navegador que conserva
+      // uno de la v4 mezcla datos viejos con el código nuevo.
+      const f = (n) => fetch('datos/' + n + '.json', { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error('datos/' + n + '.json: ' + r.status); return r.json(); });
       const [C, E, K, A, T] = await Promise.all(['constantes', 'eventos', 'crisis', 'acciones', 'es'].map(f));
+      // Cada archivo declara su versión; la v4 usaba 1. Se nombra el archivo que no coincide.
+      const VERSION_DATOS = 2;
+      for (const [n, d] of Object.entries({ constantes: C, eventos: E, crisis: K, acciones: A, es: T })) {
+        if (d.version_esquema !== VERSION_DATOS) throw new Error('datos/' + n + '.json es de la versión ' + (d.version_esquema ?? 'desconocida') + ' y esta página pide la ' + VERSION_DATOS + ': actualiza la carpeta datos/ y recarga con Ctrl+Shift+R');
+      }
       this.D = { C, E: E.eventos, K: K.crisis, A: A.acciones }; this.T = T;
       this.newGame(); this.forceUpdate();
       if (new URLSearchParams(location.search).has('i18n')) {

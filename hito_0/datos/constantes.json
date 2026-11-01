@@ -1,5 +1,5 @@
 {
-  "version_esquema": 1,
+  "version_esquema": 2,
   "ticks_por_anio": 18,
   "narrador": {
     "prob_por_tick": 0.3
