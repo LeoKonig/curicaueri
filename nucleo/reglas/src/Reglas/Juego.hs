@@ -28,6 +28,7 @@ import Motor.Terrenos (DefTerreno)
 import Reglas.Estado
 import Reglas.Grupos
 import Reglas.Sistemas
+import Reglas.Facciones (facciones)
 import Reglas.Fusion (fusion)
 
 catalogoMag :: Map.Map Magnitud DefMagnitud
@@ -37,8 +38,9 @@ catalogoMag = Map.fromList
     (Magnitud "agravio",
      DefMagnitud "agravio" (RangoMag (Fijo 0) (fi 100))
                   "m.agravio" Nothing True)
-    -- Dos escritores: la hacienda y la construcción, que cobra el transporte
-    -- del tributo en especie al llegar (V5, *Las obras*, etapa 2).
+    -- Tres escritores: la hacienda, la construcción, que cobra el transporte
+    -- del tributo en especie al llegar (V5, *Las obras*, etapa 2), y las
+    -- facciones, que transfieren el tesoro de la que desaparece.
   , (magTesoro,
      DefMagnitud "tesoro" rangoTesoro "m.tesoro" Nothing True)
   , (magPrestigio,
@@ -285,7 +287,7 @@ juegoCon c gs = juegoDatos c datosVacios { drGrupos = gs }
 -- cada pop recibe su agravio de la veintena antes de juntarse.
 juegoDatos :: Constantes -> DatosReglas -> Juego Purepecha Comando
 juegoDatos c dr = let bienes = bienesDe (drTerrenos dr) in Juego
-  { juegoSistemas    = [ construccion c (drEdificios dr), produccion c bienes
+  { juegoSistemas    = [ facciones (drGrupos dr), construccion c (drEdificios dr), produccion c bienes
                        , hacienda c, evolucionAgravio c, fusion c ]
   , juegoAplicarCmd  = aplicarComando c dr
   , juegoDerivar     = \g _ p -> derivarPurepecha c dr g (persistenteJuego p)

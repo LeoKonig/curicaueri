@@ -34,6 +34,7 @@ import Reglas.Estado
 import Reglas.Formulas
 import Reglas.Grupos
 import Reglas.Edificios
+import Reglas.Facciones
 import Reglas.Produccion
 import Reglas.Fusion (fusionarPops, clavePop)
 import Motor.Terrenos (DefTerreno (..), cargarTerrenos, conCostoDeTerreno)
@@ -912,7 +913,7 @@ main = do
     it "los sistemas del juego con terrenos pasan validarOrdenSistemas" $
       validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j) `shouldBe` []
 
-  pruebasFacciones
+  pruebasFacciones gruposArchivo
 
   describe "reglas: tablas de casos del hito 0a (prototipo HTML)" $ do
     tablas <- runIO (fmap (>>= parseEither parseTablas)
@@ -1103,8 +1104,8 @@ conCopia e =
       per' = per { persistenteJuego = p', persistenteComun = com { comunMagnitudes = Map.union (comunMagnitudes com) copiadas } }
   in e { estadoPersistente = per', estadoOrigen = Origen (estadoTick e) per' }
 
-pruebasFacciones :: Spec
-pruebasFacciones = describe "reglas: varias facciones (T12, hito 4)" $ do
+pruebasFacciones :: Either [Text] Grupos -> Spec
+pruebasFacciones gruposArchivo = describe "reglas: varias facciones (T12, hito 4)" $ do
   let j    = Reglas.Juego.juego constantesDefault
       f2   = FaccionId 2
       dos  = conCopia estadoInicial1475
@@ -1167,3 +1168,84 @@ pruebasFacciones = describe "reglas: varias facciones (T12, hito 4)" $ do
     let (s1, _, rs) = cmd f1 (NombrarGobernador (AltId 3) (PerId 14)) dos
     length rs `shouldBe` 1
     (jue s1, alm s1) `shouldBe` (jue dos, alm dos)
+
+  describe "aparición y desaparición de facciones" $ do
+    let gs      = either (error . show) id gruposArchivo
+        jg      = Reglas.Juego.juegoCon constantesDefault gs
+        conG e  = case conGrupos "datos/grupos.json" gs e of
+                    Validacion [] (Just x) -> x
+                    Validacion errs _ -> error (show (map errMensaje errs))
+        base2   = conG dos
+        sumaTes st = foldl' (.+.) (Fijo 0) [ tesoro f st | f <- Map.keys (ppFacciones (jue st)) ]
+        cambiar f g st = let per = estadoPersistente st; p = persistenteJuego per
+                         in st { estadoPersistente = per { persistenteJuego = p { ppFacciones = Map.adjust g f (ppFacciones p) } } }
+        hecho tipo hs = head [ h | h <- hs, hechoTipo h == tipo ]
+        param k h = Map.findWithDefault "" k (hechoParams h)
+        absorbe a = Transferencia (AlAbsorbente a) (AlAbsorbente a) (AlAbsorbente a)
+        modsNombr f st = sum [ length [ () | m <- almacenMods x, modFuente m /= Fuente "" "" , fuenteTipoEs "nombramiento" (modFuente m) ]
+                             | ((r, Magnitud n), x) <- Map.toList (alm st), r == entFac f, "grupo." `T.isPrefixOf` n ]
+        fuenteTipoEs t (Fuente a _) = a == t
+        hastaTick t = cambiar f2 (\fa -> fa { facHasta = Just t, facTransferencia = absorbe f1 })
+        correrConHechos ts st = foldl' (\(e, hs) t -> let (e', h) = paso jg (entornoSimple mapaVacio) (Semilla 5) (Tick t) [] e in (e', hs ++ h)) (st, []) ts
+
+    it "absorber conserva el tesoro, la población y los nombramientos" $ do
+      let ini = cambiar f2 (\fa -> fa { facTransferencia = absorbe f1 }) base2
+          (fin, hs) = eliminarFaccion gs (Tick 40) f2 ini
+          h = hecho "faccion_desaparece" hs
+          poblacion st = sum (map popTamano (Map.elems (ppPops (jue st))))
+      sumaTes fin `shouldBe` sumaTes ini
+      tesoro f2 fin `shouldBe` Fijo 0
+      tesoro f1 fin `shouldBe` tesoro f1 ini .+. tesoro f2 ini
+      param "tesoro_perdido" h `shouldBe` "0"
+      poblacion fin `shouldBe` poblacion ini
+      facEstado (ppFacciones (jue fin) Map.! f2) `shouldBe` Eliminada
+      [ altFaccion a | a <- Map.elems (ppAltepetl (jue fin)) ] `shouldBe` replicate 6 f1
+      [ perFaccion pe | pe <- Map.elems (ppPersonajes (jue fin)) ] `shouldBe` replicate 8 f1
+      modsNombr f2 ini `shouldSatisfy` (> 0)
+      modsNombr f1 fin `shouldBe` modsNombr f1 ini + modsNombr f2 ini
+      modsNombr f2 fin `shouldBe` 0
+      (altCondicion (ppAltepetl (jue fin) Map.! AltId 11), altSujetoA (ppAltepetl (jue fin) Map.! AltId 11))
+        `shouldBe` (Senorio, Just (AltId 1))
+      param "altepetl_transferidos" h `shouldBe` "3"
+      param "personajes_transferidos" h `shouldBe` "4"
+
+    it "lo que se pierde por declaración se anota y nada más se pierde" $ do
+      let (fin, hs) = eliminarFaccion gs (Tick 40) f2 base2
+          h = hecho "faccion_desaparece" hs
+      param "tesoro_perdido" h `shouldBe` T.pack (show (let Fijo x = tesoro f2 base2 in x))
+      sumaTes fin `shouldBe` sumaTes base2 .-. tesoro f2 base2
+      [ altFaccion a | a <- Map.elems (ppAltepetl (jue fin)), altId a > AltId 10 ] `shouldBe` replicate 3 f2
+      param "altepetl_perdidos" h `shouldBe` "3"
+      sum (map popTamano (Map.elems (ppPops (jue fin)))) `shouldBe` sum (map popTamano (Map.elems (ppPops (jue base2))))
+      -- Los personajes perdidos quedan inertes: ninguna facción activa puede nombrarlos.
+      let (_, _, rs) = cmd f1 (NombrarGobernador (AltId 3) (PerId 14)) fin
+      length rs `shouldBe` 1
+
+    it "con el absorbente inactivo, todo se pierde y el hecho lo dice" $ do
+      let ini = cambiar f1 (\fa -> fa { facEstado = Eliminada }) (cambiar f2 (\fa -> fa { facTransferencia = absorbe f1 }) base2)
+          (fin, hs) = eliminarFaccion gs (Tick 40) f2 ini
+          h = hecho "faccion_desaparece" hs
+      param "destino_inactivo" h `shouldSatisfy` (not . T.null)
+      param "altepetl_transferidos" h `shouldBe` "0"
+      tesoro f1 fin `shouldBe` tesoro f1 ini
+
+    it "una facción potencial aparece por fecha y una activa desaparece por fecha, en la veintena que toca" $ do
+      let f3 = (ppFacciones (jue base2) Map.! f1) { facId = FaccionId 3, facEstado = Potencial, facJugable = False
+                                                  , facDesde = Just 40, facNombre = "Futura" }
+          conF3 = let per = estadoPersistente (hastaTick 40 base2); p = persistenteJuego per
+                  in (hastaTick 40 base2) { estadoPersistente = per { persistenteJuego = p { ppFacciones = Map.insert (FaccionId 3) f3 (ppFacciones p) } } }
+          (fin, hs) = correrConHechos [0 .. 40] conF3
+          tickDe tipo = [ t | Hecho ty (Tick t) _ _ <- hs, ty == tipo ]
+      facEstado (ppFacciones (jue fin) Map.! FaccionId 3) `shouldBe` Activa
+      facEstado (ppFacciones (jue fin) Map.! f2) `shouldBe` Eliminada
+      tickDe "faccion_aparece" `shouldBe` [40]
+      tickDe "faccion_desaparece" `shouldBe` [40]
+      -- Antes de su fecha, la potencial no recibe ingreso ni tesoro.
+      let (antes, _) = correrConHechos [0 .. 39] conF3
+      facEstado (ppFacciones (jue antes) Map.! FaccionId 3) `shouldBe` Potencial
+      facEstado (ppFacciones (jue antes) Map.! f2) `shouldBe` Activa
+      tesoro (FaccionId 3) antes `shouldBe` tesoro (FaccionId 3) conF3
+
+    it "los ids no se reutilizan: la eliminada sigue en el mapa" $ do
+      let (fin, _) = eliminarFaccion gs (Tick 40) f2 base2
+      Map.keys (ppFacciones (jue fin)) `shouldBe` [f1, f2]
