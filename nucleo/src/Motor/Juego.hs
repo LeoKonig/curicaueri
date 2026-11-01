@@ -11,7 +11,7 @@ import Motor.Base
 import Motor.Calendario
 import Motor.Estado
 import Motor.Hechos
-import Motor.Mapa
+import Motor.Recorrido (Grafo)
 import Motor.Guion
 import Motor.Director
 import Motor.Moneda (pasoMoneda)
@@ -41,7 +41,7 @@ data Agente s c = Agente
 data Juego s c = Juego
   { juegoSistemas    :: [Sistema s]
   , juegoAplicarCmd  :: Estado s -> Sellado c -> Either Rechazo (Estado s, [Hecho])
-  , juegoDerivar     :: Mapa -> Tick -> Persistente s -> DerivadoDe s
+  , juegoDerivar     :: Grafo -> Tick -> Persistente s -> DerivadoDe s   -- ^ el grafo trae el mapa ('grafoMapa')
   , juegoProyectar   :: Estado s -> [EntidadJuego]
   , juegoAgentes     :: Map FaccionId (Agente s c)
   , juegoCatalogoMag :: Map Magnitud DefMagnitud
@@ -72,7 +72,7 @@ pasoCompleto :: Juego s c -> Entorno -> Semilla -> Tick -> [Sellado c] -> [Respu
 pasoCompleto j ent sigma t cmdsJugador respuestas s00 = (sFinal, hsF ++ hs0 ++ hs1 ++ hsR ++ hs2 ++ hsV ++ hsD, rechazos, rechazosR)
   where
     guion = entGuion ent
-    mapa = entMapa ent
+    grafo = entGrafo ent
     -- Durante el paso, y al terminar, el estado está en el tick t: estadoTick
     -- es el último tick procesado. Antes nadie lo avanzaba y se quedaba en 0.
     (sF, hsF)     = pasoFases (juegoCatalogoMag j) guion t s00 { estadoTick = t }
@@ -84,7 +84,7 @@ pasoCompleto j ent sigma t cmdsJugador respuestas s00 = (sFinal, hsF ++ hs0 ++ h
       Right (e', hs') -> (e', hs ++ hs', rs)
       Left m          -> (e, hs, rs ++ [(r, Rechazo m)])
     (s2, hs2)     = correr sigma t (juegoSistemas j) s1
-    (s3, hsV)     = pasoDerivar j mapa t (pasoMoneda (entEconomia ent) t s2)
+    (s3, hsV)     = pasoDerivar j grafo t (pasoMoneda (entEconomia ent) t s2)
     (sFinal, hsD) = pasoDirector (juegoCatalogoMag j) guion (rng sigma "director" t) t s3
 
 pasoAgentes :: Juego s c -> Semilla -> Tick -> Estado s -> ([Sellado c], Estado s)
@@ -121,12 +121,12 @@ pasoAgentes j sigma t s =
 -- sigue en el almacén: si su condición vuelve a cumplirse, vuelve a contar.
 -- (Un modificador que expiró ya emitió su hecho al empezar el tick y no está
 -- en el almacén, así que no se anuncia dos veces.)
-pasoDerivar :: Juego s c -> Mapa -> Tick -> Estado s -> (Estado s, [Hecho])
-pasoDerivar j mapa t s =
+pasoDerivar :: Juego s c -> Grafo -> Tick -> Estado s -> (Estado s, [Hecho])
+pasoDerivar j grafo t s =
   let cal = comunCalendario (persistenteComun (estadoPersistente s))
   in if esInicioDePeriodo cal t
        then let p       = estadoPersistente s
-                d       = derivar j mapa t p
+                d       = derivar j grafo t p
                 antes   = derivadoVigentes (estadoDerivado s)
                 ahora   = derivadoVigentes d
                 perdidos = [ m | x <- Map.elems (comunMagnitudes (persistenteComun p))
@@ -163,8 +163,8 @@ aplicarColaDetallada j cmds s0 = foldl' aplicarUno (s0, [], []) (sortBy cmp cmds
 
 -- | El derivado completo: primero el del juego, luego qué modificadores
 -- condicionales están vigentes.
-derivar :: Juego s c -> Mapa -> Tick -> Persistente s -> Derivado s
-derivar j m t p = Derivado (vigentesEn (juegoCatalogoMag j) t p) (juegoDerivar j m t p)
+derivar :: Juego s c -> Grafo -> Tick -> Persistente s -> Derivado s
+derivar j g t p = Derivado (vigentesEn (juegoCatalogoMag j) t p) (juegoDerivar j g t p)
 
 -- | Los ids de los modificadores condicionales cuya condición se cumple en t.
 -- Las condiciones leen valores efectivos SIN los modificadores condicionales

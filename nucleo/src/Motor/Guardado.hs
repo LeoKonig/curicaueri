@@ -19,6 +19,7 @@ import Motor.Estado
 import Motor.Juego (Juego, derivar)
 import Motor.Magnitudes
 import Motor.Mapa (Mapa)
+import Motor.Recorrido (grafoDe)
 
 -- ---------------------------------------------------------------------------
 -- Instancias JSON de los tipos del núcleo
@@ -365,6 +366,6 @@ cargar j m bs = do
   ed <- case A.fromJSON crudo of
     A.Error err -> Left (ErrorCarga ErrorEstructura "" "" (T.pack err))
     A.Success x -> Right x
-  let d = derivar j m (edOrigenT ed) (edOrigenP ed)
+  let d = derivar j (grafoDe m) (edOrigenT ed) (edOrigenP ed)
   pure (Estado (edTick ed) (edPersist ed)
                (Origen (edOrigenT ed) (edOrigenP ed)) d)

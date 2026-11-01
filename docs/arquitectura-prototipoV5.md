@@ -810,6 +810,8 @@ Hay **un solo costo** por conexión, el mismo para ejércitos, personas y cargas
 
 Como el costo de las conexiones cambia con las obras, el grafo compacto que usan los recorridos se **parchea**: al cambiar μ de una celda o ρ de una conexión, se recalculan solo sus conexiones. Una ley lo compara con reconstruir el grafo entero. Los recorridos (influencia, asignación de celdas, rutas) se rehacen en el paso 16 como siempre.
 
+**Qué está hecho.** El costo por terreno (μ, con valores de relleno: llano y lago 1, bosque 1,5, sierra 3) y su uso en todas las reglas que recorren el grafo, también el radio de producción. El grafo compacto se construye una vez por partida. Faltan el camino como modificador de μ (con él, el parche del grafo), y el río y el agua navegable, que entran con los puertos (*Las obras*, etapa 4). Mientras no haya puertos, el lago cuesta como llano: con la regla del agua sin puertos, los pescadores no llegarían a él.
+
 **Lo que no se hace en el prototipo:** costo distinto para ejércitos y cargas, ríos con dirección (río abajo más rápido), estaciones que cambian el costo (lluvias) y capacidad de carga por vía. Cada uno sería un campo nuevo con valor por defecto.
 
 **Proveedores de grafo.** La malla hexagonal es el primer proveedor, no la definición del mapa:

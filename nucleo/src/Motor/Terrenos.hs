@@ -11,6 +11,7 @@ module Motor.Terrenos
   , MaterialTerreno (..)
   , cargarTerrenos
   , validarTerrenosDelMapa
+  , conCostoDeTerreno
   ) where
 
 import Data.Aeson (Value)
@@ -25,7 +26,7 @@ import qualified Data.IntMap.Strict as IntMap
 
 import Motor.Base
 import Motor.Carga (CategoriaError (..), ErrorCarga (..), Validacion (..), falla)
-import Motor.Mapa (Mapa (..), Celda (..), Recurso (..), Terreno (..))
+import Motor.Mapa (Mapa (..), Celda (..), Conexion (..), Recurso (..), Terreno (..))
 
 data DefTerreno = DefTerreno
   { dtTerreno   :: Terreno
@@ -35,6 +36,7 @@ data DefTerreno = DefTerreno
   , dtTrabajadores :: Fijo      -- ^ ℓ: trabajadores que trabajan la celda entera; 0 si no se trabaja
   , dtRendimiento  :: Map Text Fijo  -- ^ y: bienes por periodo de una celda trabajada entera; vacío por omisión
   , dtMateriales   :: Map Text MaterialTerreno  -- ^ materiales de obra que se extraen de la celda; vacío por omisión
+  , dtCostoMovimiento :: Fijo   -- ^ μ: cuánto cuesta cruzar este terreno respecto del llano; 1 por omisión
   } deriving (Eq, Show)
 
 -- | Un material de construcción que rinde un terreno (V5, *Las obras*): lo que
@@ -54,7 +56,7 @@ cargarTerrenos :: Text -> Value -> Validacion (Map Terreno DefTerreno)
 cargarTerrenos archivo v = case A.parseEither leer v of
   Left err -> falla (ErrorCarga ErrorEstructura archivo "" (T.pack err))
   Right ts ->
-    let ids = [ i | ((i, _, _, _, _, _), _) <- ts ]
+    let ids = [ i | ((i, _, _, _, _, _), _, _) <- ts ]
         repetidos = traverse (\i -> if length (filter (== i) ids) > 1
                                       then falla (ErrorCarga ErrorEsquema archivo ("terrenos." <> i) "terreno repetido")
                                       else pure ()) (nub ids)
@@ -66,8 +68,9 @@ cargarTerrenos archivo v = case A.parseEither leer v of
                       <*> o A..:? "trabajadores" A..!= Fijo 0 <*> o A..:? "rendimiento" A..!= Map.empty
       mats <- o A..:? "materiales" A..!= Map.empty >>= traverse (A.withObject "material" (\m ->
                 MaterialTerreno <$> m A..: "rendimiento" <*> m A..: "trabajadores"))
-      pure (base, mats)
-    validar ((i, cap, recs, ero, trab, rend), mats) =
+      mu <- o A..:? "costo_movimiento" A..!= uno
+      pure (base, mats, mu)
+    validar ((i, cap, recs, ero, trab, rend), mats, mu) =
       let ruta = "terrenos." <> i
           capOk = if cap >= Fijo 0 then pure ()
                   else falla (ErrorCarga ErrorRango archivo (ruta <> ".capacidad") "la capacidad no puede ser negativa")
@@ -92,8 +95,26 @@ cargarTerrenos archivo v = case A.parseEither leer v of
                          else falla (ErrorCarga ErrorRango archivo (ruta <> ".materiales." <> g <> ".trabajadores")
                                        "la extracción necesita trabajadores mayores que 0")))
                    (Map.toList mats)
-      in DefTerreno (Terreno i) cap (map Recurso recs) ero trab rend mats
-           <$ capOk <* eroOk <* recsOk <* trabOk <* rendOk <* rindeOk <* matsOk
+          muOk = if mu > Fijo 0 then pure ()
+                 else falla (ErrorCarga ErrorRango archivo (ruta <> ".costo_movimiento") "el costo de movimiento debe ser mayor que 0")
+      in DefTerreno (Terreno i) cap (map Recurso recs) ero trab rend mats mu
+           <$ capOk <* eroOk <* recsOk <* trabOk <* rendOk <* rindeOk <* matsOk <* muOk
+
+-- | El costo de cada conexión según el terreno de sus dos celdas (V5, *Costo
+-- del grafo*; documento funcional, sección 8):
+--
+-- > costo(a, b) = longitud(a, b) · (μ(a) + μ(b)) / 2
+--
+-- en km de llano. Es simétrico por construcción, así que la ley de simetría
+-- del mapa sigue valiendo, y con μ = 1 en todas partes el costo es la
+-- longitud. Una celda cuyo terreno falta en la tabla cuenta como llano; la
+-- carga ya rechaza ese mapa con 'validarTerrenosDelMapa'.
+conCostoDeTerreno :: Map Terreno DefTerreno -> Mapa -> Mapa
+conCostoDeTerreno tabla m = m { mapaVecinos = IntMap.mapWithKey conexiones (mapaVecinos m) }
+  where
+    mu (CeldaId c) = maybe uno dtCostoMovimiento
+                       (IntMap.lookup c (mapaCeldas m) >>= \ce -> Map.lookup (celdaTerreno ce) tabla)
+    conexiones a = map (\(b, k) -> (b, k { connCosto = connLongitud k .*. ((mu (CeldaId a) .+. mu b) ./. desdeEntero 2) }))
 
 -- | Todo terreno que el mapa usa tiene que estar en la tabla: se rechaza al
 -- cargar, no en el tick 47. Un error por terreno, no por celda.
