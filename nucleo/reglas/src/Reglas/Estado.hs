@@ -60,7 +60,26 @@ data Obra = Obra
   , obCuadrilla :: Int    -- ^ C: trabajadores retirados para la obra (0 sin cuadrilla)
   , obTrabajo   :: Fijo   -- ^ trabajo hecho en el sitio
   , obAcopio    :: Map Text Fijo  -- ^ material acopiado
+  , obTributos  :: Map Text TributoObra  -- ^ por material, el altépetl que lo envía como tributo en especie
+  , obEnCamino  :: [Entrega]      -- ^ el material que viene en camino
   } deriving (Eq, Show, Generic, ToJSON)
+
+-- | Un pedido de tributo en especie (V5, *Las obras*, etapa 2): el altépetl
+-- que extrae el material con sus propios trabajadores y cuántos pone.
+data TributoObra = TributoObra
+  { toFuente    :: AltId
+  , toCuadrilla :: Int
+  } deriving (Eq, Show, Generic, ToJSON, FromJSON)
+
+-- | Material que viene en camino a una obra: llega el día @enLlega@ y se
+-- cobra su transporte al tesoro al llegar.
+data Entrega = Entrega
+  { enMaterial :: Text
+  , enCantidad :: Fijo
+  , enDe       :: AltId
+  , enLlega    :: Int
+  , enCosto    :: Fijo
+  } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 -- | Las obras guardadas en el primer corte del hito 3 no traen cuadrilla,
 -- trabajo ni acopio: cargan sin ellos.
@@ -68,7 +87,8 @@ instance FromJSON Obra where
   parseJSON = withObject "Obra" $ \o ->
     Obra <$> o .: "obEdificio" <*> o .: "obAvance" <*> o .: "obTotal"
          <*> o .:? "obCuadrilla" .!= 0 <*> o .:? "obTrabajo" .!= Fijo 0
-         <*> o .:? "obAcopio" .!= Map.empty
+         <*> o .:? "obAcopio" .!= Map.empty <*> o .:? "obTributos" .!= Map.empty
+         <*> o .:? "obEnCamino" .!= []
 
 data Pop = Pop
   { popId        :: PopId
@@ -197,10 +217,11 @@ data DerivadoPurepecha = DerivadoPurepecha
   , dpMateriales   :: Map AltId (Map Text [CeldaTrabajo])
   , dpFielesLocal  :: Map (AltId, Text) Fijo
   , dpFielesCentro :: Map (AltId, Text) Fijo
+  , dpDistancias   :: Map AltId (Map AltId Fijo)  -- ^ de cada altépetl con obra a los que pueden enviarle tributo
   } deriving (Eq, Show)
 
 derivadoPurepechaVacio :: DerivadoPurepecha
-derivadoPurepechaVacio = DerivadoPurepecha Map.empty Map.empty Map.empty Map.empty
+derivadoPurepechaVacio = DerivadoPurepecha Map.empty Map.empty Map.empty Map.empty Map.empty
 
 type instance DerivadoDe Purepecha = DerivadoPurepecha
 type instance PlanDe     Purepecha = ()

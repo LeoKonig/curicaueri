@@ -1501,6 +1501,8 @@ El freno a llenar el reino de edificios no es un límite de casillas ni un "uno 
 
 Un camino entre los dos asentamientos acorta el retraso y abarata el transporte sin regla especial, porque los dos se miden con el costo del grafo.
 
+**Cómo se pide** (implementado). Con la obra ya empezada, el comando `pedir_tributo_obra` nombra el material, el altépetl que lo envía y cuántos trabajadores pone (`PedirTributoObra`; se añade al catálogo de comandos, familia económica). La distancia sale del derivado del paso 16, así que el pedido se hace desde la veintena siguiente al inicio de la obra. Cada veintena, quien envía extrae lo que falta (descontando lo que ya viene en camino) y crea una entrega. La entrega llega en veintenas enteras y se cobra al llegar; sin tesoro, espera. Sus trabajadores y el agravio vuelven al terminar la obra. Mientras no exista la condición del altépetl (hito 4), no hay señoríos ni independientes: el agravio extra del señorío y el rechazo del independiente entran con ella.
+
 **El oficio: conocimiento codificado y tácito.** Cada edificio puede pedir un conocimiento (V5, *Tecnología y educación*) con un dominio mínimo para empezar, y el dominio escala el rendimiento de la cuadrilla. En el prototipo no hay difusión (el paso 15 sigue vacío): las bases de cada conocimiento las da el escenario, y la práctica las mueve. Cada obra terminada aporta al conocimiento tácito un modificador con fuente "práctica", que crece con el logaritmo de las obras hechas: los primeros canteros aprenden mucho, los siguientes poco. Como el tácito baja con la mortalidad, la viruela de 1520 también frena las obras, sin código especial.
 
 ### Lo que da cada edificio adicional
@@ -1549,7 +1551,7 @@ Cada edificio declara en `ambitos` dónde puede levantarse: en el asentamiento (
 | Etapa | Qué entra | Hito |
 | --- | --- | --- |
 | 1 | Cuadrilla con `retirar_trabajadores`, trabajo, sustento de la partida de obras, duración mínima, materiales extraídos en las celdas del altépetl, beneficio por fórmula (lineal, logarítmica, por asistentes), asistencia a templos locales y centros ceremoniales por tradición, estrato `sacerdote` | 3 (hecha) |
-| 2 | Tributo en especie de materiales, con retraso y costo de transporte | 3 |
+| 2 | Tributo en especie de materiales, con retraso y costo de transporte | 3 (hecha) |
 | 3 | Oficio: conocimientos con bases del escenario, dominio mínimo, productividad y aprender haciendo | 3 |
 | 4 | Ámbito de celda para cualquier edificio, condición de control, aporte a la influencia, beneficio por guarnición | 4 |
 

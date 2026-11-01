@@ -1322,13 +1322,13 @@ donde cada término falta si no aplica: sin T, no hay tope por trabajo; sin mate
 
 4. **Fin.** Cuando v ≥ D, w ≥ T y A_g ≥ M_g para todo g, la obra termina: R_a baja en C, se recalcula el beneficio de su tipo (abajo), se aplican los efectos al terminar y se emite `edificio_terminado`.
 
-**Tributo en especie** (etapa 2). El comando que empieza la obra puede nombrar, por material, otro altépetl s de la facción que lo enviará; se rechaza si s es independiente (`Cabecera f` con f ≠ la facción, sección 14b). El altépetl s extrae con sus propios trabajadores (`retirar_trabajadores`, motivo `tributo_obra`), recibe el agravio del tributo, multiplicado por `AGRAVIO_TRIBUTO_SENORIO` si su condición es `Senorio`, y cada veintena crea una entrega:
+**Tributo en especie** (etapa 2, implementada). Con la obra empezada, `PedirTributoObra a g s n` pide a otro altépetl s de la facción que envíe el material g con n trabajadores suyos. Se rechazará si s es independiente (`Cabecera f` con f ≠ la facción, sección 14b) cuando exista la condición del altépetl. El altépetl s extrae con sus propios trabajadores (`retirar_trabajadores`, motivo `tributo_obra`) y recibe el agravio del tributo. Ese agravio es un modificador de `tasa_agravio` con fuente `tributo_obra:<a>:<g>` y valor `AGRAVIO_TRIBUTO_OBRA`; se multiplicará por `AGRAVIO_TRIBUTO_SENORIO` si su condición es `Senorio`. Cada veintena, s extrae a lo sumo lo que falta, F_g = M_g − A_g − (lo que viene en camino), y crea una entrega:
 
 ```math
 \text{llega} = t + 20\cdot\Big\lceil \frac{d_{\text{costo}}(s, a)}{v} \Big\rceil, \qquad \text{costo} = k \cdot q \cdot d_{\text{costo}}(s, a)
 ```
 
-con v = `VELOCIDAD_TRANSPORTE` (costo del grafo que recorre una carga por veintena), k = `COSTO_TRANSPORTE` y q la cantidad. Como d_costo es la distancia del grafo, un camino acorta el retraso y abarata el costo sin regla propia. La consulta suma, por fuente, cantidad, retraso y costo.
+con v = `VELOCIDAD_TRANSPORTE` (costo del grafo que recorre una carga por veintena), k = `COSTO_TRANSPORTE` y q la cantidad. La distancia d_costo(s, a) sale del derivado: en el paso 16, cada altépetl con obra hace un recorrido persistente acotado por `ALCANCE_TRIBUTO`. Su costo es lo que alcanza, no el tamaño del mapa: con 150 000 celdas, 1,2 ms por obra. Por eso el pedido se hace desde la veintena siguiente al inicio de la obra. El transporte se cobra al tesoro al llegar, en el paso 10, así que el tesoro tiene dos escritores declarados: la hacienda y la construcción. Como d_costo es la distancia del grafo, un camino acorta el retraso y abarata el costo sin regla propia. La consulta suma, por fuente, cantidad, retraso y costo.
 
 **Oficio** (etapa 3). Si el edificio pide (κ, d_min), la obra se rechaza al empezar con dominio(κ) < d_min, sin cambiar el estado. Al terminar una obra con oficio κ, el sistema actualiza en la facción un modificador de `conocimiento.κ.tacito` con fuente "práctica", de instancia estable y valor
 
