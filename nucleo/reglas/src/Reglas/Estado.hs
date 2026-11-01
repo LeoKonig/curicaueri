@@ -140,5 +140,22 @@ data Presupuesto = Presupuesto
   , pbCulto          :: Int
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
-type instance DerivadoDe Purepecha = ()
+-- | Una celda que trabaja un altépetl: su id, cuántos trabajadores la trabajan
+-- entera (ℓ) y lo que rinde entonces (y), por bien.
+data CeldaTrabajo = CeldaTrabajo
+  { ctCelda        :: Int
+  , ctTrabajadores :: Fijo
+  , ctRendimiento  :: Map Text Fijo
+  } deriving (Eq, Show)
+
+-- | El derivado del juego (paso 16): las celdas que trabaja cada altépetl,
+-- de la mejor a la peor. Nunca se guarda: se recalcula desde el origen.
+newtype DerivadoPurepecha = DerivadoPurepecha
+  { dpCeldas :: Map AltId [CeldaTrabajo] }
+  deriving (Eq, Show)
+
+derivadoPurepechaVacio :: DerivadoPurepecha
+derivadoPurepechaVacio = DerivadoPurepecha Map.empty
+
+type instance DerivadoDe Purepecha = DerivadoPurepecha
 type instance PlanDe     Purepecha = ()

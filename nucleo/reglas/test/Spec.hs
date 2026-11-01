@@ -30,6 +30,10 @@ import Reglas.Estado
 import Reglas.Formulas
 import Reglas.Grupos
 import Reglas.Edificios
+import Reglas.Produccion
+import Motor.Terrenos (DefTerreno (..), cargarTerrenos)
+import Motor.Moneda (magExistencias, magProduccion)
+import Test.QuickCheck
 import Motor.Guardado (guardar, cargar)
 import Motor.Hechos (Hecho (..))
 import qualified Data.ByteString.Lazy as BL
@@ -46,6 +50,29 @@ leerEdificios = do
     Right j  -> case cargarEdificios "datos/edificios.json" catalogoMag j of
       Validacion [] (Just e) -> Right e
       Validacion errs _      -> Left (map errMensaje errs)
+
+-- | @datos/terrenos.json@ cargado.
+leerTerrenos :: IO (Map.Map Terreno DefTerreno)
+leerTerrenos = do
+  v <- A.eitherDecodeFileStrict "../../datos/terrenos.json"
+  case v of
+    Left err -> fail err
+    Right j  -> case cargarTerrenos "datos/terrenos.json" j of
+      Validacion [] (Just t) -> pure t
+      Validacion errs _      -> fail (show (map errMensaje errs))
+
+-- | Celdas de prueba: hasta tres bienes con rendimientos y trabajadores
+-- positivos, con ids distintos.
+genCeldas :: Gen [CeldaTrabajo]
+genCeldas = do
+  n <- choose (0, 8)
+  mapM (\i -> do
+          l  <- choose (1, 2000)
+          k  <- choose (1, 3)
+          ys <- vectorOf k (choose (0, 500000))
+          let bs = take k ["maiz", "pescado", "sal"]
+          pure (CeldaTrabajo i (Fijo (l * 10000)) (Map.fromList (zip bs (map Fijo ys)))))
+       [1 .. n]
 
 -- | @datos/grupos.json@ cargado, o la lista de errores.
 leerGrupos :: IO (Either [Text] Grupos)
@@ -64,6 +91,7 @@ main = do
  dorDestituir <- BL.readFile "../../pruebas_compartidas/protocolo/comando_destituir_gobernador.json"
  dorConstruir <- BL.readFile "../../pruebas_compartidas/protocolo/comando_construir_edificio.json"
  edificiosArchivo <- leerEdificios
+ terrenosArchivo  <- leerTerrenos
  hspec $ do
   describe "reglas: autoridad (V5, el prototipo no cambia)" $ do
     it "todos los comandos del prototipo usan el requisito por omisión" $
@@ -420,6 +448,94 @@ main = do
                  , p <- dcParametros d, dpNombre p == "edificio" ]
         `shouldBe` [POpcion ["yacata", "fortaleza", "troje"]]
       validarOrdenSistemas catalogoMag (juegoSistemas j) `shouldBe` []
+
+  describe "reglas: producción de bienes por territorio (hito 3)" $ do
+    let mapa = either (error . show) id (proveedorHexagonal datosMapa1475)
+        ent  = entornoSimple mapa
+        dr   = Reglas.Juego.datosVacios { Reglas.Juego.drTerrenos = terrenosArchivo }
+        j    = Reglas.Juego.juegoDatos constantesDefault dr
+        conDerivado e = e { estadoDerivado = derivar j mapa (estadoTick e) (estadoPersistente e) }
+        e0   = conDerivado estadoInicial1475
+        correrDias desde hasta e = foldl' (\st t -> fst (paso j ent (Semilla 1) (Tick t) [] st)) e [desde .. hasta]
+        alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
+        base m st = maybe (Fijo 0) almacenBase (Map.lookup (entFaccion, m) (alm st))
+        llano = CeldaTrabajo 1 (fi 500) (Map.fromList [("maiz", fi 40), ("mantas", fi 4)])
+        lago  = CeldaTrabajo 2 (fi 400) (Map.fromList [("pescado", fi 20), ("sal", fi 3)])
+
+    it "los bienes del territorio son los seis de V5 y están en el catálogo del juego" $ do
+      bienesDe terrenosArchivo `shouldBe` ["cobre", "maiz", "mantas", "obsidiana", "pescado", "sal"]
+      all (`Map.member` juegoCatalogoMag j) (concat [ [magExistencias b, magProduccion b] | b <- bienesDe terrenosArchivo ])
+        `shouldBe` True
+
+    it "el factor escaso: con 700 trabajadores, el llano entero y medio lago" $ do
+      ordenarCeldas [lago, llano] `shouldBe` [llano, lago]
+      produccionCeldas 700 [llano, lago]
+        `shouldBe` Map.fromList [("maiz", fi 40), ("mantas", fi 4), ("pescado", fi 10), ("sal", Fijo 15000)]
+      produccionCeldas 0 [llano, lago] `shouldBe` Map.empty
+      produccionCeldas 100000 [llano, lago]
+        `shouldBe` Map.fromList [("maiz", fi 40), ("mantas", fi 4), ("pescado", fi 20), ("sal", fi 3)]
+      produccionCeldas 100000 [] `shouldBe` Map.empty
+
+    it "ley: un trabajador más nunca baja la producción de ningún bien" $
+      property $ forAll genCeldas $ \cs -> forAll (choose (0, 20000)) $ \w ->
+        let antes = produccionCeldas w (ordenarCeldas cs)
+            despues = produccionCeldas (w + 1) (ordenarCeldas cs)
+        in all (\(b, q) -> Map.findWithDefault (Fijo 0) b despues >= q) (Map.toList antes)
+
+    it "ley: una celda más nunca baja la producción total (Q_a)" $
+      property $ forAll genCeldas $ \cs -> forAll (choose (0, 20000)) $ \w ->
+        not (null cs) ==>
+          let sinUna = tail cs
+          in totalProduccion (produccionCeldas w (ordenarCeldas cs))
+               >= totalProduccion (produccionCeldas w (ordenarCeldas sinUna))
+
+    it "trabajadores: un cuarto de cada pop productivo; la nobleza no trabaja" $
+      trabajadoresDe constantesDefault escenario1475
+        `shouldBe` Map.fromList [(AltId 1, 6750), (AltId 2, 3000), (AltId 3, 4500)]
+
+    it "cada celda la trabaja a lo sumo un altépetl, dentro del radio" $ do
+      let cs = dpCeldas (derivadoJuego (estadoDerivado e0))
+          todas = concatMap (map ctCelda) (Map.elems cs)
+      length todas `shouldBe` length (Map.keys (Map.fromList (zip todas todas)))
+      Map.keys cs `shouldBe` [AltId 1, AltId 2, AltId 3]
+      all (\c -> ordenarCeldas c == c) (Map.elems cs) `shouldBe` True
+
+    it "una veintena produce, la producción se escribe y se suma a las existencias, que nunca bajan" $ do
+      let s1 = correrDias 0 0 e0
+          s2 = correrDias 1 20 s1
+          bs = bienesDe terrenosArchivo
+      base (magProduccion "maiz") s1 `shouldSatisfy` (> Fijo 0)
+      forM_ bs $ \b -> do
+        base (magExistencias b) s1 `shouldBe` base (magProduccion b) s1
+        base (magExistencias b) s2 `shouldBe` (base (magExistencias b) s1 .+. base (magProduccion b) s2)
+        base (magExistencias b) s2 `shouldSatisfy` (>= base (magExistencias b) s1)
+        base (magExistencias b) s1 `shouldSatisfy` (>= Fijo 0)
+
+    it "sin tabla de terrenos no se produce nada ni se recorre el mapa" $ do
+      let jv = Reglas.Juego.juego constantesDefault
+          s1 = fst (paso jv ent (Semilla 1) (Tick 0) [] estadoInicial1475)
+      dpCeldas (derivadoJuego (estadoDerivado s1)) `shouldBe` Map.empty
+      [ k | (k, _) <- Map.toList (alm s1), snd k == magProduccion "maiz" ] `shouldBe` []
+
+    it "las obras mueven la producción: +10 % en un altépetl sube lo que produce" $ do
+      let mods = [ Modificador 0 magProduccionAlt (entRefAlt (AltId a)) (Aporte (Fijo 0) (Fijo 1000))
+                     (fuenteEdificio "yacata" (AltId a)) Nothing Nothing Nothing AlcancePropia | a <- [1, 2, 3] ]
+          conMods e = let p = estadoPersistente e; com = persistenteComun p
+                      in e { estadoPersistente = p { persistenteComun = com { comunMagnitudes = agregarVarios mods (comunMagnitudes com) } } }
+          q st = base (magProduccion "maiz") st
+          normal = q (correrDias 0 0 e0)
+          conObra = q (correrDias 0 0 (conMods e0))
+      cercaCon 3 conObra (fromIntegral (let Fijo n = normal in n) * 1.1 / 10000)
+
+    it "guardar a mitad de veintena y cargar: el derivado y la producción siguen igual" $ do
+      let mitad = correrDias 0 33 e0
+          cargado = either (error . show) id (cargar j mapa (guardar mitad))
+          seguir = correrDias 34 60
+      derivadoJuego (estadoDerivado cargado) `shouldBe` derivadoJuego (estadoDerivado mitad)
+      alm (seguir cargado) `shouldBe` alm (seguir mitad)
+
+    it "los sistemas del juego con terrenos pasan validarOrdenSistemas" $
+      validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j) `shouldBe` []
 
   describe "reglas: tablas de casos del hito 0a (prototipo HTML)" $ do
     tablas <- runIO (fmap (>>= parseEither parseTablas)

@@ -14,6 +14,9 @@ import Reglas.Base
 import Reglas.Comando
 import Reglas.Constantes
 import Reglas.Edificios
+import Reglas.Produccion
+import Motor.Mapa (Terreno)
+import Motor.Terrenos (DefTerreno)
 import Reglas.Estado
 import Reglas.Grupos
 import Reglas.Sistemas
@@ -42,10 +45,11 @@ catalogoMag = Map.fromList
 data DatosReglas = DatosReglas
   { drGrupos    :: Grupos
   , drEdificios :: Edificios
+  , drTerrenos  :: Map.Map Terreno DefTerreno   -- ^ lo que rinde cada terreno; vacía, nada se produce
   }
 
 datosVacios :: DatosReglas
-datosVacios = DatosReglas gruposVacios edificiosVacios
+datosVacios = DatosReglas gruposVacios edificiosVacios Map.empty
 
 aplicarComando :: Constantes -> DatosReglas -> Estado Purepecha -> Sellado Comando
                -> Either Rechazo (Estado Purepecha, [Hecho])
@@ -106,6 +110,7 @@ aplicarComando _ dr est sell = let gs = drGrupos dr in case sellCmd sell of
 proyectar :: Estado Purepecha -> [EntidadJuego]
 proyectar est =
   let p = persistenteJuego (estadoPersistente est)
+      celdas = dpCeldas (derivadoJuego (estadoDerivado est))
   in  [EntidadJuego (entRefAlt (altId a)) (Map.fromList
         [ ("nombre",   VTexto (altNombre a))
         , ("lealtad",  VFijo  (altLealtad a))
@@ -115,6 +120,7 @@ proyectar est =
         , ("obra_avance", maybe VNulo (VEntero . obAvance) (altObra a))
         , ("obra_total",  maybe VNulo (VEntero . obTotal) (altObra a))
         , ("edificios", VLista (map VTexto (altEdificios a)))
+        , ("celdas_trabajadas", VEntero (length (Map.findWithDefault [] (altId a) celdas)))
         ])
       | a <- Map.elems (ppAltepetl p)]
    ++ [EntidadJuego (entRefPop (popId pop)) (Map.fromList
@@ -144,15 +150,16 @@ juegoCon c gs = juegoDatos c datosVacios { drGrupos = gs }
 -- | El juego con sus datos de reglas. El estado inicial tiene que pasar por
 -- 'conGrupos' con los mismos grupos.
 --
--- La construcción corre antes que la hacienda y el agravio: un edificio que
--- se termina en una veintena ya cuenta en ella, y así ningún sistema lee lo
--- que escribe otro posterior.
+-- La construcción corre antes que la producción, la hacienda y el agravio: un
+-- edificio que se termina en una veintena ya cuenta en ella, y así ningún
+-- sistema lee lo que escribe otro posterior.
 juegoDatos :: Constantes -> DatosReglas -> Juego Purepecha Comando
-juegoDatos c dr = Juego
-  { juegoSistemas    = [construccion c (drEdificios dr), hacienda c, evolucionAgravio c]
+juegoDatos c dr = let bienes = bienesDe (drTerrenos dr) in Juego
+  { juegoSistemas    = [ construccion c (drEdificios dr), produccion c bienes
+                       , hacienda c, evolucionAgravio c ]
   , juegoAplicarCmd  = aplicarComando c dr
-  , juegoDerivar     = \_ _ _ -> ()
+  , juegoDerivar     = \m _ p -> DerivadoPurepecha (derivarCeldas c (drTerrenos dr) m (persistenteJuego p))
   , juegoProyectar   = proyectar
   , juegoAgentes     = Map.empty
-  , juegoCatalogoMag = Map.union catalogoMag (catalogoGrupos (drGrupos dr))
+  , juegoCatalogoMag = Map.unions [catalogoMag, catalogoGrupos (drGrupos dr), catalogoBienes bienes]
   }
