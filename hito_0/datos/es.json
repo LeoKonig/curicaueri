@@ -738,7 +738,9 @@
     "capital_rendida": "La capital se rinde a los mexicas. Pasa a su dominio.",
     "metas": "Metas del reinado para 1485: conservar Tzintzuntzan, ningún señorío independiente, prestigio ≥ {prestigio}, lealtad media ≥ {lealtad}.",
     "sequia_llega": "La sequía llega: las milpas se secan.",
-    "sequia_preparada": "La sequía llega, pero las trojes llenas alivian el hambre."
+    "sequia_preparada": "La sequía llega, pero las trojes llenas alivian el hambre.",
+    "dificultad": "Dificultad: {nivel}.",
+    "dificultad_proxima": "Dificultad {nivel}: se aplicará en la próxima partida."
   },
   "resolucion": {
     "motivo": {
@@ -782,7 +784,8 @@
       "supervivencia": "Supervivencia con heridas",
       "decadencia": "Decadencia",
       "caida": "Derrota: Tzintzuntzan cayó en manos mexicas"
-    }
+    },
+    "dificultad": "Siguiente partida:"
   },
   "errores": {
     "carga_datos": "No se pudieron cargar los datos: {mensaje}",
@@ -895,5 +898,20 @@
     "en_curso": "Clic en una unidad propia y luego en un hexágono para moverla",
     "ganado": "Victoria: el invasor se retira derrotado.",
     "perdido": "Derrota: el invasor sigue sobre el territorio."
+  },
+  "dificultad": {
+    "facil": "Fácil",
+    "normal": "Normal",
+    "dificil": "Difícil",
+    "tip": "Dificultad. Al empezar la partida se aplica en el acto; después, en la próxima partida."
+  },
+  "reloj": {
+    "correr": "Dejar correr el tiempo (barra espaciadora). Se detiene solo en cada decisión.",
+    "pausar": "Pausar (barra espaciadora)",
+    "velocidad": "Vel. {n} · {s} s",
+    "velocidad_tip": "Segundos reales por veintena. Teclas 1 a 5.",
+    "dia": "día {d} de {total}",
+    "detenido": "esperando tu decisión",
+    "dia_tip": "Avance de la veintena en curso"
   }
 }

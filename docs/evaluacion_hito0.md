@@ -78,6 +78,42 @@ Los umbrales son una heurística de diseño inspirada en esa investigación, no 
 2. **En el núcleo de Haskell:** el director del guion ya hace subir la probabilidad de una situación con cada día de espera (el parámetro de tensión). Al portar el prototipo, la meta debe ser ningún tramo vacío mayor de 6 veintenas.
 3. **En el diseño:** más fuentes de anticipación con plazo visible (presagios, embajadas que anuncian su llegada, campañas que tardan en volver) y variar los eventos que se repiten, porque la repetición produce habituación.
 
+## Niveles de dificultad
+
+Tres niveles (fácil, normal y difícil), elegibles en la barra superior, en la pantalla final o con `?dificultad=dificil` en la dirección. Al empezar la partida, el cambio se aplica en el acto; después, en la próxima partida. Cada nivel es un bloque de `constantes.json` que sobrescribe valores por ruta, así que se ajusta sin tocar el código.
+
+**El principio: más presión o menos margen, nunca ventajas ocultas al enemigo.** Todo lo que cambia se ve en el desglose y en las probabilidades:
+
+| | Fácil | Normal (por omisión) | Difícil |
+| --- | --- | --- | --- |
+| Tesoro inicial | 900 | 700 | 600 |
+| Ejército mexica (primera oleada) | 30 000 | 34 000 | 38 000 |
+| Vuelve tras una derrota | 4 años | 3 años | 3 años |
+| Segunda oleada respecto de tu ejército | 0,62 | 0,70 | 0,75 |
+| Desgaste anual del agravio | +4 | +6 | +7 |
+| Rebelión posible desde lealtad | 45 | 50 | 52 |
+| Sequías e incursiones | base | más frecuentes | aún más frecuentes |
+| Enemigo en las expediciones | 4 500 | 4 800 | 5 000 |
+| Metas: prestigio / lealtad | 35 / 60 | 42 / 62 | 45 / 65 |
+
+**Calibración** (`calibrar_dificultad.js`, 60 partidas por estrategia y nivel; porcentaje de partidas con veredicto de triunfo):
+
+| Estrategia | Fácil | Normal | Difícil |
+| --- | --- | --- | --- |
+| Experta | 97 % | 93 % | 32 % |
+| Constructor | 100 % | 55 % | 43 % |
+| Militar | 78 % | 50 % | 27 % |
+| Siempre la primera opción | 52 % | 23 % | 8 % |
+| Azar | 5 % | 3 % | 0 % |
+
+**Los niveles se definen por cuánta habilidad exigen, no por un porcentaje fijo de la experta.** La estrategia experta del arnés se adapta: guarda reserva para la embajada, paga a tiempo y elige la defensa con mejores probabilidades. Por eso en normal sigue triunfando casi siempre, mientras que las estrategias sensatas pero menos informadas bajan a la mitad. La lectura es:
+
+- **Fácil:** cualquier estrategia sensata triunfa. Equivale a la v5 anterior, con algo más de tesoro.
+- **Normal:** hay que jugar bien.
+- **Difícil:** incluso jugando bien se pierde a menudo, y una regla fija casi nunca triunfa.
+
+**En normal se mantienen los criterios de tensión:** caída de la capital del 0 al 75 % según la estrategia, decisiones que pesan más que el azar en 11 de 16 tipos y casi ningún año sin decisiones. El tramo vacío más largo baja a ≈ 4,5 min a velocidad 3, porque hay más incursiones y sequías que responder.
+
 ## Lo que sigue débil
 
 - **Hay repetición:** conceder la autonomía o perseguir a los chichimecas tiene casi siempre la misma mejor respuesta. Hace falta que los eventos escalen o cambien según lo ocurrido.

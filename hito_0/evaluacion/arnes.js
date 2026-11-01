@@ -6,8 +6,9 @@
   // Generador propio para las políticas (el juego usa su propia semilla).
   const mulberry = (s) => () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 
-  const fresh = (seed) => {
+  const fresh = (seed, dificultad) => {
     const c = new Cls(base.props);
+    if (dificultad) c.dificultad = dificultad;
     c.D = base.D; c.T = base.T;
     c.state = { err: '', sel: 'zacapu', selSet: 'Zacapu', tab: 'resumen', layer: 'influencia', left: 'tributo', chron: false };
     c.forceUpdate = () => {}; c.setState = () => {};
@@ -99,7 +100,7 @@
 
   // Una partida. `forzar` cambia la elección del evento número i: {i, opcion} o {i, perturbar: true}.
   const jugar = (seed, pol, forzar) => {
-    const c = fresh(seed), g = c.g, rnd = mulberry(seed * 31 + 7);
+    const c = fresh(seed, pol.dificultad), g = c.g, rnd = mulberry(seed * 31 + 7);
     let k = 0, nModal = 0; const elecciones = [], ticksDecision = new Set(), espera = [];
     let ultimoTurno = -1;
     while (!g.ended && k < 3000) {
@@ -123,7 +124,7 @@
     const clase = []; for (let t = 0; t < total; t++) clase.push(ticksDecision.has(t) ? 'D' : (espera[t] && espera[t].length ? 'A' : 'V'));
     const acciones = {}; for (const e of g.log) if (e.routine) acciones[e.decision] = (acciones[e.decision] || 0) + 1;
     const ver = c.veredicto ? c.veredicto() : null;
-    return { seed, pol: pol.nombre, terminada: g.ended, anio: g.year, puntos: puntuar(c), m: c.metrics(), capitalCaida: !!g.capitalCaida, fin: g.fin || null,
+    return { seed, pol: pol.nombre, dificultad: g.dificultad, terminada: g.ended, anio: g.year, puntos: puntuar(c), m: c.metrics(), capitalCaida: !!g.capitalCaida, fin: g.fin || null,
       veredicto: ver ? ver.nivel : null, metas: ver ? ver.cumplidas : null,
       decisiones: g.log.length, deRumbo: g.log.filter(e => e.changing).length, eventos: nModal, acciones,
       ticksConDecision: ts.length, ticksTotales: total, maxHueco, clase: clase.join(''), elecciones, serie: g.series,
