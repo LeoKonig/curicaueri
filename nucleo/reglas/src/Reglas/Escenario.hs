@@ -33,10 +33,12 @@ escenario1475 = Purepecha
       , (PopId 6, Pop (PopId 6) (AltId 3) "nahua"     "comun"   2700  (fi 50))
       ]
   , ppPersonajes = Map.fromList
-      [ (PerId 1, Personaje (PerId 1) "Zuangua"          3 2 40 True)
-      , (PerId 2, Personaje (PerId 2) "Tangáxoan"        4 3 28 True)
-      , (PerId 3, Personaje (PerId 3) "Gobernador Inepto" 1 2 45 True)
-      , (PerId 4, Personaje (PerId 4) "Gobernador Capaz"   3 2 38 True)
+      -- Grupos ilustrativos, por verificar: el linaje real y el Inepto son de la
+      -- nobleza guerrera; el Capaz, de los administradores. El cazonci no tiene grupo.
+      [ (PerId 1, Personaje (PerId 1) "Zuangua"          3 2 40 True Nothing)
+      , (PerId 2, Personaje (PerId 2) "Tangáxoan"        4 3 28 True (Just "nobleza_guerrera"))
+      , (PerId 3, Personaje (PerId 3) "Gobernador Inepto" 1 2 45 True (Just "nobleza_guerrera"))
+      , (PerId 4, Personaje (PerId 4) "Gobernador Capaz"   3 2 38 True (Just "administradores"))
       ]
   , ppCazonci     = PerId 1          -- Zuangua, administración 3
   , ppTasas       = Tasas 3 3
@@ -65,6 +67,11 @@ estadoInicial1475 =
         }
       per  = Persistente com p
   in Estado (Tick 0) per (Origen (Tick 0) per) (Derivado IntSet.empty ())
+
+-- | El tipo de facción del reino purépecha, que elige las bases de sus grupos
+-- de poder en @datos/grupos.json@ (V5, *Tipos de facción*).
+tipoFaccion1475 :: Text
+tipoFaccion1475 = "reino_centralizado"
 
 -- | Mapa provisional del escenario: una cuadrícula hexagonal de 14 × 10 con
 -- terrenos pseudoaleatorios. Tzintzuntzan en la celda 63, Zacapu al noroeste

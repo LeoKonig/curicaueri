@@ -14,6 +14,7 @@ import Reglas.Base
 import Reglas.Comando
 import Reglas.Constantes
 import Reglas.Estado
+import Reglas.Grupos
 import Reglas.Sistemas
 
 catalogoMag :: Map.Map Magnitud DefMagnitud
@@ -29,9 +30,9 @@ catalogoMag = Map.fromList
      DefMagnitud "legitimidad" rangoLegitimidad "m.legitimidad" Nothing False)
   ]
 
-aplicarComando :: Constantes -> Estado Purepecha -> Sellado Comando
+aplicarComando :: Constantes -> Grupos -> Estado Purepecha -> Sellado Comando
                -> Either Rechazo (Estado Purepecha, [Hecho])
-aplicarComando _ est sell = case sellCmd sell of
+aplicarComando _ gs est sell = case sellCmd sell of
   FijarTasaTributo n
     | n < 1 || n > 5 -> Left (Rechazo "tasa fuera de rango (1..5)")
     | otherwise ->
@@ -66,6 +67,21 @@ aplicarComando _ est sell = case sellCmd sell of
                             { persistenteJuego = p' } }
         in Right (est', [])
   ReclutarEjercito _ -> Left (Rechazo "no_implementado")
+  NombrarGobernador alt per -> do
+    let p = persistenteJuego (estadoPersistente est)
+    a  <- maybe (Left (Rechazo "el altépetl no existe")) Right (Map.lookup alt (ppAltepetl p))
+    pe <- maybe (Left (Rechazo "el personaje no existe")) Right (Map.lookup per (ppPersonajes p))
+    if not (perVivo pe) then Left (Rechazo (perNombre pe <> " está muerto"))
+    else if altGobernador a == Just per then Left (Rechazo (perNombre pe <> " ya gobierna " <> altNombre a))
+    else case [ otro | otro <- Map.elems (ppAltepetl p), altGobernador otro == Just per ] of
+      (otro : _) -> Left (Rechazo (perNombre pe <> " ya gobierna " <> altNombre otro))
+      []         -> Right (nombrar gs (sellTick sell) alt pe est)
+  DestituirGobernador alt -> do
+    let p = persistenteJuego (estadoPersistente est)
+    a <- maybe (Left (Rechazo "el altépetl no existe")) Right (Map.lookup alt (ppAltepetl p))
+    case altGobernador a of
+      Nothing -> Left (Rechazo (altNombre a <> " no tiene gobernador"))
+      Just _  -> Right (quitarNombramiento gs (sellTick sell) alt est)
 
 -- El motor no conoce estos tipos; aquí los traducimos a valores genéricos
 -- de `Motor.Vista` para que el cliente pueda mostrarlos sin saber de reglas.
@@ -95,12 +111,18 @@ proyectar est =
 
 type JuegoPurepecha = Juego Purepecha Comando
 
+-- | El juego sin archivo de grupos: nombrar gobernadores no mueve poder.
 juego :: Constantes -> Juego Purepecha Comando
-juego c = Juego
+juego c = juegoCon c gruposVacios
+
+-- | El juego con sus grupos de poder (@datos/grupos.json@). El estado inicial
+-- tiene que pasar por 'conGrupos' con los mismos grupos.
+juegoCon :: Constantes -> Grupos -> Juego Purepecha Comando
+juegoCon c gs = Juego
   { juegoSistemas    = [hacienda c, evolucionAgravio c]
-  , juegoAplicarCmd  = aplicarComando c
+  , juegoAplicarCmd  = aplicarComando c gs
   , juegoDerivar     = \_ _ _ -> ()
   , juegoProyectar   = proyectar
   , juegoAgentes     = Map.empty
-  , juegoCatalogoMag = catalogoMag
+  , juegoCatalogoMag = Map.union catalogoMag (catalogoGrupos gs)
   }

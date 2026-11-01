@@ -5,6 +5,7 @@ import Control.Monad (forM_)
 import Data.List (foldl')
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
+import qualified Data.Text as T
 import Test.Hspec
 
 import Motor.Base
@@ -27,12 +28,29 @@ import Reglas.Constantes
 import Reglas.Escenario
 import Reglas.Estado
 import Reglas.Formulas
+import Reglas.Grupos
+import Motor.Hechos (Hecho (..))
+import qualified Data.ByteString.Lazy as BL
 
 mapaVacio :: Mapa
 mapaVacio = Mapa mempty mempty (Fijo 10000)
 
+-- | @datos/grupos.json@ cargado, o la lista de errores.
+leerGrupos :: IO (Either [Text] Grupos)
+leerGrupos = do
+  v <- A.eitherDecodeFileStrict "../../datos/grupos.json"
+  pure $ case v of
+    Left err -> Left [T.pack err]
+    Right j  -> case cargarGrupos "datos/grupos.json" j of
+      Validacion [] (Just g) -> Right g
+      Validacion errs _      -> Left (map errMensaje errs)
+
 main :: IO ()
-main = hspec $ do
+main = do
+ gruposArchivo <- leerGrupos
+ dorNombrar   <- BL.readFile "../../pruebas_compartidas/protocolo/comando_nombrar_gobernador.json"
+ dorDestituir <- BL.readFile "../../pruebas_compartidas/protocolo/comando_destituir_gobernador.json"
+ hspec $ do
   describe "reglas: autoridad (V5, el prototipo no cambia)" $ do
     it "todos los comandos del prototipo usan el requisito por omisión" $
       map dcRequiere catalogoComandos `shouldBe` map (const requisitoPorOmision) catalogoComandos
@@ -108,6 +126,127 @@ main = hspec $ do
         _           -> expectationFailure "se esperaba un rechazo"
       ppTasas (persistenteJuego (estadoPersistente s'))
         `shouldBe` ppTasas (persistenteJuego (estadoPersistente estadoInicial1475))
+
+  describe "reglas: nombramientos y grupos de poder (hito 3)" $ do
+    let gs = either (error . show) id gruposArchivo
+        j  = Reglas.Juego.juegoCon constantesDefault gs
+        Validacion erroresEsc mEsc = conGrupos "datos/grupos.json" gs tipoFaccion1475 estadoInicial1475
+        s0 = maybe (error (show erroresEsc)) id mEsc
+        alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
+        efectivo m st = maybe (Fijo 0)
+          (valorEn (derivadoVigentes (estadoDerivado st)) (estadoTick st) (RangoMag (Fijo 0) (fi 100)))
+          (Map.lookup (entFaccion, m) (alm st))
+        baseDe m st = maybe (Fijo 0) almacenBase (Map.lookup (entFaccion, m) (alm st))
+        aporte m st = efectivo m st .-. baseDe m st
+        cmd t n c st = aplicarCola j [Sellado (Tick t) (FaccionId 1) n c] st
+        estadoDe (e, _, _) = e
+        rechazoDe (_, _, rs) = rs
+        hechosDe (_, hs, _) = hs
+        correr ts st = foldl' (\e t -> fst (paso j (entornoSimple mapaVacio) (Semilla 1) (Tick t) [] e)) st ts
+        terminados hs = [ Map.lookup "razon" (hechoParams h) | h <- hs, hechoTipo h == "modificador_terminado" ]
+        gob a st = Map.lookup (AltId a) (ppAltepetl (persistenteJuego (estadoPersistente st))) >>= altGobernador
+        nobPoder = magPoder "nobleza_guerrera"
+        admPoder = magPoder "administradores"
+        admLeal  = magLealtad "administradores"
+        sacLeal  = magLealtad "sacerdocio"
+        -- Zacapu (2) queda vacante; el Inepto (3, nobleza guerrera) pasa a gobernar Uruapan (3),
+        -- que gobernaba el Capaz (4, administradores).
+        sVacante = estadoDe (cmd 0 0 (DestituirGobernador (AltId 2)) s0)
+        sReemp   = cmd 0 1 (NombrarGobernador (AltId 3) (PerId 3)) sVacante
+    it "datos/grupos.json carga con los cuatro grupos del vocabulario" $ do
+      either id (const []) gruposArchivo `shouldBe` []
+      grIds gs `shouldBe` ["nobleza_guerrera", "administradores", "sacerdocio", "mercaderes"]
+    it "el escenario con grupos carga, y sus bases son las del reino centralizado" $ do
+      map errMensaje erroresEsc `shouldBe` []
+      (baseDe nobPoder s0, baseDe admPoder s0, baseDe (magLealtad "mercaderes") s0)
+        `shouldBe` (fi 60, fi 40, fi 50)
+    it "los gobernadores del escenario ya aportan: dos cargos de la nobleza y uno de los administradores" $ do
+      (aporte nobPoder s0, aporte admPoder s0) `shouldBe` (fi 10, fi 5)
+      -- los administradores pretendían los dos cargos de la nobleza: 2 × (−3), y +5 por el suyo
+      aporte admLeal s0 `shouldBe` fi (-1)
+    it "el desglose nombra el nombramiento" $
+      [ fuenteRef (modFuente m) | Just x <- [Map.lookup (entFaccion, admPoder) (alm s0)], m <- almacenMods x ]
+        `shouldBe` ["4:gobernador:3"]
+    it "añadir varios de una vez da el mismo almacén que añadirlos uno a uno" $ do
+      let mk k (e, m) = Modificador 0 (Magnitud m) (EntRef e 1) (Aporte (fi k) (Fijo 0)) (Fuente "prueba" (T.pack (show k)))
+                                    Nothing Nothing Nothing AlcancePropia
+          ms = zipWith mk [1 ..] [("a", "x"), ("b", "x"), ("a", "x"), ("a", "y"), ("a", "x"), ("b", "x")]
+      agregarVarios ms (alm s0) `shouldBe` foldl' (\a m -> fst (agregarModificador m a)) (alm s0) ms
+    it "las magnitudes de los grupos están en el catálogo del juego" $
+      all (`Map.member` juegoCatalogoMag j) [nobPoder, admLeal] `shouldBe` True
+    it "destituir quita el cargo, vuelve a la base y emite modificador_terminado con razón fuente" $ do
+      let r = cmd 0 0 (DestituirGobernador (AltId 3)) s0
+      gob 3 (estadoDe r) `shouldBe` Nothing
+      aporte admPoder (estadoDe r) `shouldBe` Fijo 0
+      terminados (hechosDe r) `shouldBe` [Just "fuente", Just "fuente", Just "fuente"]
+    it "reemplazar termina los modificadores del anterior y añade los del nuevo" $ do
+      gob 3 (estadoDe sReemp) `shouldBe` Just (PerId 3)
+      rechazoDe sReemp `shouldBe` []
+      terminados (hechosDe sReemp) `shouldBe` [Just "fuente", Just "fuente", Just "fuente"]
+      (aporte nobPoder (estadoDe sReemp), aporte admPoder (estadoDe sReemp)) `shouldBe` (fi 10, Fijo 0)
+    it "sin trinquete: el aporte es constante mientras dura el cargo" $ do
+      let s100 = correr [1 .. 100] (estadoDe sReemp)
+      aporte nobPoder s100 `shouldBe` aporte nobPoder (estadoDe sReemp)
+      baseDe nobPoder s100 `shouldBe` baseDe nobPoder (estadoDe sReemp)
+    it "solo pierden lealtad los grupos que pretendían el cargo" $ do
+      let conSacerdote = s0 { estadoPersistente = (estadoPersistente s0) { persistenteJuego =
+            (persistenteJuego (estadoPersistente s0)) { ppPersonajes = Map.adjust (\pe -> pe { perGrupo = Just "sacerdocio" })
+                                                         (PerId 1) (ppPersonajes (persistenteJuego (estadoPersistente s0))) } } }
+          r = estadoDe (cmd 0 1 (NombrarGobernador (AltId 2) (PerId 1)) (estadoDe (cmd 0 0 (DestituirGobernador (AltId 2)) conSacerdote)))
+      aporte sacLeal r `shouldBe` fi 5
+      aporte (magLealtad "mercaderes") r `shouldBe` Fijo 0
+      -- los administradores pierden 3 por cada uno de los dos cargos que no son suyos, y ganan 5 por el suyo
+      aporte admLeal r `shouldBe` fi (-1)
+    it "un personaje sin grupo no mueve poder de nadie" $ do
+      let r = estadoDe (cmd 0 1 (NombrarGobernador (AltId 2) (PerId 1)) sVacante)
+      gob 2 r `shouldBe` Just (PerId 1)
+      alm r `shouldBe` alm sVacante
+    it "rechazos legibles sin daño: altépetl o personaje inexistente, muerto, ya gobierna" $ do
+      let muerto = s0 { estadoPersistente = (estadoPersistente s0) { persistenteJuego =
+            (persistenteJuego (estadoPersistente s0)) { ppPersonajes = Map.adjust (\pe -> pe { perVivo = False })
+                                                         (PerId 1) (ppPersonajes (persistenteJuego (estadoPersistente s0))) } } }
+          intento st c = let r = cmd 0 0 c st in (rechazoDe r, alm (estadoDe r) == alm st
+                                                  , ppAltepetl (persistenteJuego (estadoPersistente (estadoDe r)))
+                                                      == ppAltepetl (persistenteJuego (estadoPersistente st)))
+      intento s0 (NombrarGobernador (AltId 9) (PerId 1)) `shouldBe` ([Rechazo "el altépetl no existe"], True, True)
+      intento s0 (NombrarGobernador (AltId 2) (PerId 9)) `shouldBe` ([Rechazo "el personaje no existe"], True, True)
+      intento muerto (NombrarGobernador (AltId 2) (PerId 1)) `shouldBe` ([Rechazo "Zuangua está muerto"], True, True)
+      intento s0 (NombrarGobernador (AltId 2) (PerId 4)) `shouldBe` ([Rechazo "Gobernador Capaz ya gobierna Uruapan"], True, True)
+      intento s0 (NombrarGobernador (AltId 2) (PerId 3)) `shouldBe` ([Rechazo "Gobernador Inepto ya gobierna Zacapu"], True, True)
+      intento sVacante (DestituirGobernador (AltId 2)) `shouldBe` ([Rechazo "Zacapu no tiene gobernador"], True, True)
+      intento s0 (DestituirGobernador (AltId 9)) `shouldBe` ([Rechazo "el altépetl no existe"], True, True)
+    it "un mal gobernador nombrado por comando sigue bajando la recaudación" $ do
+      let paso0 st = fst (paso j (entornoSimple mapaVacio) (Semilla 1) (Tick 0) [] st)
+      baseFaccion magTesoro (paso0 (estadoDe sReemp)) `shouldSatisfy` (< baseFaccion magTesoro (paso0 sVacante))
+    it "sin archivo de grupos, nombrar solo cambia el gobernador" $ do
+      let jSin = Reglas.Juego.juego constantesDefault
+          (r, hs, rs) = aplicarCola jSin [Sellado (Tick 0) (FaccionId 1) 0 (DestituirGobernador (AltId 3))] estadoInicial1475
+      (rs, hs, gob 3 r, alm r == alm estadoInicial1475) `shouldBe` ([], [], Nothing, True)
+    it "la carga acumula los errores de un grupos.json malo" $ do
+      let malo = A.object
+            [ "grupos" A..= (["a", "a", "b"] :: [Text])
+            , "bases" A..= A.object [ "reino" A..= A.object
+                [ "a" A..= A.object ["poder" A..= ("120" :: Text), "lealtad" A..= ("50" :: Text)]
+                , "z" A..= A.object ["poder" A..= ("1" :: Text), "lealtad" A..= ("1" :: Text)] ] ]
+            , "cargos" A..= A.object [ "gobernador" A..= A.object ["pretendientes" A..= (["q"] :: [Text])] ]
+            , "poder_por_cargo" A..= ("-1" :: Text), "lealtad_por_cargo" A..= ("5" :: Text)
+            , "lealtad_por_cargo_perdido" A..= ("3" :: Text) ]
+      map errMensaje (valErrores (cargarGrupos "malo.json" malo)) `shouldBe`
+        [ "grupo repetido", "falta la base de este grupo", "fuera de 0..100", "grupo desconocido"
+        , "grupo desconocido: q", "no puede ser negativa" ]
+    it "un personaje con un grupo que el archivo no declara falla al cargar el escenario" $ do
+      let raro = estadoInicial1475 { estadoPersistente = (estadoPersistente estadoInicial1475) { persistenteJuego =
+            (persistenteJuego (estadoPersistente estadoInicial1475)) { ppPersonajes = Map.adjust (\pe -> pe { perGrupo = Just "brujos" })
+                (PerId 1) (ppPersonajes (persistenteJuego (estadoPersistente estadoInicial1475))) } } }
+      map errMensaje (valErrores (conGrupos "grupos.json" gs tipoFaccion1475 raro)) `shouldBe` ["grupo desconocido: brujos"]
+    it "los comandos coinciden con sus archivos dorados, de ida y de vuelta" $ do
+      (A.decode dorNombrar, A.decode dorDestituir)
+        `shouldBe` (Just (A.toJSON (NombrarGobernador (AltId 3) (PerId 2))), Just (A.toJSON (DestituirGobernador (AltId 2))))
+      (A.decode dorNombrar, A.decode dorDestituir)
+        `shouldBe` (Just (NombrarGobernador (AltId 3) (PerId 2)), Just (DestituirGobernador (AltId 2)))
+    it "un personaje guardado sin grupo (guardados anteriores) carga sin grupo" $
+      (A.decode "{\"perId\":1,\"perNombre\":\"Z\",\"perAdmin\":3,\"perMando\":2,\"perEdad\":40,\"perVivo\":true}" :: Maybe Personaje)
+        `shouldBe` Just (Personaje (PerId 1) "Z" 3 2 40 True Nothing)
 
   describe "reglas: cifras de la recaudación" $
     -- Con las eficiencias del escenario (93, 31 y 68 puntos) el ingreso anual

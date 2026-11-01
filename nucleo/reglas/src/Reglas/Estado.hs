@@ -47,6 +47,7 @@ data Personaje = Personaje
   , perMando  :: Int
   , perEdad   :: Int
   , perVivo   :: Bool
+  , perGrupo  :: Maybe Text     -- ^ grupo de poder (V5, *Los nombramientos mueven poder*); sin grupo, no mueve poder
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 -- | La facción no es un registro: su tesoro, prestigio y legitimidad son
