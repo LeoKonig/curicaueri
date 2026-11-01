@@ -8,9 +8,12 @@
   "fin.resumen": "Terminaste el {fecha}, tras {dias} días y {entradas} entradas de crónica.",
   "fin.cronica": "Crónica del reino",
   "fin.cargar": "Cargar una partida",
-  "libro.titulo": "Una copia llegó justo antes del final: el libro que mandaste conseguir.",
+  "libro.titulo": "La copia que mandaste conseguir llegó justo antes del final.",
   "libro.abrir": "Abrir el libro",
   "libro.apertura": "En un lugar de la Mancha, de cuyo nombre no quiero acordarme, no ha mucho tiempo que vivía un hidalgo de los de lanza en astillero, adarga antigua, rocín flaco y galgo corredor... Es, pues, de saber que este sobredicho hidalgo, los ratos que estaba ocioso, que eran los más del año, se daba a leer libros de caballerías, con tanta afición y gusto, que olvidó casi de todo punto el ejercicio... En resolución, él se enfrascó tanto en su lectura, que se le pasaban las noches leyendo de claro en claro, y los días de turbio en turbio; y así, del poco dormir y del mucho leer se le secó el celebro de manera, que vino a perder el juicio. Llenósele la fantasía de todo aquello que leía en los libros, así de encantamentos como de pendencias, batallas, desafíos, heridas, requiebros, amores, tormentas y disparates imposibles; y asentósele de tal modo en la imaginación que era verdad toda aquella máquina de aquellas soñadas invenciones que leía, que para él no había otra historia más cierta en el mundo.",
   "libro.cierre": "Quizá sea hora de dejar el juego.",
-  "cronica.vacia": "Todavía no hay nada que contar."
+  "cronica.vacia": "Todavía no hay nada que contar.",
+  "cronica.copia_pedida": "Llegó la noticia de una obra nueva publicada en España, y mandaste conseguir una copia.",
+  "cronica.fin": "Termina el tiempo del juego.",
+  "cronica.fase": "Empieza una nueva etapa: {fase}."
 }

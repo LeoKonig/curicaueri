@@ -1787,6 +1787,19 @@ cronicaPruebas = describe "crónica y fin de partida" $ do
         `shouldBe` (Map.fromList [("fase", "c.fase")], Just ["caida"], True)
     it "sin esos campos, el guion carga como siempre: sin tabla y sin fin" $
       (guCronica guionJuguete, guFin guionJuguete) `shouldBe` (Map.empty, Nothing)
+    describe "datos/cierre_1607.json" $ do
+      bytes <- runIO (BL.readFile "../datos/cierre_1607.json")
+      let Just valor = A.decode bytes
+          Just g = valValor (cargarGuion "cierre_1607.json" inicioJuguete valor)
+          tickDe f = fromIntegral (diaJuliano f - diaJuliano inicioJuguete)
+      it "carga sin errores" $
+        valErrores (cargarGuion "cierre_1607.json" inicioJuguete valor) `shouldBe` []
+      it "presenta la obra nueva desde 1605, con «dejarla pasar» como opción por omisión" $
+        [ (siId s, siCondicion s, map fst (siOpciones s)) | s <- guSituaciones g ]
+          `shouldBe` [("se_publica_una_obra_nueva", DesdeTick (tickDe (Fecha 1605 1 1)), ["dejarla_pasar", "conseguir_una_copia"])]
+      it "la partida termina el 31 de diciembre de 1607 y la crónica cuenta la copia pedida y el fin" $
+        (fmap fgTick (guFin g), fmap (null . fgDerrotas) (guFin g), Map.keys (guCronica g))
+          `shouldBe` (Just (Just (tickDe (Fecha 1607 12 31))), Just True, ["copia_pedida", "fase", "fin_partida"])
     it "una derrota sin razón es un error de carga" $
       length (valErrores (cargarGuion "x.json" inicioJuguete (v [""]))) `shouldBe` 1
 
