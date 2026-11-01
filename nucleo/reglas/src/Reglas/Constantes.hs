@@ -37,11 +37,16 @@ data Constantes = Constantes
     -- Producción (documento funcional, sección 12). PROVISIONALES: el
     -- prototipo no las tiene; se fijan al calibrar el hito 3.
   , cFraccionTrabajadora   :: Fijo   -- FRACCION_TRABAJADORA: parte de un pop productivo que trabaja
-  , cRadioProduccionKm     :: Fijo   -- RADIO_PRODUCCION_KM: hasta dónde trabaja un altépetl
+  , cRadioProduccion     :: Fijo   -- RADIO_PRODUCCION: hasta dónde trabaja un altépetl, en km de llano por el costo del grafo
     -- Obras y templos (V5, *Las obras*; sección 14i). PROVISIONALES.
   , cSustentoCuadrilla     :: Fijo   -- SUSTENTO_CUADRILLA: valor por trabajador de cuadrilla y veintena
   , cAlcanceTemploLocal    :: Fijo   -- ALCANCE_TEMPLO_LOCAL: hasta dónde va un pop a su templo local
   , cAlcanceCentro         :: Fijo   -- ALCANCE_CENTRO_CEREMONIAL: hasta dónde llega el peregrinaje
+    -- Tributo en especie de materiales (etapa 2). PROVISIONALES.
+  , cVelocidadTransporte   :: Fijo   -- VELOCIDAD_TRANSPORTE: km de llano que recorre una carga por veintena
+  , cCostoTransporte       :: Fijo   -- COSTO_TRANSPORTE: valor por unidad y km de llano
+  , cAlcanceTributo        :: Fijo   -- ALCANCE_TRIBUTO: hasta dónde se pide material
+  , cAgravioTributoObra    :: Fijo   -- AGRAVIO_TRIBUTO_OBRA: puntos por año en quien lo envía
   } deriving (Eq, Show)
 
 constantesDefault :: Constantes
@@ -68,13 +73,20 @@ constantesDefault = Constantes
   , cGobernadorAgravioPunto = 3
   , cObrasPresupuestoMinimo = 20
   , cFraccionTrabajadora   = Fijo 2500       -- 0,25, provisional
-    -- Provisional. V5 propone 10 km con celdas de unos 5 km (dos anillos);
-    -- el mapa provisional del escenario tiene celdas de 20 km, así que dos
-    -- anillos son 40 km.
-  , cRadioProduccionKm     = fi 40
+    -- Provisional. V5 propone 10 km de llano con celdas de unos 5 km (dos
+    -- anillos); el mapa provisional del escenario tiene celdas de 20 km, así
+    -- que dos anillos de llano son 40. Una sierra (μ = 3) vecina ya cuesta 40:
+    -- es la última celda que se alcanza por ese lado.
+  , cRadioProduccion     = fi 40
     -- Con la partida de obras del escenario (30 puntos: 10 por veintena), el
     -- sustento alcanza para una cuadrilla de 500.
   , cSustentoCuadrilla     = Fijo 200        -- 0,02, provisional
   , cAlcanceTemploLocal    = fi 60           -- tres anillos del mapa provisional, provisional
   , cAlcanceCentro         = fi 200          -- diez anillos, provisional
+    -- Los cargadores recorren unos 20 km al día (por verificar), pero el
+    -- material se junta, se carga y se descarga: 100 km de llano por veintena.
+  , cVelocidadTransporte   = fi 100
+  , cCostoTransporte       = Fijo 100        -- 0,01, provisional
+  , cAlcanceTributo        = fi 300
+  , cAgravioTributoObra    = fi 2
   }

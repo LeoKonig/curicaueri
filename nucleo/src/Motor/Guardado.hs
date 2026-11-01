@@ -19,6 +19,7 @@ import Motor.Estado
 import Motor.Juego (Juego, derivar)
 import Motor.Magnitudes
 import Motor.Mapa (Mapa)
+import Motor.Recorrido (grafoDe)
 
 -- ---------------------------------------------------------------------------
 -- Instancias JSON de los tipos del núcleo
@@ -88,7 +89,7 @@ instance FromJSON Alcance where
     _        -> fail ("Alcance desconocido: " <> T.unpack t)
 
 instance ToJSON Modificador where
-  toJSON m = object
+  toJSON m = object $
     [ "id"        .= modId m
     , "magnitud"  .= modMagnitud m
     , "entidad"   .= modEntidad m
@@ -98,7 +99,7 @@ instance ToJSON Modificador where
     , "fin"       .= modFin m
     , "condicion" .= modCondicion m
     , "alcance"   .= modAlcance m
-    ]
+    ] ++ [ "detalle" .= [ object ["nombre" .= n, "valor" .= v] | (n, v) <- modDetalle m ] | not (null (modDetalle m)) ]
 instance FromJSON Modificador where
   parseJSON = withObject "Modificador" $ \o ->
     Modificador
@@ -111,6 +112,7 @@ instance FromJSON Modificador where
       <*> o .:? "fin"
       <*> o .:? "condicion"
       <*> (fromMaybeDefault <$> o .:? "alcance")
+      <*> (maybe (pure []) (mapM (withObject "detalle" (\d -> (,) <$> d .: "nombre" <*> d .: "valor"))) =<< o .:? "detalle")
     where fromMaybeDefault = maybe AlcancePropia id
 
 instance ToJSON AlmacenMag where
@@ -365,6 +367,6 @@ cargar j m bs = do
   ed <- case A.fromJSON crudo of
     A.Error err -> Left (ErrorCarga ErrorEstructura "" "" (T.pack err))
     A.Success x -> Right x
-  let d = derivar j m (edOrigenT ed) (edOrigenP ed)
+  let d = derivar j (grafoDe m) (edOrigenT ed) (edOrigenP ed)
   pure (Estado (edTick ed) (edPersist ed)
                (Origen (edOrigenT ed) (edOrigenP ed)) d)

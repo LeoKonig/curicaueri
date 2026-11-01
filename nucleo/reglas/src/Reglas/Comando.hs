@@ -5,6 +5,7 @@ module Reglas.Comando
   ( Comando (..)
   , catalogoComandos
   , catalogoComandosCon
+  , catalogoComandosConMateriales
   ) where
 
 import Data.Aeson (FromJSON (..), ToJSON (..), object, withObject, (.:), (.:?), (.!=), (.=))
@@ -25,6 +26,7 @@ data Comando
   | NombrarGobernador AltId PerId   -- ^ el altépetl y el personaje
   | DestituirGobernador AltId
   | ConstruirEdificio Text AltId Int  -- ^ el edificio (id de @datos/edificios.json@), el altépetl y la cuadrilla (0 si no lleva)
+  | PedirTributoObra AltId Text AltId Int  -- ^ la obra (su altépetl), el material, quien lo envía y cuántos trabajadores pone
   deriving (Eq, Show)
 
 partes :: [(Text, PartePresupuesto)]
@@ -51,6 +53,8 @@ instance FromJSON Comando where
       "destituir_gobernador"   -> DestituirGobernador . AltId <$> o .: "altepetl"
       "construir_edificio"     -> ConstruirEdificio <$> o .: "edificio" <*> (AltId <$> o .: "altepetl")
                                                     <*> o .:? "cuadrilla" .!= 0
+      "pedir_tributo_obra"     -> PedirTributoObra <$> (AltId <$> o .: "altepetl") <*> o .: "material"
+                                                   <*> (AltId <$> o .: "fuente") <*> o .: "cuadrilla"
       _                        -> fail ("comando desconocido: " <> T.unpack t)
 
 instance ToJSON Comando where
@@ -65,6 +69,8 @@ instance ToJSON Comando where
       object ["tipo" .= ("destituir_gobernador" :: Text), "altepetl" .= a]
     ConstruirEdificio e (AltId a) n ->
       object ["tipo" .= ("construir_edificio" :: Text), "edificio" .= e, "altepetl" .= a, "cuadrilla" .= n]
+    PedirTributoObra (AltId a) g (AltId f) n ->
+      object ["tipo" .= ("pedir_tributo_obra" :: Text), "altepetl" .= a, "material" .= g, "fuente" .= f, "cuadrilla" .= n]
 
 -- | El catálogo sin edificios cargados: @construir_edificio@ se declara con
 -- una lista de opciones vacía.
@@ -73,9 +79,12 @@ catalogoComandos = catalogoComandosCon []
 
 -- | Lo que el cliente necesita para armar el formulario de cada comando.
 -- Los rangos coinciden con la validación de 'Reglas.Juego.aplicarComando'.
--- Recibe los ids de los edificios, que son datos.
+-- Recibe los ids de los edificios y de los materiales de obra, que son datos.
 catalogoComandosCon :: [Text] -> [DeclComando]
-catalogoComandosCon edificios =
+catalogoComandosCon edificios = catalogoComandosConMateriales edificios []
+
+catalogoComandosConMateriales :: [Text] -> [Text] -> [DeclComando]
+catalogoComandosConMateriales edificios materiales =
   [ DeclComando "fijar_tasa_tributo" "c.fijar_tasa_tributo" [DeclParametro "valor" (PEntero 1 5)] True requisitoPorOmision
   , DeclComando "fijar_impuesto_interno" "c.fijar_impuesto_interno" [DeclParametro "valor" (PEntero 1 5)] True requisitoPorOmision
   , DeclComando "asignar_presupuesto" "c.asignar_presupuesto"
@@ -90,4 +99,7 @@ catalogoComandosCon edificios =
   , DeclComando "construir_edificio" "c.construir_edificio"
       [ DeclParametro "edificio" (POpcion edificios), DeclParametro "altepetl" (PEntero 1 1000000)
       , DeclParametro "cuadrilla" (PEntero 0 100000) ] True requisitoPorOmision
+  , DeclComando "pedir_tributo_obra" "c.pedir_tributo_obra"
+      [ DeclParametro "altepetl" (PEntero 1 1000000), DeclParametro "material" (POpcion materiales)
+      , DeclParametro "fuente" (PEntero 1 1000000), DeclParametro "cuadrilla" (PEntero 1 100000) ] True requisitoPorOmision
   ]

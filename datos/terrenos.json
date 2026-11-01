@@ -1,15 +1,15 @@
 {
-  "_nota": "Tabla de terrenos (V5, La tierra y la gente). TODOS LOS VALORES SON DE RELLENO: se fijan en el hito 0 y se calibran en el 3. Capacidad: personas que sostiene una celda de ese terreno. Erosión base: puntos de degradación por veintena bajo presión (la usa el hito 6a; hasta entonces nadie la lee). Recursos: lo que la celda aporta a quien la trabaja. Trabajadores: cuántos hacen falta para trabajar la celda entera (ℓ, documento funcional, sección 12). Rendimiento: bienes por veintena de una celda trabajada entera (y); los bienes son los seis de V5, Modelo de datos (maíz, pescado, sal, cobre, mantas y obsidiana), y el reparto por terreno es ilustrativo: maíz y algodón para mantas en el llano, pescado y sal en el lago (por verificar: la sal de Cuitzeo y Araró), obsidiana y cobre en la sierra (por verificar: Zinapécuaro y la Tierra Caliente). El bosque no rinde ninguno de los seis. Materiales: los de construcción que extrae la cuadrilla de una obra (V5, Las obras), por veintena de una celda extraída entera; no son bienes ni tienen existencias. Los terrenos son los que genera el proveedor hexagonal; si el mapa trae otro, la carga falla. Cambiar la capacidad, los recursos, la erosión o el rendimiento de un terreno es editar este archivo.",
+  "_nota": "Tabla de terrenos (V5, La tierra y la gente). TODOS LOS VALORES SON DE RELLENO: se fijan en el hito 0 y se calibran en el 3. Capacidad: personas que sostiene una celda de ese terreno. Erosión base: puntos de degradación por veintena bajo presión (la usa el hito 6a; hasta entonces nadie la lee). Recursos: lo que la celda aporta a quien la trabaja. Trabajadores: cuántos hacen falta para trabajar la celda entera (ℓ, documento funcional, sección 12). Rendimiento: bienes por veintena de una celda trabajada entera (y); los bienes son los seis de V5, Modelo de datos (maíz, pescado, sal, cobre, mantas y obsidiana), y el reparto por terreno es ilustrativo: maíz y algodón para mantas en el llano, pescado y sal en el lago (por verificar: la sal de Cuitzeo y Araró), obsidiana y cobre en la sierra (por verificar: Zinapécuaro y la Tierra Caliente). El bosque no rinde ninguno de los seis. Costo de movimiento: cuánto cuesta cruzar el terreno respecto del llano (μ, V5, Costo del grafo); el costo de una conexión es su longitud por el promedio de μ de sus dos celdas, en km de llano. El lago vale como llano mientras no haya puertos (V5, Las obras, etapa 4): sin ellos, la regla del agua navegable dejaría a los pescadores sin lago. Materiales: los de construcción que extrae la cuadrilla de una obra (V5, Las obras), por veintena de una celda extraída entera; no son bienes ni tienen existencias. Los terrenos son los que genera el proveedor hexagonal; si el mapa trae otro, la carga falla. Cambiar la capacidad, los recursos, la erosión o el rendimiento de un terreno es editar este archivo.",
   "version": 1,
   "terrenos": [
-    {"id": "llano",  "capacidad": "10", "recursos": ["maiz"],           "erosion": "0.5",
+    {"id": "llano",  "capacidad": "10", "recursos": ["maiz"],           "erosion": "0.5", "costo_movimiento": "1",
      "trabajadores": "500", "rendimiento": {"maiz": "40", "mantas": "4"}},
-    {"id": "bosque", "capacidad": "2",  "recursos": ["madera", "caza"], "erosion": "0.2",
+    {"id": "bosque", "capacidad": "2",  "recursos": ["madera", "caza"], "erosion": "0.2", "costo_movimiento": "1.5",
      "materiales": {"madera": {"rendimiento": "30", "trabajadores": "150"}}},
-    {"id": "sierra", "capacidad": "4",  "recursos": ["piedra"],         "erosion": "1",
+    {"id": "sierra", "capacidad": "4",  "recursos": ["piedra"],         "erosion": "1", "costo_movimiento": "3",
      "trabajadores": "300", "rendimiento": {"obsidiana": "6", "cobre": "2"},
      "materiales": {"piedra": {"rendimiento": "40", "trabajadores": "200"}}},
-    {"id": "lago",   "capacidad": "6",  "recursos": ["pescado"],        "erosion": "0",
+    {"id": "lago",   "capacidad": "6",  "recursos": ["pescado"],        "erosion": "0", "costo_movimiento": "1",
      "trabajadores": "400", "rendimiento": {"pescado": "20", "sal": "3"}}
   ]
 }

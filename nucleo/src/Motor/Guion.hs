@@ -14,6 +14,7 @@ module Motor.Guion
   , Guion (..)
   , guionVacio
   , Entorno (..)
+  , entorno
   , entornoSimple
     -- * Carga
   , cargarGuion
@@ -35,6 +36,7 @@ import Motor.Carga (CategoriaError (..), ErrorCarga (..), Validacion (..), falla
 import Motor.Efectos (Programa, compilarPrograma)
 import Motor.Magnitudes (Condicion (..), Magnitud (..))
 import Motor.Mapa (Mapa)
+import Motor.Recorrido (Grafo, grafoDe)
 import Motor.Moneda (Economia, economiaVacia)
 
 -- | Una fase del escenario. Empieza cuando llega su día o se cumple su
@@ -94,14 +96,24 @@ guionVacio = Guion [] [] [] paramsPorOmision
 
 -- | Lo inmutable de la partida (documento funcional, sección 1): no cambia
 -- durante la partida y no se guarda con el estado.
+--
+-- El grafo compacto del mapa ('grafoDe') es lo más caro de construir de lo
+-- que recorre el paso 16 (con 150 000 celdas, un segundo), y solo depende del
+-- mapa: se construye una vez, al crear el entorno, y de forma perezosa, así
+-- que un juego que no recorre el mapa nunca lo paga. Se crea con 'entorno'
+-- para que el grafo siempre corresponda al mapa.
 data Entorno = Entorno
   { entMapa     :: Mapa
   , entGuion    :: Guion
   , entEconomia :: Economia   -- ^ bienes que pueden ser moneda (Motor.Moneda)
+  , entGrafo    :: Grafo      -- ^ el grafo compacto de 'entMapa'
   }
 
+entorno :: Mapa -> Guion -> Economia -> Entorno
+entorno m g e = Entorno m g e (grafoDe m)
+
 entornoSimple :: Mapa -> Entorno
-entornoSimple m = Entorno m guionVacio economiaVacia
+entornoSimple m = entorno m guionVacio economiaVacia
 
 -- ---------------------------------------------------------------------------
 -- Carga

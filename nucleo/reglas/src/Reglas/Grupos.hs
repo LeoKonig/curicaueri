@@ -143,7 +143,7 @@ modsNombramiento gs per alt = case perGrupo per of
   where
     negar (Fijo x) = Fijo (negate x)
     mk m x = Modificador 0 m entFaccion (Aporte x (Fijo 0))
-                         (fuenteNombramiento (perId per) alt) Nothing Nothing Nothing AlcancePropia
+                         (fuenteNombramiento (perId per) alt) Nothing Nothing Nothing AlcancePropia []
 
 -- | Pone a p en el gobierno del altépetl. Quien gobernaba antes pierde el
 -- cargo y sus modificadores terminan. No valida: lo hace el comando.

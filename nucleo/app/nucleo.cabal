@@ -10,4 +10,8 @@ executable nucleo
   hs-source-dirs:   .
   default-language: Haskell2010
   build-depends:    base, motor, reglas, aeson, bytestring, text, network, directory, filepath, process, containers
-  ghc-options:      -Wall -Werror -threaded
+  -- -rtsopts deja medir y ajustar la recolección de basura sin recompilar
+  -- (por ejemplo, +RTS -s). A la escala del mapa completo la recolección se
+  -- lleva cerca del 40 % del tiempo; agrandar la zona de asignación (-A) no lo
+  -- mejora, porque lo que más asigna es la proyección diaria de la vista.
+  ghc-options:      -Wall -Werror -threaded -rtsopts

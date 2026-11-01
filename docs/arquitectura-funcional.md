@@ -36,7 +36,7 @@ type family PlanDe s         -- el plan de su IA
 data Juego s c = Juego
   { sistemas       :: [Sistema s]
   , aplicarCmd     :: Estado s -> Sellado c -> Either Rechazo (Estado s, [Hecho])
-  , derivarJuego   :: Mapa -> Tick -> Persistente s -> DerivadoDe s
+  , derivarJuego   :: Grafo -> Tick -> Persistente s -> DerivadoDe s   -- el grafo compacto trae el mapa
   , proyectarJuego :: Estado s -> [EntidadJuego]   -- clase, ref y campos propios
   , agentes        :: Map FaccionId (Agente s c)
   , efectosPropios :: Map NombreEfecto (EfectoJSON -> Either ErrorCarga (Efecto s))
@@ -50,6 +50,7 @@ data Agente s c = Agente
 -- lo inmutable de la partida: no cambia nunca y no se guarda con el estado
 data Entorno = Entorno
   { mapa      :: Mapa
+  , grafo     :: Grafo        -- el grafo compacto del mapa (Motor.Recorrido), construido una vez
   , catalogo  :: Catalogo     -- magnitudes con sus rangos, clases, condiciones compiladas
   , desfase   :: Int          -- del escenario (sección 2)
   }
@@ -58,6 +59,7 @@ paso :: Juego s c -> Entorno -> Semilla -> Tick -> [Sellado c] -> Estado s -> (E
 ```
 
 - **Lo inmutable va en un `Entorno`, no en el estado.** El mapa, el catálogo y el desfase del calendario no cambian durante la partida, pero `paso` los necesita: `derivar` usa el mapa y `valorEfectivo` usa los rangos. Guardarlos dentro del estado los copiaría en cada guardado; dejarlos fuera de `paso` obliga a improvisar, como pasar un mapa vacío. El `Entorno` se reconstruye al cargar desde los datos y el escenario.
+- **El derivado recibe el grafo compacto, no el mapa.** Construir el grafo compacto de 150 000 celdas cuesta medio segundo y solo depende del mapa, así que el `Entorno` lo construye una vez, de forma perezosa, y `derivarJuego` lo recibe hecho. El mapa sigue a mano: el grafo lo lleva dentro (`grafoMapa`). `cargar` recibe el mapa y construye su grafo una vez por carga.
 - **El derivado del juego se calcula desde el persistente, no desde el estado.** Si `derivarJuego` recibiera `Estado s`, tendría a mano el derivado viejo y podría usarlo para calcularse a sí mismo sin que nada lo impida. Recibe `Persistente s` completo, y no solo `s`, porque necesita las magnitudes del motor: la fuerza de una fuente de influencia es un valor efectivo con modificadores.
 - **Los agentes van en un mapa por facción.** Se recorren en orden de `FaccionId`, que no depende del orden de carga, y la clave ya identifica la facción, así que `Agente` no lleva un campo de facción que pudiera contradecirla. En el paso 0 el motor quita del mapa la facción del jugador antes de recorrerlo; como el jugador puede cambiar de facción después de 1530 (`ElegirFaccion`), eso se decide en cada tick y no al cargar.
 - **El plan es del juego y lo guarda el motor.** `PlanDe s` es el tipo de plan de cada juego (`()` en el juguete). El motor lo guarda en `planes` dentro de `Comun` (sección 4), así que el agente sigue sin poder escribir en el estado: devuelve un plan y unos comandos, y el motor los guarda y los sella.
@@ -235,14 +237,14 @@ La solución es guardar **de qué** se calculó el derivado. `origen` es el pers
 ```haskell
 -- El tick hace falta porque parte del derivado depende de la fecha: casus belli
 -- y treguas con vencimiento, condiciones de modificadores con ventana, estación.
-derivar :: Juego s c -> Mapa -> Tick -> Persistente s -> Derivado s
-derivar j m t p = let dj = derivarJuego j m t p in Derivado (vigentesEn t p dj) dj
+derivar :: Juego s c -> Grafo -> Tick -> Persistente s -> Derivado s
+derivar j g t p = let dj = derivarJuego j g t p in Derivado (vigentesEn t p dj) dj
 
 guardar :: Serialise s => Estado s -> ByteString      -- persistente y origen, en CBOR
 cargar  :: Serialise s => Juego s c -> Mapa -> ByteString -> Either ErrorCarga (Estado s)
 cargar j m b = do
   (t, p, Origen tf pf) <- decodificar b
-  pure (Estado t p (Origen tf pf) (derivar j m tf pf))
+  pure (Estado t p (Origen tf pf) (derivar j (grafoDe m) tf pf))
 ```
 
 El derivado sigue sin guardarse: se guardan sus entradas, y por eso la ley se cumple exactamente. Al cambiar de versión, la migración de guardados (sección 18) migra el persistente y el origen con la misma cadena, y el derivado se recalcula con el código nuevo.
@@ -391,6 +393,8 @@ La longitud es fija; el costo, no (V5, *Costo del grafo*). Con μ(c) el valor ef
 ```
 
 El costo es simétrico por construcción: μ entra como promedio y ρ solo depende del par, así que la ley de simetría del mapa sigue valiendo. Todas las reglas usan d_costo; d_km queda para lo que es geometría.
+
+**Implementado (hito 3).** μ por terreno (`costo_movimiento` en `datos/terrenos.json`, `conCostoDeTerreno` en `Motor.Terrenos`), aplicado al cargar el mapa. Todavía es estático: ninguna obra lo cambia, así que el grafo se construye una vez en el `Entorno`. El factor ρ del río y del agua navegable entra con los puertos (V5, *Las obras*, etapa 4): sin puertos, la regla del agua dejaría a los pescadores sin lago, y el mapa provisional no tiene ríos. El parche entra con el primer modificador de μ, que es el camino.
 
 **Grafo parcheado.** El grafo compacto (`Motor.Recorrido`) guarda el costo de cada conexión. Cuando cambia μ(c) o ρ de una conexión, se reescriben solo las conexiones de las celdas afectadas:
 
@@ -1318,15 +1322,15 @@ donde cada término falta si no aplica: sin T, no hay tope por trabajo; sin mate
 
 4. **Fin.** Cuando v ≥ D, w ≥ T y A_g ≥ M_g para todo g, la obra termina: R_a baja en C, se recalcula el beneficio de su tipo (abajo), se aplican los efectos al terminar y se emite `edificio_terminado`.
 
-**Tributo en especie** (etapa 2). El comando que empieza la obra puede nombrar, por material, otro altépetl s de la facción que lo enviará; se rechaza si s es independiente (`Cabecera f` con f ≠ la facción, sección 14b). El altépetl s extrae con sus propios trabajadores (`retirar_trabajadores`, motivo `tributo_obra`), recibe el agravio del tributo, multiplicado por `AGRAVIO_TRIBUTO_SENORIO` si su condición es `Senorio`, y cada veintena crea una entrega:
+**Tributo en especie** (etapa 2, implementada). Con la obra empezada, `PedirTributoObra a g s n` pide a otro altépetl s de la facción que envíe el material g con n trabajadores suyos. Se rechazará si s es independiente (`Cabecera f` con f ≠ la facción, sección 14b) cuando exista la condición del altépetl. El altépetl s extrae con sus propios trabajadores (`retirar_trabajadores`, motivo `tributo_obra`) y recibe el agravio del tributo. Ese agravio es un modificador de `tasa_agravio` con fuente `tributo_obra:<a>:<g>` y valor `AGRAVIO_TRIBUTO_OBRA`; se multiplicará por `AGRAVIO_TRIBUTO_SENORIO` si su condición es `Senorio`. Cada veintena, s extrae a lo sumo lo que falta, F_g = M_g − A_g − (lo que viene en camino), y crea una entrega:
 
 ```math
 \text{llega} = t + 20\cdot\Big\lceil \frac{d_{\text{costo}}(s, a)}{v} \Big\rceil, \qquad \text{costo} = k \cdot q \cdot d_{\text{costo}}(s, a)
 ```
 
-con v = `VELOCIDAD_TRANSPORTE` (costo del grafo que recorre una carga por veintena), k = `COSTO_TRANSPORTE` y q la cantidad. Como d_costo es la distancia del grafo, un camino acorta el retraso y abarata el costo sin regla propia. La consulta suma, por fuente, cantidad, retraso y costo.
+con v = `VELOCIDAD_TRANSPORTE` (costo del grafo que recorre una carga por veintena), k = `COSTO_TRANSPORTE` y q la cantidad. La distancia d_costo(s, a) sale del derivado: en el paso 16, cada altépetl con obra hace un recorrido persistente acotado por `ALCANCE_TRIBUTO`. Su costo es lo que alcanza, no el tamaño del mapa: con 150 000 celdas, 1,2 ms por obra. Por eso el pedido se hace desde la veintena siguiente al inicio de la obra. El transporte se cobra al tesoro al llegar, en el paso 10, así que el tesoro tiene dos escritores declarados: la hacienda y la construcción. Como d_costo es la distancia del grafo, un camino acorta el retraso y abarata el costo sin regla propia. La consulta suma, por fuente, cantidad, retraso y costo.
 
-**Oficio** (etapa 3). Si el edificio pide (κ, d_min), la obra se rechaza al empezar con dominio(κ) < d_min, sin cambiar el estado. Al terminar una obra con oficio κ, el sistema actualiza en la facción un modificador de `conocimiento.κ.tacito` con fuente "práctica", de instancia estable y valor
+**Oficio** (etapa 3, implementada). Los conocimientos y sus bases del escenario se declaran en `datos/edificios.json` (`conocimientos`), y cada edificio puede pedir un `oficio`. dominio(κ) = min(codificado, tácito), con sus valores efectivos, y η = dominio / 100 escala la extracción, propia y del tributo (x_g = η · produccionCeldas, con los trabajadores necesarios calculados para F_g / η), y el trabajo en el sitio. Si el edificio pide (κ, d_min), la obra se rechaza al empezar con dominio(κ) < d_min, sin cambiar el estado. Al terminar una obra con oficio κ, el sistema actualiza en la facción un modificador de `conocimiento.κ.tacito` con fuente "práctica", de instancia estable y valor
 
 ```math
 a_{\text{práctica}}(n) = \alpha_\kappa \cdot \ln(1 + n)
@@ -1361,7 +1365,7 @@ con g_p el `gradiente_catolicismo`. Para cada tradición τ:
 
 Cada pop suma a lo sumo 1 en los templos locales del conjunto de tradiciones (Σ_τ φ_p(τ) ≤ 1), así que nadie asiste dos veces a lo local. Los recorridos son del paso 16: las tradiciones y los templos se cuentan por decenas, y cada recorrido tiene tope.
 
-El ln se calcula con la tabla de la sección 15. El desglose lleva los argumentos del contexto (n, N_a, sacerdotes), así que explica el número aunque cambie cada veintena.
+El ln se calcula con la tabla de la sección 15. El desglose lleva los argumentos del contexto, así que explica el número aunque cambie cada veintena. El modificador guarda un detalle (`modDetalle`, pares nombre y número: copias, fieles, atendidos, sacerdotes; obras en la práctica) que no forma parte de su identidad, y la vista lo manda en los argumentos de la fuente (`args`), después de su referencia.
 
 **Ámbito de celda** (etapa 4). Una obra en celda c guarda sus edificios en un `IntMap [Text]` por celda ocupada. Sus modificadores llevan la condición `controla(dueño, c)`, evaluada en el paso 16 como cualquier condición de modificador (sección 6). Esa condición no existe hoy en el lenguaje cerrado de `Motor.Guion`: entra como un constructor nuevo (`Controla FaccionId CeldaId`), evaluado con `control` de la sección 9. Un edificio puede aportar además a la fuerza F de una fuente de influencia con origen en c (sección 9).
 

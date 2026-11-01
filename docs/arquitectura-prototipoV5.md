@@ -810,6 +810,8 @@ Hay **un solo costo** por conexión, el mismo para ejércitos, personas y cargas
 
 Como el costo de las conexiones cambia con las obras, el grafo compacto que usan los recorridos se **parchea**: al cambiar μ de una celda o ρ de una conexión, se recalculan solo sus conexiones. Una ley lo compara con reconstruir el grafo entero. Los recorridos (influencia, asignación de celdas, rutas) se rehacen en el paso 16 como siempre.
 
+**Qué está hecho.** El costo por terreno (μ, con valores de relleno: llano y lago 1, bosque 1,5, sierra 3) y su uso en todas las reglas que recorren el grafo, también el radio de producción. El grafo compacto se construye una vez por partida. Faltan el camino como modificador de μ (con él, el parche del grafo), y el río y el agua navegable, que entran con los puertos (*Las obras*, etapa 4). Mientras no haya puertos, el lago cuesta como llano: con la regla del agua sin puertos, los pescadores no llegarían a él.
+
 **Lo que no se hace en el prototipo:** costo distinto para ejércitos y cargas, ríos con dirección (río abajo más rápido), estaciones que cambian el costo (lluvias) y capacidad de carga por vía. Cada uno sería un campo nuevo con valor por defecto.
 
 **Proveedores de grafo.** La malla hexagonal es el primer proveedor, no la definición del mapa:
@@ -1499,6 +1501,8 @@ El freno a llenar el reino de edificios no es un límite de casillas ni un "uno 
 
 Un camino entre los dos asentamientos acorta el retraso y abarata el transporte sin regla especial, porque los dos se miden con el costo del grafo.
 
+**Cómo se pide** (implementado). Con la obra ya empezada, el comando `pedir_tributo_obra` nombra el material, el altépetl que lo envía y cuántos trabajadores pone (`PedirTributoObra`; se añade al catálogo de comandos, familia económica). La distancia sale del derivado del paso 16, así que el pedido se hace desde la veintena siguiente al inicio de la obra. Cada veintena, quien envía extrae lo que falta (descontando lo que ya viene en camino) y crea una entrega. La entrega llega en veintenas enteras y se cobra al llegar; sin tesoro, espera. Sus trabajadores y el agravio vuelven al terminar la obra. Mientras no exista la condición del altépetl (hito 4), no hay señoríos ni independientes: el agravio extra del señorío y el rechazo del independiente entran con ella.
+
 **El oficio: conocimiento codificado y tácito.** Cada edificio puede pedir un conocimiento (V5, *Tecnología y educación*) con un dominio mínimo para empezar, y el dominio escala el rendimiento de la cuadrilla. En el prototipo no hay difusión (el paso 15 sigue vacío): las bases de cada conocimiento las da el escenario, y la práctica las mueve. Cada obra terminada aporta al conocimiento tácito un modificador con fuente "práctica", que crece con el logaritmo de las obras hechas: los primeros canteros aprenden mucho, los siguientes poco. Como el tácito baja con la mortalidad, la viruela de 1520 también frena las obras, sin código especial.
 
 ### Lo que da cada edificio adicional
@@ -1547,8 +1551,8 @@ Cada edificio declara en `ambitos` dónde puede levantarse: en el asentamiento (
 | Etapa | Qué entra | Hito |
 | --- | --- | --- |
 | 1 | Cuadrilla con `retirar_trabajadores`, trabajo, sustento de la partida de obras, duración mínima, materiales extraídos en las celdas del altépetl, beneficio por fórmula (lineal, logarítmica, por asistentes), asistencia a templos locales y centros ceremoniales por tradición, estrato `sacerdote` | 3 (hecha) |
-| 2 | Tributo en especie de materiales, con retraso y costo de transporte | 3 |
-| 3 | Oficio: conocimientos con bases del escenario, dominio mínimo, productividad y aprender haciendo | 3 |
+| 2 | Tributo en especie de materiales, con retraso y costo de transporte | 3 (hecha) |
+| 3 | Oficio: conocimientos con bases del escenario, dominio mínimo, productividad y aprender haciendo | 3 (hecha) |
 | 4 | Ámbito de celda para cualquier edificio, condición de control, aporte a la influencia, beneficio por guarnición | 4 |
 
 **Compatibilidad.** Un edificio que no declara trabajo, materiales, oficio ni fórmula se comporta como en el primer corte del hito 3: sin cuadrilla, avanza una veintena de obra por cada veintena en que la partida de obras llega al umbral del prototipo, hasta sus veintenas, y aporta un modificador fijo. Los datos y los guardados de ese corte siguen valiendo (regla 8).
