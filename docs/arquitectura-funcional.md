@@ -1365,7 +1365,7 @@ con g_p el `gradiente_catolicismo`. Para cada tradición τ:
 
 Cada pop suma a lo sumo 1 en los templos locales del conjunto de tradiciones (Σ_τ φ_p(τ) ≤ 1), así que nadie asiste dos veces a lo local. Los recorridos son del paso 16: las tradiciones y los templos se cuentan por decenas, y cada recorrido tiene tope.
 
-El ln se calcula con la tabla de la sección 15. El desglose lleva los argumentos del contexto (n, N_a, sacerdotes), así que explica el número aunque cambie cada veintena.
+El ln se calcula con la tabla de la sección 15. El desglose lleva los argumentos del contexto, así que explica el número aunque cambie cada veintena. El modificador guarda un detalle (`modDetalle`, pares nombre y número: copias, fieles, atendidos, sacerdotes; obras en la práctica) que no forma parte de su identidad, y la vista lo manda en los argumentos de la fuente (`args`), después de su referencia.
 
 **Ámbito de celda** (etapa 4). Una obra en celda c guarda sus edificios en un `IntMap [Text]` por celda ocupada. Sus modificadores llevan la condición `controla(dueño, c)`, evaluada en el paso 16 como cualquier condición de modificador (sección 6). Esa condición no existe hoy en el lenguaje cerrado de `Motor.Guion`: entra como un constructor nuevo (`Controla FaccionId CeldaId`), evaluado con `control` de la sección 9. Un edificio puede aportar además a la fuerza F de una fuente de influencia con origen en c (sección 9).
 

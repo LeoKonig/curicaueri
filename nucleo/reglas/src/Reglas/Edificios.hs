@@ -48,6 +48,7 @@ module Reglas.Edificios
   , fuenteEdificio
   , afinidad
   , beneficio
+  , detalleBeneficio
   , fielesAtendidos
   , trabajadoresPara
   , derivarFieles
@@ -429,6 +430,16 @@ beneficio f mcu n fieles sacerdotes a
         Just cu -> let s = fielesAtendidos cu n fieles sacerdotes
                    in escalarAporte (lnF (uno .+. s ./. cuReferencia cu)) a
 
+-- | De qué sale el beneficio, para el desglose: las copias y, en los
+-- templos, los fieles que asisten, los atendidos y los sacerdotes. Así el
+-- tooltip dice «yácata: copias 1, fieles 12 000, atendidos 5 000, sacerdotes
+-- 60» y no solo el número.
+detalleBeneficio :: Formula -> Maybe Culto -> Int -> Fijo -> Fijo -> [(Text, Fijo)]
+detalleBeneficio f mcu n fieles sacerdotes = ("copias", desdeEntero n) : case (f, mcu) of
+  (FPorAsistentes, Just cu) -> [ ("fieles", fieles), ("atendidos", fielesAtendidos cu n fieles sacerdotes)
+                               , ("sacerdotes", sacerdotes) ]
+  _ -> []
+
 -- ---------------------------------------------------------------------------
 -- Asistencia a los templos (derivado del paso 16)
 -- ---------------------------------------------------------------------------
@@ -700,7 +711,8 @@ recalcularBeneficios eds est =
         , Set.member (popAltepetl pop) altsCon, t <- edTradiciones eds ]
       valores = concat
         [ [ (fuenteEdificio e (altId a), entD (dmeEntidad m), dmeMagnitud m
-            , beneficio (dmeFormula m) (deCulto d) n (fieles (deCulto d)) (sac (deCulto d)) (dmeAporte m))
+            , beneficio (dmeFormula m) (deCulto d) n (fieles (deCulto d)) (sac (deCulto d)) (dmeAporte m)
+            , detalleBeneficio (dmeFormula m) (deCulto d) n (fieles (deCulto d)) (sac (deCulto d)))
           | m <- deMods d ]
         | a <- conEd
         , (e, n) <- Map.toList (Map.fromListWith (+) [ (x, 1 :: Int) | x <- altEdificios a ])
@@ -713,14 +725,14 @@ recalcularBeneficios eds est =
               sac = maybe (Fijo 0) (\cu -> Map.findWithDefault (Fijo 0) (clave cu) sacerdotes)
         ]
       -- Cambia el aporte del modificador existente; si no hay, se añade.
-      fijar (alm, nuevos) (f, ent, mag, ap) =
+      fijar (alm, nuevos) (f, ent, mag, ap, det) =
         let base0 = if mag == magProduccionAlt then baseProduccionAlt else Fijo 0
             x = Map.findWithDefault (AlmacenMag base0 []) (ent, mag) alm
         in if any ((== f) . modFuente) (almacenMods x)
-             then (Map.insert (ent, mag) x { almacenMods = [ if modFuente m == f then m { modAporte = ap } else m
+             then (Map.insert (ent, mag) x { almacenMods = [ if modFuente m == f then m { modAporte = ap, modDetalle = det } else m
                                                            | m <- almacenMods x ] } alm, nuevos)
              else (Map.insert (ent, mag) x alm,
-                   Modificador 0 mag ent ap f Nothing Nothing Nothing AlcancePropia : nuevos)
+                   Modificador 0 mag ent ap f Nothing Nothing Nothing AlcancePropia det : nuevos)
       -- Los nuevos se acumulan al revés y se invierten una vez: con miles de
       -- templos, pegarlos al final uno a uno era cuadrático.
       (alm1, nuevosAlReves) = foldl' fijar (comunMagnitudes com, []) valores
@@ -798,7 +810,7 @@ pedirTributo c eds alt g fuente cuadrilla est = do
   let o' = o { obTributos = Map.insert g (TributoObra fuente cuadrilla) (obTributos o) }
       jue' = jue { ppAltepetl = Map.insert alt a { altObra = Just o' } (ppAltepetl jue) }
       m = Modificador 0 magTasaAgravio (entRefAlt fuente) (Aporte (cAgravioTributoObra c) (Fijo 0))
-                      (fuenteTributo alt g) Nothing Nothing Nothing AlcancePropia
+                      (fuenteTributo alt g) Nothing Nothing Nothing AlcancePropia []
       alm' = agregarVarios [m] (comunMagnitudes com)
   pure (est { estadoPersistente = p { persistenteJuego = jue', persistenteComun = com { comunMagnitudes = alm' } } }, [])
   where
@@ -832,13 +844,14 @@ practica eds k jue alm =
       let n = length [ () | a <- Map.elems (ppAltepetl jue), e <- altEdificios a
                           , Just d <- [Map.lookup e (edDefs eds)], fmap fst (deOficio d) == Just k ]
           ap = Aporte (cnPractica cn .*. lnF (desdeEntero (n + 1))) (Fijo 0)
+          det = [("obras", desdeEntero n)]
           clave = (entFaccion, magTacito k)
           f = fuentePractica k
           x = Map.findWithDefault (AlmacenMag (Fijo 0) []) clave alm
       in if any ((== f) . modFuente) (almacenMods x)
-           then Map.insert clave x { almacenMods = [ if modFuente m == f then m { modAporte = ap } else m
+           then Map.insert clave x { almacenMods = [ if modFuente m == f then m { modAporte = ap, modDetalle = det } else m
                                                  | m <- almacenMods x ] } alm
-           else agregarVarios [Modificador 0 (magTacito k) entFaccion ap f Nothing Nothing Nothing AlcancePropia] alm
+           else agregarVarios [Modificador 0 (magTacito k) entFaccion ap f Nothing Nothing Nothing AlcancePropia det] alm
 
 negarF :: Fijo -> Fijo
 negarF (Fijo x) = Fijo (negate x)

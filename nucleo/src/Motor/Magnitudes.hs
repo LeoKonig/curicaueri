@@ -55,6 +55,8 @@ data Modificador = Modificador
   , modFin       :: Maybe Tick
   , modCondicion :: Maybe Condicion -- ^ si la tiene, cuenta solo mientras está vigente (ver 'cuentaEn')
   , modAlcance   :: Alcance
+  , modDetalle   :: [(Text, Fijo)]  -- ^ de qué salió su valor (copias, fieles…), para el desglose; vacío por omisión.
+                                    --   No forma parte de su identidad: esa es la fuente.
   } deriving (Eq, Show)
 
 data RangoMag = RangoMag { minMag :: Fijo, maxMag :: Fijo }
