@@ -25,9 +25,12 @@ module Reglas.Produccion
   ( bienesDe
   , catalogoBienes
   , derivarCeldas
+  , derivarTerritorio
   , celdaTrabajo
   , ordenarCeldas
   , trabajadoresDe
+  , trabajadoresBrutos
+  , retiradosDe
   , produccionCeldas
   , totalProduccion
   , produccion
@@ -45,9 +48,9 @@ import Motor.Estado
 import Motor.Magnitudes
 import Motor.Mapa (Mapa (..), Celda (..), Terreno)
 import Motor.Moneda (magExistencias, magProduccion)
-import Motor.Recorrido (asignarCeldas, grafoDe)
+import Motor.Recorrido (Grafo, asignarCeldas, grafoDe)
 import Motor.Sistema
-import Motor.Terrenos (DefTerreno (..))
+import Motor.Terrenos (DefTerreno (..), MaterialTerreno (..))
 import Reglas.Base
 import Reglas.Constantes
 import Reglas.Estado
@@ -82,29 +85,58 @@ ordenarCeldas = sortBy cmp
     l c = let Fijo x = ctTrabajadores c in fromIntegral x :: Integer
     cmp a b = compare (y b * l a, ctCelda a) (y a * l b, ctCelda b)
 
--- | El derivado del paso 16: qué celdas trabaja cada altépetl, ya ordenadas.
--- Sin tabla de terrenos que rinda algo, ninguna (y no se recorre el mapa).
+-- | Qué celdas trabaja cada altépetl, ya ordenadas (ver 'derivarTerritorio').
 derivarCeldas :: Constantes -> Map Terreno DefTerreno -> Mapa -> Purepecha -> Map AltId [CeldaTrabajo]
-derivarCeldas c tabla mapa p
-  | null (bienesDe tabla) = Map.empty
+derivarCeldas c tabla mapa p = fst (derivarTerritorio c tabla mapa (grafoDe mapa) p)
+
+-- | El derivado del paso 16 sobre el territorio, con una sola asignación de
+-- celdas: qué celdas trabaja cada altépetl para producir bienes y de qué
+-- celdas puede extraer cada material de obra, las dos ordenadas de la que
+-- más rinde por trabajador a la que menos. Sin tabla de terrenos que rinda o
+-- dé material, nada (y no se recorre el mapa).
+derivarTerritorio :: Constantes -> Map Terreno DefTerreno -> Mapa -> Grafo -> Purepecha
+                  -> (Map AltId [CeldaTrabajo], Map AltId (Map Text [CeldaTrabajo]))
+derivarTerritorio c tabla mapa gr p
+  | null (bienesDe tabla) && all (Map.null . dtMateriales) (Map.elems tabla) = (Map.empty, Map.empty)
   | otherwise =
       let fuentes = [ (AsentId i, CeldaId (altCelda a)) | a <- Map.elems (ppAltepetl p), let AltId i = altId a ]
-          asig = asignarCeldas (cRadioProduccionKm c) (grafoDe mapa) fuentes
-          trabajo cel = IntMap.lookup cel (mapaCeldas mapa) >>= \ce ->
-                          Map.lookup (celdaTerreno ce) tabla >>= celdaTrabajo cel
+          asig = asignarCeldas (cRadioProduccionKm c) gr fuentes
+          defDe cel = IntMap.lookup cel (mapaCeldas mapa) >>= \ce -> Map.lookup (celdaTerreno ce) tabla
+          asignadas = [ (AltId a, cel, d) | (cel, AsentId a) <- IntMap.toList asig, Just d <- [defDe cel] ]
           porAlt = Map.fromListWith (++)
-                     [ (AltId a, [ct]) | (cel, AsentId a) <- IntMap.toList asig, Just ct <- [trabajo cel] ]
-      in Map.map ordenarCeldas porAlt
+                     [ (a, [ct]) | (a, cel, d) <- asignadas, Just ct <- [celdaTrabajo cel d] ]
+          mats = Map.fromListWith (Map.unionWith (++))
+                   [ (a, Map.singleton g [CeldaTrabajo cel (mtTrabajadores mt) (Map.singleton g (mtRendimiento mt))])
+                   | (a, cel, d) <- asignadas, (g, mt) <- Map.toList (dtMateriales d) ]
+      in (Map.map ordenarCeldas porAlt, Map.map (Map.map ordenarCeldas) mats)
 
--- | Trabajadores de cada altépetl: ⌊N_p · φ⌋ por cada pop productivo (todos
--- los estratos menos la nobleza), sumados en una sola pasada por los pops.
--- Todavía no hay leva, así que no se resta nada (R_a = 0).
+-- | Trabajadores de cada altépetl (sección 12):
+--
+-- > W_a = max(0, Σ ⌊N_p · φ⌋ − R_a)
+--
+-- sobre sus pops productivos (todos los estratos menos la nobleza y los
+-- sacerdotes), sumados en una sola pasada por los pops. R_a son los
+-- retirados ('retiradosDe'): hoy, las cuadrillas de sus obras.
 trabajadoresDe :: Constantes -> Purepecha -> Map AltId Int
-trabajadoresDe c p = Map.fromListWith (+)
-  [ (popAltepetl pop, trabajadores pop) | pop <- Map.elems (ppPops p), popEstrato pop /= "nobleza" ]
+trabajadoresDe c p = let r = retiradosDe p
+                     in Map.mapWithKey (\a w -> max 0 (w - Map.findWithDefault 0 a r)) (trabajadoresBrutos c p)
+
+-- | Σ ⌊N_p · φ⌋, sin restar a los retirados.
+trabajadoresBrutos :: Constantes -> Purepecha -> Map AltId Int
+trabajadoresBrutos c p = Map.fromListWith (+)
+  [ (popAltepetl pop, trabajadores pop) | pop <- Map.elems (ppPops p), not (estratoNoTrabaja (popEstrato pop)) ]
   where
     trabajadores pop = let Fijo x = fi (popTamano pop) .*. cFraccionTrabajadora c
                        in fromIntegral (x `div` escala)
+
+-- | Los trabajadores retirados de la producción de cada altépetl
+-- (@retirar_trabajadores@, V5). Hoy el único motivo es la cuadrilla de una
+-- obra (motivo @obra@): sale al empezar la obra y vuelve al terminarla, así
+-- que basta con leerla de las obras en curso. La leva del hito 4 sumará su
+-- propio motivo.
+retiradosDe :: Purepecha -> Map AltId Int
+retiradosDe p = Map.fromList
+  [ (altId a, obCuadrilla o) | a <- Map.elems (ppAltepetl p), Just o <- [altObra a], obCuadrilla o > 0 ]
 
 -- | La fórmula con nombre @produccion_por_factor_escaso@: lo que dan las
 -- celdas (ya ordenadas) con W trabajadores, por bien, antes de las obras.

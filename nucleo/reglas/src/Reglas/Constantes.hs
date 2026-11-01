@@ -38,6 +38,10 @@ data Constantes = Constantes
     -- prototipo no las tiene; se fijan al calibrar el hito 3.
   , cFraccionTrabajadora   :: Fijo   -- FRACCION_TRABAJADORA: parte de un pop productivo que trabaja
   , cRadioProduccionKm     :: Fijo   -- RADIO_PRODUCCION_KM: hasta dónde trabaja un altépetl
+    -- Obras y templos (V5, *Las obras*; sección 14i). PROVISIONALES.
+  , cSustentoCuadrilla     :: Fijo   -- SUSTENTO_CUADRILLA: valor por trabajador de cuadrilla y veintena
+  , cAlcanceTemploLocal    :: Fijo   -- ALCANCE_TEMPLO_LOCAL: hasta dónde va un pop a su templo local
+  , cAlcanceCentro         :: Fijo   -- ALCANCE_CENTRO_CEREMONIAL: hasta dónde llega el peregrinaje
   } deriving (Eq, Show)
 
 constantesDefault :: Constantes
@@ -68,4 +72,9 @@ constantesDefault = Constantes
     -- el mapa provisional del escenario tiene celdas de 20 km, así que dos
     -- anillos son 40 km.
   , cRadioProduccionKm     = fi 40
+    -- Con la partida de obras del escenario (30 puntos: 10 por veintena), el
+    -- sustento alcanza para una cuadrilla de 500.
+  , cSustentoCuadrilla     = Fijo 200        -- 0,02, provisional
+  , cAlcanceTemploLocal    = fi 60           -- tres anillos del mapa provisional, provisional
+  , cAlcanceCentro         = fi 200          -- diez anillos, provisional
   }

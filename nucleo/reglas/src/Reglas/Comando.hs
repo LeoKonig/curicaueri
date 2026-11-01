@@ -7,7 +7,7 @@ module Reglas.Comando
   , catalogoComandosCon
   ) where
 
-import Data.Aeson (FromJSON (..), ToJSON (..), object, withObject, (.:), (.=))
+import Data.Aeson (FromJSON (..), ToJSON (..), object, withObject, (.:), (.:?), (.!=), (.=))
 import qualified Data.Aeson.Types as A
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -24,7 +24,7 @@ data Comando
   | ReclutarEjercito Int
   | NombrarGobernador AltId PerId   -- ^ el altépetl y el personaje
   | DestituirGobernador AltId
-  | ConstruirEdificio Text AltId    -- ^ el edificio (id de @datos/edificios.json@) y el altépetl
+  | ConstruirEdificio Text AltId Int  -- ^ el edificio (id de @datos/edificios.json@), el altépetl y la cuadrilla (0 si no lleva)
   deriving (Eq, Show)
 
 partes :: [(Text, PartePresupuesto)]
@@ -50,6 +50,7 @@ instance FromJSON Comando where
       "nombrar_gobernador"     -> NombrarGobernador <$> (AltId <$> o .: "altepetl") <*> (PerId <$> o .: "personaje")
       "destituir_gobernador"   -> DestituirGobernador . AltId <$> o .: "altepetl"
       "construir_edificio"     -> ConstruirEdificio <$> o .: "edificio" <*> (AltId <$> o .: "altepetl")
+                                                    <*> o .:? "cuadrilla" .!= 0
       _                        -> fail ("comando desconocido: " <> T.unpack t)
 
 instance ToJSON Comando where
@@ -62,8 +63,8 @@ instance ToJSON Comando where
       object ["tipo" .= ("nombrar_gobernador" :: Text), "altepetl" .= a, "personaje" .= p]
     DestituirGobernador (AltId a) ->
       object ["tipo" .= ("destituir_gobernador" :: Text), "altepetl" .= a]
-    ConstruirEdificio e (AltId a) ->
-      object ["tipo" .= ("construir_edificio" :: Text), "edificio" .= e, "altepetl" .= a]
+    ConstruirEdificio e (AltId a) n ->
+      object ["tipo" .= ("construir_edificio" :: Text), "edificio" .= e, "altepetl" .= a, "cuadrilla" .= n]
 
 -- | El catálogo sin edificios cargados: @construir_edificio@ se declara con
 -- una lista de opciones vacía.
@@ -87,5 +88,6 @@ catalogoComandosCon edificios =
   , DeclComando "destituir_gobernador" "c.destituir_gobernador"
       [DeclParametro "altepetl" (PEntero 1 1000000)] True requisitoPorOmision
   , DeclComando "construir_edificio" "c.construir_edificio"
-      [DeclParametro "edificio" (POpcion edificios), DeclParametro "altepetl" (PEntero 1 1000000)] True requisitoPorOmision
+      [ DeclParametro "edificio" (POpcion edificios), DeclParametro "altepetl" (PEntero 1 1000000)
+      , DeclParametro "cuadrilla" (PEntero 0 100000) ] True requisitoPorOmision
   ]

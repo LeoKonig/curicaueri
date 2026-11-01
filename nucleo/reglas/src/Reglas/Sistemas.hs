@@ -39,7 +39,9 @@ factoresProduccion est =
 -- | La hacienda por veintena, igual que `step` del prototipo: el ingreso de
 -- la población, por la producción de su altépetl, menos el gasto del
 -- presupuesto, dividido entre las veintenas del año, y el tesoro no baja de
--- cero. La partida de obras solo se paga mientras haya una obra en curso
+-- cero. Los sacerdotes no tributan (por verificar con la *Relación de
+-- Michoacán*; así el escenario conserva las cifras del prototipo, que no los
+-- tiene). La partida de obras solo se paga mientras haya una obra en curso
 -- (`expenseLines`). Es el único sistema que escribe la base del tesoro (el
 -- comando de construir cobra al empezar), así que el orden de sus sumas no
 -- importa.
@@ -60,7 +62,7 @@ hacienda c = Sistema
                                 (Map.findWithDefault (Fijo 0) (popAltepetl pop) efs)
                                 (popTamano pop)
                               .*. Map.findWithDefault baseProduccionAlt (popAltepetl pop) fps)
-                    (Fijo 0) (Map.elems (ppPops p))
+                    (Fijo 0) (filter ((/= estratoSacerdote) . popEstrato) (Map.elems (ppPops p)))
           enObra = any (isJust . altObra) (Map.elems (ppAltepetl p))
           gasto  = gastoPunto c (pbEjercito pres + pbAdministracion pres + pbDiplomacia pres
                                  + (if enObra then pbObras pres else 0))

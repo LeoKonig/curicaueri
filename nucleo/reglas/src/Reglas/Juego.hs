@@ -1,7 +1,11 @@
 {-# LANGUAGE StrictData, TypeFamilies #-}
 module Reglas.Juego where
 
+import qualified Data.Aeson as A
+import Data.List (foldl')
 import qualified Data.Map.Strict as Map
+import Data.Text (Text)
+import qualified Data.Text as T
 
 import Motor.Base
 import Motor.Estado
@@ -15,7 +19,8 @@ import Reglas.Comando
 import Reglas.Constantes
 import Reglas.Edificios
 import Reglas.Produccion
-import Motor.Mapa (Terreno)
+import Motor.Mapa (Mapa, Terreno)
+import Motor.Recorrido (grafoDe)
 import Motor.Terrenos (DefTerreno)
 import Reglas.Estado
 import Reglas.Grupos
@@ -53,7 +58,7 @@ datosVacios = DatosReglas gruposVacios edificiosVacios Map.empty
 
 aplicarComando :: Constantes -> DatosReglas -> Estado Purepecha -> Sellado Comando
                -> Either Rechazo (Estado Purepecha, [Hecho])
-aplicarComando _ dr est sell = let gs = drGrupos dr in case sellCmd sell of
+aplicarComando c dr est sell = let gs = drGrupos dr in case sellCmd sell of
   FijarTasaTributo n
     | n < 1 || n > 5 -> Left (Rechazo "tasa fuera de rango (1..5)")
     | otherwise ->
@@ -103,14 +108,17 @@ aplicarComando _ dr est sell = let gs = drGrupos dr in case sellCmd sell of
     case altGobernador a of
       Nothing -> Left (Rechazo (altNombre a <> " no tiene gobernador"))
       Just _  -> Right (quitarNombramiento gs (sellTick sell) alt est)
-  ConstruirEdificio e alt -> iniciarObra (drEdificios dr) e alt est
+  ConstruirEdificio e alt n -> iniciarObra c (drEdificios dr) e alt n est
 
 -- El motor no conoce estos tipos; aquí los traducimos a valores genéricos
 -- de `Motor.Vista` para que el cliente pueda mostrarlos sin saber de reglas.
 proyectar :: Estado Purepecha -> [EntidadJuego]
 proyectar est =
   let p = persistenteJuego (estadoPersistente est)
-      celdas = dpCeldas (derivadoJuego (estadoDerivado est))
+      der = derivadoJuego (estadoDerivado est)
+      celdas = dpCeldas der
+      fieles a = foldl' (.+.) (Fijo 0) [ f | ((b, _), f) <- Map.toList (dpFielesLocal der) ++ Map.toList (dpFielesCentro der), b == a ]
+      acopio o = VLista [ VTexto (g <> " " <> textoFijo q) | (g, q) <- Map.toList (obAcopio o) ]
   in  [EntidadJuego (entRefAlt (altId a)) (Map.fromList
         [ ("nombre",   VTexto (altNombre a))
         , ("lealtad",  VFijo  (altLealtad a))
@@ -119,6 +127,10 @@ proyectar est =
         , ("obra",     maybe VNulo (VTexto . obEdificio) (altObra a))
         , ("obra_avance", maybe VNulo (VEntero . obAvance) (altObra a))
         , ("obra_total",  maybe VNulo (VEntero . obTotal) (altObra a))
+        , ("obra_cuadrilla", maybe VNulo (VEntero . obCuadrilla) (altObra a))
+        , ("obra_trabajo",   maybe VNulo (VFijo . obTrabajo) (altObra a))
+        , ("obra_acopio",    maybe VNulo acopio (altObra a))
+        , ("fieles",         VFijo (fieles (altId a)))
         , ("edificios", VLista (map VTexto (altEdificios a)))
         , ("celdas_trabajadas", VEntero (length (Map.findWithDefault [] (altId a) celdas)))
         ])
@@ -137,7 +149,22 @@ proyectar est =
         , ("legitimidad", VFijo (baseFaccion magLegitimidad est))
         ])]
 
+textoFijo :: Fijo -> Text
+textoFijo f = case A.toJSON f of
+  A.String t -> t
+  otro       -> T.pack (show otro)
+
 type JuegoPurepecha = Juego Purepecha Comando
+
+-- | El derivado del juego (paso 16). El grafo compacto se construye una vez y
+-- lo comparten la asignación de celdas y la asistencia a los templos; si
+-- ninguna lo necesita, la evaluación perezosa no lo construye.
+derivarPurepecha :: Constantes -> DatosReglas -> Mapa -> Purepecha -> DerivadoPurepecha
+derivarPurepecha c dr m p =
+  let gr = grafoDe m
+      (celdas, mats) = derivarTerritorio c (drTerrenos dr) m gr p
+      (loc, cen) = derivarFieles c (drEdificios dr) gr p
+  in DerivadoPurepecha celdas mats loc cen
 
 -- | El juego sin archivo de grupos: nombrar gobernadores no mueve poder.
 juego :: Constantes -> Juego Purepecha Comando
@@ -158,7 +185,7 @@ juegoDatos c dr = let bienes = bienesDe (drTerrenos dr) in Juego
   { juegoSistemas    = [ construccion c (drEdificios dr), produccion c bienes
                        , hacienda c, evolucionAgravio c ]
   , juegoAplicarCmd  = aplicarComando c dr
-  , juegoDerivar     = \m _ p -> DerivadoPurepecha (derivarCeldas c (drTerrenos dr) m (persistenteJuego p))
+  , juegoDerivar     = \m _ p -> derivarPurepecha c dr m (persistenteJuego p)
   , juegoProyectar   = proyectar
   , juegoAgentes     = Map.empty
   , juegoCatalogoMag = Map.unions [catalogoMag, catalogoGrupos (drGrupos dr), catalogoBienes bienes]
