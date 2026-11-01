@@ -30,6 +30,13 @@
 -- Grupos de poder (ver Reglas.Grupos; sin esta opción, nombrar un gobernador
 -- no mueve poder de nadie):
 --   --grupos ARCHIVO         por ejemplo datos/grupos.json
+--
+-- Edificios (ver Reglas.Edificios; sin esta opción, no hay nada que construir):
+--   --edificios ARCHIVO      por ejemplo datos/edificios.json
+--
+-- Terrenos (ver Motor.Terrenos y Reglas.Produccion; sin esta opción, el
+-- territorio no produce bienes):
+--   --terrenos ARCHIVO       por ejemplo datos/terrenos.json
 module Main (main) where
 
 import Control.Concurrent (forkIO, threadDelay)
@@ -74,6 +81,9 @@ import Reglas.Comando
 import Reglas.Constantes (constantesDefault)
 import Reglas.Escenario
 import Reglas.Estado (Purepecha, ppAltepetl, ppPops)
+import Reglas.Edificios (cargarEdificios, edificiosVacios, idsEdificios)
+import Reglas.Produccion (bienesDe)
+import Motor.Terrenos (cargarTerrenos, validarTerrenosDelMapa)
 import Reglas.Grupos (cargarGrupos, conGrupos, gruposVacios, grIds)
 import qualified Reglas.Juego as RJ
 
@@ -138,14 +148,39 @@ main = do
         Left err -> fail ("grupos ilegibles (" <> ruta <> "): " <> err)
         Right v -> validado (cargarGrupos (T.pack ruta) v)
   unless (null (grIds grupos)) $ registro ("grupos de poder: " <> T.intercalate ", " (grIds grupos))
-  let juego = RJ.juegoCon constantesDefault grupos
+  edificios <- case opcion "--edificios" "" of
+    "" -> pure edificiosVacios
+    ruta -> do
+      bs <- BL.readFile ruta
+      case A.eitherDecode bs of
+        Left err -> fail ("edificios ilegibles (" <> ruta <> "): " <> err)
+        Right v -> validado (cargarEdificios (T.pack ruta) RJ.catalogoMag v)
+  unless (null (idsEdificios edificios)) $ registro ("edificios: " <> T.intercalate ", " (idsEdificios edificios))
+  terrenos <- case opcion "--terrenos" "" of
+    "" -> pure Map.empty
+    ruta -> do
+      bs <- BL.readFile ruta
+      case A.eitherDecode bs of
+        Left err -> fail ("terrenos ilegibles (" <> ruta <> "): " <> err)
+        Right v -> do
+          t <- validado (cargarTerrenos (T.pack ruta) v)
+          validado (validarTerrenosDelMapa (T.pack ruta) t mapaR)
+          pure t
+  unless (Map.null terrenos) $ registro ("bienes del territorio: " <> T.intercalate ", " (bienesDe terrenos))
+  let comandos = catalogoComandosCon (idsEdificios edificios)
+      juego = RJ.juegoDatos constantesDefault (RJ.DatosReglas grupos edificios terrenos)
       -- --escala 7500x20: altépetl y pops de prueba para medir el costo a la
       -- escala del mapa completo (solo para la prueba de rendimiento del núcleo).
       (escN, escK) = case break (== 'x') (opcion "--escala" "") of
                        (a, _ : b) | [(x, "")] <- reads a, [(y, "")] <- reads b -> (x, y)
                        _ -> (0, 0)
       eSinGrupos = escalar (ancho * alto) escN escK (reubicar ancho alto estadoInicial1475)
-  e0 <- validado (conGrupos (T.pack (opcion "--grupos" "")) grupos tipoFaccion1475 eSinGrupos)
+  eConGrupos <- validado (conGrupos (T.pack (opcion "--grupos" "")) grupos tipoFaccion1475 eSinGrupos)
+  -- El derivado del estado inicial (qué celdas trabaja cada altépetl), para
+  -- que la primera veintena ya produzca. Es el mismo que daría cargar la
+  -- partida en el tick 0.
+  let e0 = eConGrupos { estadoDerivado = derivar juego mapaR (estadoTick eConGrupos)
+                                                (origenPersistente (estadoOrigen eConGrupos)) }
   agente <- case opcion "--agente" "" of
     "" -> case opcion "--reproducir-agente" "" of
       "" -> pure Nothing
@@ -176,10 +211,10 @@ main = do
         Left err -> fail ("ejes ilegibles (" <> ruta <> "): " <> err)
         Right v -> validado (cargarEjes (T.pack ruta) v)
   ejes <- validado (ejesActivos "escenario 1475" ejesTodos ejesActivos1475)
-  validado (validarRequisitos "catálogo de comandos" ejesTodos [ (dcTipo d, dcRequiere d) | d <- catalogoComandos ])
+  validado (validarRequisitos "catálogo de comandos" ejesTodos [ (dcTipo d, dcRequiere d) | d <- comandos ])
   unless (null ejes) $ registro ("ejes activos: " <> T.intercalate ", " (map ejId ejes))
   let faccionAgente = FaccionId (read (opcion "--agente-faccion" "1"))
-      conf = Config ancho alto carpeta vels (fmap (\a -> (faccionAgente, a, mregistro)) agente) (Entorno mapaR guion economiaVacia) ejes
+      conf = Config ancho alto carpeta vels (fmap (\a -> (faccionAgente, a, mregistro)) agente) (Entorno mapaR guion economiaVacia) ejes comandos
   forM_ agente $ \_ -> registro ("agente externo para la facción " <> T.pack (opcion "--agente-faccion" "1"))
   ref <- newIORef Partida
     { pEstado = e0, pSiguiente = 0, pPendientes = [], pRespuestas = [], pDecisionesEnviadas = []
@@ -251,7 +286,8 @@ data Config = Config
   { cAncho :: Int, cAlto :: Int, cPartidas :: FilePath, cVelocidades :: [Int]
   , cAgente :: Maybe (FaccionId, FuenteAgente, Maybe Handle)    -- ^ facción, fuente y registro
   , cEntorno :: Entorno
-  , cEjes :: [Eje] }                                              -- ^ ejes activos del escenario
+  , cEjes :: [Eje]                                                -- ^ ejes activos del escenario
+  , cComandos :: [DeclComando] }                                  -- ^ el catálogo, con los edificios cargados
 
 -- | Los comandos de un agente se numeran desde aquí, para distinguir sus
 -- rechazos de los del jugador (que van al cliente).
@@ -343,7 +379,7 @@ sesion conf juego mapaR ref conn = do
           let v' = proyeccion juego (pEstado p)
           writeIORef ref p { pVista = v' }
           enviar (NHola versionProtocolo)
-          enviar (NCatalogo (CatalogoCliente (declMagnitudes RJ.catalogoMag) catalogoComandos (cVelocidades conf)
+          enviar (NCatalogo (CatalogoCliente (declMagnitudes RJ.catalogoMag) (cComandos conf) (cVelocidades conf)
                        (comunCalendario (persistenteComun (estadoPersistente (pEstado p)))) (cEjes conf)))
           enviar (NMapa (mapaCliente (cAncho conf) (cAlto conf) mapaR))
           enviar (NInstantanea (reloj p) v')

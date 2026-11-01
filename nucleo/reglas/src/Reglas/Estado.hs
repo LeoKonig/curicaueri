@@ -4,7 +4,7 @@ module Reglas.Estado where
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
-import Data.Aeson (ToJSON, FromJSON)
+import Data.Aeson (ToJSON, FromJSON (..), withObject, (.:), (.:?), (.!=))
 import GHC.Generics (Generic)
 
 import Motor.Base
@@ -29,6 +29,27 @@ data Altepetl = Altepetl
   , altSujetoA    :: Maybe AltId
   , altLealtad    :: Fijo
   , altCelda      :: Int          -- ^ celda del mapa donde está la cabecera
+  , altObra       :: Maybe Obra   -- ^ la obra en curso; una a la vez, como en el prototipo
+  , altEdificios  :: [Text]       -- ^ ids de los edificios terminados, en el orden en que se terminaron
+  } deriving (Eq, Show, Generic, ToJSON)
+
+-- | Los guardados anteriores al hito 3 no traen obra ni edificios: cargan
+-- sin obra y sin edificios. Los nombres son los que escribe el 'ToJSON'
+-- genérico.
+instance FromJSON Altepetl where
+  parseJSON = withObject "Altepetl" $ \o ->
+    Altepetl <$> o .: "altId" <*> o .: "altNombre" <*> o .: "altGobernador"
+             <*> o .: "altDistancia" <*> o .: "altSujetoA" <*> o .: "altLealtad"
+             <*> o .: "altCelda" <*> o .:? "altObra" <*> o .:? "altEdificios" .!= []
+
+-- | Una obra en curso (V5, *Las palancas*, Construcción). Como en el
+-- prototipo, avanza una veintena de obra por cada veintena en que la partida
+-- de obras llega al mínimo; por eso se guarda el avance y no una fecha de
+-- término, que dependería del presupuesto futuro.
+data Obra = Obra
+  { obEdificio :: Text
+  , obAvance   :: Int    -- ^ veintenas de obra hechas
+  , obTotal    :: Int    -- ^ veintenas de obra que exige el edificio
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 data Pop = Pop
@@ -71,6 +92,31 @@ rangoPrestigio, rangoLegitimidad :: RangoMag
 rangoPrestigio   = RangoMag (fi (-1000000)) (fi 1000000)
 rangoLegitimidad = RangoMag (fi 0) (fi 100)
 
+-- | Magnitudes del altépetl que mueven las obras (V5, *Arquitectura de
+-- extensión*; hito 3). Ninguna tiene sistema que escriba su base: la fija el
+-- escenario y los edificios aportan modificadores con su fuente.
+--
+-- * @produccion@: factor de la producción y del ingreso del altépetl, con base
+--   1. Los edificios aportan porcentajes (yácata +10 %, fortaleza −5 %), que se
+--   suman entre sí como cualquier modificador.
+-- * @tasa_agravio@: puntos de agravio por año que suma o resta a sus pops, con
+--   base 0 (yácata −5, troje −3).
+-- * @reservas_asedio@: cuánto resiste la plaza un asedio, con base 0
+--   (fortaleza +4, troje +3). La leerá el asedio del hito 4.
+magProduccionAlt, magTasaAgravio, magReservasAsedio :: Magnitud
+magProduccionAlt  = Magnitud "produccion"
+magTasaAgravio    = Magnitud "tasa_agravio"
+magReservasAsedio = Magnitud "reservas_asedio"
+
+rangoProduccionAlt, rangoTasaAgravio, rangoReservasAsedio :: RangoMag
+rangoProduccionAlt  = RangoMag (fi 0) (fi 10)
+rangoTasaAgravio    = RangoMag (fi (-100)) (fi 100)
+rangoReservasAsedio = RangoMag (fi 0) (fi 1000)
+
+-- | La base de la producción de un altépetl: 1 (el 100 %).
+baseProduccionAlt :: Fijo
+baseProduccionAlt = fi 1
+
 -- | El valor base de una magnitud de la facción, sin modificadores.
 baseFaccion :: Magnitud -> Estado Purepecha -> Fijo
 baseFaccion m st =
@@ -94,5 +140,22 @@ data Presupuesto = Presupuesto
   , pbCulto          :: Int
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
-type instance DerivadoDe Purepecha = ()
+-- | Una celda que trabaja un altépetl: su id, cuántos trabajadores la trabajan
+-- entera (ℓ) y lo que rinde entonces (y), por bien.
+data CeldaTrabajo = CeldaTrabajo
+  { ctCelda        :: Int
+  , ctTrabajadores :: Fijo
+  , ctRendimiento  :: Map Text Fijo
+  } deriving (Eq, Show)
+
+-- | El derivado del juego (paso 16): las celdas que trabaja cada altépetl,
+-- de la mejor a la peor. Nunca se guarda: se recalcula desde el origen.
+newtype DerivadoPurepecha = DerivadoPurepecha
+  { dpCeldas :: Map AltId [CeldaTrabajo] }
+  deriving (Eq, Show)
+
+derivadoPurepechaVacio :: DerivadoPurepecha
+derivadoPurepechaVacio = DerivadoPurepecha Map.empty
+
+type instance DerivadoDe Purepecha = DerivadoPurepecha
 type instance PlanDe     Purepecha = ()

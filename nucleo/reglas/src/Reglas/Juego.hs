@@ -13,6 +13,10 @@ import Motor.Vista
 import Reglas.Base
 import Reglas.Comando
 import Reglas.Constantes
+import Reglas.Edificios
+import Reglas.Produccion
+import Motor.Mapa (Terreno)
+import Motor.Terrenos (DefTerreno)
 import Reglas.Estado
 import Reglas.Grupos
 import Reglas.Sistemas
@@ -28,11 +32,28 @@ catalogoMag = Map.fromList
      DefMagnitud "prestigio" rangoPrestigio "m.prestigio" Nothing False)
   , (magLegitimidad,
      DefMagnitud "legitimidad" rangoLegitimidad "m.legitimidad" Nothing False)
+  , (magProduccionAlt,
+     DefMagnitud "produccion" rangoProduccionAlt "m.produccion" Nothing False)
+  , (magTasaAgravio,
+     DefMagnitud "tasa_agravio" rangoTasaAgravio "m.tasa_agravio" Nothing False)
+  , (magReservasAsedio,
+     DefMagnitud "reservas_asedio" rangoReservasAsedio "m.reservas_asedio" Nothing False)
   ]
 
-aplicarComando :: Constantes -> Grupos -> Estado Purepecha -> Sellado Comando
+-- | Los datos de reglas que vienen de archivos: grupos de poder y edificios.
+-- Sin archivos, nombrar no mueve poder y no hay nada que construir.
+data DatosReglas = DatosReglas
+  { drGrupos    :: Grupos
+  , drEdificios :: Edificios
+  , drTerrenos  :: Map.Map Terreno DefTerreno   -- ^ lo que rinde cada terreno; vacía, nada se produce
+  }
+
+datosVacios :: DatosReglas
+datosVacios = DatosReglas gruposVacios edificiosVacios Map.empty
+
+aplicarComando :: Constantes -> DatosReglas -> Estado Purepecha -> Sellado Comando
                -> Either Rechazo (Estado Purepecha, [Hecho])
-aplicarComando _ gs est sell = case sellCmd sell of
+aplicarComando _ dr est sell = let gs = drGrupos dr in case sellCmd sell of
   FijarTasaTributo n
     | n < 1 || n > 5 -> Left (Rechazo "tasa fuera de rango (1..5)")
     | otherwise ->
@@ -82,17 +103,24 @@ aplicarComando _ gs est sell = case sellCmd sell of
     case altGobernador a of
       Nothing -> Left (Rechazo (altNombre a <> " no tiene gobernador"))
       Just _  -> Right (quitarNombramiento gs (sellTick sell) alt est)
+  ConstruirEdificio e alt -> iniciarObra (drEdificios dr) e alt est
 
 -- El motor no conoce estos tipos; aquí los traducimos a valores genéricos
 -- de `Motor.Vista` para que el cliente pueda mostrarlos sin saber de reglas.
 proyectar :: Estado Purepecha -> [EntidadJuego]
 proyectar est =
   let p = persistenteJuego (estadoPersistente est)
+      celdas = dpCeldas (derivadoJuego (estadoDerivado est))
   in  [EntidadJuego (entRefAlt (altId a)) (Map.fromList
         [ ("nombre",   VTexto (altNombre a))
         , ("lealtad",  VFijo  (altLealtad a))
         , ("distancia",VFijo  (altDistancia a))
         , ("celda",    VEntero (altCelda a))
+        , ("obra",     maybe VNulo (VTexto . obEdificio) (altObra a))
+        , ("obra_avance", maybe VNulo (VEntero . obAvance) (altObra a))
+        , ("obra_total",  maybe VNulo (VEntero . obTotal) (altObra a))
+        , ("edificios", VLista (map VTexto (altEdificios a)))
+        , ("celdas_trabajadas", VEntero (length (Map.findWithDefault [] (altId a) celdas)))
         ])
       | a <- Map.elems (ppAltepetl p)]
    ++ [EntidadJuego (entRefPop (popId pop)) (Map.fromList
@@ -115,14 +143,23 @@ type JuegoPurepecha = Juego Purepecha Comando
 juego :: Constantes -> Juego Purepecha Comando
 juego c = juegoCon c gruposVacios
 
--- | El juego con sus grupos de poder (@datos/grupos.json@). El estado inicial
--- tiene que pasar por 'conGrupos' con los mismos grupos.
+-- | El juego con sus grupos de poder (@datos/grupos.json@) y sin edificios.
 juegoCon :: Constantes -> Grupos -> Juego Purepecha Comando
-juegoCon c gs = Juego
-  { juegoSistemas    = [hacienda c, evolucionAgravio c]
-  , juegoAplicarCmd  = aplicarComando c gs
-  , juegoDerivar     = \_ _ _ -> ()
+juegoCon c gs = juegoDatos c datosVacios { drGrupos = gs }
+
+-- | El juego con sus datos de reglas. El estado inicial tiene que pasar por
+-- 'conGrupos' con los mismos grupos.
+--
+-- La construcción corre antes que la producción, la hacienda y el agravio: un
+-- edificio que se termina en una veintena ya cuenta en ella, y así ningún
+-- sistema lee lo que escribe otro posterior.
+juegoDatos :: Constantes -> DatosReglas -> Juego Purepecha Comando
+juegoDatos c dr = let bienes = bienesDe (drTerrenos dr) in Juego
+  { juegoSistemas    = [ construccion c (drEdificios dr), produccion c bienes
+                       , hacienda c, evolucionAgravio c ]
+  , juegoAplicarCmd  = aplicarComando c dr
+  , juegoDerivar     = \m _ p -> DerivadoPurepecha (derivarCeldas c (drTerrenos dr) m (persistenteJuego p))
   , juegoProyectar   = proyectar
   , juegoAgentes     = Map.empty
-  , juegoCatalogoMag = Map.union catalogoMag (catalogoGrupos gs)
+  , juegoCatalogoMag = Map.unions [catalogoMag, catalogoGrupos (drGrupos dr), catalogoBienes bienes]
   }

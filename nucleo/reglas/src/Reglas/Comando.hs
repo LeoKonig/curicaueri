@@ -4,6 +4,7 @@
 module Reglas.Comando
   ( Comando (..)
   , catalogoComandos
+  , catalogoComandosCon
   ) where
 
 import Data.Aeson (FromJSON (..), ToJSON (..), object, withObject, (.:), (.=))
@@ -23,6 +24,7 @@ data Comando
   | ReclutarEjercito Int
   | NombrarGobernador AltId PerId   -- ^ el altépetl y el personaje
   | DestituirGobernador AltId
+  | ConstruirEdificio Text AltId    -- ^ el edificio (id de @datos/edificios.json@) y el altépetl
   deriving (Eq, Show)
 
 partes :: [(Text, PartePresupuesto)]
@@ -47,6 +49,7 @@ instance FromJSON Comando where
       "reclutar_ejercito"      -> ReclutarEjercito <$> o .: "tropas"
       "nombrar_gobernador"     -> NombrarGobernador <$> (AltId <$> o .: "altepetl") <*> (PerId <$> o .: "personaje")
       "destituir_gobernador"   -> DestituirGobernador . AltId <$> o .: "altepetl"
+      "construir_edificio"     -> ConstruirEdificio <$> o .: "edificio" <*> (AltId <$> o .: "altepetl")
       _                        -> fail ("comando desconocido: " <> T.unpack t)
 
 instance ToJSON Comando where
@@ -59,11 +62,19 @@ instance ToJSON Comando where
       object ["tipo" .= ("nombrar_gobernador" :: Text), "altepetl" .= a, "personaje" .= p]
     DestituirGobernador (AltId a) ->
       object ["tipo" .= ("destituir_gobernador" :: Text), "altepetl" .= a]
+    ConstruirEdificio e (AltId a) ->
+      object ["tipo" .= ("construir_edificio" :: Text), "edificio" .= e, "altepetl" .= a]
+
+-- | El catálogo sin edificios cargados: @construir_edificio@ se declara con
+-- una lista de opciones vacía.
+catalogoComandos :: [DeclComando]
+catalogoComandos = catalogoComandosCon []
 
 -- | Lo que el cliente necesita para armar el formulario de cada comando.
 -- Los rangos coinciden con la validación de 'Reglas.Juego.aplicarComando'.
-catalogoComandos :: [DeclComando]
-catalogoComandos =
+-- Recibe los ids de los edificios, que son datos.
+catalogoComandosCon :: [Text] -> [DeclComando]
+catalogoComandosCon edificios =
   [ DeclComando "fijar_tasa_tributo" "c.fijar_tasa_tributo" [DeclParametro "valor" (PEntero 1 5)] True requisitoPorOmision
   , DeclComando "fijar_impuesto_interno" "c.fijar_impuesto_interno" [DeclParametro "valor" (PEntero 1 5)] True requisitoPorOmision
   , DeclComando "asignar_presupuesto" "c.asignar_presupuesto"
@@ -75,4 +86,6 @@ catalogoComandos =
       [DeclParametro "altepetl" (PEntero 1 1000000), DeclParametro "personaje" (PEntero 1 1000000)] True requisitoPorOmision
   , DeclComando "destituir_gobernador" "c.destituir_gobernador"
       [DeclParametro "altepetl" (PEntero 1 1000000)] True requisitoPorOmision
+  , DeclComando "construir_edificio" "c.construir_edificio"
+      [DeclParametro "edificio" (POpcion edificios), DeclParametro "altepetl" (PEntero 1 1000000)] True requisitoPorOmision
   ]

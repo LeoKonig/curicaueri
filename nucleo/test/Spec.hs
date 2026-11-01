@@ -701,6 +701,23 @@ main = hspec $ do
       map errMensaje (valErrores (cargarTerrenos "malo.json" terrenosMalos))
         `shouldBe` [ "terreno repetido", "la capacidad no puede ser negativa"
                    , "la erosión no puede ser negativa", "recurso repetido" ]
+    it "trabajadores y rendimiento: por omisión 0 y vacío; el archivo trae los seis bienes de V5" $ do
+      let Just t = valValor tablaReal
+          Just llanoMalo = valValor (cargarTerrenos "x.json" (A.object [ "terrenos" A..=
+                             [ A.object ["id" A..= ("llano" :: Text), "capacidad" A..= ("1" :: Text), "erosion" A..= ("0" :: Text)] ] ]))
+      fmap (\d -> (dtTrabajadores d, dtRendimiento d)) (Map.lookup (Terreno "llano") llanoMalo)
+        `shouldBe` Just (Fijo 0, Map.empty)
+      Map.keys (Map.unions (map dtRendimiento (Map.elems t)))
+        `shouldBe` ["cobre", "maiz", "mantas", "obsidiana", "pescado", "sal"]
+      all (\d -> Map.null (dtRendimiento d) || dtTrabajadores d > Fijo 0) (Map.elems t) `shouldBe` True
+    it "rechaza trabajadores o rendimientos negativos y un terreno que rinde sin trabajadores" $ do
+      let malo = A.object [ "terrenos" A..=
+            [ A.object ["id" A..= ("llano" :: Text), "capacidad" A..= ("1" :: Text), "erosion" A..= ("0" :: Text)
+                       , "trabajadores" A..= ("-1" :: Text)]
+            , A.object ["id" A..= ("lago" :: Text), "capacidad" A..= ("1" :: Text), "erosion" A..= ("0" :: Text)
+                       , "rendimiento" A..= A.object ["pescado" A..= ("-2" :: Text)]] ] ]
+      map errRuta (valErrores (cargarTerrenos "malo.json" malo))
+        `shouldBe` ["terrenos.llano.trabajadores", "terrenos.lago.rendimiento.pescado", "terrenos.lago.trabajadores"]
     it "un terreno del mapa que la tabla no declara se rechaza al cargar, con su nombre" $ do
       let Just t = valValor tablaReal
           sinLago = Map.delete (Terreno "lago") t

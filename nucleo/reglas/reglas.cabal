@@ -11,6 +11,8 @@ library
                     Reglas.Comando
                     Reglas.Formulas
                     Reglas.Grupos
+                    Reglas.Edificios
+                    Reglas.Produccion
                     Reglas.Sistemas
                     Reglas.Escenario
                     Reglas.Juego
@@ -28,5 +30,5 @@ test-suite spec
   hs-source-dirs:   test
   default-language: Haskell2010
   default-extensions: StrictData OverloadedStrings TypeFamilies
-  build-depends:    base, motor, reglas, containers, hspec, aeson, text, bytestring
+  build-depends:    base, motor, reglas, containers, hspec, QuickCheck, aeson, text, bytestring
   ghc-options:      -Wall
