@@ -1,4 +1,4 @@
-{-# LANGUAGE StrictData, TypeFamilies, OverloadedStrings, LambdaCase, DeriveGeneric, DeriveAnyClass, DerivingStrategies #-}
+{-# LANGUAGE StrictData, TypeFamilies, OverloadedStrings, LambdaCase, DeriveGeneric, DeriveAnyClass, DerivingStrategies, ScopedTypeVariables #-}
 module Main where
 
 import Control.Monad (forM_, when)
@@ -42,6 +42,7 @@ import Motor.Moneda
 import Motor.Terrenos
 import Motor.Influencia
 import Motor.Recorrido
+import Motor.Compartido
 import qualified Data.Aeson.KeyMap as KM
 import GHC.Generics (Generic)
 import qualified Data.ByteString.Lazy as BL
@@ -390,6 +391,10 @@ juguete = Juego
   , juegoAplicarCmd  = aplicarCmdJuguete
   , juegoDerivar     = \_ _ p -> descontentoTotal p
   , juegoProyectar   = proyectarAldeas
+  , juegoProyectarDe = \est r -> lookup r [ (ejRef ej, ej) | ej <- proyectarAldeas est ]
+    -- Las aldeas no tienen campos: solo cambia cuáles existen.
+  , juegoSucias      = \a b -> let ids e = Set.fromList (alIds (persistenteJuego (estadoPersistente e)))
+                                in Just (Set.map (EntRef "aldea") ((ids a Set.\\ ids b) <> (ids b Set.\\ ids a)))
   , juegoAgentes     = Map.empty
   , juegoCatalogoMag = catalogoToy
   }
@@ -969,7 +974,7 @@ main = hspec $ do
           r    = validarOrdenSistemas Map.empty [sysA, sysB, sysD]
       length r `shouldBe` 3
 
-  describe "cambiosOpt ≡ cambiosRef" $ do
+  describe "cambios ≡ cambiosRef; proyección incremental ≡ completa" $ do
     -- Pares de estados que cubren: sin cambio, cambio en una entidad,
     -- cambio en varias, eliminación y reaparición (tick vuelve a un
     -- estado con la aldea de nuevo).
@@ -992,34 +997,32 @@ main = hspec $ do
     forM_ pares $ \(nombre, s0, s1) -> it ("coinciden · " ++ nombre) $ do
       let v0 = proyeccion juguete s0
           v1 = proyeccion juguete s1
-          cOpt = cambiosOpt (todasLasEntidades v1) v0 v1
-          cRef = cambiosRef v0 v1
-      cOpt `shouldBe` cRef
+          vInc = proyeccionIncremental juguete s0 v0 s1
+      cambios v0 v1 `shouldBe` cambiosRef v0 v1
+      vInc `shouldBe` v1
+      cambios v0 vInc `shouldBe` cambiosRef v0 v1
+      aplicar v0 (cambios v0 vInc) `shouldBe` v1
 
-    it "óptima con sucias = cambiadas: aplicar da v1" $ do
-      let s0 = estadoInicial
-          s1 = fst (paso juguete entornoPrueba (Semilla 1) (Tick 20) [] estadoInicial)
-          v0 = proyeccion juguete s0
-          v1 = proyeccion juguete s1
-          cambiadas = Set.fromList
-            [evRef e | e <- cActualizadas (cambiosRef v0 v1)]
-          cOpt = cambiosOpt cambiadas v0 v1
-      aplicar v0 cOpt `shouldBe` v1
+    it "incremental a lo largo de 120 ticks, encadenada sobre sí misma" $ do
+      let estados = scanl (\e t -> fst (paso juguete entornoPrueba (Semilla 1) (Tick t) [] e)) estadoInicial [1 .. 120]
+          vistas = scanl (\v (a, b) -> proyeccionIncremental juguete a v b) (proyeccion juguete estadoInicial)
+                         (zip estados (drop 1 estados))
+      and (zipWith (\v e -> v == proyeccion juguete e) vistas estados) `shouldBe` True
 
-    it "óptima con sucias = eliminadas también funciona" $ do
-      let s0 = estadoInicial
-          s1 = estadoInicial
-            { estadoPersistente = (estadoPersistente estadoInicial)
-                { persistenteJuego = Aldeas [1] Map.empty } }
-          v0 = proyeccion juguete s0
-          v1 = proyeccion juguete s1
-          -- El registro de sucias en este caso solo tiene a la aldea 1
-          -- (la que cambió), y la eliminación de la 2 se detecta por
-          -- iteración de claves viejas.
-          sucias = Set.singleton (EntRef "aldea" 1)
-          c = cambiosOpt sucias v0 v1
-      cEliminadas c `shouldBe` [EntRef "aldea" 2]
-      aplicar v0 c `shouldBe` v1
+  describe "clavesCambiadas" $ do
+    let ingenua a b = [ k | k <- Set.toList (Map.keysSet a <> Map.keysSet b), Map.lookup k a /= Map.lookup k b ]
+        editar m (k, Nothing) = Map.delete k m
+        editar m (k, Just v)  = Map.insert k v m
+    it "coincide con la comparación clave por clave (mapas que comparten)" $
+      property $ \(xs :: [(Int, Int)]) (es :: [(Int, Maybe Int)]) ->
+        let a = Map.fromList xs
+            b = foldl' editar a es
+        in clavesCambiadas a b === ingenua a b
+    it "coincide con la comparación clave por clave (mapas independientes)" $
+      property $ \(xs :: [(Int, Int)]) (ys :: [(Int, Int)]) ->
+        let a = Map.fromList xs
+            b = Map.fromList ys
+        in clavesCambiadas a b === ingenua a b
 
   describe "carga: secciones" $ do
     let archivo cs = A.object ["version_esquema" A..= (1 :: Int), "constantes" A..= A.object cs]

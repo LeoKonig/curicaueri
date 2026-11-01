@@ -4,6 +4,7 @@ module Motor.Juego where
 import Data.List (foldl', sortBy)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
+import Data.Set (Set)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Motor.Azar
@@ -43,6 +44,14 @@ data Juego s c = Juego
   , juegoAplicarCmd  :: Estado s -> Sellado c -> Either Rechazo (Estado s, [Hecho])
   , juegoDerivar     :: Grafo -> Tick -> Persistente s -> DerivadoDe s   -- ^ el grafo trae el mapa ('grafoMapa')
   , juegoProyectar   :: Estado s -> [EntidadJuego]
+  , juegoProyectarDe :: Estado s -> EntRef -> Maybe EntidadJuego
+    -- ^ lo que aporta una sola entidad; coincide con su elemento de
+    --   'juegoProyectar', y 'Nothing' si no es visible
+  , juegoSucias      :: Estado s -> Estado s -> Maybe (Set EntRef)
+    -- ^ entidades cuyos campos pudieron cambiar del primer estado al segundo
+    --   (o aparecer o desaparecer): un superconjunto de las que cambiaron.
+    --   Lo que el motor pone en la vista (las magnitudes) no lo cuenta el
+    --   juego. 'Nothing' es «no lo sé»: se proyecta todo.
   , juegoAgentes     :: Map FaccionId (Agente s c)
   , juegoCatalogoMag :: Map Magnitud DefMagnitud
   }
