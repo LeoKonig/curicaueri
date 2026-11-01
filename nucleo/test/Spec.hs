@@ -37,6 +37,7 @@ import System.Environment (lookupEnv)
 import System.IO.Unsafe (unsafePerformIO)
 import Motor.Guardado
 import Motor.Moneda
+import Motor.Terrenos
 import qualified Data.Aeson.KeyMap as KM
 import GHC.Generics (Generic)
 import qualified Data.ByteString.Lazy as BL
@@ -502,6 +503,99 @@ main = hspec $ do
     it "validarMapa detecta una conexión asimétrica" $ do
       let m = mapaPrueba { mapaVecinos = IntMap.adjust (const []) 0 (mapaVecinos mapaPrueba) }
       any esAsimetrica (validarMapa m) `shouldBe` True
+
+  describe "asignación de celdas" $ do
+    -- mapaPrueba es hexagonal de 5 × 4 con 1,0 km por celda: dos celdas vecinas están a 1 km.
+    let km n = Fijo (n * 10000)
+        asig r fs = IntMap.toList (asignarCeldas r mapaPrueba [ (AsentId a, CeldaId c) | (a, c) <- fs ])
+        -- Reasigna a cada conexión una longitud de 0 a 3 km, la misma en los dos sentidos
+        -- (depende solo del par de celdas), para que haya empates y conexiones de longitud 0.
+        reponderar sem m = m { mapaVecinos = IntMap.mapWithKey (\a vs ->
+          [ (CeldaId b, con { connCosto = Fijo (fromIntegral ((min a b * 7 + max a b * 13 + sem) `mod` 4) * 10000) })
+          | (CeldaId b, con) <- vs ]) (mapaVecinos m) }
+        -- La definición, sin Dijkstra: la distancia de cada fuente a cada celda por
+        -- relajación repetida, y para cada celda el mínimo de (distancia, id) dentro del radio.
+        fuerzaBruta radio m fs = IntMap.fromList
+          [ (c, AsentId a)
+          | c <- IntMap.keys (mapaCeldas m)
+          , let cands = [ (d, a) | (AsentId a, CeldaId f) <- fs
+                                 , Just d <- [IntMap.lookup c (distDesde m f)], d <= radio ]
+          , not (null cands)
+          , let (_, a) = minimum cands ]
+        distDesde m f = iterate (relajar m) (IntMap.singleton f (Fijo 0)) !! IntMap.size (mapaCeldas m)
+        relajar m ds = IntMap.unionWith min ds (IntMap.fromListWith min
+          [ (b, d .+. connCosto con) | (a, d) <- IntMap.toList ds
+                                        , (CeldaId b, con) <- IntMap.findWithDefault [] a (mapaVecinos m) ])
+        casoAzar = do
+          w <- choose (1, 5); h <- choose (1, 4); sem <- choose (0, 1000)
+          let m = either (error . show) (reponderar sem) (proveedorHexagonal (DatosHex w h (km 1) 1))
+              n = w * h
+          k <- choose (1, min 4 n)
+          celdas <- vectorOf k (choose (0, n - 1))
+          ids <- vectorOf k (choose (1, 50))
+          radio <- Fijo . (* 5000) <$> choose (0, 16)
+          pure (m, zip ids celdas, radio)
+    it "el proveedor hexagonal pone a cada conexión la escala como longitud y como costo" $
+      all (\con -> connLongitud con == mapaEscala mapaPrueba && connCosto con == mapaEscala mapaPrueba)
+          [ con | vs <- IntMap.elems (mapaVecinos mapaPrueba), (_, con) <- vs ]
+        `shouldBe` True
+    it "ley: coincide con el mínimo por fuerza bruta en mapas pequeños, con empates y conexiones de longitud 0" $
+      property $ forAll casoAzar $ \(m, fs, radio) ->
+        asignarCeldas radio m [ (AsentId a, CeldaId c) | (a, c) <- fs ]
+          == fuerzaBruta radio m [ (AsentId a, CeldaId c) | (a, c) <- fs ]
+    it "con radio 0, solo la celda del asentamiento" $
+      asig (km 0) [(1, 7)] `shouldBe` [(7, AsentId 1)]
+    it "con radio de un paso, la celda y sus vecinas" $
+      map fst (asig (km 1) [(1, 0)]) `shouldBe` [0, 1, 5]
+    it "las celdas a más de R km de todo asentamiento no se asignan" $
+      (lookup 19 (asig (km 1) [(1, 0)]), lookup 19 (asig (km 100) [(1, 0)]))
+        `shouldBe` (Nothing, Just (AsentId 1))
+    it "el empate lo rompe el id menor, sin importar el orden de la lista" $ do
+      lookup 1 (asig (km 1) [(9, 0), (3, 2)]) `shouldBe` Just (AsentId 3)
+      lookup 1 (asig (km 1) [(3, 2), (9, 0)]) `shouldBe` Just (AsentId 3)
+    it "dos asentamientos en la misma celda: gana el id menor" $
+      lookup 4 (asig (km 1) [(8, 4), (2, 4)]) `shouldBe` Just (AsentId 2)
+    it "un asentamiento cuya celda no existe se ignora" $
+      asig (km 1) [(1, 999)] `shouldBe` []
+    it "cada celda va al más cercano, no al primero que llega" $
+      -- celda 3 está a 1 km de la 2 y a 3 km de la 0
+      lookup 3 (asig (km 3) [(1, 0), (2, 2)]) `shouldBe` Just (AsentId 2)
+
+  describe "tabla de terrenos" $ do
+    let archivoReal = unsafePerformIO (BL.readFile "../datos/terrenos.json")
+        tablaReal = case A.decode archivoReal of
+          Just v -> cargarTerrenos "terrenos.json" v
+          Nothing -> error "datos/terrenos.json no es JSON"
+        terrenosMalos = A.object [ "terrenos" A..=
+          [ A.object ["id" A..= ("llano" :: Text), "capacidad" A..= ("10" :: Text), "erosion" A..= ("0.5" :: Text)]
+          , A.object ["id" A..= ("llano" :: Text), "capacidad" A..= ("3" :: Text), "erosion" A..= ("0" :: Text)]
+          , A.object ["id" A..= ("bosque" :: Text), "capacidad" A..= ("-1" :: Text), "erosion" A..= ("0" :: Text)]
+          , A.object ["id" A..= ("sierra" :: Text), "capacidad" A..= ("4" :: Text), "erosion" A..= ("-0.2" :: Text)]
+          , A.object ["id" A..= ("lago" :: Text), "capacidad" A..= ("6" :: Text), "erosion" A..= ("0" :: Text)
+                     , "recursos" A..= (["pescado", "pescado"] :: [Text])] ] ]
+    it "el archivo del repositorio carga sin errores" $
+      valErrores tablaReal `shouldBe` []
+    it "declara los cuatro terrenos que genera el proveedor hexagonal" $
+      fmap Map.keys (valValor tablaReal)
+        `shouldBe` Just [Terreno "bosque", Terreno "lago", Terreno "llano", Terreno "sierra"]
+    it "cubre todos los terrenos de un mapa hexagonal, también uno grande" $ do
+      let Just t = valValor tablaReal
+          grande = either (error . show) id (proveedorHexagonal (DatosHex 60 45 (fi 5) 1))
+      (valErrores (validarTerrenosDelMapa "terrenos.json" t mapaPrueba), valErrores (validarTerrenosDelMapa "terrenos.json" t grande))
+        `shouldBe` ([], [])
+    it "capacidad y erosión salen de la tabla, con valores no negativos" $ do
+      let Just t = valValor tablaReal
+      all (\d -> dtCapacidad d >= Fijo 0 && dtErosion d >= Fijo 0) (Map.elems t) `shouldBe` True
+      fmap dtCapacidad (Map.lookup (Terreno "llano") t) `shouldBe` Just (fi 10)
+    it "acumula todos los errores: terreno repetido, capacidad y erosión negativas, recurso repetido" $
+      map errMensaje (valErrores (cargarTerrenos "malo.json" terrenosMalos))
+        `shouldBe` [ "terreno repetido", "la capacidad no puede ser negativa"
+                   , "la erosión no puede ser negativa", "recurso repetido" ]
+    it "un terreno del mapa que la tabla no declara se rechaza al cargar, con su nombre" $ do
+      let Just t = valValor tablaReal
+          sinLago = Map.delete (Terreno "lago") t
+      map (\e -> (errCategoria e, errRuta e)) (valErrores (validarTerrenosDelMapa "terrenos.json" sinLago mapaPrueba))
+        `shouldBe` [(ErrorReferencia, "terrenos.lago")]
 
   describe "azar estable" $
     it "valor dorado: si cambia, cambió el generador y se rompen las repeticiones guardadas" $

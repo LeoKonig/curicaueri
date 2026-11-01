@@ -794,7 +794,7 @@ El núcleo es un procesador de información, no un elemento unido a un mapa conc
 
 Todos los sistemas usan solo esta interfaz: vecinos de una celda, conexión entre dos celdas y atributos. La influencia (Dijkstra multifuente), el movimiento, el abasto, el contagio y el asedio son algoritmos sobre grafos y no pierden nada.
 
-**Dos medidas, dos usos.** Las reglas de cercanía física (producción, erosión, frontera) usan la **distancia** en kilómetros por el grafo. Las reglas de desplazamiento (movimiento, abasto, influencia) usan el **costo** en días de marcha. Así, "las tierras que trabaja un asentamiento" no cambian si se construye un camino, pero la marcha sí.
+**Longitud y costo.** Cada conexión tiene una **longitud** (la distancia entre sus dos puntos, en km) y un **costo** (su peso en el grafo). Por decisión de diseño, el costo coincide con la longitud: para fines prácticos es la distancia en km (5 en territorios de tierra, más en las rutas marítimas), y todas las reglas que recorren el grafo (producción, erosión, frontera, movimiento, abasto, influencia) usan ese peso. Los dos campos se conservan separados por si un camino o un puerto llegan a abaratar la marcha sin acortar la distancia, pero hoy nada los distingue; se separarán cuando una regla lo pida.
 
 **Proveedores de grafo.** La malla hexagonal es el primer proveedor, no la definición del mapa:
 

@@ -377,7 +377,7 @@ d_{\text{km}}(a,b) = \min_{\text{camino } a \to b} \sum \text{longitudKm}
 d_{\text{costo}}(a,b) = \min_{\text{camino } a \to b} \sum \text{costo}
 ```
 
-La cercanía física (producción, erosión, frontera) usa d_km; el desplazamiento y la influencia usan d_costo.
+Por decisión de diseño el costo de cada conexión coincide con su longitud en km (5 en tierra, más por mar), así que d_costo = d_km; los dos campos se conservan por si una regla futura necesita distinguirlos.
 
 **Asignación de celdas: un diagrama de Voronoi en el grafo.**
 
@@ -386,7 +386,7 @@ La cercanía física (producción, erosión, frontera) usa d_km; el desplazamien
 \quad \text{con } d_{\text{km}} \le R_{\text{prod}}
 ```
 
-El orden lexicográfico (distancia, id) hace el desempate determinista. Se calcula con un Dijkstra multifuente sobre d_km.
+El orden lexicográfico (distancia, id) hace el desempate determinista. Se calcula con un Dijkstra multifuente sobre el costo de las conexiones (= d_km).
 
 **Ids globales de celda (V5, *El mapa completo*).** La malla se traza en hojas con proyección de área igual; cada celda tiene coordenadas axiales (q, r) con origen fijo en su hoja h. El id las codifica en el `CeldaId` entero que ya existe, así que el tipo, el `IntMap` y el protocolo no cambian:
 
