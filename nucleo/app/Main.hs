@@ -83,6 +83,7 @@ import Reglas.Comando
 import Reglas.Constantes (constantesDefault)
 import Reglas.Escenario
 import Reglas.Estado (Purepecha, ppAltepetl, ppPops, jugableDe)
+import Reglas.Facciones (conAgentesNulos)
 import Reglas.Edificios (cargarEdificios, conConocimientos, edificiosVacios, idsEdificios)
 import Reglas.Produccion (bienesDe)
 import Motor.Terrenos (DefTerreno (..), cargarTerrenos, conCostoDeTerreno, validarTerrenosDelMapa)
@@ -226,16 +227,18 @@ main = do
   ejes <- validado (ejesActivos "escenario 1475" ejesTodos ejesActivos1475)
   validado (validarRequisitos "catálogo de comandos" ejesTodos [ (dcTipo d, dcRequiere d) | d <- comandos ])
   unless (null ejes) $ registro ("ejes activos: " <> T.intercalate ", " (map ejId ejes))
+  -- Un agente nulo por cada facción que no dirige la persona.
+  let juegoN = conAgentesNulos (persistenteJuego (estadoPersistente e0)) juego
   let faccionAgente = FaccionId (read (opcion "--agente-faccion" "1"))
       conf = Config ancho alto carpeta vels (fmap (\a -> (faccionAgente, a, mregistro)) agente) (Entorno mapaR guion economiaVacia grafoR) ejes comandos
   forM_ agente $ \_ -> registro ("agente externo para la facción " <> T.pack (opcion "--agente-faccion" "1"))
   ref <- newIORef Partida
     { pEstado = e0, pSiguiente = 0, pPendientes = [], pRespuestas = [], pDecisionesEnviadas = []
     , pVelocidad = velocidadNormal, pPausado = True
-    , pVista = proyeccionCon juego sinDetalle e0, pInteres = sinDetalle }
+    , pVista = proyeccionCon juegoN sinDetalle e0, pInteres = sinDetalle }
   if "--sin-cliente" `elem` args
-    then sinCliente conf juego mapaR ref (read (opcion "--ticks" "360")) (opcion "--volcar" "") ("--metricas" `elem` args)
-    else conCliente conf juego mapaR ref puerto
+    then sinCliente conf juegoN mapaR ref (read (opcion "--ticks" "360")) (opcion "--volcar" "") ("--metricas" `elem` args)
+    else conCliente conf juegoN mapaR ref puerto
   forM_ mregistro hClose
   forM_ agente cerrarAgente
 

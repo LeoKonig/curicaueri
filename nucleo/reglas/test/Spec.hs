@@ -1183,7 +1183,7 @@ pruebasFacciones gruposArchivo = describe "reglas: varias facciones (T12, hito 4
         param k h = Map.findWithDefault "" k (hechoParams h)
         absorbe a = Transferencia (AlAbsorbente a) (AlAbsorbente a) (AlAbsorbente a)
         modsNombr f st = sum [ length [ () | m <- almacenMods x, modFuente m /= Fuente "" "" , fuenteTipoEs "nombramiento" (modFuente m) ]
-                             | ((r, Magnitud n), x) <- Map.toList (alm st), r == entFac f, "grupo." `T.isPrefixOf` n ]
+                             | ((r, Magnitud n), x) <- Map.toList (alm st), r == entFac f, "faccion.grupo." `T.isPrefixOf` n ]
         fuenteTipoEs t (Fuente a _) = a == t
         hastaTick t = cambiar f2 (\fa -> fa { facHasta = Just t, facTransferencia = absorbe f1 })
         correrConHechos ts st = foldl' (\(e, hs) t -> let (e', h) = paso jg (entornoSimple mapaVacio) (Semilla 5) (Tick t) [] e in (e', hs ++ h)) (st, []) ts
@@ -1249,3 +1249,23 @@ pruebasFacciones gruposArchivo = describe "reglas: varias facciones (T12, hito 4
     it "los ids no se reutilizan: la eliminada sigue en el mapa" $ do
       let (fin, _) = eliminarFaccion gs (Tick 40) f2 base2
       Map.keys (ppFacciones (jue fin)) `shouldBe` [f1, f2]
+
+  describe "agentes nulos y facción jugable" $ do
+    let f2 = FaccionId 2
+        dos = conCopia estadoInicial1475
+        jue st = persistenteJuego (estadoPersistente st)
+        alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
+        jugable f st = let per = estadoPersistente st; p = persistenteJuego per
+                       in st { estadoPersistente = per { persistenteJuego = p { ppFacciones =
+                            Map.mapWithKey (\k fa -> fa { facJugable = k == f }) (ppFacciones p) } } }
+        juegoDe st = conAgentesNulos (jue st) (Reglas.Juego.juego constantesDefault)
+        traza st = foldl' (\e t -> fst (paso (juegoDe st) (entornoSimple mapaVacio) (Semilla 9) (Tick t) [] e)) st [0 .. 59]
+        sinJugable st = (Map.map (\fa -> fa { facJugable = False }) (ppFacciones (jue st)), alm st)
+        sinFlag st = let p = jue st in (p { ppFacciones = Map.empty }, sinJugable st)
+
+    it "hay un agente nulo por cada facción que no es la jugable" $ do
+      Map.keys (juegoAgentes (juegoDe (jugable f1 dos))) `shouldBe` [f2]
+      Map.keys (juegoAgentes (juegoDe (jugable f2 dos))) `shouldBe` [f1]
+
+    it "con agentes nulos, cambiar cuál facción es la jugable no cambia la traza" $ do
+      sinFlag (traza (jugable f1 dos)) `shouldBe` sinFlag (traza (jugable f2 dos))
