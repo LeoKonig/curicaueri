@@ -354,7 +354,7 @@ sesion conf juego mapaR ref conn = do
             let leido = do
                   o <- maybe (Left "archivo ilegible") Right (A.decode bs)
                   (sig, est) <- maybe (Left "faltan campos") Right (A.parseMaybe (\x -> A.withObject "partida" (\m -> (,) <$> m A..: "siguiente" <*> m A..: "estado") x) o)
-                  e <- either (Left . T.pack . show) Right (cargar juego mapaR (A.encode (est :: A.Value)))
+                  e <- either (Left . errMensaje) Right (cargar juego mapaR (A.encode (est :: A.Value)))
                   pure (sig, e)
             case leido of
               Left err -> enviar (NError Nothing ("no se pudo cargar " <> nombre <> ": " <> err))
