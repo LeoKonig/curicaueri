@@ -977,7 +977,7 @@ con el resto ρ persistente en `restos`. Si para una identidad i la suma de sus 
 **Aparición y desaparición de facciones.** Cada facción declarada tiene un estado `Potencial | Activa | Eliminada`, que es persistente. En el paso 13, al empezar la veintena:
 
 ```haskell
-data Transferencia = Transferencia { trTitulos :: Destino, trTesoro :: Destino, trPops :: Destino, trPersonajes :: Destino }
+data Transferencia = Transferencia { trTitulos :: Destino, trTesoro :: Destino, trAltepetl :: Destino, trPersonajes :: Destino }
 data Destino = AlHeredero FaccionId | AlSoberano | SePierde | AlAbsorbente FaccionId
 -- potencial → activa  si  desde ≤ t  ∨  condAparicion(S)
 -- activa → eliminada  si  hasta ≤ t  ∨  condDesaparicion(S)
@@ -989,13 +989,14 @@ Las condiciones son las de la sección 11b, más `Ocurrio hecho`: verdadera si e
 \sum_{\text{destinos}} \text{lo transferido} \;=\; \text{lo que tenía la facción} \;-\; \text{lo declarado } \texttt{SePierde}
 ```
 
-Todo lo demás llega a un destino. Un título cuyo destino no puede recibirlo, porque el destino no es soberano ni titular sobre esa entidad, se pierde y lo anota el hecho. Los ids de facción no se reutilizan.
+Todo lo demás llega a un destino. **Implementado (T12, hito 4).** En `Reglas.Facciones`, con `Transferencia { trTesoro, trAltepetl, trPersonajes }` y los destinos `SePierde` y `AlAbsorbente`; `trTitulos`, `AlHeredero` y `AlSoberano` entran con los títulos (hito 7) y la sucesión (hito 8). Los pops viajan con su altépetl (un pop pertenece a un altépetl, no a una facción), por eso el campo es `trAltepetl` y no `trPops`. «Se pierde» solo pone el tesoro en cero; los altépetl y los personajes perdidos siguen con la facción eliminada, y nadie los recorre ni puede nombrarlos, así que la población y los ids se conservan. El sistema `facciones` corre cada veintena antes que la construcción, con `facDesde` y `facHasta` (ticks) como únicas condiciones hasta que el hito 4 traiga las del lenguaje del guion (`T14`); emite `faccion_aparece` y `faccion_desaparece` con lo transferido y lo perdido, y si el absorbente no está activo el destino se pierde y el hecho lo anota (`destino_inactivo`). Al absorber, la cabecera de la eliminada queda `Senorio` y sujeta a la cabecera del absorbente, y los nombramientos de los gobernadores se rehacen en los grupos de la facción nueva. El prestigio y la legitimidad no se transfieren. Leyes: la suma de tesoros se conserva al absorber y baja exactamente lo declarado perdido (salvo el tope del rango del tesoro); la población total no cambia. Un título cuyo destino no puede recibirlo, porque el destino no es soberano ni titular sobre esa entidad, se pierde y lo anota el hecho. Los ids de facción no se reutilizan.
 
 **Condición del altépetl (V5, *Condición del altépetl*).** Entra con las rebeliones del hito 4:
 
 ```haskell
-data Condicion = Sujeto | Senorio | Cabecera FaccionId    -- campo altCondicion
--- por defecto, para los guardados anteriores: Sujeto si altSujetoA = Just _, Cabecera 1 si no
+data CondicionAlt = Sujeto | Senorio | Cabecera FaccionId    -- campo altCondicion; en el código CondicionAlt, porque Condicion ya es la del lenguaje cerrado del guion
+-- por defecto, para los guardados anteriores: Sujeto si altSujetoA = Just _, Cabecera de su facción si no
+-- el altépetl también guarda altFaccion (por defecto 1) y el personaje perFaccion (por defecto 1)
 -- independiente = Cabecera f con f de tipo senorio_independiente
 ```
 
