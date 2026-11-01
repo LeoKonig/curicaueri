@@ -34,10 +34,10 @@ hacienda c = Sistema
       let p      = persistenteJuego (estadoPersistente est)
           t      = ppTasas p
           pres   = ppPresupuesto p
-          eficiencias = Map.map (eficienciaDe c p) (ppAltepetl p)
+          efs    = eficiencias c p
           ingreso = foldl' (\acc pop ->
                       acc .+. ingresoPoblacion c t (capitalDe p pop)
-                                (Map.findWithDefault (Fijo 0) (popAltepetl pop) eficiencias)
+                                (Map.findWithDefault (Fijo 0) (popAltepetl pop) efs)
                                 (popTamano pop))
                     (Fijo 0) (Map.elems (ppPops p))
           gasto  = gastoPunto c (pbEjercito pres + pbAdministracion pres + pbDiplomacia pres)
