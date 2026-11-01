@@ -71,6 +71,7 @@ import qualified Data.Set as Set
 
 import Motor.Calendario (esInicioDePeriodo)
 import qualified Data.Map.Strict as Map
+import Data.Maybe (fromMaybe)
 import Motor.Guion
 import Motor.Moneda (economiaVacia)
 import Motor.Director (metricas, cumpleVariedad, Metricas (..))
@@ -81,7 +82,8 @@ import Agente
 import Reglas.Comando
 import Reglas.Constantes (constantesDefault)
 import Reglas.Escenario
-import Reglas.Estado (Purepecha, ppAltepetl, ppPops)
+import Reglas.Estado (Purepecha, ppAltepetl, ppPops, jugableDe)
+import Reglas.Facciones (conAgentesNulos)
 import Reglas.Edificios (cargarEdificios, conConocimientos, edificiosVacios, idsEdificios)
 import Reglas.Produccion (bienesDe)
 import Motor.Terrenos (DefTerreno (..), cargarTerrenos, conCostoDeTerreno, validarTerrenosDelMapa)
@@ -104,8 +106,10 @@ velocidadNormal :: Int
 velocidadNormal = 3
 
 -- | La facción del jugador en el prototipo.
-faccionJugador :: FaccionId
-faccionJugador = FaccionId 1
+-- | La facción que dirige la persona: la jugable del estado (V5, *Alcance*).
+-- Los comandos que manda el cliente salen con su sello.
+faccionJugador :: Estado Purepecha -> FaccionId
+faccionJugador e = fromMaybe (FaccionId 1) (jugableDe (persistenteJuego (estadoPersistente e)))
 
 data Partida = Partida
   { pEstado    :: Estado Purepecha
@@ -185,7 +189,7 @@ main = do
                        (a, _ : b) | [(x, "")] <- reads a, [(y, "")] <- reads b -> (x, y)
                        _ -> (0, 0)
       eSinGrupos = escalar (ancho * alto) escN escK (reubicar ancho alto estadoInicial1475)
-  eConGrupos <- conConocimientos edificios <$> validado (conGrupos (T.pack (opcion "--grupos" "")) grupos tipoFaccion1475 eSinGrupos)
+  eConGrupos <- conConocimientos edificios <$> validado (conGrupos (T.pack (opcion "--grupos" "")) grupos eSinGrupos)
   -- El derivado del estado inicial (qué celdas trabaja cada altépetl), para
   -- que la primera veintena ya produzca. Es el mismo que daría cargar la
   -- partida en el tick 0.
@@ -223,16 +227,18 @@ main = do
   ejes <- validado (ejesActivos "escenario 1475" ejesTodos ejesActivos1475)
   validado (validarRequisitos "catálogo de comandos" ejesTodos [ (dcTipo d, dcRequiere d) | d <- comandos ])
   unless (null ejes) $ registro ("ejes activos: " <> T.intercalate ", " (map ejId ejes))
+  -- Un agente nulo por cada facción que no dirige la persona.
+  let juegoN = conAgentesNulos (persistenteJuego (estadoPersistente e0)) juego
   let faccionAgente = FaccionId (read (opcion "--agente-faccion" "1"))
       conf = Config ancho alto carpeta vels (fmap (\a -> (faccionAgente, a, mregistro)) agente) (Entorno mapaR guion economiaVacia grafoR) ejes comandos
   forM_ agente $ \_ -> registro ("agente externo para la facción " <> T.pack (opcion "--agente-faccion" "1"))
   ref <- newIORef Partida
     { pEstado = e0, pSiguiente = 0, pPendientes = [], pRespuestas = [], pDecisionesEnviadas = []
     , pVelocidad = velocidadNormal, pPausado = True
-    , pVista = proyeccionCon juego sinDetalle e0, pInteres = sinDetalle }
+    , pVista = proyeccionCon juegoN sinDetalle e0, pInteres = sinDetalle }
   if "--sin-cliente" `elem` args
-    then sinCliente conf juego mapaR ref (read (opcion "--ticks" "360")) (opcion "--volcar" "") ("--metricas" `elem` args)
-    else conCliente conf juego mapaR ref puerto
+    then sinCliente conf juegoN mapaR ref (read (opcion "--ticks" "360")) (opcion "--volcar" "") ("--metricas" `elem` args)
+    else conCliente conf juegoN mapaR ref puerto
   forM_ mregistro hClose
   forM_ agente cerrarAgente
 
@@ -409,13 +415,13 @@ sesion conf juego mapaR ref conn = do
         A.Error err -> enviar (NError (Just sec) ("comando inválido: " <> T.pack err))
         A.Success c -> modifyIORef' ref $ \p ->
           -- Un comando dado en pausa durante el tick T se aplica en el tick T+1.
-          p { pPendientes = pPendientes p ++ [Sellado (Tick (pSiguiente p)) faccionJugador sec c] }
+          p { pPendientes = pPendientes p ++ [Sellado (Tick (pSiguiente p)) (faccionJugador (pEstado p)) sec c] }
       Right (CConsulta sec v) -> case A.fromJSON v of
         A.Error err -> enviar (NError (Just sec) ("comando inválido: " <> T.pack err))
         A.Success c -> do
           p <- readIORef ref
           let t = Tick (pSiguiente p)
-          case consultar juego (cEntorno conf) (Semilla 1475) t (pPendientes p) (Sellado t faccionJugador sec c) (pEstado p) of
+          case consultar juego (cEntorno conf) (Semilla 1475) t (pPendientes p) (Sellado t (faccionJugador (pEstado p)) sec c) (pEstado p) of
             Left (Rechazo motivo) -> enviar (NError (Just sec) motivo)
             Right (h, sinC, conC) ->
               let vSin = proyeccionIncremental juego (pInteres p) (pEstado p) (pVista p) sinC

@@ -1,6 +1,6 @@
 # Curicaueri: Flor y Canto — núcleo del juego (motor y reglas)
 
-Núcleo en Haskell de *Curicaueri: Flor y Canto*, juego de gran estrategia sobre Mesoamérica (la campaña 1418–1605 jugada desde el reino purépecha; el escenario actual es todavía el provisional de 1475). El núcleo decide todo el estado del juego; el cliente en Godot solo dibuja y captura la entrada.
+Núcleo en Haskell de *Curicaueri: Flor y Canto*, juego de gran estrategia sobre Mesoamérica (la campaña 1418–1607 jugada desde el reino purépecha; el escenario actual es todavía el provisional de 1475). El núcleo decide todo el estado del juego; el cliente en Godot solo dibuja y captura la entrada.
 
 Este código implementa dos documentos de diseño, que conviene leer antes de tocarlo:
 
@@ -83,6 +83,7 @@ Los archivos dorados del protocolo y del espejo viven fuera, en `../pruebas_comp
 | `Reglas.Constantes` | Constantes de balance y fórmulas de agravio (provisionales) |
 | `Reglas.Comando` | Comandos del juego, su forma JSON y su declaración para el catálogo del cliente |
 | `Reglas.Sistemas` | Recaudación, pago del presupuesto y evolución del agravio |
+| `Reglas.Facciones` | Aparición y desaparición de facciones por fecha (`facDesde`, `facHasta`) con su `Transferencia` (tesoro, altépetl con sus pops, personajes; destinos `SePierde` y `AlAbsorbente`), y el agente nulo (`conAgentesNulos`) de las facciones que no dirige la persona |
 | `Reglas.Fusion` | Fusión de pops pequeños (sección 12): cada veintena, un pop de menos de `FUSION_TAMANO` se funde con el mayor compatible de su clave, con media ponderada de gradiente, lealtad y magnitudes |
 | `Reglas.Escenario` | Estado inicial de 1475, mapa provisional de 14 × 10 y fecha de inicio (provisionales) |
 | `Reglas.Edificios` | Edificios como dato (`datos/edificios.json`, `cargarEdificios` con errores acumulados): costo en valor, duración mínima, trabajo, materiales y cuadrilla máxima; culto (tradición, nivel, capacidad, sacerdotes) y fórmula de beneficio de cada modificador. `iniciarObra` (`construir_edificio`) cobra el valor, retira la cuadrilla y rechaza sin daño. El sistema `construccion` sostiene la cuadrilla con la partida de obras, extrae los materiales de las celdas del altépetl, trabaja, termina la obra y recalcula cada veintena un modificador por tipo de edificio, altépetl y magnitud con fuente `edificio`. `derivarFieles` (paso 16) reparte a los pops entre los templos locales de su tradición y suma los fieles de cada centro ceremonial con peso por distancia |

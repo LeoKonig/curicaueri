@@ -161,13 +161,15 @@ totalProduccion = foldl' (.+.) (Fijo 0) . Map.elems
 
 -- | El sistema de producción (paso 6, cada periodo). Escribe la base de
 -- @bien.<id>.produccion@ de la facción con lo producido en el periodo y la
--- suma a @bien.<id>.existencias@; es el único escritor de las dos. Lee la
+-- suma a @bien.<id>.existencias@; es el único escritor de las dos. Cada
+-- facción activa recibe lo que producen sus altépetl. Lee la
 -- producción de cada altépetl (las obras) y las celdas del derivado.
 --
 -- El tributo en especie entre altépetl no mueve nada todavía: las
--- existencias son de la facción y todos los altépetl son de la misma, así
--- que lo que un sujeto entrega a su cabecera no sale de la bolsa común. Se
--- moverá cuando haya existencias por altépetl o tributo entre facciones.
+-- existencias son de la facción y el tributo en especie solo va entre
+-- altépetl de la misma, así que lo que un sujeto entrega a su cabecera no
+-- sale de la bolsa común. Se moverá cuando haya existencias por altépetl o
+-- tributo entre facciones.
 produccion :: Constantes -> [Text] -> Sistema Purepecha
 produccion c bienes = Sistema
   { sisNombre   = NombreSistema "produccion"
@@ -184,10 +186,16 @@ produccion c bienes = Sistema
           factor alt = maybe baseProduccionAlt (valorEn vig (estadoTick est) rangoProduccionAlt)
                          (Map.lookup (entRefAlt alt, magProduccionAlt) (comunMagnitudes com))
           deAlt alt cs = Map.map (.*. factor alt) (produccionCeldas (Map.findWithDefault 0 alt ws) cs)
-          total = Map.unionsWith (.+.) (Map.fromList [ (b, Fijo 0) | b <- bienes ]
-                                        : Map.elems (Map.mapWithKey deAlt celdas))
-          escribir alm (b, q) =
-            sumarBase entFaccion (magExistencias b) q (fijarBase entFaccion (magProduccion b) q alm)
-          alm' = foldl' escribir (comunMagnitudes com) (Map.toList (Map.filterWithKey (\b _ -> b `elem` bienes) total))
+          -- Lo producido por cada facción activa: la suma de sus altépetl.
+          porFac = Map.fromListWith (Map.unionWith (.+.))
+                     [ (f, deAlt alt cs) | (alt, cs) <- Map.toList celdas
+                     , let f = facDeAlt p alt, Just fa <- [Map.lookup f (ppFacciones p)], facEstado fa == Activa ]
+          total f = Map.unionsWith (.+.) (Map.fromList [ (b, Fijo 0) | b <- bienes ]
+                                          : [Map.findWithDefault Map.empty f porFac])
+          escribir f alm (b, q) =
+            sumarBase (entFac f) (magExistencias b) q (fijarBase (entFac f) (magProduccion b) q alm)
+          alm' = foldl' (\a fa -> foldl' (escribir (facId fa)) a
+                                          (Map.toList (Map.filterWithKey (\b _ -> b `elem` bienes) (total (facId fa)))))
+                        (comunMagnitudes com) (activas p)
       in (est { estadoPersistente = (estadoPersistente est) { persistenteComun = com { comunMagnitudes = alm' } } }, [])
   }

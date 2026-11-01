@@ -18,11 +18,11 @@ escenario1475 :: Purepecha
 escenario1475 = Purepecha
   { ppAltepetl = Map.fromList
       [ (AltId 1, Altepetl (AltId 1) "Tzintzuntzan"
-                    (Just (PerId 2)) (fi 0) Nothing (fi 80) 63 Nothing [])
+                    (Just (PerId 2)) (fi 0) Nothing (fi 80) 63 Nothing [] f1 (Cabecera f1))
       , (AltId 2, Altepetl (AltId 2) "Zacapu"
-                    (Just (PerId 3)) (fi 2) (Just (AltId 1)) (fi 60) 33 Nothing [])
+                    (Just (PerId 3)) (fi 2) (Just (AltId 1)) (fi 60) 33 Nothing [] f1 Sujeto)
       , (AltId 3, Altepetl (AltId 3) "Uruapan"
-                    (Just (PerId 4)) (fi 1) (Just (AltId 1)) (fi 75) 101 Nothing [])
+                    (Just (PerId 4)) (fi 1) (Just (AltId 1)) (fi 75) 101 Nothing [] f1 Sujeto)
       ]
   , ppPops = Map.fromList
       [ (PopId 1, Pop (PopId 1) (AltId 1) "purepecha" "nobleza" 3000  (fi 80) (Fijo 0))
@@ -41,15 +41,17 @@ escenario1475 = Purepecha
   , ppPersonajes = Map.fromList
       -- Grupos ilustrativos, por verificar: el linaje real y el Inepto son de la
       -- nobleza guerrera; el Capaz, de los administradores. El cazonci no tiene grupo.
-      [ (PerId 1, Personaje (PerId 1) "Zuangua"          3 2 40 True Nothing)
-      , (PerId 2, Personaje (PerId 2) "Tangáxoan"        4 3 28 True (Just "nobleza_guerrera"))
-      , (PerId 3, Personaje (PerId 3) "Gobernador Inepto" 1 2 45 True (Just "nobleza_guerrera"))
-      , (PerId 4, Personaje (PerId 4) "Gobernador Capaz"   3 2 38 True (Just "administradores"))
+      [ (PerId 1, Personaje (PerId 1) "Zuangua"          3 2 40 True Nothing f1)
+      , (PerId 2, Personaje (PerId 2) "Tangáxoan"        4 3 28 True (Just "nobleza_guerrera") f1)
+      , (PerId 3, Personaje (PerId 3) "Gobernador Inepto" 1 2 45 True (Just "nobleza_guerrera") f1)
+      , (PerId 4, Personaje (PerId 4) "Gobernador Capaz"   3 2 38 True (Just "administradores") f1)
       ]
-  , ppCazonci     = PerId 1          -- Zuangua, administración 3
-  , ppTasas       = Tasas 3 3
-  , ppPresupuesto = Presupuesto 30 25 30 15 0
+  , ppFacciones   = Map.singleton f1 $
+      -- El cazonci es Zuangua, de administración 3.
+      (faccionUnica (PerId 1) (Tasas 3 3) (Presupuesto 30 25 30 15 0))
+        { facTipo = tipoFaccion1475 }
   }
+  where f1 = FaccionId 1
 
 estadoInicial1475 :: Estado Purepecha
 estadoInicial1475 =
@@ -59,9 +61,9 @@ estadoInicial1475 =
         | (i, ag) <- [(1, 10), (2, 20), (3, 40), (4, 45), (5, 15), (6, 20)]
         ] ++
         [ ((entRefAlt (AltId i), magProduccionAlt), AlmacenMag baseProduccionAlt []) | i <- [1, 2, 3] ] ++
-        [ ((entFaccion, magTesoro),      AlmacenMag (fi 1000) [])
-        , ((entFaccion, magPrestigio),   AlmacenMag (fi 20) [])
-        , ((entFaccion, magLegitimidad), AlmacenMag (fi 50) [])
+        [ ((entFac (FaccionId 1), magTesoro),      AlmacenMag (fi 1000) [])
+        , ((entFac (FaccionId 1), magPrestigio),   AlmacenMag (fi 20) [])
+        , ((entFac (FaccionId 1), magLegitimidad), AlmacenMag (fi 50) [])
         ]
       com  = Comun
         { comunMagnitudes = mags
@@ -134,7 +136,7 @@ escalar celdas n k e
           p0  = 1 + maximum (0 : [ i | PopId i <- Map.keys (ppPops j) ])
           identidades = ["purepecha", "hnahnu", "nahua"]
           alts = [ Altepetl (AltId (a0 + x)) "Sujeto de prueba" (Just (PerId 3)) (fi (1 + x `mod` 3))
-                            (Just (AltId 1)) (fi 60) ((x * 7919) `mod` max 1 celdas) Nothing []
+                            (Just (AltId 1)) (fi 60) ((x * 7919) `mod` max 1 celdas) Nothing [] (FaccionId 1) Sujeto
                  | x <- [0 .. n - 1] ]
           pops = [ Pop (PopId (p0 + x * k + y)) (AltId (a0 + x)) (identidades !! (y `mod` 3)) "comun" 500 (fi 60) (Fijo 0)
                  | x <- [0 .. n - 1], y <- [0 .. k - 1] ]

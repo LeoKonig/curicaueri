@@ -61,7 +61,8 @@ eficiencia c adminGob distancia admin25 adminCazonci fraccionAjena =
 adminDe :: Purepecha -> Maybe PerId -> Int
 adminDe p mper = maybe 0 perAdmin (mper >>= \i -> Map.lookup i (ppPersonajes p))
 
--- | La eficiencia de cada altépetl del estado. Los tamaños se suman en una
+-- | La eficiencia de cada altépetl del estado, con el presupuesto y el
+-- gobernante de su facción. Los tamaños se suman en una
 -- sola pasada por los pops: recorrerlos una vez por altépetl hacía la
 -- hacienda cuadrática (con 200 altépetl y 4 000 pops, 0,3 s por veintena).
 eficiencias :: Constantes -> Purepecha -> Map.Map AltId Fijo
@@ -69,11 +70,12 @@ eficiencias c p =
   let sumar (t, aj) pop = (t + popTamano pop, aj + if popIdentidad pop /= "purepecha" then popTamano pop else 0)
       tamanos = Map.fromListWith (\(t1, a1) (t2, a2) -> (t1 + t2, a1 + a2))
                   [ (popAltepetl pop, sumar (0, 0) pop) | pop <- Map.elems (ppPops p) ]
-      admin25 = pbAdministracion (ppPresupuesto p) >= cUmbralPresupuestoAdm c
       deAlt a = let (total, ajenos) = Map.findWithDefault (0, 0) (altId a) tamanos
                     fraccion = if total > 0 then fi ajenos ./. fi total else Fijo 0
+                    fac = Map.lookup (altFaccion a) (ppFacciones p)
+                    admin25 = maybe False (\f -> pbAdministracion (facPresupuesto f) >= cUmbralPresupuestoAdm c) fac
                 in eficiencia c (adminDe p (altGobernador a)) (altDistancia a) admin25
-                              (adminDe p (Just (ppCazonci p))) fraccion
+                              (maybe 0 (adminDe p . Just . facGobernante) fac) fraccion
   in Map.map deAlt (ppAltepetl p)
 
 -- | Ingreso de la población de un altépetl por veintena. Es la parte de

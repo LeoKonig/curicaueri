@@ -194,30 +194,33 @@ catalogoConocimientos eds = Map.fromList
   [ (m, DefMagnitud n rangoConocimiento ("m." <> n) Nothing False)
   | k <- edConocimientos eds, m@(Magnitud n) <- [magCodificado (cnId k), magTacito (cnId k)] ]
 
--- | El escenario con las bases de cada conocimiento en la facción.
+-- | El escenario con las bases de cada conocimiento en cada facción declarada
+-- (también la potencial, para que al activarse ya los tenga).
 conConocimientos :: Edificios -> Estado Purepecha -> Estado Purepecha
 conConocimientos eds est =
   let p = estadoPersistente est
       com = persistenteComun p
-      alm = foldl' (\al k -> fijarBase entFaccion (magTacito (cnId k)) (cnTacito k)
-                               (fijarBase entFaccion (magCodificado (cnId k)) (cnCodificado k) al))
-                   (comunMagnitudes com) (edConocimientos eds)
+      alm = foldl' (\al (f, k) -> fijarBase (entFac f) (magTacito (cnId k)) (cnTacito k)
+                                    (fijarBase (entFac f) (magCodificado (cnId k)) (cnCodificado k) al))
+                   (comunMagnitudes com)
+                   [ (f, k) | f <- Map.keys (ppFacciones (persistenteJuego p)), k <- edConocimientos eds ]
       p' = p { persistenteComun = com { comunMagnitudes = alm } }
   in est { estadoPersistente = p', estadoOrigen = Origen (estadoTick est) p' }
 
--- | El dominio de un conocimiento (fórmula con nombre @dominio_tecnologia@,
+-- | El dominio de un conocimiento de una facción (fórmula con nombre @dominio_tecnologia@,
 -- sección 14e; provisional: el mínimo del codificado y el tácito), con sus
 -- valores efectivos.
-dominio :: Estado Purepecha -> Text -> Fijo
-dominio est k = min (valor (magCodificado k)) (valor (magTacito k))
+dominio :: Estado Purepecha -> FaccionId -> Text -> Fijo
+dominio est f k = min (valor (magCodificado k)) (valor (magTacito k))
   where
     alm = comunMagnitudes (persistenteComun (estadoPersistente est))
     valor m = maybe (Fijo 0) (valorEn (derivadoVigentes (estadoDerivado est)) (estadoTick est) rangoConocimiento)
-                (Map.lookup (entFaccion, m) alm)
+                (Map.lookup (entFac f, m) alm)
 
--- | η: cuánto rinde la gente de la obra, el dominio entre 100; 1 sin oficio.
-productividad :: Estado Purepecha -> DefEdificio -> Fijo
-productividad est d = maybe uno (\(k, _) -> dominio est k ./. desdeEntero 100) (deOficio d)
+-- | η: cuánto rinde la gente de la obra de una facción, el dominio entre 100;
+-- 1 sin oficio.
+productividad :: Estado Purepecha -> FaccionId -> DefEdificio -> Fijo
+productividad est f d = maybe uno (\(k, _) -> dominio est f k ./. desdeEntero 100) (deOficio d)
 
 -- | La fuente del aporte de la práctica al conocimiento tácito.
 fuentePractica :: Text -> Fuente
@@ -528,11 +531,12 @@ trabajadoresPara falta = go falta 0
 
 -- | Empieza una obra: valida, cobra el costo en valor del tesoro y deja la
 -- obra en curso con su cuadrilla. Un rechazo no cambia el estado.
-iniciarObra :: Constantes -> Edificios -> Text -> AltId -> Int -> Estado Purepecha
+iniciarObra :: Constantes -> Edificios -> FaccionId -> Text -> AltId -> Int -> Estado Purepecha
             -> Either Rechazo (Estado Purepecha, [Hecho])
-iniciarObra c eds eid alt cuadrilla est = do
+iniciarObra c eds fac eid alt cuadrilla est = do
   d <- maybe (Left (Rechazo ("edificio desconocido: " <> eid))) Right (Map.lookup eid (edDefs eds))
   a <- maybe (Left (Rechazo "el altépetl no existe")) Right (Map.lookup alt (ppAltepetl jue))
+  if altFaccion a /= fac then Left (Rechazo (altNombre a <> " no es de tu facción")) else Right ()
   case altObra a of
     Just o  -> Left (Rechazo (altNombre a <> " ya tiene una obra en curso: " <> obEdificio o))
     Nothing -> Right ()
@@ -554,18 +558,18 @@ iniciarObra c eds eid alt cuadrilla est = do
       then Left (Rechazo (eid <> " no lleva cuadrilla"))
       else Right ()
   case deOficio d of
-    Just (k, dmin) | dominio est k < dmin ->
-      Left (Rechazo ("falta oficio para " <> eid <> ": " <> k <> " " <> mostrarFijo (dominio est k)
+    Just (k, dmin) | dominio est fac k < dmin ->
+      Left (Rechazo ("falta oficio para " <> eid <> ": " <> k <> " " <> mostrarFijo (dominio est fac k)
                      <> ", mínimo " <> mostrarFijo dmin))
     _ -> Right ()
-  let tesoro = baseFaccion magTesoro est
+  let tesoro = baseFaccion fac magTesoro est
   if tesoro < deCostoValor d
     then Left (Rechazo ("no alcanza el tesoro: " <> eid <> " cuesta " <> mostrarFijo (deCostoValor d)
                         <> " y hay " <> mostrarFijo tesoro))
     else Right ()
   let obra = Obra eid 0 (deVeintenas d) (if conCuadrilla d then cuadrilla else 0) (Fijo 0) Map.empty Map.empty []
       jue' = jue { ppAltepetl = Map.insert alt a { altObra = Just obra } (ppAltepetl jue) }
-      alm' = sumarBase entFaccion magTesoro (negarF (deCostoValor d)) (comunMagnitudes com)
+      alm' = sumarBase (entFac fac) magTesoro (negarF (deCostoValor d)) (comunMagnitudes com)
   pure (est { estadoPersistente = p { persistenteJuego = jue', persistenteComun = com { comunMagnitudes = alm' } } }, [])
   where
     p   = estadoPersistente est
@@ -591,17 +595,25 @@ construccion c eds = Sistema
   , sisEjecutar = \_ est ->
       if Map.null (edDefs eds) then (est, []) else
       let jue = persistenteJuego (estadoPersistente est)
-          pres = ppPresupuesto jue
-          umbral = pbObras pres >= cObrasPresupuestoMinimo c
-          partida = gastoPunto c (pbObras pres) ./. cTicksPorAnio c
+          -- La partida de obras es de cada facción: lo que sobra a una no
+          -- sostiene las cuadrillas de otra.
+          partidas = Map.fromList [ (facId f, gastoPunto c (pbObras (facPresupuesto f)) ./. cTicksPorAnio c)
+                                  | f <- activas jue ]
+          umbrales = Map.fromList [ (facId f, pbObras (facPresupuesto f) >= cObrasPresupuestoMinimo c)
+                                  | f <- activas jue ]
           enObra = [ (altId a, o) | a <- Map.elems (ppAltepetl jue), Just o <- [altObra a] ]
-          (est1, hs, _) = foldl' (avanzar c eds umbral) (est, [], partida) enObra
+          paso (e, hs0, rs) (alt, o) =
+            let f = facDeAlt jue alt
+                (e', hs', r') = avanzar c eds (Map.findWithDefault False f umbrales) f
+                                        (e, hs0, Map.findWithDefault (Fijo 0) f rs) (alt, o)
+            in (e', hs', Map.insert f r' rs)
+          (est1, hs, _) = foldl' paso (est, [], partidas) enObra
       in (recalcularBeneficios eds est1, hs)
   }
 
-avanzar :: Constantes -> Edificios -> Bool -> (Estado Purepecha, [Hecho], Fijo) -> (AltId, Obra)
+avanzar :: Constantes -> Edificios -> Bool -> FaccionId -> (Estado Purepecha, [Hecho], Fijo) -> (AltId, Obra)
         -> (Estado Purepecha, [Hecho], Fijo)
-avanzar c eds umbral (est, hs, restante) (alt, o) = case Map.lookup (obEdificio o) (edDefs eds) of
+avanzar c eds umbral fac (est, hs, restante) (alt, o) = case Map.lookup (obEdificio o) (edDefs eds) of
   -- Un edificio que desapareció de los datos (un guardado con otro archivo):
   -- la obra se termina sin efectos, para no quedar colgada.
   Nothing -> (conObra Nothing [] est, hs, restante)
@@ -613,12 +625,12 @@ avanzar c eds umbral (est, hs, restante) (alt, o) = case Map.lookup (obEdificio 
             der = derivadoJuego (estadoDerivado est)
             -- η, el oficio: el dominio del conocimiento entre 100 (1 sin oficio).
             -- Sin ningún dominio la gente no rinde nada: la obra espera.
-            eta = max (Fijo 1) (productividad est d)
+            eta = max (Fijo 1) (productividad est fac d)
             -- 1. Llegan las entregas de tributo cuyo día llegó, si el tesoro
             --    paga su transporte; si no, esperan a la veintena siguiente.
             llegar (e, acop, quedan) en
               | enLlega en > t = (e, acop, quedan ++ [en])
-              | baseFaccion magTesoro e < enCosto en = (e, acop, quedan ++ [en])
+              | baseFaccion fac magTesoro e < enCosto en = (e, acop, quedan ++ [en])
               | otherwise =
                   let m = Map.findWithDefault (Fijo 0) (enMaterial en) (deMateriales d)
                       ya = Map.findWithDefault (Fijo 0) (enMaterial en) acop
@@ -668,18 +680,18 @@ avanzar c eds umbral (est, hs, restante) (alt, o) = case Map.lookup (obEdificio 
   where
     pagar costo e = let p = estadoPersistente e; com = persistenteComun p
                     in e { estadoPersistente = p { persistenteComun = com { comunMagnitudes =
-                             sumarBase entFaccion magTesoro (negarF costo) (comunMagnitudes com) } } }
+                             sumarBase (entFac fac) magTesoro (negarF costo) (comunMagnitudes com) } } }
     terminarSi d o' rest e0
       | listo d o' =
           let ref  = entRefAlt alt
               entD AlAltepetl = ref
-              entD AlaFaccion = entFaccion
+              entD AlaFaccion = entFac fac
               est1 = conObra Nothing [deId d] e0
               p    = estadoPersistente est1
               com  = persistenteComun p
               alm  = foldl' (\al (SumarBase e m v) -> sumarBase (entD e) m v al) (comunMagnitudes com) (deAlTerminar d)
               (alm', fuera) = quitarAgravioTributo alt (obTributos o') alm
-              alm'' = maybe alm' (\(k, _) -> practica eds k (persistenteJuego p) alm') (deOficio d)
+              alm'' = maybe alm' (\(k, _) -> practica eds fac k (persistenteJuego p) alm') (deOficio d)
               est2 = est1 { estadoPersistente = p { persistenteComun = com { comunMagnitudes = alm'' } } }
               t = estadoTick e0
           in (est2, hs ++ [Hecho "edificio_terminado" t [ref] (Map.fromList [("edificio", deId d)])]
@@ -718,7 +730,7 @@ recalcularBeneficios eds est =
         , (e, n) <- Map.toList (Map.fromListWith (+) [ (x, 1 :: Int) | x <- altEdificios a ])
         , Just d <- [Map.lookup e (edDefs eds)]
         , let entD AlAltepetl = entRefAlt (altId a)
-              entD AlaFaccion = entFaccion
+              entD AlaFaccion = entFac (altFaccion a)
               clave cu = (altId a, cuTradicion cu)
               fieles = maybe (Fijo 0) (\cu -> Map.findWithDefault (Fijo 0) (clave cu)
                                                (if cuNivel cu == Local then dpFielesLocal der else dpFielesCentro der))
@@ -786,10 +798,11 @@ derivarDistancias c gr p
 -- derivado). Al aceptarse, sus trabajadores se retiran y su altépetl recibe
 -- el agravio del tributo, con fuente @tributo_obra@, hasta que la obra
 -- termine.
-pedirTributo :: Constantes -> Edificios -> AltId -> Text -> AltId -> Int -> Estado Purepecha
+pedirTributo :: Constantes -> Edificios -> FaccionId -> AltId -> Text -> AltId -> Int -> Estado Purepecha
              -> Either Rechazo (Estado Purepecha, [Hecho])
-pedirTributo c eds alt g fuente cuadrilla est = do
+pedirTributo c eds fac alt g fuente cuadrilla est = do
   a <- maybe (Left (Rechazo "el altépetl no existe")) Right (Map.lookup alt (ppAltepetl jue))
+  if altFaccion a /= fac then Left (Rechazo (altNombre a <> " no es de tu facción")) else Right ()
   o <- maybe (Left (Rechazo (altNombre a <> " no tiene obra en curso"))) Right (altObra a)
   d <- maybe (Left (Rechazo ("edificio desconocido: " <> obEdificio o))) Right (Map.lookup (obEdificio o) (edDefs eds))
   if obCuadrilla o == 0 then Left (Rechazo (obEdificio o <> " no lleva cuadrilla ni material")) else Right ()
@@ -797,6 +810,9 @@ pedirTributo c eds alt g fuente cuadrilla est = do
   if Map.member g (obTributos o) then Left (Rechazo ("ya hay un pedido de " <> g <> " para " <> altNombre a)) else Right ()
   if fuente == alt then Left (Rechazo "un altépetl no se manda tributo a sí mismo") else Right ()
   f <- maybe (Left (Rechazo "el altépetl que envía no existe")) Right (Map.lookup fuente (ppAltepetl jue))
+  -- Quien envía tributo en especie es de la misma facción: un altépetl de otra
+  -- no envía, su lado es el comercio (V5, *Las obras*).
+  if altFaccion f /= fac then Left (Rechazo (altNombre f <> " es de otra facción y no envía tributo")) else Right ()
   if null (Map.findWithDefault [] g (Map.findWithDefault Map.empty fuente (dpMateriales der)))
     then Left (Rechazo ("no hay " <> g <> " al alcance de " <> altNombre f)) else Right ()
   case Map.lookup alt (dpDistancias der) of
@@ -833,25 +849,25 @@ quitarAgravioTributo alt trs alm0 = foldl' quitar (alm0, []) (Map.toList trs)
                        fuera ++ filter ((== f) . modFuente) (almacenMods x))
 
 -- | Aprender haciendo (sección 14i): el modificador de la práctica sobre el
--- conocimiento tácito de la facción, con fuente @practica:<k>@ y valor
+-- conocimiento tácito de la facción que construye, con fuente @practica:<k>@ y valor
 -- α · ln(1 + n), con n los edificios terminados que piden ese oficio. Se fija
 -- al terminar cada obra; no hay otro escritor de ese modificador.
-practica :: Edificios -> Text -> Purepecha -> Almacen -> Almacen
-practica eds k jue alm =
+practica :: Edificios -> FaccionId -> Text -> Purepecha -> Almacen -> Almacen
+practica eds fac k jue alm =
   case [ cn | cn <- edConocimientos eds, cnId cn == k ] of
     [] -> alm
     (cn : _) ->
-      let n = length [ () | a <- Map.elems (ppAltepetl jue), e <- altEdificios a
+      let n = length [ () | a <- Map.elems (ppAltepetl jue), altFaccion a == fac, e <- altEdificios a
                           , Just d <- [Map.lookup e (edDefs eds)], fmap fst (deOficio d) == Just k ]
           ap = Aporte (cnPractica cn .*. lnF (desdeEntero (n + 1))) (Fijo 0)
           det = [("obras", desdeEntero n)]
-          clave = (entFaccion, magTacito k)
+          clave = (entFac fac, magTacito k)
           f = fuentePractica k
           x = Map.findWithDefault (AlmacenMag (Fijo 0) []) clave alm
       in if any ((== f) . modFuente) (almacenMods x)
            then Map.insert clave x { almacenMods = [ if modFuente m == f then m { modAporte = ap, modDetalle = det } else m
                                                  | m <- almacenMods x ] } alm
-           else agregarVarios [Modificador 0 (magTacito k) entFaccion ap f Nothing Nothing Nothing AlcancePropia det] alm
+           else agregarVarios [Modificador 0 (magTacito k) (entFac fac) ap f Nothing Nothing Nothing AlcancePropia det] alm
 
 negarF :: Fijo -> Fijo
 negarF (Fijo x) = Fijo (negate x)

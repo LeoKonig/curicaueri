@@ -128,13 +128,13 @@ fuenteNombramiento :: PerId -> AltId -> Fuente
 fuenteNombramiento (PerId p) (AltId a) =
   Fuente "nombramiento" (T.pack (show p) <> ":" <> cargoGobernador <> ":" <> T.pack (show a))
 
--- | Los modificadores que añade nombrar a p en el gobierno de un altépetl
--- (sección 14d): poder y lealtad del grupo del nombrado, y lealtad negativa
+-- | Los modificadores que añade nombrar a p en el gobierno de un altépetl de
+-- la facción @fac@ (sección 14d), sobre los grupos de esa facción: poder y lealtad del grupo del nombrado, y lealtad negativa
 -- de cada otro grupo que pretendía el cargo. Si el personaje no tiene grupo,
 -- ninguno. Son modificadores sin fin: el aporte es constante mientras dura
 -- el cargo, así que mantenerlo no acumula poder.
-modsNombramiento :: Grupos -> Personaje -> AltId -> [Modificador]
-modsNombramiento gs per alt = case perGrupo per of
+modsNombramiento :: Grupos -> FaccionId -> Personaje -> AltId -> [Modificador]
+modsNombramiento gs fac per alt = case perGrupo per of
   Nothing -> []
   Just g ->
     [ mk (magPoder g) (grPoderCargo gs), mk (magLealtad g) (grLealtadCargo gs) ]
@@ -142,7 +142,7 @@ modsNombramiento gs per alt = case perGrupo per of
        | o <- Map.findWithDefault [] cargoGobernador (grPretendientes gs), o /= g ]
   where
     negar (Fijo x) = Fijo (negate x)
-    mk m x = Modificador 0 m entFaccion (Aporte x (Fijo 0))
+    mk m x = Modificador 0 m (entFac fac) (Aporte x (Fijo 0))
                          (fuenteNombramiento (perId per) alt) Nothing Nothing Nothing AlcancePropia []
 
 -- | Pone a p en el gobierno del altépetl. Quien gobernaba antes pierde el
@@ -154,7 +154,7 @@ nombrar gs t alt per est0 =
       jue  = persistenteJuego p
       com  = persistenteComun p
       jue' = jue { ppAltepetl = Map.adjust (\a -> a { altGobernador = Just (perId per) }) alt (ppAltepetl jue) }
-      alm' = agregarVarios (modsNombramiento gs per alt) (comunMagnitudes com)
+      alm' = agregarVarios (modsNombramiento gs (facDeAlt jue alt) per alt) (comunMagnitudes com)
   in (est1 { estadoPersistente = p { persistenteJuego = jue', persistenteComun = com { comunMagnitudes = alm' } } }, hs)
 
 -- | Añade modificadores con ids nuevos consecutivos, en orden, como lo haría
@@ -171,14 +171,14 @@ agregarVarios ms alm0 = Map.unionWith juntar alm0 nuevos
 -- | Deja vacante el gobierno del altépetl. Los modificadores del nombramiento
 -- se quitan del almacén y cada uno emite @modificador_terminado@ con la razón
 -- @fuente@ ("su fuente desapareció"). Solo se miran las magnitudes de los
--- grupos de la facción, no todo el almacén.
+-- grupos de la facción del altépetl, no todo el almacén.
 quitarNombramiento :: Grupos -> Tick -> AltId -> Estado Purepecha -> (Estado Purepecha, [Hecho])
 quitarNombramiento gs t alt est =
   case Map.lookup alt (ppAltepetl jue) >>= altGobernador of
     Nothing -> (est, [])
     Just per ->
       let fuente = fuenteNombramiento per alt
-          claves = [ (entFaccion, m) | g <- grIds gs, m <- [magPoder g, magLealtad g] ]
+          claves = [ (entFac (facDeAlt jue alt), m) | g <- grIds gs, m <- [magPoder g, magLealtad g] ]
           quitar (alm, acc) k = case Map.lookup k alm of
             Nothing -> (alm, acc)
             Just x  -> let (fuera, quedan) = partirPor ((== fuente) . modFuente) (almacenMods x)
@@ -194,35 +194,41 @@ quitarNombramiento gs t alt est =
     partirPor f xs = (filter f xs, filter (not . f) xs)
 
 -- | El escenario con sus grupos: escribe la base de poder y lealtad de cada
--- grupo para el tipo de facción y aplica los nombramientos con que empieza
+-- grupo para cada facción declarada, según su tipo (la potencial también, para
+-- que al activarse ya los tenga), y aplica los nombramientos con que empieza
 -- (los gobernadores del escenario), para que destituir a uno devuelva su
--- grupo a la base. Falla si el tipo no está en el archivo o si un personaje
+-- grupo a la base. Falla si un tipo no está en el archivo o si un personaje
 -- tiene un grupo que el archivo no declara.
-conGrupos :: Text -> Grupos -> Text -> Estado Purepecha -> Validacion (Estado Purepecha)
-conGrupos archivo gs tipo est
+conGrupos :: Text -> Grupos -> Estado Purepecha -> Validacion (Estado Purepecha)
+conGrupos archivo gs est
   | null (grIds gs) = pure est
-  | otherwise = case Map.lookup tipo (grBases gs) of
-      Nothing -> falla (ErrorCarga ErrorReferencia archivo ("bases." <> tipo) "el escenario usa un tipo de facción sin bases")
-      Just bases ->
-        let jue = persistenteJuego (estadoPersistente est)
-            desconocidos = [ (perId pe, g) | pe <- Map.elems (ppPersonajes jue), Just g <- [perGrupo pe]
-                                           , g `notElem` grIds gs ]
-            comprobar (PerId i, g) = falla (ErrorCarga ErrorReferencia archivo ("personajes." <> T.pack (show i))
-                                              ("grupo desconocido: " <> g))
-            conBases e = Map.foldlWithKey' (\acc g b ->
-                            fijarBase entFaccion (magLealtad g) (bgLealtad b)
-                              (fijarBase entFaccion (magPoder g) (bgPoder b) acc)) e bases
-            p    = estadoPersistente est
-            com  = persistenteComun p
-            est1 = est { estadoPersistente = p { persistenteComun = com { comunMagnitudes = conBases (comunMagnitudes com) } } }
-            iniciales = mapMaybe (\a -> (,) (altId a) <$> (altGobernador a >>= (`Map.lookup` ppPersonajes jue)))
-                                 (Map.elems (ppAltepetl jue))
-            -- El gobernador ya está puesto: solo se añaden sus modificadores, todos
-            -- de una vez (con miles de altépetl, añadirlos uno a uno recorrería el
-            -- almacén por cada uno).
-            p1   = estadoPersistente est1
-            c1   = persistenteComun p1
-            est2 = est1 { estadoPersistente = p1 { persistenteComun = c1 { comunMagnitudes =
-                     agregarVarios (concatMap (\(alt, pe) -> modsNombramiento gs pe alt) iniciales) (comunMagnitudes c1) } } }
-            p2   = estadoPersistente est2
-        in est2 { estadoOrigen = Origen (estadoTick est2) p2 } <$ traverse comprobar desconocidos
+  | otherwise =
+      let jue = persistenteJuego (estadoPersistente est)
+          sinBases = [ f | f <- Map.elems (ppFacciones jue), Map.notMember (facTipo f) (grBases gs) ]
+          desconocidos = [ (perId pe, g) | pe <- Map.elems (ppPersonajes jue), Just g <- [perGrupo pe]
+                                         , g `notElem` grIds gs ]
+          faltaTipo f = falla (ErrorCarga ErrorReferencia archivo ("bases." <> facTipo f)
+                                 ("el escenario usa un tipo de facción sin bases (" <> facNombre f <> ")"))
+          comprobar (PerId i, g) = falla (ErrorCarga ErrorReferencia archivo ("personajes." <> T.pack (show i))
+                                            ("grupo desconocido: " <> g))
+          conBases e = foldl' (\acc f -> case Map.lookup (facTipo f) (grBases gs) of
+                          Nothing    -> acc
+                          Just bases -> Map.foldlWithKey' (\a g b ->
+                                          fijarBase (entFac (facId f)) (magLealtad g) (bgLealtad b)
+                                            (fijarBase (entFac (facId f)) (magPoder g) (bgPoder b) a)) acc bases)
+                        e (Map.elems (ppFacciones jue))
+          p    = estadoPersistente est
+          com  = persistenteComun p
+          est1 = est { estadoPersistente = p { persistenteComun = com { comunMagnitudes = conBases (comunMagnitudes com) } } }
+          iniciales = mapMaybe (\a -> (,,) (altId a) (altFaccion a) <$> (altGobernador a >>= (`Map.lookup` ppPersonajes jue)))
+                               (Map.elems (ppAltepetl jue))
+          -- El gobernador ya está puesto: solo se añaden sus modificadores, todos
+          -- de una vez (con miles de altépetl, añadirlos uno a uno recorrería el
+          -- almacén por cada uno).
+          p1   = estadoPersistente est1
+          c1   = persistenteComun p1
+          est2 = est1 { estadoPersistente = p1 { persistenteComun = c1 { comunMagnitudes =
+                   agregarVarios (concatMap (\(alt, fac, pe) -> modsNombramiento gs fac pe alt) iniciales) (comunMagnitudes c1) } } }
+          p2   = estadoPersistente est2
+      in est2 { estadoOrigen = Origen (estadoTick est2) p2 }
+           <$ traverse faltaTipo sinBases <* traverse comprobar desconocidos

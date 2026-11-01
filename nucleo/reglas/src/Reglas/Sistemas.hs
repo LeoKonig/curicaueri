@@ -36,10 +36,10 @@ factoresProduccion est =
   Map.mapWithKey (\k _ -> valorDeAlt est rangoProduccionAlt baseProduccionAlt magProduccionAlt k)
     (ppAltepetl (persistenteJuego (estadoPersistente est)))
 
--- | La hacienda por veintena, igual que `step` del prototipo: el ingreso de
--- la población, por la producción de su altépetl, menos el gasto del
--- presupuesto, dividido entre las veintenas del año, y el tesoro no baja de
--- cero. Los sacerdotes no tributan (por verificar con la *Relación de
+-- | La hacienda por veintena, igual que `step` del prototipo, para cada
+-- facción activa: el ingreso de la población de sus altépetl, por la
+-- producción de cada uno, menos el gasto de su presupuesto, dividido entre
+-- las veintenas del año, y el tesoro no baja de cero. Los sacerdotes no tributan (por verificar con la *Relación de
 -- Michoacán*; así el escenario conserva las cifras del prototipo, que no los
 -- tiene). La partida de obras solo se paga mientras haya una obra en curso
 -- (`expenseLines`). Es el único sistema que escribe la base del tesoro (el
@@ -53,30 +53,40 @@ hacienda c = Sistema
   , sisEscribe  = Set.singleton magTesoro
   , sisEjecutar = \_ est ->
       let p      = persistenteJuego (estadoPersistente est)
-          t      = ppTasas p
-          pres   = ppPresupuesto p
           efs    = eficiencias c p
           fps    = factoresProduccion est
-          ingreso = foldl' (\acc pop ->
-                      acc .+. ingresoPoblacion c t (capitalDe p pop)
+          -- Una sola pasada por los pops: el ingreso de cada facción es la
+          -- suma de los de sus altépetl (los de una facción que no está activa
+          -- no cuentan).
+          ingresoDe pop = case Map.lookup (popAltepetl pop) (ppAltepetl p) >>= \a -> Map.lookup (altFaccion a) (ppFacciones p) of
+            Just f | facEstado f == Activa ->
+              Just (facId f, ingresoPoblacion c (facTasas f) (capitalDe p pop)
                                 (Map.findWithDefault (Fijo 0) (popAltepetl pop) efs)
                                 (popTamano pop)
                               .*. Map.findWithDefault baseProduccionAlt (popAltepetl pop) fps)
-                    (Fijo 0) (filter ((/= estratoSacerdote) . popEstrato) (Map.elems (ppPops p)))
-          enObra = any (isJust . altObra) (Map.elems (ppAltepetl p))
-          gasto  = gastoPunto c (pbEjercito pres + pbAdministracion pres + pbDiplomacia pres
-                                 + (if enObra then pbObras pres else 0))
-          neto   = (ingreso .-. gasto) ./. cTicksPorAnio c
+            _ -> Nothing
+          ingresos = Map.fromListWith (.+.)
+            [ i | pop <- Map.elems (ppPops p), popEstrato pop /= estratoSacerdote, Just i <- [ingresoDe pop] ]
+          enObra = Set.fromList [ altFaccion a | a <- Map.elems (ppAltepetl p), isJust (altObra a) ]
+          neto f = let pres  = facPresupuesto f
+                       gasto = gastoPunto c (pbEjercito pres + pbAdministracion pres + pbDiplomacia pres
+                                             + (if Set.member (facId f) enObra then pbObras pres else 0))
+                   in (Map.findWithDefault (Fijo 0) (facId f) ingresos .-. gasto) ./. cTicksPorAnio c
           com    = persistenteComun (estadoPersistente est)
-          ajustar x = x { almacenBase =
-                            rangoFijo (minMag rangoTesoro) (maxMag rangoTesoro)
-                                      (almacenBase x .+. neto) }
-          alm'   = Map.adjust ajustar (entFaccion, magTesoro) (comunMagnitudes com)
+          ajustar n x = x { almacenBase =
+                              rangoFijo (minMag rangoTesoro) (maxMag rangoTesoro)
+                                        (almacenBase x .+. n) }
+          alm'   = foldl' (\a f -> Map.adjust (ajustar (neto f)) (entFac (facId f), magTesoro) a)
+                          (comunMagnitudes com) (activas p)
           com'   = com { comunMagnitudes = alm' }
           est'   = est { estadoPersistente = (estadoPersistente est)
                           { persistenteComun = com' } }
       in (est', [])
   }
+
+-- | Las tasas de la facción de un altépetl; las neutras si no la tiene.
+tasasDe :: Constantes -> Purepecha -> Altepetl -> Tasas
+tasasDe c p a = maybe (Tasas (cNeutralTasa c) (cNeutralTasa c)) facTasas (Map.lookup (altFaccion a) (ppFacciones p))
 
 -- | El agravio de cada poblador sube o baja por veintena según `popParts`
 -- (`deltaAgravio`) más la tasa de agravio de su altépetl (lo que restan sus
@@ -89,13 +99,12 @@ evolucionAgravio c = Sistema
   , sisEscribe  = Set.singleton (Magnitud "agravio")
   , sisEjecutar = \_ est ->
       let p    = persistenteJuego (estadoPersistente est)
-          t    = ppTasas p
           alts = ppAltepetl p
           pops = ppPops p
           tasas = Map.mapWithKey (\k _ -> valorDeAlt est rangoTasaAgravio (Fijo 0) magTasaAgravio k) alts
           delta pid = case Map.lookup pid pops of
             Just pop -> case Map.lookup (popAltepetl pop) alts of
-              Just a  -> deltaAgravio c (popParts c t (isNothing (altSujetoA a))
+              Just a  -> deltaAgravio c (popParts c (tasasDe c p a) (isNothing (altSujetoA a))
                                             (popEstrato pop) (popIdentidad pop)
                                             (altDistancia a)
                                             (adminDe p (altGobernador a)))
