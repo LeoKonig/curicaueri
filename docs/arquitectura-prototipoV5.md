@@ -2341,6 +2341,7 @@ Las dos vías se juntan en el hito 1b, donde las reglas que sobrevivieron al hit
 - **Toda opción con costo o riesgo declarado:** la autonomía cuesta tributo, bajar una tasa por un evento la bloquea 2 años y abrir las trojes las vacía.
 - **Presión sostenida:** techo de lealtad, desgaste anual del agravio y el agravio que recorta lo recaudado.
 - **Riesgo militar:** la expedición manda un destacamento y puede perder; el ultimátum es una decisión.
+- **Niveles de dificultad como datos:** cada nivel sobrescribe constantes (más presión o menos margen, nunca ventajas ocultas al enemigo) y se calibra por la habilidad que exige.
 
 Los criterios de tensión (a)–(e) y el modelo de espera de ese documento se suman al criterio 0a.
 
