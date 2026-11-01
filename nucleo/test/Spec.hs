@@ -38,6 +38,8 @@ import System.IO.Unsafe (unsafePerformIO)
 import Motor.Guardado
 import Motor.Moneda
 import Motor.Terrenos
+import Motor.Influencia
+import Motor.Recorrido
 import qualified Data.Aeson.KeyMap as KM
 import GHC.Generics (Generic)
 import qualified Data.ByteString.Lazy as BL
@@ -45,6 +47,21 @@ import Data.Set (Set)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Int (Int64)
+
+-- | Reasigna a cada conexión un costo de 0 a 3 km, el mismo en los dos sentidos
+-- (depende solo del par de celdas), para que haya empates y conexiones de costo 0.
+reponderarMapa :: Int -> Mapa -> Mapa
+reponderarMapa sem m = m { mapaVecinos = IntMap.mapWithKey (\a vs ->
+  [ (CeldaId b, con { connCosto = Fijo (fromIntegral ((min a b * 7 + max a b * 13 + sem) `mod` 4) * 10000) })
+  | (CeldaId b, con) <- vs ]) (mapaVecinos m) }
+
+-- | La distancia por costo desde una celda a todas, por relajación repetida, sin Dijkstra.
+distanciasDesde :: Mapa -> Int -> IntMap.IntMap Fijo
+distanciasDesde m f = iterate relajar (IntMap.singleton f (Fijo 0)) !! IntMap.size (mapaCeldas m)
+  where
+    relajar ds = IntMap.unionWith min ds (IntMap.fromListWith min
+      [ (b, d .+. connCosto con) | (a, d) <- IntMap.toList ds
+                                    , (CeldaId b, con) <- IntMap.findWithDefault [] a (mapaVecinos m) ])
 
 fi :: Int -> Fijo
 fi = Fijo . (* 10000) . fromIntegral
@@ -503,32 +520,26 @@ main = hspec $ do
     it "validarMapa detecta una conexión asimétrica" $ do
       let m = mapaPrueba { mapaVecinos = IntMap.adjust (const []) 0 (mapaVecinos mapaPrueba) }
       any esAsimetrica (validarMapa m) `shouldBe` True
+    it "validarMapa rechaza un costo negativo" $ do
+      let m = mapaPrueba { mapaVecinos = IntMap.adjust (map (\(b, con) -> (b, con { connCosto = Fijo (-1) }))) 0 (mapaVecinos mapaPrueba) }
+      any (\e -> case e of CostoNegativo _ _ -> True; _ -> False) (validarMapa m) `shouldBe` True
 
   describe "asignación de celdas" $ do
     -- mapaPrueba es hexagonal de 5 × 4 con 1,0 km por celda: dos celdas vecinas están a 1 km.
     let km n = Fijo (n * 10000)
-        asig r fs = IntMap.toList (asignarCeldas r mapaPrueba [ (AsentId a, CeldaId c) | (a, c) <- fs ])
-        -- Reasigna a cada conexión una longitud de 0 a 3 km, la misma en los dos sentidos
-        -- (depende solo del par de celdas), para que haya empates y conexiones de longitud 0.
-        reponderar sem m = m { mapaVecinos = IntMap.mapWithKey (\a vs ->
-          [ (CeldaId b, con { connCosto = Fijo (fromIntegral ((min a b * 7 + max a b * 13 + sem) `mod` 4) * 10000) })
-          | (CeldaId b, con) <- vs ]) (mapaVecinos m) }
+        asig r fs = IntMap.toList (asignarCeldas r (grafoDe mapaPrueba) [ (AsentId a, CeldaId c) | (a, c) <- fs ])
         -- La definición, sin Dijkstra: la distancia de cada fuente a cada celda por
         -- relajación repetida, y para cada celda el mínimo de (distancia, id) dentro del radio.
         fuerzaBruta radio m fs = IntMap.fromList
           [ (c, AsentId a)
           | c <- IntMap.keys (mapaCeldas m)
           , let cands = [ (d, a) | (AsentId a, CeldaId f) <- fs
-                                 , Just d <- [IntMap.lookup c (distDesde m f)], d <= radio ]
+                                 , Just d <- [IntMap.lookup c (distanciasDesde m f)], d <= radio ]
           , not (null cands)
           , let (_, a) = minimum cands ]
-        distDesde m f = iterate (relajar m) (IntMap.singleton f (Fijo 0)) !! IntMap.size (mapaCeldas m)
-        relajar m ds = IntMap.unionWith min ds (IntMap.fromListWith min
-          [ (b, d .+. connCosto con) | (a, d) <- IntMap.toList ds
-                                        , (CeldaId b, con) <- IntMap.findWithDefault [] a (mapaVecinos m) ])
         casoAzar = do
           w <- choose (1, 5); h <- choose (1, 4); sem <- choose (0, 1000)
-          let m = either (error . show) (reponderar sem) (proveedorHexagonal (DatosHex w h (km 1) 1))
+          let m = either (error . show) (reponderarMapa sem) (proveedorHexagonal (DatosHex w h (km 1) 1))
               n = w * h
           k <- choose (1, min 4 n)
           celdas <- vectorOf k (choose (0, n - 1))
@@ -541,7 +552,7 @@ main = hspec $ do
         `shouldBe` True
     it "ley: coincide con el mínimo por fuerza bruta en mapas pequeños, con empates y conexiones de longitud 0" $
       property $ forAll casoAzar $ \(m, fs, radio) ->
-        asignarCeldas radio m [ (AsentId a, CeldaId c) | (a, c) <- fs ]
+        asignarCeldas radio (grafoDe m) [ (AsentId a, CeldaId c) | (a, c) <- fs ]
           == fuerzaBruta radio m [ (AsentId a, CeldaId c) | (a, c) <- fs ]
     it "con radio 0, solo la celda del asentamiento" $
       asig (km 0) [(1, 7)] `shouldBe` [(7, AsentId 1)]
@@ -560,6 +571,105 @@ main = hspec $ do
     it "cada celda va al más cercano, no al primero que llega" $
       -- celda 3 está a 1 km de la 2 y a 3 km de la 0
       lookup 3 (asig (km 3) [(1, 0), (2, 2)]) `shouldBe` Just (AsentId 2)
+
+  describe "influencia" $ do
+    let km n = Fijo (n * 10000)
+        fuentesDe xs = IntMap.fromList [ (i, FuenteInfluencia (FaccionId g) (CeldaId c) f) | (i, g, c, f) <- xs ]
+        param l u = ParamInfluencia (km l) u
+        -- La definición, sin Dijkstra: para cada celda, el φ de cada fuente (potencial más
+        -- distancia), el mejor de cada facción, y las dos mejores facciones dentro del umbral.
+        fuerzaBruta p m fs = IntMap.fromList
+          [ (c, if length mejores == 1 then Una (head mejores) else Dos (mejores !! 0) (mejores !! 1))
+          | c <- IntMap.keys (mapaCeldas m)
+          , let cands = [ Etiqueta (pf .+. d) g i
+                        | (i, FuenteInfluencia (FaccionId g) (CeldaId cf) f) <- IntMap.toList fs
+                        , IntMap.member cf (mapaCeldas m)
+                        , Just pf <- [potencial (piAlcance p) f]
+                        , Just d <- [IntMap.lookup c (distanciasDesde m cf)]
+                        , maybe True (pf .+. d <=) (if piUmbral p > Fijo 0 then potencial (piAlcance p) (piUmbral p) else Nothing) ]
+                porFaccion = Map.elems (Map.fromListWith min [ (etGrupo e, e) | e <- cands ])
+                mejores = take 2 (sort porFaccion)
+          , not (null mejores) ]
+        genFuentes n = do
+          k <- choose (0, 5)
+          xs <- vectorOf k ((,,,) <$> choose (1, 12) <*> choose (1, 3) <*> choose (0, n - 1)
+                                  <*> (Fijo . (* 2500) <$> choose (0, 80)))
+          pure (fuentesDe xs)
+        genParam = do
+          l <- choose (1, 6)
+          u <- elements [Fijo 0, Fijo 2500, uno, fi 3]
+          pure (param l u)
+        genMapa = do
+          w <- choose (1, 5); h <- choose (1, 4); sem <- choose (0, 1000)
+          pure (either (error . show) (reponderarMapa sem) (proveedorHexagonal (DatosHex w h (km 1) 1)))
+        -- Cambios al azar sobre unas fuentes: quitar, mover, cambiar de facción o de fuerza, añadir.
+        modificar n fs = do
+          xs <- mapM (\(i, f) -> do
+                  op <- choose (0 :: Int, 5)
+                  case op of
+                    0 -> pure []
+                    1 -> (\c -> [(i, f { fuenteCelda = CeldaId c })]) <$> choose (0, n - 1)
+                    2 -> (\g -> [(i, f { fuenteFaccion = FaccionId g })]) <$> choose (1, 3)
+                    3 -> (\v -> [(i, f { fuenteFuerza = Fijo (v * 2500) })]) <$> choose (0, 80)
+                    _ -> pure [(i, f)]) (IntMap.toList fs)
+          extra <- genFuentes n
+          pure (IntMap.union (IntMap.fromList (concat xs)) (IntMap.mapKeys (+ 100) extra))
+        casoAzar = do
+          m <- genMapa
+          let n = IntMap.size (mapaCeldas m)
+          p <- genParam
+          fs <- genFuentes n
+          pure (m, p, fs)
+    it "π = −λ ln F: una fuente de fuerza 1 arranca en 0 y una sin fuerza no irradia" $ do
+      potencial (km 3) uno `shouldBe` Just (Fijo 0)
+      potencial (km 3) (Fijo 0) `shouldBe` Nothing
+      fmap (< Fijo 0) (potencial (km 3) (fi 5)) `shouldBe` Just True
+    it "ley: coincide con la fuerza bruta (dos mejores facciones, umbral, empates y costos 0)" $
+      property $ forAll casoAzar $ \(m, p, fs) ->
+        infCeldas (calcularInfluencia p (grafoDe m) fs) == fuerzaBruta p m fs
+    it "ley: el recorrido persistente desde cero da lo mismo que el de arreglos" $
+      property $ forAll casoAzar $ \(m, p, fs) -> forAll (elements [UnGrupo, DosGrupos]) $ \cupo ->
+        let sem = [ (fuenteCelda f, Etiqueta (fuenteFuerza f) g i) | (i, f) <- IntMap.toList fs, let FaccionId g = fuenteFaccion f ]
+            t = if piUmbral p > Fijo 0 then Just (piUmbral p) else Nothing
+        in propagar cupo t m sem IntMap.empty == propagarGrafo cupo t (grafoDe m) sem
+    it "ley: reparar con fuentes cambiadas da lo mismo que calcular desde cero" $
+      property $ forAll casoAzar $ \(m, p, fs) ->
+        forAll (modificar (IntMap.size (mapaCeldas m)) fs) $ \fs' ->
+          let g = grafoDe m
+          in repararInfluencia p g fs' (calcularInfluencia p g fs) == calcularInfluencia p g fs'
+    it "ley: actualizar (repare o recalcule) da lo mismo que calcular desde cero" $
+      property $ forAll casoAzar $ \(m, p, fs) ->
+        forAll (modificar (IntMap.size (mapaCeldas m)) fs) $ \fs' ->
+          let g = grafoDe m
+          in actualizarInfluencia p g fs' (calcularInfluencia p g fs) == calcularInfluencia p g fs'
+    it "ley: con otros parámetros, reparar recalcula todo" $
+      property $ forAll casoAzar $ \(m, p, fs) -> forAll genParam $ \p' ->
+        let g = grafoDe m
+        in repararInfluencia p' g fs (calcularInfluencia p g fs) == calcularInfluencia p' g fs
+    it "reparar sin cambios devuelve lo mismo" $ do
+      let fs = fuentesDe [(1, 1, 0, fi 4), (2, 2, 19, fi 4)]
+          g = grafoDe mapaPrueba
+          inf = calcularInfluencia (param 2 (Fijo 0)) g fs
+      repararInfluencia (param 2 (Fijo 0)) g fs inf `shouldBe` inf
+    it "a igual distancia, la fuente más fuerte es la dueña" $ do
+      -- la celda 1 está a 1 km de la 0 y de la 2
+      let inf = calcularInfluencia (param 2 (Fijo 0)) (grafoDe mapaPrueba) (fuentesDe [(1, 1, 0, fi 2), (2, 2, 2, fi 6)])
+      duenoDe inf (CeldaId 1) `shouldBe` Just (FaccionId 2)
+    it "el empate lo rompe el id de facción menor" $ do
+      let inf = calcularInfluencia (param 2 (Fijo 0)) (grafoDe mapaPrueba) (fuentesDe [(1, 7, 0, fi 3), (2, 4, 2, fi 3)])
+      duenoDe inf (CeldaId 1) `shouldBe` Just (FaccionId 4)
+    it "la segunda es de otra facción, aunque la dueña tenga otra fuente más cerca" $ do
+      let inf = calcularInfluencia (param 2 (Fijo 0)) (grafoDe mapaPrueba)
+                  (fuentesDe [(1, 1, 0, fi 5), (2, 1, 2, fi 5), (3, 2, 19, fi 5)])
+      map etGrupo (mejoresEn inf (CeldaId 1)) `shouldBe` [1, 2]
+    it "por debajo del umbral es tierra de nadie, y el recorrido no la cruza" $ do
+      -- F = 1 en la celda 0, λ = 1 km, umbral e^-2,5: alcanza hasta 2,5 km
+      let inf = calcularInfluencia (param 1 (expFijo (Fijo (-25000)))) (grafoDe mapaPrueba) (fuentesDe [(1, 1, 0, uno)])
+      (duenoDe inf (CeldaId 2), duenoDe inf (CeldaId 3), duenoDe inf (CeldaId 19))
+        `shouldBe` (Just (FaccionId 1), Nothing, Nothing)
+    it "sin umbral, una fuente llega a todo el mapa" $ do
+      let inf = calcularInfluencia (param 1 (Fijo 0)) (grafoDe mapaPrueba) (fuentesDe [(1, 1, 0, uno)])
+      IntMap.size (infCeldas inf) `shouldBe` IntMap.size (mapaCeldas mapaPrueba)
 
   describe "tabla de terrenos" $ do
     let archivoReal = unsafePerformIO (BL.readFile "../datos/terrenos.json")
