@@ -121,24 +121,50 @@ aplicarComando c dr est sell = let gs = drGrupos dr in case sellCmd sell of
 
 -- El motor no conoce estos tipos; aquí los traducimos a valores genéricos
 -- de `Motor.Vista` para que el cliente pueda mostrarlos sin saber de reglas.
+--
+-- Los pops son detalle de su altépetl: solo viajan si el cliente pidió el
+-- de ese altépetl. El altépetl resume lo que muestran (población y agravio
+-- medio), para que el mapa y la predicción de un comando no queden ciegos.
 proyectar :: Estado Purepecha -> [EntidadJuego]
 proyectar est =
   let p = persistenteJuego (estadoPersistente est)
-  in  [ proyectarAlt est a | a <- Map.elems (ppAltepetl p) ]
+      res = resumenes est
+  in  [ proyectarAlt est res a | a <- Map.elems (ppAltepetl p) ]
    ++ [ proyectarPop pop | pop <- Map.elems (ppPops p) ]
    ++ [ proyectarFaccion est ]
 
 -- | Lo que aporta una sola entidad: el mismo elemento que en 'proyectar'.
+-- Se aplica primero al estado: los resúmenes se calculan una vez para todas
+-- las entidades que se pidan de él, y solo si se pide un altépetl y se arman
+-- sus campos (son perezosos).
 proyectarDe :: Estado Purepecha -> EntRef -> Maybe EntidadJuego
-proyectarDe est r
-  | r == entFaccion                   = Just (proyectarFaccion est)
-  | entClase r == entClase altCualquiera = proyectarAlt est <$> Map.lookup (AltId (entId r)) (ppAltepetl p)
-  | entClase r == entClase popCualquiera = proyectarPop <$> Map.lookup (PopId (entId r)) (ppPops p)
-  | otherwise                         = Nothing
+proyectarDe est =
+  let p = persistenteJuego (estadoPersistente est)
+      res = resumenes est
+  in \r -> if r == entFaccion then Just (proyectarFaccion est)
+           else if entClase r == entClase altCualquiera then proyectarAlt est res <$> Map.lookup (AltId (entId r)) (ppAltepetl p)
+           else if entClase r == entClase popCualquiera then proyectarPop <$> Map.lookup (PopId (entId r)) (ppPops p)
+           else Nothing
   where
-    p = persistenteJuego (estadoPersistente est)
     altCualquiera = entRefAlt (AltId 0)
     popCualquiera = entRefPop (PopId 0)
+
+-- | Lo que un altépetl resume de sus pops: su población y la suma de su
+-- agravio efectivo por su tamaño.
+data Resumen = Resumen { rePoblacion :: Int, reAgravioPorTamano :: Integer }
+
+-- | Los resúmenes de todos los altépetl, en una sola pasada por los pops.
+resumenes :: Estado Purepecha -> Map.Map AltId Resumen
+resumenes est = Map.fromListWith juntar
+  [ (popAltepetl q, Resumen (popTamano q) (toInteger (popTamano q) * toInteger x))
+  | q <- Map.elems (ppPops (persistenteJuego (estadoPersistente est)))
+  , let Fijo x = agravio q ]
+  where
+    juntar (Resumen a b) (Resumen c d) = Resumen (a + c) (b + d)
+    alm = comunMagnitudes (persistenteComun (estadoPersistente est))
+    vig = derivadoVigentes (estadoDerivado est)
+    agravio q = maybe (Fijo 0) (valorEn vig (estadoTick est) (RangoMag (Fijo 0) (fi 100)))
+                  (Map.lookup (entRefPop (popId q), Magnitud "agravio") alm)
 
 -- | Las entidades cuyos campos pudieron cambiar de un estado a otro
 -- ('juegoSucias'). Los altépetl y los pops que cambiaron se encuentran con
@@ -146,7 +172,9 @@ proyectarDe est r
 -- también muestra lo que dice el derivado de él (sus fieles y sus celdas) y
 -- el nombre de los que le envían tributo; los nombres no cambian, pero si
 -- cambiaran, se marcan todos los que tienen obra. La facción muestra
--- magnitudes del almacén: siempre está sucia (es una).
+-- magnitudes del almacén: siempre está sucia (es una). El resumen de sus
+-- pops no hace falta marcarlo aquí: el motor marca al dueño de cada pop
+-- sucio.
 sucias :: Estado Purepecha -> Estado Purepecha -> Maybe (Set.Set EntRef)
 sucias e0 e1 = Just (Set.fromList (entFaccion : map entRefAlt alts ++ map entRefPop pops))
   where
@@ -164,9 +192,12 @@ sucias e0 e1 = Just (Set.fromList (entFaccion : map entRefAlt alts ++ map entRef
         ++ map fst (clavesCambiadas (dpFielesCentro d0) (dpFielesCentro d1))
     pops = clavesCambiadas (ppPops p0) (ppPops p1)
 
-proyectarAlt :: Estado Purepecha -> Altepetl -> EntidadJuego
-proyectarAlt est a =
+proyectarAlt :: Estado Purepecha -> Map.Map AltId Resumen -> Altepetl -> EntidadJuego
+proyectarAlt est res a =
   let p = persistenteJuego (estadoPersistente est)
+      Resumen poblacion porTamano = Map.findWithDefault (Resumen 0 0) (altId a) res
+      agravioMedio | poblacion <= 0 = Fijo 0
+                   | otherwise      = Fijo (fromInteger (porTamano `div` toInteger poblacion))
       der = derivadoJuego (estadoDerivado est)
       -- Las claves de los fieles empiezan por el altépetl: los suyos son un
       -- tramo contiguo, que se toma en O(log n).
@@ -174,8 +205,10 @@ proyectarAlt est a =
       fieles = foldl' (.+.) (Fijo 0) (Map.elems (deAlt (dpFielesLocal der)) ++ Map.elems (deAlt (dpFielesCentro der)))
       nombreAlt b = maybe "?" altNombre (Map.lookup b (ppAltepetl p))
       acopio o = VLista [ VTexto (g <> " " <> textoFijo q) | (g, q) <- Map.toList (obAcopio o) ]
-  in  EntidadJuego (entRefAlt (altId a)) (Map.fromList
+  in  EntidadJuego (entRefAlt (altId a)) Nothing (Map.fromList
         [ ("nombre",   VTexto (altNombre a))
+        , ("poblacion",     VEntero poblacion)
+        , ("agravio_medio", VFijo agravioMedio)
         , ("lealtad",  VFijo  (altLealtad a))
         , ("distancia",VFijo  (altDistancia a))
         , ("celda",    VEntero (altCelda a))
@@ -197,7 +230,7 @@ proyectarAlt est a =
         ])
 
 proyectarPop :: Pop -> EntidadJuego
-proyectarPop pop = EntidadJuego (entRefPop (popId pop)) (Map.fromList
+proyectarPop pop = EntidadJuego (entRefPop (popId pop)) (Just (entRefAlt (popAltepetl pop))) (Map.fromList
   [ ("altepetl",  VRef    (entRefAlt (popAltepetl pop)))
   , ("identidad", VTexto  (popIdentidad pop))
   , ("estrato",   VTexto  (popEstrato pop))
@@ -206,7 +239,7 @@ proyectarPop pop = EntidadJuego (entRefPop (popId pop)) (Map.fromList
   ])
 
 proyectarFaccion :: Estado Purepecha -> EntidadJuego
-proyectarFaccion est = EntidadJuego entFaccion (Map.fromList
+proyectarFaccion est = EntidadJuego entFaccion Nothing (Map.fromList
   [ ("tesoro",      VFijo (baseFaccion magTesoro est))
   , ("prestigio",   VFijo (baseFaccion magPrestigio est))
   , ("legitimidad", VFijo (baseFaccion magLegitimidad est))

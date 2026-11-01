@@ -66,7 +66,8 @@ import Motor.Juego
 import Motor.Mapa
 import Motor.Proyeccion
 import Motor.Protocolo
-import Motor.Vista (Vista)
+import Motor.Vista (Vista, Interes (..))
+import qualified Data.Set as Set
 
 import Motor.Calendario (esInicioDePeriodo)
 import qualified Data.Map.Strict as Map
@@ -112,7 +113,8 @@ data Partida = Partida
   , pPendientes :: [Sellado Comando]          -- ^ comandos para el tick siguiente
   , pVelocidad :: Int
   , pPausado   :: Bool
-  , pVista     :: Vista                       -- ^ la última vista enviada
+  , pVista     :: Vista                       -- ^ la última vista enviada: la del estado con el interés del cliente
+  , pInteres   :: Interes                     -- ^ de qué entidades pidió el cliente el detalle
   , pRespuestas :: [Respuesta]                -- ^ respuestas a decisiones para el tick siguiente
   , pDecisionesEnviadas :: [Int]              -- ^ decisiones que el cliente ya conoce
   }
@@ -227,7 +229,7 @@ main = do
   ref <- newIORef Partida
     { pEstado = e0, pSiguiente = 0, pPendientes = [], pRespuestas = [], pDecisionesEnviadas = []
     , pVelocidad = velocidadNormal, pPausado = True
-    , pVista = proyeccion juego e0 }
+    , pVista = proyeccionCon juego sinDetalle e0, pInteres = sinDetalle }
   if "--sin-cliente" `elem` args
     then sinCliente conf juego mapaR ref (read (opcion "--ticks" "360")) (opcion "--volcar" "") ("--metricas" `elem` args)
     else conCliente conf juego mapaR ref puerto
@@ -250,7 +252,9 @@ sinCliente conf juego mapaR ref n volcar conMetricas = do
             <> T.pack (show (Map.size (ppAltepetl (persistenteJuego (estadoPersistente (pEstado p)))))) <> " altépetl, "
             <> T.pack (show (Map.size (ppPops (persistenteJuego (estadoPersistente (pEstado p)))))) <> " pops, "
             <> T.pack (show (cAncho conf * cAlto conf)) <> " celdas)")
-  unless (null volcar) $ BL.writeFile volcar (aLinea (NInstantanea (relojDePartida p) (pVista p)) <> "\n")
+  -- El volcado lleva la vista entera, con todo el detalle: es lo que comparan
+  -- las pruebas de los agentes.
+  unless (null volcar) $ BL.writeFile volcar (aLinea (NInstantanea (relojDePartida p) (proyeccion juego (pEstado p))) <> "\n")
   -- Las métricas del hito 0 sobre lo que presentó el director (V5, criterio del hito 0).
   when conMetricas $ do
     let dir = comunDirector (persistenteComun (estadoPersistente (pEstado p)))
@@ -302,6 +306,11 @@ data Config = Config
 secuenciaAgente :: Int
 secuenciaAgente = 1000000
 
+-- | Sin detalle: lo que ve un cliente que todavía no pidió ninguno, o una
+-- partida sin cliente.
+sinDetalle :: Interes
+sinDetalle = Detalle Set.empty
+
 relojDePartida :: Partida -> Reloj
 relojDePartida p = relojDe visible1475 inicio1475 (comunCalendario (persistenteComun (estadoPersistente (pEstado p))))
                      (pVelocidad p) (pPausado p) (Tick (max 0 (pSiguiente p - 1)))
@@ -315,22 +324,22 @@ avanzar conf juego _mapa ref = do
   p <- readIORef ref
   let t = pSiguiente p
       cal = comunCalendario (persistenteComun (estadoPersistente (pEstado p)))
-  deAgente <- if esInicioDePeriodo cal (Tick t) then turnoDelAgente conf p t else pure []
+  deAgente <- if esInicioDePeriodo cal (Tick t) then turnoDelAgente conf juego p t else pure []
   let (e', hs, rechazos, rechazosR) = pasoCompleto juego (cEntorno conf) (Semilla 1475) (Tick t) (pPendientes p ++ deAgente) (pRespuestas p) (pEstado p)
       -- La vista nueva se hace sobre la anterior: solo se proyecta lo que el
       -- tick tocó, y 'cambios' compara solo eso.
-      p' = p { pEstado = e', pSiguiente = t + 1, pPendientes = [], pRespuestas = [], pVista = proyeccionIncremental juego (pEstado p) (pVista p) e' }
+      p' = p { pEstado = e', pSiguiente = t + 1, pPendientes = [], pRespuestas = [], pVista = proyeccionIncremental juego (pInteres p) (pEstado p) (pVista p) e' }
   writeIORef ref p'
   forM_ [ (s, m) | (s, Rechazo m) <- rechazos, sellSecuencia s >= secuenciaAgente ] $ \(_, m) ->
     registro ("agente: comando rechazado en el tick " <> T.pack (show t) <> ": " <> m)
   pure (p, p', hs, rechazos, rechazosR)
 
-turnoDelAgente :: Config -> Partida -> Int64 -> IO [Sellado Comando]
-turnoDelAgente conf p t = case cAgente conf of
+turnoDelAgente :: Config -> RJ.JuegoPurepecha -> Partida -> Int64 -> IO [Sellado Comando]
+turnoDelAgente conf juego p t = case cAgente conf of
   Nothing -> pure []
   Just (f@(FaccionId n), fuente, mregistro) -> do
     -- En el prototipo el agente ve todo; en el juego completo, la vista de su facción.
-    let turno = turnoAgente (Semilla 1475) f (Tick t) (relojDePartida p) (pVista p)
+    let turno = turnoAgente (Semilla 1475) f (Tick t) (relojDePartida p) (proyeccion juego (pEstado p))
     r <- pedirPlan fuente t turno
     forM_ mregistro $ \h -> BL.hPut h (lineaDeRegistro t n r) >> hFlush h
     forM_ (rMotivo r) $ \m -> registro ("agente, tick " <> T.pack (show t) <> ": " <> m)
@@ -386,8 +395,9 @@ sesion conf juego mapaR ref conn = do
         Left err -> enviar (NError Nothing err)
         Right () -> do
           p <- readIORef ref
-          let v' = proyeccion juego (pEstado p)
-          writeIORef ref p { pVista = v' }
+          -- Un cliente nuevo no ha pedido ningún detalle.
+          let v' = proyeccionCon juego sinDetalle (pEstado p)
+          writeIORef ref p { pVista = v', pInteres = sinDetalle }
           enviar (NHola versionProtocolo)
           enviar (NCatalogo (CatalogoCliente (declMagnitudes RJ.catalogoMag) (cComandos conf) (cVelocidades conf)
                        (comunCalendario (persistenteComun (estadoPersistente (pEstado p)))) (cEjes conf)))
@@ -408,8 +418,8 @@ sesion conf juego mapaR ref conn = do
           case consultar juego (cEntorno conf) (Semilla 1475) t (pPendientes p) (Sellado t faccionJugador sec c) (pEstado p) of
             Left (Rechazo motivo) -> enviar (NError (Just sec) motivo)
             Right (h, sinC, conC) ->
-              let vSin = proyeccionIncremental juego (pEstado p) (pVista p) sinC
-                  vCon = proyeccionIncremental juego sinC vSin conC
+              let vSin = proyeccionIncremental juego (pInteres p) (pEstado p) (pVista p) sinC
+                  vCon = proyeccionIncremental juego (pInteres p) sinC vSin conC
               in enviar (NPrediccion sec h (diferencias vSin vCon))
       Right (CControl (Guardar nombre)) -> case rutaPartida nombre of
         Nothing -> enviar (NError Nothing ("nombre de partida inválido: " <> nombre))
@@ -439,11 +449,20 @@ sesion conf juego mapaR ref conn = do
                 -- respuestas pendientes. También se olvida qué decisiones
                 -- conocía el cliente: la instantánea vacía su espejo y el
                 -- núcleo debe reenviar todas las pendientes del guardado.
-                modifyIORef' ref (\p -> p { pEstado = e, pSiguiente = sig, pPendientes = [], pRespuestas = [], pDecisionesEnviadas = [], pPausado = True, pVista = proyeccion juego e })
+                modifyIORef' ref (\p -> p { pEstado = e, pSiguiente = sig, pPendientes = [], pRespuestas = [], pDecisionesEnviadas = [], pPausado = True, pVista = proyeccionCon juego (pInteres p) e })
                 p <- readIORef ref
                 enviar (NInstantanea (reloj p) (pVista p))
                 sincronizarDecisiones enviar
                 enviar (NAviso ("partida cargada: " <> nombre))
+      -- Pedir el detalle de unas entidades: entra el que se pide y sale el
+      -- que se deja, como cambios del mismo tick.
+      Right (CInteres refs) -> do
+        p <- readIORef ref
+        let i = Detalle (Set.fromList refs)
+            v' = cambiarInteres juego (pEstado p) (pInteres p) i (pVista p)
+            p' = p { pVista = v', pInteres = i }
+        writeIORef ref p'
+        enviar (NCambios (reloj p') (cambios (pVista p) v') [])
       Right (CResponder sec dec valor) ->
         modifyIORef' ref (\p -> p { pRespuestas = pRespuestas p ++ [Respuesta sec dec valor] })
       Right (CControl (Pausa b)) -> do

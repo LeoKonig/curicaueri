@@ -1412,7 +1412,9 @@ La conversión es `desdeDecimal :: Text -> Either ErrorCarga Fijo`, que rechaza 
 ## 16. El protocolo como funciones
 
 ```haskell
-proyeccion :: Juego s c -> Estado s -> Vista            -- sección 1
+proyeccion    :: Juego s c -> Estado s -> Vista                  -- sección 1, con todo el detalle
+proyeccionCon :: Juego s c -> Interes -> Estado s -> Vista       -- con el detalle que pide el cliente
+cambiarInteres :: Juego s c -> Estado s -> Interes -> Interes -> Vista -> Vista
 cambios    :: Vista -> Vista -> Cambios                 -- se calcula sobre las vistas
 aplicar    :: Vista -> Cambios -> Vista                 -- en el cliente: reemplazar, no fusionar
 
@@ -1421,6 +1423,8 @@ data Cambios = Cambios
   , actualizadas :: [EntidadVista]   -- nuevas o cambiadas, completas
   , eliminadas   :: [EntRef] }       -- un ejército destruido, un pop que se fusionó
 ```
+
+**Detalle a pedido.** Cada `EntidadJuego` lleva su dueño (`Maybe EntRef`): un pop es detalle de su altépetl. Con `Interes = Todo | Detalle (Set EntRef)`, una entidad se ve si no tiene dueño o si su dueño está en el interés. El cliente lo fija con `{"tipo": "interes", "entidades": [...]}` (protocolo 3) y el núcleo responde con `cambios` del mismo tick: entra el detalle pedido y sale el que se deja. Los campos de `EntidadJuego` son el único campo perezoso de la vista: el motor decide con la referencia y el dueño, y solo arma los campos de lo que se ve. `juegoProyectarDe` se aplica una vez por estado, así que el juego comparte entre sus llamadas lo que calcula por estado (los resúmenes de población y agravio de cada altépetl, en una sola pasada por los pops, y solo si se proyecta algún altépetl). En la vista incremental, el dueño de una entidad sucia también está sucio, antes y después del tick. Leyes: con cualquier interés, la vista incremental es `proyeccionCon` en cada día; `cambiarInteres` da la vista con el interés nuevo en los dos sentidos; un detalle que nadie pidió no se arma (sus campos pueden ser `error`).
 
 `Cambios` necesita la lista de eliminadas. Con solo entidades actualizadas, una entidad que desaparece nunca llegaría al cliente: el espejo seguiría dibujando un ejército destruido, y la ley de conmutación fallaría.
 

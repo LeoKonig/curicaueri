@@ -21,6 +21,12 @@ static func clave(ref: Dictionary) -> String:
 	return "%s:%d" % [ref["clase"], int(ref["id"])]
 
 
+## La referencia del protocolo a partir de la clave «clase:id».
+static func ref_de(clave_entidad: String) -> Dictionary:
+	var i := clave_entidad.rfind(":")
+	return {"clase": clave_entidad.substr(0, i), "id": int(clave_entidad.substr(i + 1))}
+
+
 func recibir(m: Dictionary) -> void:
 	match m.get("tipo", ""):
 		"catalogo":

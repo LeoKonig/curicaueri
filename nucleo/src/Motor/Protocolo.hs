@@ -66,7 +66,7 @@ import Motor.Estado (Pregunta (..))
 import Motor.Proyeccion (Diferencia (..))
 
 versionProtocolo :: Int
-versionProtocolo = 2   -- 2: reloj y catálogo con calendario genérico (periodos)
+versionProtocolo = 3   -- 2: reloj y catálogo con calendario genérico (periodos); 3: el detalle (los pops) solo llega si el cliente lo pide con «interes»
 
 -- ---------------------------------------------------------------------------
 -- Mensajes
@@ -95,6 +95,7 @@ data MensajeCliente
   | CConsulta Int Value                 -- ^ como un comando, pero solo pide la predicción
   | CResponder Int Int Text             -- ^ secuencia, decisión y respuesta (opción o cantidad)
   | CControl Control
+  | CInteres [EntRef]                   -- ^ las entidades cuyo detalle quiere ver (V5, *Escala de la simulación*)
   deriving (Eq, Show)
 
 -- | No entra al registro de comandos: cambia cuándo corre el siguiente tick,
@@ -216,6 +217,7 @@ instance FromJSON MensajeCliente where
       "comando" -> CComando <$> o .: "secuencia" <*> o .: "comando"
       "consulta" -> CConsulta <$> o .: "secuencia" <*> o .: "comando"
       "responder" -> CResponder <$> o .: "secuencia" <*> o .: "decision" <*> o .: "respuesta"
+      "interes" -> CInteres <$> o .: "entidades"
       "control" -> do
         accion <- o .: "accion" :: A.Parser Text
         case accion of
@@ -237,6 +239,7 @@ instance ToJSON MensajeCliente where
     CControl (Cargar n) -> object [tipo "control", "accion" .= ("cargar" :: Text), "nombre" .= n]
     CControl (Pausa b) -> object [tipo "control", "accion" .= ("pausa" :: Text), "valor" .= b]
     CControl (Velocidad n) -> object [tipo "control", "accion" .= ("velocidad" :: Text), "valor" .= n]
+    CInteres rs -> object [tipo "interes", "entidades" .= rs]
 
 instance ToJSON Reloj where
   toJSON r = object

@@ -1,6 +1,7 @@
 {-# LANGUAGE StrictData, TypeFamilies #-}
 module Motor.Proyeccion where
 
+import Data.List (foldl')
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
@@ -13,30 +14,42 @@ import Data.IntSet (IntSet)
 import Data.Text (Text)
 import Motor.Compartido (clavesCambiadas)
 
+-- | La vista entera, con todo el detalle: la del agente y la de las pruebas.
 proyeccion :: Juego s c -> Estado s -> Vista
-proyeccion j est = Vista t (Map.fromList [(evRef ev, ev) | ev <- evs])
+proyeccion j = proyeccionCon j Todo
+
+-- | La vista con el detalle que pide un interés: las entidades sin dueño y
+-- las de los dueños pedidos. Las demás no se completan: sus campos, que son
+-- perezosos, nunca se arman.
+proyeccionCon :: Juego s c -> Interes -> Estado s -> Vista
+proyeccionCon j i est = Vista t (Map.fromList [(evRef ev, ev) | ev <- evs])
   where
     t        = estadoTick est
     alm      = comunMagnitudes (persistenteComun (estadoPersistente est))
     catalogo = juegoCatalogoMag j
-    ejJuego  = juegoProyectar j est
-    evs      = map (completar (derivadoVigentes (estadoDerivado est)) t alm catalogo) ejJuego
+    evs      = [ completar (derivadoVigentes (estadoDerivado est)) t alm catalogo ej
+               | ej <- juegoProyectar j est, seVe i ej ]
 
 -- | La proyección de @e1@ hecha sobre la de @e0@: se proyectan de nuevo
 -- solo las entidades sucias y el resto se queda como estaba, compartido con
--- la vista anterior. Pide que @v0@ sea @proyeccion j e0@; entonces el
--- resultado es @proyeccion j e1@ (la ley está en las pruebas).
+-- la vista anterior. Pide que @v0@ sea @proyeccionCon j i e0@; entonces el
+-- resultado es @proyeccionCon j i e1@ (la ley está en las pruebas).
 --
 -- Sucias son las que dice el juego ('juegoSucias') más las que el motor ve
 -- en el almacén: las de una magnitud que cambió ('clavesCambiadas', que salta
 -- lo compartido) y las de un modificador que empieza o deja de contar al
 -- pasar de un tick al otro o de unos vigentes a otros. Esa última búsqueda
 -- recorre los modificadores; solo se hace si cambió el tick o los vigentes.
--- Si el juego no sabe qué cambió, se proyecta todo.
-proyeccionIncremental :: Juego s c -> Estado s -> Vista -> Estado s -> Vista
-proyeccionIncremental j e0 v0 e1 = case juegoSucias j e0 e1 of
-  Nothing      -> proyeccion j e1
-  Just deJuego -> Vista t1 (Set.foldl' reproyectar (vEntidades v0) (deJuego <> deAlmacen <> porVentana))
+-- El dueño de una entidad sucia también lo está, antes y después: un dueño
+-- puede resumir su detalle (la población de un altépetl). Si el juego no
+-- sabe qué cambió, se proyecta todo.
+proyeccionIncremental :: Juego s c -> Interes -> Estado s -> Vista -> Estado s -> Vista
+proyeccionIncremental j i e0 v0 e1 = case juegoSucias j e0 e1 of
+  Nothing      -> proyeccionCon j i e1
+  Just deJuego ->
+    let sucias = deJuego <> deAlmacen <> porVentana
+        duenos = Set.fromList [ d | r <- Set.toList sucias, Just ej <- [de0 r, de1 r], Just d <- [ejDueno ej] ]
+    in Vista t1 (Set.foldl' reproyectar (vEntidades v0) (sucias <> duenos))
   where
     t0 = estadoTick e0
     t1 = estadoTick e1
@@ -46,15 +59,35 @@ proyeccionIncremental j e0 v0 e1 = case juegoSucias j e0 e1 of
     vig0 = derivadoVigentes (estadoDerivado e0)
     vig1 = derivadoVigentes (estadoDerivado e1)
     catalogo = juegoCatalogoMag j
+    -- Se aplican una vez: el juego puede compartir entre llamadas lo que
+    -- calcula por estado (los resúmenes de los altépetl).
+    de0 = juegoProyectarDe j e0
+    de1 = juegoProyectarDe j e1
     deAlmacen = Set.fromList (map fst (clavesCambiadas alm0 alm1))
     porVentana
       | t0 == t1 && vig0 == vig1 = Set.empty
       | otherwise = Set.fromList
           [ r | ((r, _), x) <- Map.toList alm1
               , any (\m -> cuentaEn vig0 t0 m /= cuentaEn vig1 t1 m) (almacenMods x) ]
-    reproyectar ents r = case juegoProyectarDe j e1 r of
-      Nothing -> Map.delete r ents
-      Just ej -> Map.insert r (completar vig1 t1 alm1 catalogo ej) ents
+    reproyectar ents r = case de1 r of
+      Just ej | seVe i ej -> Map.insert r (completar vig1 t1 alm1 catalogo ej) ents
+      _                      -> Map.delete r ents
+
+-- | La vista con otro interés, hecha sobre la que había: entra el detalle de
+-- los dueños que se piden y sale el de los que se dejan. Recorre las
+-- entidades del juego, pero de cada una solo mira el dueño; completa solo
+-- las que entran. Pide que @v0@ sea @proyeccionCon j i0 est@.
+cambiarInteres :: Juego s c -> Estado s -> Interes -> Interes -> Vista -> Vista
+cambiarInteres j est i0 i1 v0
+  | i0 == i1  = v0
+  | otherwise = v0 { vEntidades = foldl' cambiar (vEntidades v0) (juegoProyectar j est) }
+  where
+    alm      = comunMagnitudes (persistenteComun (estadoPersistente est))
+    vig      = derivadoVigentes (estadoDerivado est)
+    cambiar ents ej = case (seVe i0 ej, seVe i1 ej) of
+      (False, True) -> Map.insert (ejRef ej) (completar vig (estadoTick est) alm (juegoCatalogoMag j) ej) ents
+      (True, False) -> Map.delete (ejRef ej) ents
+      _             -> ents
 
 -- | Solo se proyectan los modificadores que cuentan en el tick de la vista
 -- (en su ventana y, si son condicionales, vigentes).

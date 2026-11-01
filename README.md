@@ -131,8 +131,9 @@ Los nombres JSON están escritos a mano en `nucleo/src/Motor/Protocolo.hs` (mens
 | Cliente → núcleo | `consulta` | Como un comando, pero solo pide la predicción |
 | Cliente → núcleo | `control` | Pausa, velocidad, guardar o cargar |
 | Cliente → núcleo | `responder` | La respuesta a una decisión, con su secuencia; se aplica en el tick siguiente |
+| Cliente → núcleo | `interes` | Las entidades cuyo detalle quiere ver (los pops de un altépetl). Sin pedirlo no llega ningún detalle; el núcleo responde con `cambios` |
 | Núcleo → cliente | `hola`, `catalogo`, `mapa`, `instantanea` | En respuesta al saludo, también al reconectar |
-| Núcleo → cliente | `cambios` | Cada tick: el reloj, las entidades que cambiaron (completas), las eliminadas y los hechos |
+| Núcleo → cliente | `cambios` | Cada tick: el reloj, las entidades que cambiaron (completas), las eliminadas y los hechos; también al cambiar el interés |
 | Núcleo → cliente | `reloj` | Tras una pausa o un cambio de velocidad |
 | Núcleo → cliente | `prediccion` | La respuesta a una consulta: las diferencias, con y sin el comando, hasta la siguiente veintena |
 | Núcleo → cliente | `aviso` | Partida guardada o cargada |
