@@ -12,12 +12,22 @@ signal cargar_pedido
 ## La entrada de la crónica que cuenta la llegada del libro.
 const CLAVE_LIBRO := "cronica.copia_obtenida"
 
+var _construida := false
 var espejo
 var boton_abrir: Button = null
 var texto_libro := Label.new()
 
 
 func _ready() -> void:
+	construir()
+
+
+## Arma la pantalla (una sola vez). Se llama sola al entrar al árbol; las
+## pruebas sin escena la llaman a mano.
+func construir() -> void:
+	if _construida:
+		return
+	_construida = true
 	color = Color("#efe7d6")   # opaco: el texto hereda el tema oscuro sobre claro de la escena
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var margen := MarginContainer.new()

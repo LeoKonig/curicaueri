@@ -121,6 +121,7 @@ func _probar_cronica_y_fin(leer: Callable, espejo) -> void:
 	# Pantalla de inicio: el epígrafe y un botón que la cierra y avisa.
 	var inicio = PantallaInicio.new()
 	root.add_child(inicio)
+	inicio.construir()
 	var comenzo := []
 	inicio.comenzar.connect(func(): comenzo.append(true))
 	_comprobar("la pantalla de inicio muestra el epígrafe",
@@ -134,6 +135,7 @@ func _probar_cronica_y_fin(leer: Callable, espejo) -> void:
 	var sin_libro = PantallaFinal.new()
 	sin_libro.espejo = espejo_fin
 	root.add_child(sin_libro)
+	sin_libro.construir()
 	_comprobar("sin la copia en la crónica, la pantalla final no ofrece el libro", sin_libro.boton_abrir == null and not sin_libro.tiene_libro())
 	_comprobar("el resumen dice la fecha y las entradas: " + sin_libro.resumen(),
 		sin_libro.resumen().contains("1 de enero de 1476") and sin_libro.resumen().contains("1 entradas"))
@@ -148,6 +150,7 @@ func _probar_cronica_y_fin(leer: Callable, espejo) -> void:
 	var con_libro = PantallaFinal.new()
 	con_libro.espejo = espejo_fin
 	root.add_child(con_libro)
+	con_libro.construir()
 	_comprobar("con la copia en la crónica, ofrece abrir el libro", con_libro.boton_abrir != null and con_libro.tiene_libro())
 	_comprobar("el libro empieza cerrado", not con_libro.texto_libro.visible)
 	con_libro.boton_abrir.pressed.emit()
