@@ -38,6 +38,7 @@ import System.IO.Unsafe (unsafePerformIO)
 import Motor.Guardado
 import Motor.Moneda
 import Motor.Terrenos
+import Motor.Recorrido
 import qualified Data.Aeson.KeyMap as KM
 import GHC.Generics (Generic)
 import qualified Data.ByteString.Lazy as BL
@@ -45,6 +46,21 @@ import Data.Set (Set)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Int (Int64)
+
+-- | Reasigna a cada conexión un costo de 0 a 3 km, el mismo en los dos sentidos
+-- (depende solo del par de celdas), para que haya empates y conexiones de costo 0.
+reponderarMapa :: Int -> Mapa -> Mapa
+reponderarMapa sem m = m { mapaVecinos = IntMap.mapWithKey (\a vs ->
+  [ (CeldaId b, con { connCosto = Fijo (fromIntegral ((min a b * 7 + max a b * 13 + sem) `mod` 4) * 10000) })
+  | (CeldaId b, con) <- vs ]) (mapaVecinos m) }
+
+-- | La distancia por costo desde una celda a todas, por relajación repetida, sin Dijkstra.
+distanciasDesde :: Mapa -> Int -> IntMap.IntMap Fijo
+distanciasDesde m f = iterate relajar (IntMap.singleton f (Fijo 0)) !! IntMap.size (mapaCeldas m)
+  where
+    relajar ds = IntMap.unionWith min ds (IntMap.fromListWith min
+      [ (b, d .+. connCosto con) | (a, d) <- IntMap.toList ds
+                                    , (CeldaId b, con) <- IntMap.findWithDefault [] a (mapaVecinos m) ])
 
 fi :: Int -> Fijo
 fi = Fijo . (* 10000) . fromIntegral
@@ -510,28 +526,19 @@ main = hspec $ do
   describe "asignación de celdas" $ do
     -- mapaPrueba es hexagonal de 5 × 4 con 1,0 km por celda: dos celdas vecinas están a 1 km.
     let km n = Fijo (n * 10000)
-        asig r fs = IntMap.toList (asignarCeldas r mapaPrueba [ (AsentId a, CeldaId c) | (a, c) <- fs ])
-        -- Reasigna a cada conexión una longitud de 0 a 3 km, la misma en los dos sentidos
-        -- (depende solo del par de celdas), para que haya empates y conexiones de longitud 0.
-        reponderar sem m = m { mapaVecinos = IntMap.mapWithKey (\a vs ->
-          [ (CeldaId b, con { connCosto = Fijo (fromIntegral ((min a b * 7 + max a b * 13 + sem) `mod` 4) * 10000) })
-          | (CeldaId b, con) <- vs ]) (mapaVecinos m) }
+        asig r fs = IntMap.toList (asignarCeldas r (grafoDe mapaPrueba) [ (AsentId a, CeldaId c) | (a, c) <- fs ])
         -- La definición, sin Dijkstra: la distancia de cada fuente a cada celda por
         -- relajación repetida, y para cada celda el mínimo de (distancia, id) dentro del radio.
         fuerzaBruta radio m fs = IntMap.fromList
           [ (c, AsentId a)
           | c <- IntMap.keys (mapaCeldas m)
           , let cands = [ (d, a) | (AsentId a, CeldaId f) <- fs
-                                 , Just d <- [IntMap.lookup c (distDesde m f)], d <= radio ]
+                                 , Just d <- [IntMap.lookup c (distanciasDesde m f)], d <= radio ]
           , not (null cands)
           , let (_, a) = minimum cands ]
-        distDesde m f = iterate (relajar m) (IntMap.singleton f (Fijo 0)) !! IntMap.size (mapaCeldas m)
-        relajar m ds = IntMap.unionWith min ds (IntMap.fromListWith min
-          [ (b, d .+. connCosto con) | (a, d) <- IntMap.toList ds
-                                        , (CeldaId b, con) <- IntMap.findWithDefault [] a (mapaVecinos m) ])
         casoAzar = do
           w <- choose (1, 5); h <- choose (1, 4); sem <- choose (0, 1000)
-          let m = either (error . show) (reponderar sem) (proveedorHexagonal (DatosHex w h (km 1) 1))
+          let m = either (error . show) (reponderarMapa sem) (proveedorHexagonal (DatosHex w h (km 1) 1))
               n = w * h
           k <- choose (1, min 4 n)
           celdas <- vectorOf k (choose (0, n - 1))
@@ -544,7 +551,7 @@ main = hspec $ do
         `shouldBe` True
     it "ley: coincide con el mínimo por fuerza bruta en mapas pequeños, con empates y conexiones de longitud 0" $
       property $ forAll casoAzar $ \(m, fs, radio) ->
-        asignarCeldas radio m [ (AsentId a, CeldaId c) | (a, c) <- fs ]
+        asignarCeldas radio (grafoDe m) [ (AsentId a, CeldaId c) | (a, c) <- fs ]
           == fuerzaBruta radio m [ (AsentId a, CeldaId c) | (a, c) <- fs ]
     it "con radio 0, solo la celda del asentamiento" $
       asig (km 0) [(1, 7)] `shouldBe` [(7, AsentId 1)]

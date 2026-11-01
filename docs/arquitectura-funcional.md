@@ -386,7 +386,7 @@ Por decisión de diseño el costo de cada conexión coincide con su longitud en 
 \quad \text{con } d_{\text{km}} \le R_{\text{prod}}
 ```
 
-El orden lexicográfico (distancia, id) hace el desempate determinista. Se calcula con un Dijkstra multifuente sobre el costo de las conexiones (= d_km).
+El orden lexicográfico (distancia, id) hace el desempate determinista. Se calcula con el mismo Dijkstra multifuente que la influencia (sección 9), con un grupo por asentamiento, una etiqueta por celda y R_prod como tope.
 
 **Ids globales de celda (V5, *El mapa completo*).** La malla se traza en hojas con proyección de área igual; cada celda tiene coordenadas axiales (q, r) con origen fijo en su hoja h. El id las codifica en el `CeldaId` entero que ya existe, así que el tipo, el `IntMap` y el protocolo no cambian:
 

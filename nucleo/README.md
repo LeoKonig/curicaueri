@@ -53,7 +53,8 @@ Los archivos dorados del protocolo y del espejo viven fuera, en `../pruebas_comp
 | `Motor.Azar` | SplitMix64 y hash FNV-1a propios; `rng σ sistema tick` sin estado |
 | `Motor.Magnitudes` | Monoide `Aporte`, `valorEfectivo`, modificadores con ventana (`activoEn`) y condición (`Condicion`, `cuentaEn`, `valorEn` con los vigentes del derivado, `evaluarCondicion`), alta (`agregarModificador`) y vencimiento (`expirar`) |
 | `Motor.Hechos` | El tipo `Hecho` |
-| `Motor.Mapa` | Mapa como grafo, proveedor hexagonal (cada conexión mide la escala del mapa en km, tanto de longitud como de costo), `validarMapa` y `asignarCeldas` (a qué asentamiento trabaja cada celda: Dijkstra multifuente sobre el costo (= km), empate por id, dentro de `R_prod`) |
+| `Motor.Mapa` | Mapa como grafo, proveedor hexagonal (cada conexión mide la escala del mapa en km, tanto de longitud como de costo) y `validarMapa` (también rechaza costos negativos) |
+| `Motor.Recorrido` | Recorridos multifuente: el grafo compacto (`grafoDe`), Dijkstra con etiquetas lexicográficas y cola por cubetas en `ST` (`propagarGrafo`), la misma propagación sobre mapas persistentes para reparar (`propagar`), y `asignarCeldas` (a qué asentamiento trabaja cada celda, empate por id, dentro de `R_prod`) |
 | `Motor.Estado` | `Estado s`, `Persistente s`, `Comun s`, `Derivado s`, `Origen s`; contexto, preguntas y decisiones pendientes |
 | `Motor.Sistema` | `Sistema s` con `lee`/`escribe`, cadencias y `correr` |
 | `Motor.Juego` | El registro `Juego s c`, `paso` y `pasoDetallado`, la cola de comandos, los agentes, el vencimiento de modificadores, `derivar` y `consultar` |
