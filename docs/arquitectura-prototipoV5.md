@@ -365,6 +365,22 @@ La leva no depende de dónde esté el ejército: en el reino purépecha se organ
 - **Nobleza local como estrato.** Un pop `nobleza_local` en cada asentamiento importante (en purépecha, los señores principales). Su lealtad pesa más que su tamaño: media en el tributo y en la leva. Si se resiente, baja la eficiencia del altépetl y sube el riesgo de rebelión. Es la versión mínima de las facciones cortesanas, y la misma clase que en el periodo novohispano serán los caciques y principales de los pueblos de indios.
 - **Carga administrativa.** `faccion.carga_administrativa` crece con el número de asentamientos sujetos, su distancia a la capital y la identidad distinta de sus pops, y se cubre con la partida de administración y con gobernadores hábiles. Si no se cubre, baja la eficiencia de todos los altépetl. Es el freno natural a la expansión.
 - **Señoríos locales.** Un sujeto que crece mucho, lejos de su cabecera y con nobleza local fuerte puede pedir convertirse en señorío propio (decisión recurrente). En el modelo purépecha, centralizado, el cazonci lo acepta nombrando al señor o lo niega con riesgo de rebelión; en la Triple Alianza, hegemónica, el mismo sistema deja al señor local en su lugar.
+- **Condición del altépetl.** Todo altépetl está en una de tres condiciones, y el cambio de una a otra es lo que el jugador negocia con su nobleza:
+
+  | Condición | Quién gobierna | Bolsa | ¿Es facción? |
+  | --- | --- | --- | --- |
+  | Sujeto | Un gobernador que el cazonci nombra y remueve | La del cazonci; tributa según las tasas | No |
+  | Señorío | Su propio señor, confirmado por el cazonci; removerlo cuesta agravio de la nobleza local y legitimidad | La del cazonci; tributa | No: no tiene centro de decisión ni bolsa propios, y su agencia se juega con decisiones recurrentes y con la rebelión |
+  | Independiente | Su señor, como cabecera de una facción propia | Propia | Sí: un señorío independiente es un tipo de facción (*Qué es una facción*) |
+
+  | Cambio | Cómo ocurre | Hito |
+  | --- | --- | --- |
+  | Sujeto → señorío | Se concede la autonomía o la petición de señorío local (decisiones recurrentes); en la Triple Alianza, hegemónica, es lo normal al someter a un altépetl | 4 (autonomía); 6 (petición de señorío local, que además crea el altépetl) |
+  | Señorío → sujeto | El cazonci depone al señor y nombra gobernador | Con los nombramientos |
+  | Sujeto o señorío → independiente | Una rebelión triunfa: aparece una facción de tipo `senorio_independiente` con ese altépetl como cabecera (ver *Aparición y desaparición de facciones*) | 4 |
+  | Independiente → señorío o sujeto | Sometimiento negociado (conserva a su señor) o conquista (el cazonci nombra gobernador); la facción desaparece por absorción | 4 |
+
+  El prototipo HTML del hito 0 tiene una versión parcial: la autonomía es temporal (medio tributo durante cinco años) y la independencia es una marca, sin facción detrás.
 - **Nuevos centros, nunca espontáneos.** Un asentamiento nuevo nace por obra del jugador (`FundarAsentamiento` sobre tierra libre) o por un evento (colonos de frontera). El colapso de asentamientos sigue diferido.
 
 ### Etapas
@@ -688,7 +704,9 @@ Caminos, terrazas y roturación usan `ConstruirEdificio` (con un hexágono de de
 
 ## Modelo de datos
 
-La unidad política básica es el señorío. El reino purépecha era más centralizado que la Triple Alianza, porque el cazonci nombraba a los señores locales; por eso la lealtad de cada señorío hacia la capital es una variable clave.
+La unidad política básica es el altépetl, que puede ser sujeto, señorío o independiente (ver *Condición del altépetl*). El reino purépecha era más centralizado que la Triple Alianza, porque el cazonci nombraba a los señores locales; por eso la lealtad de cada altépetl hacia la capital es una variable clave.
+
+**El nombre.** En el código y en este documento la entidad se llama `altepetl`, aunque la palabra sea náhuatl: renombrarla tocaría el protocolo, los guardados y decenas de archivos sin cambiar nada del juego. En pantalla, el nombre es una clave de localización que depende de la cultura y la época: *ireta* entre purépechas (por verificar), *altépetl* entre nahuas, *pueblo de indios* después de la congregación. «Señorío» no es otro nombre de la entidad: es una de sus condiciones.
 
 | Entidad | Campos clave | Notas |
 | --- | --- | --- |
@@ -796,6 +814,34 @@ Todos los sistemas usan solo esta interfaz: vecinos de una celda, conexión entr
 **En la interfaz,** el jugador no ve "costo ≤ X": ve "a dos días de marcha" o "tierras cercanas". La traducción la hace el cliente.
 
 En el resto de este documento, "hexágono" designa una celda del proveedor hexagonal del prototipo.
+
+### El mapa completo: celdas iguales e ids globales
+
+El juego completo cubre lo que fue la Nueva España hacia 1605. El mapa crece por máscaras (decisión 3), así que se fija desde ahora cómo será.
+
+- **Una sola granularidad en toda la tierra.** Toda celda terrestre mide lo mismo: hexágonos de 5 km entre lados opuestos, 21,65 km² cada uno. Con unos 3,1 a 3,4 millones de km² de tierra (México, Centroamérica, las Antillas, La Florida y Filipinas) salen unas 150 000 celdas. No hay capas de periferia con otra resolución: si una celda produce o no depende de que haya asentamientos que la trabajen, no de la región en que cae.
+- **El mar no tiene celdas.** Las rutas marítimas son conexiones entre puertos, con días de tránsito, riesgo y temporada.
+- **Proyección de área igual.** Para que todas las celdas midan lo mismo, la malla se traza sobre una proyección de área igual (por ejemplo, Lambert azimutal centrada en México), no sobre UTM, cuyas zonas miden 6° de ancho. Filipinas va en una hoja aparte, con su propia proyección y el mismo tamaño de celda, unida al resto solo por rutas.
+- **Ids globales.** El id de una celda sale de sus coordenadas axiales (q, r) en su hoja, con origen fijo: no depende del tamaño de la máscara. Las celdas del escenario de 1475 conservan su id en el mapa de 1605. Hoy el proveedor hexagonal numera por fila y ancho, y eso se cambia antes de ampliar el mapa.
+- **El mapa no sabe de política.** Quién domina una celda es influencia calculada o dato del escenario, nunca un atributo del mapa.
+- **Lagos.** El de Pátzcuaro era una vía de canoas para la pesca, el transporte y la guerra (por verificar el alcance): un lago no es por fuerza una barrera, y su navegación es un atributo de la conexión.
+
+**Cómo se genera.** Con una herramienta en Python (`herramientas/mapa/`), porque la geografía (GDAL, rasterio, shapely) no tiene equivalente en Haskell. Entra con el atlas del hito 2, no antes. Su salida es el paquete del mapa, que el núcleo valida al cargar con `validarMapa`, sin un validador aparte. La herramienta debe dar siempre el mismo resultado: versiones fijas y sumas de verificación de cada fuente. Las fuentes deben cubrir toda el área: elevación global (Copernicus), ríos (HydroSHEDS) y vegetación potencial o ecorregiones en lugar del uso de suelo actual. Los lagos que ya no existen o cambiaron de nivel (Texcoco, Chapala, Cuitzeo) se corrigen a mano.
+
+**Formato compacto.** El paquete no lista 150 000 nodos con sus seis vecinos. Cada hoja guarda su origen y, por filas, los códigos de terreno en tramos repetidos; los vecinos se deducen de las coordenadas, y solo las excepciones (ríos, pasos, costas, lagos navegables) van en listas. Sigue siendo JSON validado (regla de datos), de unos pocos megabytes.
+
+### Escala de la simulación: la vista nunca cambia el resultado
+
+**Regla.** El resultado de una partida depende solo del estado inicial, la semilla y los comandos registrados. Nunca de dónde está la cámara, qué panel está abierto ni qué ajustes gráficos usa el jugador. Por eso no se copia la optimización de Minecraft, que congela lo que está lejos del jugador: aquí rompería las repeticiones, el multijugador y la IA. Tampoco hay asentamientos «activos» y «pasivos» según lo que se mira, ni un ajuste de «detalle de simulación».
+
+**Cómo se mantiene barato.**
+- **Simular entidades, no celdas.** El costo de cada veintena depende de los asentamientos, pops y ejércitos, no del tamaño del mapa. Las celdas son casi siempre datos fijos; solo se tocan las que rodean a un asentamiento o a un ejército.
+- **La granularidad la deciden los datos.** Una aldea tiene uno o dos pops y una cabecera tiene más. Si algún día hiciera falta más detalle en un lugar, lo dispara el estado del juego por una regla fija (un sujeto que se vuelve cabecera), nunca la vista.
+- **Guardar solo lo que cambió.** Degradación, terrazas, terrenos modificados: el resto se reconstruye desde el paquete del mapa.
+- **Enviar solo lo que cambió.** El núcleo pasa a `cambios` el registro de entidades sucias del tick (ya previsto para el hito 2), en lugar de comparar la vista entera.
+- **En el cliente, sí como Minecraft:** bloques de celdas cargados según la cámara, niveles de detalle y una textura de datos, porque dibujar no afecta la simulación.
+
+**Medición (`nucleo --sin-cliente --mapa 400x375 --escala 7500x20`).** Con 150 000 celdas, 7 500 altépetl y 150 000 pops, cada tick cuesta unos 0,53 s y el proceso ocupa unos 900 MB. Casi todo es la vista: proyectar y comparar todas las entidades en cada día. Con 15 000 pops cuesta 0,05 s, así que crece en línea recta. La medición encontró dos recorridos cuadráticos, ya corregidos: la proyección recorría todo el almacén de magnitudes por cada entidad, y la hacienda todos los pops por cada altépetl. Con el registro de sucias, el costo diario baja a lo que de verdad cambia, y los sistemas de veintena recorren todo una vez cada 20 días. La memoria se reduce con estructuras compactas en lugar de mapas de claves. No hace falta un sistema de materialización.
 
 ## Mapa: influencia, dueño y control
 
@@ -1133,7 +1179,7 @@ Una facción no existe siempre: los franciscanos llegan, un señorío se indepen
 - **Los ids de facción nunca se reutilizan,** como los de las decisiones. El agente externo de una facción que desaparece se cierra, y el registro lo anota.
 - **Los grupos de poder no aparecen ni desaparecen:** cambian de poder y de lealtad. La única excepción, la escisión de un grupo en dos tras una reforma, se declara igual, con `desde` o condición y una transferencia de poder.
 
-**Cuándo.** En el hito 5, con la transición de 1530 (vasallaje, franciscanos, república de indios). Antes no hace falta: el prototipo tiene sus facciones desde el inicio.
+**Cuándo.** En el hito 4, con las rebeliones: un altépetl que se independiza aparece como facción de tipo `senorio_independiente` a partir de una plantilla (no hace falta declarar una facción potencial por cada altépetl), y desaparece por absorción si vuelve a someterse (ver *Condición del altépetl*). En el hito 5 se suman las facciones declaradas de la transición de 1530 (vasallaje, franciscanos, república de indios).
 
 ### Tipos de facción y niveles de detalle
 
