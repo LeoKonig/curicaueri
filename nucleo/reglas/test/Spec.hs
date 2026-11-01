@@ -765,7 +765,7 @@ main = do
 
     it "no se funden: los grandes, los que tienen modificadores, los incompatibles, ni nada con el umbral en 0" $ do
       let base = nuevos (ppPops (jue e0))
-          [conMod, lejano] = take 2 base
+          (conMod, lejano) = case base of { (a : b : _) -> (a, b); _ -> error "faltan pops de prueba" }
           lejos = conPops (\q -> if popId q == popId lejano then q { popGradiente = Fijo 3000 } else q) e0
           modif = Modificador 900 (Magnitud "agravio") (entRefPop (popId conMod)) (Aporte (fi 1) (Fijo 0))
                     (Fuente "prueba" "x") Nothing Nothing Nothing AlcancePropia []
