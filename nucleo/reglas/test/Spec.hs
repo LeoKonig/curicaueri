@@ -90,6 +90,7 @@ main = do
  dorNombrar   <- BL.readFile "../../pruebas_compartidas/protocolo/comando_nombrar_gobernador.json"
  dorDestituir <- BL.readFile "../../pruebas_compartidas/protocolo/comando_destituir_gobernador.json"
  dorConstruir <- BL.readFile "../../pruebas_compartidas/protocolo/comando_construir_edificio.json"
+ dorTributo   <- BL.readFile "../../pruebas_compartidas/protocolo/comando_pedir_tributo_obra.json"
  edificiosArchivo <- leerEdificios
  terrenosArchivo  <- leerTerrenos
  hspec $ do
@@ -398,7 +399,7 @@ main = do
           hecho = correr (construir "monolito" 1 0) estadoInicial1475
           pobre = correr (construir "monolito" 1 0) (conPresupuestoObras 10 estadoInicial1475)
       altEdificios (ppAltepetl (jue hecho) Map.! AltId 1) `shouldBe` ["monolito"]
-      altObra (ppAltepetl (jue pobre) Map.! AltId 1) `shouldBe` Just (Obra "monolito" 0 2 0 (Fijo 0) Map.empty)
+      altObra (ppAltepetl (jue pobre) Map.! AltId 1) `shouldBe` Just (Obra "monolito" 0 2 0 (Fijo 0) Map.empty Map.empty [])
       case aplicarCola jv [Sellado (Tick 0) (FaccionId 1) 0 (ConstruirEdificio "monolito" (AltId 1) 5)] estadoInicial1475 of
         (_, _, [Rechazo _]) -> pure ()
         _ -> expectationFailure "una obra sin cuadrilla no acepta cuadrilla"
@@ -407,21 +408,19 @@ main = do
       case aplicar1 (ConstruirEdificio "yacata" (AltId 2) 500) e0 of
         (st, _, []) -> do
           baseFaccion magTesoro st `shouldBe` (baseFaccion magTesoro e0 .-. desdeEntero 400)
-          altObra (altDe 2 st) `shouldBe` Just (Obra "yacata" 0 8 500 (Fijo 0) Map.empty)
+          altObra (altDe 2 st) `shouldBe` Just (Obra "yacata" 0 8 500 (Fijo 0) Map.empty Map.empty [])
           retiradosDe (jue st) `shouldBe` Map.fromList [(AltId 2, 500)]
           Map.lookup (AltId 2) (trabajadoresDe constantesDefault (jue st)) `shouldBe` Just 2500
         (_, _, rs) -> expectationFailure ("rechazado: " <> show rs)
 
-    it "rechazos sin daño: cuadrilla fuera de rango o sin gente, sin material, sin tesoro, otra obra, máximo" $ do
+    it "rechazos sin daño: cuadrilla fuera de rango o sin gente, sin tesoro, otra obra, máximo" $ do
       let enObra  = (\(st, _, _) -> st) (aplicar1 (ConstruirEdificio "troje" (AltId 2) 100) e0)
-          sinMaterial = e0 { estadoDerivado = (estadoDerivado e0) { derivadoJuego = (derivadoJuego (estadoDerivado e0)) { dpMateriales = Map.empty } } }
           conGran = let p = estadoPersistente e0; ju = persistenteJuego p
                     in e0 { estadoPersistente = p { persistenteJuego = ju { ppAltepetl =
                               Map.adjust (\a -> a { altEdificios = ["gran_yacata"] }) (AltId 1) (ppAltepetl ju) } } }
           casos = [ (e0, ConstruirEdificio "yacata" (AltId 2) 0)
                   , (e0, ConstruirEdificio "yacata" (AltId 2) 601)
                   , (e0, ConstruirEdificio "gran_yacata" (AltId 2) 2000)
-                  , (sinMaterial, ConstruirEdificio "yacata" (AltId 2) 500)
                   , (conTesoro (desdeEntero 100) e0, ConstruirEdificio "yacata" (AltId 2) 500)
                   , (e0, ConstruirEdificio "palacio" (AltId 2) 1)
                   , (e0, ConstruirEdificio "yacata" (AltId 9) 1)
@@ -430,6 +429,90 @@ main = do
       forM_ casos $ \(st, c) -> case aplicar1 c st of
         (st', _, [Rechazo _]) -> foto st' `shouldBe` foto st
         _ -> expectationFailure ("se esperaba un rechazo: " <> show c)
+
+    it "una obra sin material a su alcance se acepta y espera; no avanza su acopio" $ do
+      let sinMaterial = e0 { estadoDerivado = (estadoDerivado e0) { derivadoJuego = (derivadoJuego (estadoDerivado e0)) { dpMateriales = Map.empty } } }
+      case aplicar1 (ConstruirEdificio "yacata" (AltId 2) 500) sinMaterial of
+        (st, _, []) -> fmap obAcopio (altObra (altDe 2 st)) `shouldBe` Just Map.empty
+        (_, _, rs)  -> expectationFailure ("rechazado: " <> show rs)
+
+    it "tributo en especie: el material llega con retraso, se cobra su transporte y quien lo envía pone gente y agravio" $ do
+      let pedir = [Sellado (Tick 1) (FaccionId 1) 0 (PedirTributoObra (AltId 2) "piedra" (AltId 1) 300)]
+          -- Sin partida de obras la cuadrilla local no trabaja: todo el material es tributo.
+          (s0, _) = correrDias (construir "yacata" 2 500) 0 0 (conPresupuestoObras 0 e0)
+          (s1, _) = correrDias pedir 1 1 s0
+          (s20, _) = correrDias [] 2 20 s1
+          obra st = maybe (error "sin obra") id (altObra (altDe 2 st))
+          entregas = obEnCamino (obra s20)
+          dist = Map.lookup (AltId 2) (dpDistancias (derivadoJuego (estadoDerivado s1))) >>= Map.lookup (AltId 1)
+          agravioDe st = [ modAporte m | m <- maybe [] almacenMods (Map.lookup (entRefAlt (AltId 1), magTasaAgravio) (alm st))
+                                       , modFuente m == fuenteTributo (AltId 2) "piedra" ]
+      Map.toList (obTributos (obra s1)) `shouldBe` [("piedra", TributoObra (AltId 1) 300)]
+      Map.lookup (AltId 1) (retiradosDe (jue s1)) `shouldBe` Just 300
+      agravioDe s1 `shouldBe` [Aporte (cAgravioTributoObra constantesDefault) (Fijo 0)]
+      dist `shouldSatisfy` (/= Nothing)
+      case (entregas, dist) of
+        ([en], Just d) -> do
+          enMaterial en `shouldBe` "piedra"
+          enLlega en `shouldBe` (20 + diasDeTransporte constantesDefault d)
+          enCosto en `shouldBe` (cCostoTransporte constantesDefault .*. enCantidad en .*. d)
+          -- Llega el día previsto y el tesoro paga el transporte.
+          let dia = fromIntegral (enLlega en)
+              antes = correrDias [] 21 (dia - 1) s20
+              (llego, _) = correrDias [] dia dia (fst antes)
+          Map.findWithDefault (Fijo 0) "piedra" (obAcopio (obra (fst antes))) `shouldBe` Fijo 0
+          Map.findWithDefault (Fijo 0) "piedra" (obAcopio (obra llego)) `shouldSatisfy` (> Fijo 0)
+          -- Sin tesoro para el transporte, la entrega espera.
+          let (sinPagar, _) = correrDias [] dia dia (conTesoro (Fijo 0) (fst antes))
+          Map.findWithDefault (Fijo 0) "piedra" (obAcopio (obra sinPagar)) `shouldBe` Fijo 0
+          length (obEnCamino (obra sinPagar)) `shouldSatisfy` (>= 1)
+        _ -> expectationFailure ("se esperaba una entrega: " <> show entregas)
+
+    it "al terminar la obra, quien envía tributo recupera su gente y su agravio, con modificador_terminado" $ do
+      let pedir = [Sellado (Tick 1) (FaccionId 1) 0 (PedirTributoObra (AltId 2) "piedra" (AltId 1) 300)]
+          (s0, _) = correrDias (construir "yacata" 2 500) 0 0 e0
+          (s1, _) = correrDias pedir 1 1 s0
+          (fin, hs) = correrDias [] 2 600 s1
+      altObra (altDe 2 fin) `shouldBe` Nothing
+      altEdificios (altDe 2 fin) `shouldBe` ["yacata"]
+      Map.lookup (AltId 1) (retiradosDe (jue fin)) `shouldBe` Nothing
+      [ modFuente m | m <- maybe [] almacenMods (Map.lookup (entRefAlt (AltId 1), magTasaAgravio) (alm fin))
+                    , fuenteTipo (modFuente m) == "tributo_obra" ] `shouldBe` []
+      [ () | h <- hs, hechoTipo h == "modificador_terminado", Map.lookup "fuente" (hechoParams h) == Just "tributo_obra" ]
+        `shouldBe` [()]
+
+    it "rechazos sin daño del tributo: sin obra, material no pedido, a sí mismo, inexistente, sin gente, repetido, recién empezada" $ do
+      let (s0, _) = correrDias (construir "yacata" 2 500) 0 0 e0
+          (conPedido, _, _) = aplicar1 (PedirTributoObra (AltId 2) "piedra" (AltId 1) 300) s0
+          recienEmpezada = (\(st, _, _) -> st) (aplicar1 (ConstruirEdificio "troje" (AltId 3) 100) e0)
+          casos = [ (s0, PedirTributoObra (AltId 1) "piedra" (AltId 2) 100)
+                  , (s0, PedirTributoObra (AltId 2) "cobre" (AltId 1) 100)
+                  , (s0, PedirTributoObra (AltId 2) "piedra" (AltId 2) 100)
+                  , (s0, PedirTributoObra (AltId 2) "piedra" (AltId 9) 100)
+                  , (s0, PedirTributoObra (AltId 2) "piedra" (AltId 1) 0)
+                  , (s0, PedirTributoObra (AltId 2) "piedra" (AltId 1) 100000)
+                  , (conPedido, PedirTributoObra (AltId 2) "piedra" (AltId 3) 100)
+                  , (recienEmpezada, PedirTributoObra (AltId 3) "madera" (AltId 1) 100) ]
+      forM_ casos $ \(st, c) -> case aplicar1 c st of
+        (st', _, [Rechazo _]) -> foto st' `shouldBe` foto st
+        _ -> expectationFailure ("se esperaba un rechazo: " <> show c)
+
+    it "ley de la obra acotada con tributo: el acopio más lo que viene en camino no pasa de lo pedido" $ do
+      let pedir = [ Sellado (Tick 1) (FaccionId 1) 0 (PedirTributoObra (AltId 2) "piedra" (AltId 1) 600)
+                  , Sellado (Tick 1) (FaccionId 1) 1 (PedirTributoObra (AltId 2) "madera" (AltId 3) 300) ]
+          (s0, _) = correrDias (construir "yacata" 2 500) 0 0 e0
+          trazas = scanl (\e t -> fst (paso j ent (Semilla 1) (Tick t) (if t == 1 then pedir else []) e)) s0 [1 .. 300]
+          d = def "yacata"
+          bien o = and [ Map.findWithDefault (Fijo 0) g (obAcopio o)
+                         .+. foldl' (.+.) (Fijo 0) [ enCantidad en | en <- obEnCamino o, enMaterial en == g ] <= m
+                       | (g, m) <- Map.toList (deMateriales d) ]
+      all bien [ o | st <- trazas, Just o <- [altObra (altDe 2 st)] ] `shouldBe` True
+
+    it "el pedido de tributo coincide con su archivo dorado y está en el catálogo" $ do
+      A.decode dorTributo `shouldBe` Just (A.toJSON (PedirTributoObra (AltId 2) "piedra" (AltId 1) 300))
+      A.decode dorTributo `shouldBe` Just (PedirTributoObra (AltId 2) "piedra" (AltId 1) 300)
+      [ dpNombre p | d <- catalogoComandosConMateriales ["yacata"] ["madera", "piedra"], dcTipo d == "pedir_tributo_obra", p <- dcParametros d ]
+        `shouldBe` ["altepetl", "material", "fuente", "cuadrilla"]
 
     it "la obra extrae su material, trabaja y termina; nunca antes de su duración mínima" $ do
       diaYacata `shouldSatisfy` (>= 7 * 20)
@@ -537,7 +620,7 @@ main = do
 
     it "guardados anteriores: una obra sin cuadrilla ni acopio y un pop sin gradiente cargan con 0" $ do
       (A.decode "{\"obEdificio\":\"yacata\",\"obAvance\":3,\"obTotal\":8}" :: Maybe Obra)
-        `shouldBe` Just (Obra "yacata" 3 8 0 (Fijo 0) Map.empty)
+        `shouldBe` Just (Obra "yacata" 3 8 0 (Fijo 0) Map.empty Map.empty [])
       (A.decode "{\"popId\":1,\"popAltepetl\":1,\"popIdentidad\":\"purepecha\",\"popEstrato\":\"comun\",\"popTamano\":10,\"popLealtad\":\"50\"}" :: Maybe Pop)
         `shouldBe` Just (Pop (PopId 1) (AltId 1) "purepecha" "comun" 10 (fi 50) (Fijo 0))
 

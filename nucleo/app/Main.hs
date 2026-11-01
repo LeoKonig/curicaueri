@@ -83,7 +83,7 @@ import Reglas.Escenario
 import Reglas.Estado (Purepecha, ppAltepetl, ppPops)
 import Reglas.Edificios (cargarEdificios, edificiosVacios, idsEdificios)
 import Reglas.Produccion (bienesDe)
-import Motor.Terrenos (cargarTerrenos, conCostoDeTerreno, validarTerrenosDelMapa)
+import Motor.Terrenos (DefTerreno (..), cargarTerrenos, conCostoDeTerreno, validarTerrenosDelMapa)
 import Motor.Recorrido (grafoDe)
 import Reglas.Grupos (cargarGrupos, conGrupos, gruposVacios, grIds)
 import qualified Reglas.Juego as RJ
@@ -174,7 +174,8 @@ main = do
   -- y el entorno de toda la partida.
   let mapaR  = if Map.null terrenos then mapaHex else conCostoDeTerreno terrenos mapaHex
       grafoR = grafoDe mapaR
-  let comandos = catalogoComandosCon (idsEdificios edificios)
+  let comandos = catalogoComandosConMateriales (idsEdificios edificios)
+                   (Map.keys (Map.unions (map dtMateriales (Map.elems terrenos))))
       juego = RJ.juegoDatos constantesDefault (RJ.DatosReglas grupos edificios terrenos)
       -- --escala 7500x20: altépetl y pops de prueba para medir el costo a la
       -- escala del mapa completo (solo para la prueba de rendimiento del núcleo).

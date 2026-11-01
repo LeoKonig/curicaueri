@@ -31,8 +31,10 @@ catalogoMag = Map.fromList
   [ (Magnitud "agravio",
      DefMagnitud "agravio" (RangoMag (Fijo 0) (fi 100))
                   "m.agravio" Nothing False)
+    -- Dos escritores: la hacienda y la construcción, que cobra el transporte
+    -- del tributo en especie al llegar (V5, *Las obras*, etapa 2).
   , (magTesoro,
-     DefMagnitud "tesoro" rangoTesoro "m.tesoro" Nothing False)
+     DefMagnitud "tesoro" rangoTesoro "m.tesoro" Nothing True)
   , (magPrestigio,
      DefMagnitud "prestigio" rangoPrestigio "m.prestigio" Nothing False)
   , (magLegitimidad,
@@ -109,6 +111,7 @@ aplicarComando c dr est sell = let gs = drGrupos dr in case sellCmd sell of
       Nothing -> Left (Rechazo (altNombre a <> " no tiene gobernador"))
       Just _  -> Right (quitarNombramiento gs (sellTick sell) alt est)
   ConstruirEdificio e alt n -> iniciarObra c (drEdificios dr) e alt n est
+  PedirTributoObra alt g f n -> pedirTributo c (drEdificios dr) alt g f n est
 
 -- El motor no conoce estos tipos; aquí los traducimos a valores genéricos
 -- de `Motor.Vista` para que el cliente pueda mostrarlos sin saber de reglas.
@@ -118,6 +121,7 @@ proyectar est =
       der = derivadoJuego (estadoDerivado est)
       celdas = dpCeldas der
       fieles a = foldl' (.+.) (Fijo 0) [ f | ((b, _), f) <- Map.toList (dpFielesLocal der) ++ Map.toList (dpFielesCentro der), b == a ]
+      nombreAlt b = maybe "?" altNombre (Map.lookup b (ppAltepetl p))
       acopio o = VLista [ VTexto (g <> " " <> textoFijo q) | (g, q) <- Map.toList (obAcopio o) ]
   in  [EntidadJuego (entRefAlt (altId a)) (Map.fromList
         [ ("nombre",   VTexto (altNombre a))
@@ -130,6 +134,12 @@ proyectar est =
         , ("obra_cuadrilla", maybe VNulo (VEntero . obCuadrilla) (altObra a))
         , ("obra_trabajo",   maybe VNulo (VFijo . obTrabajo) (altObra a))
         , ("obra_acopio",    maybe VNulo acopio (altObra a))
+        , ("obra_tributo",   maybe VNulo (\o -> VLista [ VTexto (g <> " de " <> nombreAlt (toFuente tr) <> " (" <> T.pack (show (toCuadrilla tr)) <> ")")
+                                                   | (g, tr) <- Map.toList (obTributos o) ]) (altObra a))
+        , ("obra_en_camino", maybe VNulo (\o -> VLista [ VTexto (enMaterial en <> " " <> textoFijo (enCantidad en) <> " de " <> nombreAlt (enDe en)
+                                                              <> ", llega el día " <> T.pack (show (enLlega en))
+                                                              <> ", transporte " <> textoFijo (enCosto en))
+                                                   | en <- obEnCamino o ]) (altObra a))
         , ("fieles",         VFijo (fieles (altId a)))
         , ("edificios", VLista (map VTexto (altEdificios a)))
         , ("celdas_trabajadas", VEntero (length (Map.findWithDefault [] (altId a) celdas)))
@@ -163,7 +173,7 @@ derivarPurepecha :: Constantes -> DatosReglas -> Grafo -> Purepecha -> DerivadoP
 derivarPurepecha c dr gr p =
   let (celdas, mats) = derivarTerritorio c (drTerrenos dr) (grafoMapa gr) gr p
       (loc, cen) = derivarFieles c (drEdificios dr) gr p
-  in DerivadoPurepecha celdas mats loc cen
+  in DerivadoPurepecha celdas mats loc cen (derivarDistancias c gr p)
 
 -- | El juego sin archivo de grupos: nombrar gobernadores no mueve poder.
 juego :: Constantes -> Juego Purepecha Comando

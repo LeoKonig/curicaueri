@@ -130,13 +130,15 @@ trabajadoresBrutos c p = Map.fromListWith (+)
                        in fromIntegral (x `div` escala)
 
 -- | Los trabajadores retirados de la producción de cada altépetl
--- (@retirar_trabajadores@, V5). Hoy el único motivo es la cuadrilla de una
--- obra (motivo @obra@): sale al empezar la obra y vuelve al terminarla, así
--- que basta con leerla de las obras en curso. La leva del hito 4 sumará su
--- propio motivo.
+-- (@retirar_trabajadores@, V5). Hoy los motivos son la cuadrilla de una obra
+-- (motivo @obra@) y la gente que un altépetl pone para enviarle tributo en
+-- especie (motivo @tributo_obra@): salen con la obra y vuelven al terminarla,
+-- así que basta con leerlos de las obras en curso. La leva del hito 4 sumará
+-- su propio motivo.
 retiradosDe :: Purepecha -> Map AltId Int
-retiradosDe p = Map.fromList
-  [ (altId a, obCuadrilla o) | a <- Map.elems (ppAltepetl p), Just o <- [altObra a], obCuadrilla o > 0 ]
+retiradosDe p = Map.fromListWith (+) $ concat
+  [ (altId a, obCuadrilla o) : [ (toFuente tr, toCuadrilla tr) | tr <- Map.elems (obTributos o) ]
+  | a <- Map.elems (ppAltepetl p), Just o <- [altObra a], obCuadrilla o > 0 ]
 
 -- | La fórmula con nombre @produccion_por_factor_escaso@: lo que dan las
 -- celdas (ya ordenadas) con W trabajadores, por bien, antes de las obras.
