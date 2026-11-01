@@ -1,6 +1,6 @@
 # Curicaueri: Flor y Canto
 
-Juego de gran estrategia de código abierto sobre Mesoamérica. El prototipo es el reino purépecha de 1475 a 1530.
+Juego de gran estrategia de código abierto sobre Mesoamérica de 1418 a 1605, jugado desde el reino purépecha. El prototipo HTML (`hito_0/`), terminado, cubre 1475–1530 y es la base del tutorial.
 
 Son dos programas que hablan por un socket TCP local, con una línea de JSON por mensaje:
 

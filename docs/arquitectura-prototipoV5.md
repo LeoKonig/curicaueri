@@ -1,32 +1,52 @@
-# Curicaueri: Flor y Canto — diseño y arquitectura del prototipo: el reino purépecha, siglo XVI (Haskell + Godot)
+# Curicaueri: Flor y Canto — diseño y arquitectura: Mesoamérica de 1418 a 1605, jugada desde el reino purépecha (Haskell + Godot)
 
-21 de octubre de 2026 (revisado el 23, el 24 y el 27 de octubre) · Leonardo Gómez
+21 de octubre de 2026 (revisado el 23, el 24, el 27 de octubre y el 1 de noviembre: cambio de alcance a 1418–1605) · Leonardo Gómez
 
 ## Visión
 
-El jugador debe recordar **"la vez que construí el reino purépecha que sobrevivió (o no) a la conquista"**, no "la vez que sobreviví a la conquista". Es un juego de gran estrategia en la línea de Victoria II y Europa Universalis: la crisis de 1520 es el clímax de lo que el jugador construyó, no el contenido principal.
+El jugador debe recordar **"la vez que construí el reino purépecha que sobrevivió (o no) a la conquista"**, no "la vez que sobreviví a la conquista". Es un juego de gran estrategia en la línea de Victoria II y Europa Universalis: la crisis de 1520 es el clímax de lo que el jugador construyó, no el contenido principal. Después de 1530 la partida sigue: lo que el reino dejó (nobleza, pueblos, legitimidad, crónica) es el punto de partida de la república de indios hasta 1605.
 
 **Frase guía:** *cada veintena el jugador inclina el reino; cada año ve las consecuencias; cada década decide qué reino será.*
 
-**Juego completo:** al menos toda Mesoamérica, de 1475 (poco antes de la batalla de Taximaroa, que las fuentes sitúan hacia 1476–1479; fecha por verificar) a 1605 (fundación de Port Royal en Acadia y publicación de la primera parte del Quijote).
+## Alcance: el juego del motor y el tutorial
 
-**Prototipo:** el reino purépecha de 1475 a 1530, en tres actos. Se convertirá en el tutorial del juego completo.
+Desde el 1 de noviembre de 2026 hay dos productos, con papeles distintos:
 
-| Acto | Años | Pregunta del jugador | Qué enseña |
+| | Juego del motor (Haskell + Godot) | Prototipo HTML (hito 0) |
+| --- | --- | --- |
+| Periodo | **1418–1605**, una sola campaña | 1475–1530 |
+| Territorio | **El mapa completo** (ver *El mapa completo*): toda Mesoamérica y sus periferias, sin frentes abstractos | Michoacán; el Valle de México como frente abstracto |
+| Sistemas | **Todos**: pops y demografía, producción y extracción, coerción, administración, legitimidad y red, diplomacia por vínculos, autoridad por títulos, religión, moneda, tecnología por difusión | Las palancas mínimas |
+| Facciones | Todas las que existan en cada fecha, con los mismos sistemas. **Una sola jugable: la purépecha** (y, tras 1530, su continuación; ver *El papel del jugador después de 1530*). Todas las demás las juega una IA sencilla, con la personalidad de su tipo | Solo la purépecha |
+| Eventos escritos | **Solo para la facción purépecha.** Las demás facciones no tienen guion propio: su historia sale de sus sistemas, de su IA y de los eventos purépechas que las tocan | Los del prototipo |
+| Contenido | **De juguete al principio:** parámetros, cifras, facciones, asentamientos y pops provisionales que se calibran y se sustituyen después, sin tocar el código | Calibrado a mano |
+| Papel | El juego | Terminado. Referencia de diseño y base del **tutorial** |
+
+**Por qué 1418.** Ese año los tepanecas de Azcapotzalco toman Tetzcoco, muere Ixtlilxóchitl y Nezahualcóyotl huye; Tetzcoco queda como tributario de Tenochtitlan. La partida empieza con el Valle de México en plena reordenación, diez años antes de la guerra tepaneca de 1428 que da origen a la Triple Alianza (fechas por verificar con Carrasco). **Por qué 1605:** fundación de Port Royal en Acadia y publicación de la primera parte del Quijote.
+
+**Cómo está Michoacán en 1418 es una decisión abierta.** La *Relación de Michoacán* no da fechas absolutas y las cronologías de Taríacuri y de los tres señores (Hirípan en Ihuatzio, Tangáxoan en Tzintzuntzan, Hiquíngare en Pátzcuaro) varían en décadas según el autor. Mientras no se decida con fuentes, el escenario de 1418 usa un estado de juguete y lo dice.
+
+**El tutorial.** Es un segundo escenario del mismo motor: el reino purépecha de 1475 a 1530, en tres actos, construido a partir del prototipo HTML. Es solo datos (fecha inicial y final, estado inicial, guion), como exige la regla *Escenarios, no versiones*.
+
+| Acto del tutorial | Años | Pregunta del jugador | Qué enseña |
 | --- | --- | --- | --- |
 | I. Sobrevivir | 1475–1485 | ¿Puedo resistir a la Triple Alianza y consolidar el reino? | Guerra, tributo, lealtad, presupuesto de emergencia |
 | II. Construir | 1485–1519 | ¿Qué reino quiero dejar a mi sucesor? | Administración, construcción, diplomacia, pops |
 | III. Resistir | 1519–1530 | ¿Sobrevive lo que construí? | Crisis, sucesión, epidemia, vasallaje |
 
+**Sistemas completos, contenido de juguete.** El orden de trabajo cambia: primero cada sistema funciona de punta a punta en todo el mapa y en todo el periodo, con datos provisionales; después se calibra y se escribe el contenido histórico. Un dato de juguete se marca como tal en su archivo (`"_provisional": true` o una `_nota`), para que nadie lo confunda con un dato con fuente. La regla *Nada sin uso* sigue valiendo: entra lo que un sistema usa, aunque sus valores sean de juguete.
+
+**Cómo leer el resto de este documento.** Las secciones de mecánicas se escribieron cuando el prototipo era la campaña 1475–1530 en Michoacán. Donde dicen "prototipo", léase el juego del motor con su contenido purépecha; donde dicen "juego completo", la mecánica sigue siendo del mismo juego, pero su orden lo fija la nueva tabla de *Hitos*. Las cifras, fechas y nombres de ejemplo (1475, los 10 a 12 asentamientos de Michoacán, el frente abstracto del Valle) siguen valiendo para el tutorial.
+
 ## Tres reglas que gobiernan todo el diseño
 
-1. **Recortar contenido, nunca sistemas.** El prototipo es el juego completo con menos datos: menos territorio, menos años, menos eventos. No existe código exclusivo del prototipo. Pasar al juego completo es añadir datos y sistemas, nunca reescribir los que ya existen.
+1. **Recortar contenido, nunca sistemas.** El tutorial es el juego con menos datos: menos territorio, menos años, menos eventos. No existe código exclusivo del tutorial. Añadir contenido es añadir datos, nunca reescribir los sistemas que ya existen.
 2. **Todo se conecta por magnitudes, modificadores y hechos.** Ninguna mecánica llama directamente a otra. Las mecánicas se comunican escribiendo y leyendo magnitudes con nombre, aportando modificadores y emitiendo hechos. Así, cada mecánica nueva se enchufa a las existentes y el juego se vuelve más denso sin volverse frágil.
 3. **Toda palanca tiene costo y consecuencia visible.** Cada decisión del jugador cuesta algo y su efecto aparece en la interfaz, con el desglose de por qué. Un comando sin costo no es una decisión.
 
 ## La rebanada vertical: qué es igual y qué se recorta
 
-| Igual en el prototipo y en el juego completo | Se recorta solo con datos |
+| Igual en el tutorial y en la campaña | Se recorta solo con datos |
 | --- | --- |
 | Núcleo, orden de sistemas, protocolo, esquemas | Región jugable (máscara sobre el mapa global) |
 | Interfaz de grafo del mapa e ids de celda globales | Facciones jugables |
@@ -38,10 +58,10 @@ El jugador debe recordar **"la vez que construí el reino purépecha que sobrevi
 **Reglas concretas**
 
 1. **Sin `if prototipo`.** Los recortes viven en el archivo de escenario: fecha inicial y final, estado inicial, máscara de región jugable, facciones jugables y sistemas activos.
-2. **Escenarios, no versiones.** El mismo núcleo carga cualquier escenario. El prototipo tiene dos: la campaña 1475–1530 y el escenario de crisis 1519–1530, que conserva el demo que ya resultó divertido.
-3. **Mapa global desde el día 1, como grafo.** El núcleo no sabe de hexágonos: procesa un grafo de celdas y conexiones (ver *El mapa como grafo*). En el prototipo, el grafo lo genera una malla hexagonal de Mesoamérica y Michoacán es una máscara. Ampliar el territorio es ampliar la máscara y añadir datos; cambiar la forma del mapa es cambiar de proveedor de grafo.
-4. **Sistemas genéricos sobre facciones.** Purépechas, Triple Alianza, castellanos y chichimecas usan exactamente los mismos sistemas y comandos. "Jugable" es una bandera de datos.
-5. **Frentes abstractos genéricos.** Cualquier región fuera de la máscara puede tener un frente abstracto (en el prototipo, la guerra del Valle de México). Cuando esa región entra en la máscara, el frente se reemplaza por simulación en el mapa con los mismos datos de fuerzas.
+2. **Escenarios, no versiones.** El mismo núcleo carga cualquier escenario. Hay tres: la campaña 1418–1605 (el juego), el tutorial 1475–1530 y el escenario de crisis 1519–1530, que conserva el demo que ya resultó divertido y sirve de prueba corta.
+3. **Mapa global desde el día 1, como grafo.** El núcleo no sabe de hexágonos: procesa un grafo de celdas y conexiones (ver *El mapa como grafo*). El grafo lo genera una malla hexagonal de Mesoamérica; la campaña usa el mapa entero y el tutorial lo recorta con una máscara sobre Michoacán. Cambiar la forma del mapa es cambiar de proveedor de grafo.
+4. **Sistemas genéricos sobre facciones.** Purépechas, tepanecas, la Triple Alianza, Tlaxcala, los señoríos mixtecos y zapotecos, los mayas, los pueblos chichimecas, los castellanos y todas las demás usan exactamente los mismos sistemas y comandos. "Jugable" es una bandera de datos; en la campaña solo la tiene la purépecha.
+5. **Frentes abstractos genéricos.** Cualquier región fuera de la máscara puede tener un frente abstracto (en el tutorial, la guerra del Valle de México). En la campaña no hay región fuera de la máscara, así que no se usan: la guerra del Valle se simula en el mapa con los mismos datos de fuerzas.
 6. **Orden de sistemas del juego completo desde el principio.** Los pasos aún no implementados existen como pasos vacíos. Implementar una mecánica es rellenar su paso, no reordenar el ciclo.
 7. **Catálogo completo de comandos declarado.** Los comandos aún no implementados se rechazan con el motivo `no_implementado`, pero el contrato no cambia.
 8. **Esquemas que solo crecen.** Un campo nuevo siempre trae valor por defecto. Nada se renombra ni se borra sin una migración versionada. Así, datos, mods y guardados antiguos siguen siendo válidos.
@@ -509,31 +529,34 @@ La crónica es lo que convierte una partida en una historia. Es un registro de s
 - La pantalla final no solo muestra cifras: cuenta la historia del reino con la crónica y señala qué decisiones pesaron en la crisis (usando los ganchos de la tabla anterior).
 - El jugador puede consultar la crónica en cualquier momento.
 
-## Alcance del prototipo
+## Alcance del juego del motor
 
-**Dentro**
+**Dentro** (el orden lo fija la tabla de *Hitos*)
 
-- Campaña 1475–1530 y escenario de crisis 1519–1530
-- Michoacán y su entorno como región jugable (10 a 12 asentamientos principales: Tzintzuntzan, Pátzcuaro, Ihuatzio, Zacapu, Uruapan, Taximaroa…) y la frontera chichimeca al norte; el Valle de México como frente abstracto
+- Campaña 1418–1605 sobre el mapa completo; tutorial 1475–1530 y escenario de crisis 1519–1530 como escenarios de datos
+- Todas las facciones que existan en cada fecha, declaradas en datos por tipo (ver *Tipos de facción y niveles de detalle*), que aparecen y desaparecen (ver *Aparición y desaparición de facciones*); una sola jugable, la purépecha
 - Sistema de magnitudes, modificadores, hechos y fórmulas con nombre
-- Las cuatro palancas y los dos indicadores en su versión mínima
-- Caminos con tres efectos, terrazas y roturación (hito 3), crecimiento de población (hito 3b) y erosión del suelo (hito 6a, solo en el escenario de campaña: el de crisis funciona con el sistema activo o inactivo, y el plan de respaldo lo desactiva): tres etapas con criterio propio (ver *La tierra y la gente*)
-- Pops con agravio, identidad, lealtad y dos niveles de necesidades (subsistencia y cotidiana)
-- Tributo entre altépetl, personajes y sucesión, prisioneros
-- Triple Alianza, castellanos y chichimecas como IA con los mismos sistemas
-- Sistema general de crisis, con la petición mexica de 1520 como primer caso
-- Epidemia de viruela, guerra del Valle de México como frente abstracto, cadena histórica hasta 1530
-- Combate con resolución automática
+- Las cuatro palancas y los dos indicadores, y los cinco ejes de poder (coerción, extracción, legitimidad, administración y red) leídos por las fórmulas
+- Caminos, terrazas y roturación; crecimiento de población; erosión del suelo (ver *La tierra y la gente*)
+- Pops con agravio, identidad, lealtad y necesidades; dispersión, migración y mestizaje
+- Tributo entre altépetl y entre facciones, vínculos, concesiones y títulos
+- Personajes y sucesión, prisioneros, crisis
+- Grupos de poder, consejo, políticas y reformas (ver *Política interna*)
+- Mercado parcial, moneda designada e inflación
+- Religión (política religiosa, templos, sincretismo) y tecnología por difusión
+- Combate con resolución automática, abasto, asedio, rebeliones e incursiones
+- IA sencilla para todas las facciones no jugables: las cuatro reglas de *La IA mínima*, con la personalidad de su tipo
+- Epidemias del siglo XVI, transición de 1530 y periodo novohispano hasta 1605
+- Eventos y decisiones recurrentes escritos solo para la facción purépecha y su continuación
 - Crónica del reino y pantalla final
 
 **Fuera, con lugar reservado** (paso vacío en el ciclo, comandos declarados, esquema preparado para crecer)
 
-- Facciones cortesanas, políticas y reformas
-- Ranking, estatus de potencia y esferas de influencia
-- Mercado y precios (paso 6) y colapso de asentamientos (paso 11); la línea de suministros pasa al abasto diario del paso 2 (ver *La coerción como cadena*); tercer nivel de necesidades (prestigio)
-- Religión completa y difusión tecnológica
+- Eventos escritos para facciones distintas de la purépecha, y otras facciones jugables
+- Ranking, estatus de potencia y esferas de influencia; colapso de asentamientos
 - Capa táctica jugable (el contrato `BattleSetup` / `BattleResult` ya está fijo)
-- Otras regiones jugables, multijugador, arte final y sonido
+- Planificador de IA en Mercury
+- Multijugador, arte final y sonido
 
 ## Principios de arquitectura
 
@@ -1056,7 +1079,7 @@ Las bandas chichimecas no tienen trojes ni ruta: no usan el sistema de abasto, s
 
 ## Gobiernos, religiones y tecnologías (juego completo)
 
-El arco del juego completo va de las fronteras difusas de 1475 a los distritos trazados de 1605: la capacidad de dividir el territorio depende del gobierno y de la tecnología. El tipo de gobierno ya es un campo de `Facción` desde el prototipo; en el juego completo, cada tipo aporta modificadores y habilita comandos.
+El arco del juego completo va de las fronteras difusas de 1418 a los distritos trazados de 1605: la capacidad de dividir el territorio depende del gobierno y de la tecnología. El tipo de gobierno ya es un campo de `Facción` desde el prototipo; en el juego completo, cada tipo aporta modificadores y habilita comandos.
 
 | Gobierno | Ejemplo | Tipo de división |
 | --- | --- | --- |
@@ -1129,7 +1152,7 @@ Con este criterio, franciscanos y dominicos son facciones distintas, la Corona n
 
 **Límite inferior.** Ningún individuo es una facción: los personajes viven dentro de las facciones. Bajar de ahí lleva a mecánicas de corte y matrimonio que el diseño descarta.
 
-**Antes de 1530.** Hay facciones, pero son externas: la Triple Alianza, los chichimecas y los señoríos independientes de la frontera, este último un tipo de facción. Los altépetl sujetos del reino, como Zacapu o Uruapan, comparten la bolsa del cazonci y no tienen centro de decisión propio, así que no son facciones. Tienen señor, gobernador, nobleza local y lealtad (ver *Aristocracia baja, carga administrativa y señoríos locales*), y su agencia se juega con decisiones recurrentes y con la rebelión. Un sujeto que se independiza sí pasa a ser facción: un señorío independiente con su propia bolsa.
+**Antes de 1530.** Hay facciones en toda Mesoamérica (ver la lista de *Tipos de facción y niveles de detalle*): tepanecas, las tres capitales de la Triple Alianza, Tlaxcala, señoríos mixtecos, zapotecos y mayas, pueblos chichimecas y los señoríos independientes, este último un tipo de facción. Los altépetl sujetos del reino, como Zacapu o Uruapan, comparten la bolsa del cazonci y no tienen centro de decisión propio, así que no son facciones. Tienen señor, gobernador, nobleza local y lealtad (ver *Aristocracia baja, carga administrativa y señoríos locales*), y su agencia se juega con decisiones recurrentes y con la rebelión. Un sujeto que se independiza sí pasa a ser facción: un señorío independiente con su propia bolsa.
 
 **Los grupos de poder tampoco son facciones.** Viven dentro de una y comparten su bolsa (ver *Política interna*). El criterio es el de las tres preguntas de arriba, no "territorio, tesoro y títulos": una orden religiosa es facción sin tener territorio.
 
@@ -1223,20 +1246,22 @@ Para que sumar facciones sea solo datos, cada facción elige un **tipo** que dec
 
 Promover una facción de un nivel al siguiente nunca toca el motor (regla 1). El catálogo de pops puede tener decenas de identidades sin que cada una sea una facción, y puede haber decenas de facciones sin que sean jugables.
 
-**Facciones jugables previstas, por orden de implementación**
+**Una sola facción jugable.** En la campaña 1418–1605 el jugador dirige el reino purépecha y, desde 1530, su continuación (la república de indios de Michoacán u otra facción directamente conectada; ver *El papel del jugador después de 1530*). Las demás facciones son **IA genérica** o **IA con perfil propio**: ninguna tiene eventos escritos. Que una de ellas llegue a ser jugable es trabajo posterior y solo de datos, interfaz y eventos.
 
-| Orden | Facción | Época | Cuándo |
+**Facciones de IA de la campaña, por región.** Lista de partida, de juguete hasta que el inventario histórico (ver *Hitos*, contenido) la confirme con fuentes. Las fechas y tipos son por verificar.
+
+| Región | Facciones | Tipo | Notas |
 | --- | --- | --- | --- |
-| 1 | Reino purépecha | 1475–1530 | Prototipo |
-| 2 | República de indios | 1530–1605 | Primera facción post-1530 |
-| 3 | Orden religiosa | 1530–1605 | Segunda facción post-1530; su perfil de autoridad es el más distinto |
-| 4 | Xilotepec | 1475–1530 | Primera ampliación del mapa |
-| 5 | Tlaxcala | 1475–1530 | Segunda ampliación; ejercita la guerra ritual y la confederación |
-| 6 | Tututepec / Zaachila | 1475–1530 | Tercera ampliación; alianzas dinásticas como eventos de datos (verificar con fuentes) |
-| 7 | Q'umarkaj / Iximché | 1475–1530 | Cuarta ampliación; la decisión del kaqchikel aliado |
-| 8 | Corona novohispana / encomenderos | 1530–1605 | Juego completo, tras la república y la orden |
+| Valle de México | Azcapotzalco (tepanecas), Tenochtitlan, Tlatelolco, Tetzcoco, Tlacopan, Chalco, Xochimilco | Imperio hegemónico, señoríos | Con el criterio de *Qué es una facción*, cada capital de la Triple Alianza tiene su bolsa: son **tres facciones unidas por un vínculo de alianza con reparto de conquistas**, no una. La alianza nace en 1428 como vínculo, no como facción |
+| Puebla-Tlaxcala | Tlaxcala, Huexotzinco, Cholula | Confederación, señoríos | Guerra ritual con la Triple Alianza |
+| Norte y Golfo | Metztitlán, señoríos huastecos, señoríos totonacos (Cempoala) | Señoríos | |
+| Occidente | Reino purépecha (jugable), Colima, señoríos de Jalisco y Nayarit | Reino centralizado, señoríos | El estado del reino purépecha en 1418 es una decisión abierta (ver *Alcance*) |
+| Oaxaca | Tututepec, Tilantongo, Yanhuitlán y otros señoríos mixtecos; Zaachila, Tehuantepec y otros zapotecos | Señoríos, reinos dinásticos | Alianzas dinásticas como situaciones, solo si tocan a los purépechas |
+| Mundo maya | Mayapán y los señoríos yucatecos que surgen de su disgregación (1441–1461, por verificar); K'iche', Kaqchikel, Tz'utujil | Señoríos, reinos | Mayapán sigue en pie en 1418. Falta una facción para Chiapas |
+| Gran Chichimeca | Guachichiles, zacatecos, guamares, pames, cazcanes, tepehuanes | Bandas nómadas, señoríos | No son una sola nación: cada pueblo es su facción, con el tipo que le corresponda (los cazcanes eran agricultores) |
+| Europeas y coloniales | Expedición castellana (1519), Corona novohispana, Audiencia, encomenderos, órdenes religiosas | Colonial, orden religiosa | Aparecen por fecha o condición |
 
-Pendiente: ninguna facción de la lista cubre Chiapas, que está dentro del alcance del juego.
+Antes de 1530 no hay que modelar como facción a cada altépetl: los sujetos son altépetl de una facción (ver *Qué es una facción*). Un sujeto pasa a ser facción solo si se independiza.
 
 ### Interfaz, IA y fin de partida
 
@@ -1459,7 +1484,7 @@ Muchas tecnologías no dan una bonificación: cambian **qué insumo** se usa par
 - **La fragilidad sale sola del conocimiento tácito.** Un sustituto que depende de conocimiento tácito se pierde si mueren o se van quienes lo practican (epidemia, emigración). Uno que depende de conocimiento codificado sobrevive si quedan los textos. El desglose dice por qué algo quedó bloqueado: "fortaleza de piedra bloqueada: cantería tácita 20, mínimo 40; los canteros murieron en la epidemia".
 - **Sin ciclos:** ninguna receta puede depender de sí misma, y la carga lo comprueba. La receta base, sin tecnología, siempre existe.
 
-Un cuidado histórico: los purépechas eran los metalúrgicos más avanzados de Mesoamérica, así que en 1475 el cobre no es una tecnología por adquirir ni un sustituto peor que la obsidiana. Los sustitutos y sus calidades se fijan con fuentes.
+Un cuidado histórico: los purépechas eran los metalúrgicos más avanzados de Mesoamérica, así que en 1418 el cobre no es una tecnología por adquirir ni un sustituto peor que la obsidiana. Los sustitutos y sus calidades se fijan con fuentes.
 
 ## El costo de las cosas: valor e insumos (hito 3 para las obras; juego completo para lo demás)
 
@@ -2320,7 +2345,9 @@ El Valle de México está fuera de la región jugable, así que su guerra se sim
 
 **Negociar con los castellanos.** Los castellanos son una facción con relación hacia el reino. Embajadas y regalos la suben (`EnviarRegalos` gasta bienes del almacén de la capital); el prestigio mejora las condiciones del vasallaje. Aceptar el vasallaje evita la guerra pero introduce encomienda y tributo a la Corona; resistir lleva a la guerra.
 
-**Fin de la partida.** La partida termina con el evento de la expedición de Nuño de Guzmán. Si la historia se desvió y ese evento no ocurre, febrero de 1530 es la fecha de respaldo. También termina antes si cae Tzintzuntzan o el linaje del cazonci se extingue sin sucesor.
+**Fin de la partida en la campaña.** En la campaña 1418–1605, la expedición de Nuño de Guzmán (o la caída del reino) no termina la partida: abre la transición de facción (`ElegirFaccion`, ver *El papel del jugador después de 1530*) y la partida sigue hasta 1605, cuando se muestra la pantalla final. Tampoco hay frente abstracto: la guerra del Valle se libra en el mapa entre las facciones de IA, con los mismos datos de fuerzas. Lo que sigue en este párrafo vale para el tutorial.
+
+**Fin de la partida en el tutorial.** La partida termina con el evento de la expedición de Nuño de Guzmán. Si la historia se desvió y ese evento no ocurre, febrero de 1530 es la fecha de respaldo. También termina antes si cae Tzintzuntzan o el linaje del cazonci se extingue sin sucesor.
 
 **Pantalla final.** Cuenta la historia del reino con la crónica: qué se construyó, a quién se nombró, qué guerras se libraron y qué decisiones pesaron cuando llegó la crisis. Además muestra la autonomía del reino (propuesta: proporción de asentamientos que no tributan a otra facción ni están ocupados, multiplicada por un factor menor que 1 si el reino es vasallo), la población conservada, la lealtad media y el tributo pagado. No hay una sola forma de ganar.
 
@@ -2414,7 +2441,7 @@ proyecto/
 │   ├── batalla/            # vista de batalla (reservado)
 │   └── pruebas/            # corpus dorado del espejo y prueba de tooltips sin interfaz
 ├── datos/                  # juego base, compartido
-│   ├── escenarios/         # campana_1475.json, crisis_1519.json
+│   ├── escenarios/         # campana_1418.json, tutorial_1475.json, crisis_1519.json
 │   ├── mapa/               # capas empaquetadas del mapa global
 │   ├── magnitudes.json
 │   ├── hechos.json
@@ -2513,26 +2540,42 @@ Los criterios de tensión (a)–(e) y el modelo de espera de ese documento se su
 - **0a, cumplido.** El autor jugó el prototipo y lo juzgó aceptable, y la parte automática está hecha: el arnés, los criterios de tensión (a)–(e) y las tablas de casos de las fórmulas. Ya no se exigen la rúbrica de 15 decisiones ni la auditoría manual de las decisiones que cambian el rumbo. Lo que la evaluación v5 dejó sin cumplir, el criterio (d) (tramos sin decisión de unos 5 minutos), se vuelve a medir con el arnés sobre el juego real y se corrige en los hitos 3 y 4.
 - **0b, diferido; no bloquea ningún hito.** Una persona que no sea el autor juega 10 años y explica sus decisiones. Se hace cuando haya algo representativo del acto II: después del 3b o, mejor, del 4, con la IA mínima. Si falla, se corrige en el paquete de reglas, sin tocar el motor.
 
+**Cambio de plan (1 de noviembre de 2026).** El prototipo HTML se da por terminado y queda como base del tutorial 1475–1530. El juego del motor deja de ser una rebanada de Michoacán que se amplía después: es la campaña 1418–1605 sobre el mapa completo, con todos los sistemas, una sola facción jugable (la purépecha, con eventos escritos solo para ella) y todas las demás jugadas por una IA sencilla. Se construye primero con contenido de juguete y se calibra al final. Los hitos 0 a 3 no cambian; desde el 4 la tabla se reordena: primero varias facciones y el mapa completo, porque todo lo demás corre sobre ellos; después los sistemas; al final el contenido, la calibración y las pruebas con jugadores. Los antiguos hitos 3b, 4, 5, 5b, 6, 6a y 7 se reparten en los nuevos, como indica cada fila.
+
+Las secciones de mecánicas citan todavía los números antiguos. Hasta que se reescriban, se leen así:
+
+| Hito antiguo | Hito nuevo |
+| --- | --- |
+| 3b (demografía) | 6 |
+| 4 (guerra, diplomacia, IA mínima) | 7 |
+| 5 (crisis de 1519, personajes y sucesión) | 8 |
+| 5b (prueba del escenario de crisis) | 12 |
+| 6 (campaña 1475–1530, migración entre facciones, fundación) | 6 para la migración; 10 para el contenido y la pantalla final |
+| 6a (erosión) | 6a |
+| 7 (prueba con jugadores) | 12 |
+| "Juego completo" | El hito de la tabla que lo nombra; si ninguno lo nombra, el 9 |
+
 | # | Hito | Qué se construye | Criterio |
 | --- | --- | --- | --- |
 | 0 | Prototipo de mesa | Prototipo en HTML o hoja de cálculo con 3 altépetl, tesoro, presupuesto, un gobernador, una obra, un casus belli, una crisis y las decisiones recurrentes; partidas jugadas de 10 años y partidas simuladas con el arnés de 30 años; recuento de los sucesos documentados de 1485–1519; las cuatro entregas del contrato | **0a (cumplido el 31 de octubre de 2026; el 1b ya no espera):** en 10 años jugados, al menos 15 decisiones con costo y consecuencia visible, y al menos 3 que cambian el rumbo. En 30 años simulados: ningún tipo de decisión supera el 25 % del total, y cada década trae al menos dos tipos de situación que no aparecieron en la anterior. **0b (diferido, no bloquea; se hace después del 3b o del 4):** al menos una persona que no sea el autor juega 10 años y, sin que se le pregunte si le gustó, explica tres decisiones que tomó y por qué, dice cuál le costó más y qué consecuencia no esperaba, y qué haría distinto en otra partida. Si no puede explicar sus decisiones, falla el desglose o la autonomía; si no hubo ni decisión difícil ni sorpresa, el sistema es plano u opaco. Si el acto II se repite, se rediseña en cuanto el arnés sobre el juego real lo detecte (más decisiones recurrentes, escenario de inicio más tardío o un acto I más corto) |
 | 1a | Motor | Paquete `motor`: punto fijo, azar determinista, interfaz de grafo del mapa con proveedor hexagonal y validador, magnitudes, modificadores, hechos, pliegue de sistemas con `lee`/`escribe` y ciclo completo con pasos vacíos, cola de comandos sellados, intérprete de condiciones y efectos con suspensión, proyección y cambios genéricos, contrato de agentes con agente nulo, escenarios con máscara, carga de datos con versión de esquema, guardado. El juego de juguete con sus seis rutas en las pruebas. Empieza en paralelo con el hito 0; plazo de tres semanas. Quedan fuera hasta que algo los pida: mods, migraciones de esquema, mapa irregular, agente aleatorio | **Criterio mínimo, sin añadidos:** el juego de juguete corre al menos 100 ticks con veintenas y nemontemi, guarda y carga a mitad de una decisión suspendida y sigue igual; pasan las leyes de repetición, rechazo sin daño, explicación, conservación y las dos del espejo; `validar-mapa` rechaza un mapa con conexiones asimétricas; añadir un segundo comando y un tercer sistema al juguete no cambia la interfaz `Juego`; el paquete `motor` compila sin el paquete `reglas` |
 | 1b | Primer juego | Paquete `reglas`: tesoro, presupuesto, pops con agravio, catálogo de comandos del juego, fórmulas con nombre y constantes del hito 0; el escenario inicial. Empieza cuando el hito 0 pasa su parte 0a | Las tablas de casos del hito 0 pasan como pruebas de Haskell dentro de su tolerancia; subir el impuesto sube el ingreso y el agravio; las leyes del hito 1a siguen pasando con el juego real |
 | 2 | Protocolo y atlas | Godot con catálogo, espejo con modificadores, malla del mapa con colores planos, biblioteca de componentes, paneles genéricos, panel de tesoro (en cuanto exista el hito 1b; lo demás solo necesita el 1a y el juego de juguete), consulta de predicción, versión del protocolo | El mapa dibuja los ~2 700 hexes a 60 FPS; con las cinco velocidades, una veintena dura lo previsto y la barra superior muestra fecha, veintena y días restantes; una magnitud nueva aparece en la interfaz sin código nuevo en el cliente; el costo se ve antes de confirmar; pasan las cuatro pruebas del espejo (proyección, corpus dorado en GDScript, escenarios a mano y tooltips) |
-| 3 | Administración y construcción | Nombramientos, eficiencia, cinco edificios con cuadrilla, materiales de las celdas, tributo en especie, oficio y beneficio por fórmula (*Las obras*, etapas 1 a 3), terrazas y roturación (obras de hexágono), campos `condicion` y `alcance` en modificadores, efecto `cambiar_terreno`, tabla de terrenos, producción y tributo entre altépetl, crónica, primeras decisiones recurrentes, material de atlas sobre la malla del mapa, legitimidad con modificadores temporales, partida de culto e identidades de pops, rango de asentamiento, nobleza local, carga administrativa, leva con `retirar_trabajadores` | Un mal gobernador baja la recaudación; un edificio cambia la producción y el desglose lo explica; un camino acelera la marcha y sube la producción solo si hay un vecino con camino (el desglose lo muestra); las terrazas suben la capacidad y la roturación cambia el terreno, con su costo visible antes de confirmar; una obra baja la producción mientras su cuadrilla trabaja, una fortaleza sin piedra cerca tarda más y cuesta más con tributo en especie, y la segunda yácata de un pueblo chico aporta menos que la primera, todo con el costo visible antes de confirmar; descuidar el culto baja la legitimidad y la lealtad, y el desglose lo explica |
-| 3b | Demografía | Sistema de crecimiento en el paso 11, capacidad y presión derivadas, efecto `ajustar_poblacion`, epidemia como modificador de la tasa, residencia dispersa, fuga, reocupación y migración interna, decisión recurrente de presión sobre la tierra, constantes de crecimiento | Misma semilla y mismos comandos dan el mismo estado; el tamaño de un pop nunca queda bajo el piso y la tasa efectiva es base más modificadores (propiedades de QuickCheck); en 10 años sin comandos del jugador (pero con todos los modificadores activos) la población crece según su tasa efectiva y el desglose lo explica; ingresos, agravio y necesidades quedan en un rango acordado tras correr entero el arnés de partidas simuladas. Sin esto, el hito 4 no fija sus umbrales |
-| 4 | Guerra y diplomacia | Ámbito de celda para cualquier edificio con condición de control y aporte a la influencia, beneficio por guarnición (*Las obras*, etapa 4), casus belli, treguas, prestigio, combate automático, asedio, rebeliones, IA mínima con sus cuatro reglas, separada en planificador (por veintena) y ejecutor (por tick), resto de las decisiones recurrentes, temporada de guerra, guerra ritual, legitimidad por victorias, derrotas, hambrunas y fiestas, incursiones, saqueo, requisa, producción reducida en celdas enemigas o disputadas | Una guerra sin casus belli cuesta prestigio; cada ataque de la IA se explica con su poder relativo o su oportunismo; en una partida de prueba de 1485 a 1519 el jugador toma al menos 1,5 decisiones con costo por año sin eventos históricos escritos; una campaña en temporada agrícola baja la producción de forma visible antes y después de declararla |
-| 5 | Escenario de crisis 1519 | Sistema de crisis, alianza de 1520, frente abstracto del Valle, viruela, personajes y sucesión, prisioneros con destino ritual en la legitimidad, efecto del vasallaje y los franciscanos, cadena hasta 1530; benchmarks con `criterion` en CI | El demo de crisis se reproduce con los sistemas genéricos; aceptar o rechazar la alianza lleva a partidas distintas |
-| 6 | Campaña 1475–1530 | Escenario completo, ganchos entre lo construido y la crisis, pantalla final con la crónica, migración entre facciones, colonos de frontera, petición de señorío y fundación de asentamientos; decisión sobre el lenguaje de expresiones con datos de recompilación | Dos partidas con reinos distintos llegan a 1520 y la crisis se resuelve distinto por lo que cada uno construyó |
-| 6a | Erosión del suelo | Sistema de degradación en el paso 11, `celda.degradacion` y `celda.tasa_erosion`, modificador de erosión sobre la capacidad, efecto de terrazas y roturación sobre la tasa, modo de mapa por capacidad | En una partida de 55 años con presión sostenida y sin obras, los hexágonos habitados pierden una fracción visible de capacidad; con terrazas pierden menos de la mitad que sin ellas; en 10 años se pierde menos del 2 % de capacidad (por diseño); el escenario de crisis funciona con el sistema activo o inactivo. Solo se empieza si el hito 3b pasó su criterio |
-| 5b | Prueba del escenario de crisis | Versión jugable del escenario 1519–1530 para unas cinco personas | Las personas describen las decisiones que tomaron y por qué, sin que se les pregunte; si la crisis no engancha, se corrige antes de invertir en la campaña |
-| 7 | Prueba con jugadores | Repositorio público y versión jugable | Campaña: al menos cinco personas describen "el reino que construyeron" sin que se les pregunte. Si se usó el plan de respaldo (solo el escenario de crisis): describen las decisiones que tomaron y por qué |
+| 3 | Administración y construcción (en curso) | **Hecho:** nombramientos, eficiencia, obras etapas 1 a 3, condiciones de modificadores, tabla de terrenos, producción de bienes. **Falta:** camino, terrazas, roturación, mercado parcial, moneda en el juego real (T10) y el arnés sobre el juego real (T11). Contenido completo del hito: nombramientos, eficiencia, cinco edificios con cuadrilla, materiales de las celdas, tributo en especie, oficio y beneficio por fórmula (*Las obras*, etapas 1 a 3), terrazas y roturación (obras de hexágono), campos `condicion` y `alcance` en modificadores, efecto `cambiar_terreno`, tabla de terrenos, producción y tributo entre altépetl, crónica, primeras decisiones recurrentes, material de atlas sobre la malla del mapa, legitimidad con modificadores temporales, partida de culto e identidades de pops, rango de asentamiento, nobleza local, carga administrativa, leva con `retirar_trabajadores` | Un mal gobernador baja la recaudación; un edificio cambia la producción y el desglose lo explica; un camino acelera la marcha y sube la producción solo si hay un vecino con camino (el desglose lo muestra); las terrazas suben la capacidad y la roturación cambia el terreno, con su costo visible antes de confirmar; una obra baja la producción mientras su cuadrilla trabaja, una fortaleza sin piedra cerca tarda más y cuesta más con tributo en especie, y la segunda yácata de un pueblo chico aporta menos que la primera, todo con el costo visible antes de confirmar; descuidar el culto baja la legitimidad y la lealtad, y el desglose lo explica |
+| 4 | Varias facciones y campaña de 1418 | La facción como entidad en `reglas`: cada una con su tesoro, personajes, tasas, presupuesto y altépetl (hoy hay una sola, `faccion 1`). Facciones declaradas en `datos/facciones/` por tipo, con estado potencial, activa o eliminada y su transferencia al desaparecer (*Aparición y desaparición de facciones*). Condición del altépetl (sujeto, señorío, independiente). Escenarios en JSON (`escenarios/campana_1418.json`, `escenarios/tutorial_1475.json`) en lugar de `Reglas.Escenario`, con el calendario desde 1418. Lenguaje de condiciones ampliado: soberano de un asentamiento, facción activa, personaje vivo, `ocurrio` (un hecho de la crónica). Efectos nuevos: modificador temporal con fuente, transferir un altépetl o cambiar su condición, activar y absorber una facción. Agente nulo para cada facción de IA. Contenido de juguete: unas decenas de facciones de toda la lista de *Tipos de facción*, con uno a tres altépetl cada una, sobre el mapa provisional | La campaña corre de 1418 a 1605 sin cliente (unos 68 000 ticks), guarda y carga en cualquier fecha y sigue igual; con agentes nulos, cambiar cuál facción es la jugable no cambia ningún resultado (ley: sistemas genéricos sobre facciones); una facción aparece por fecha y otra desaparece por absorción, y lo transferido suma lo que tenía menos lo que se pierde; el tutorial 1475–1530 carga con el mismo código y solo otros datos |
+| 5 | Mapa completo | Herramienta de mapa en Python (`herramientas/mapa/`, *El mapa completo*), ids globales de celda, paquete compacto con unas 150 000 celdas, terrenos, ríos, lagos y costas; asentamientos de juguete en todo el mapa (cientos, uno por altépetl de las facciones de juguete); costo del grafo por terreno; cliente con el atlas sobre el mapa entero | El núcleo carga y valida el mapa entero; la campaña con el mapa entero cumple un presupuesto de milisegundos por tick medido con `--sin-cliente` (se fija al empezar el hito); el cliente sigue a 60 FPS; las celdas de Michoacán del tutorial tienen el mismo id en la campaña (ley de ampliación) |
+| 6 | Demografía | Lo que era el hito 3b: sistema de crecimiento en el paso 11, capacidad y presión derivadas, efecto `ajustar_poblacion`, epidemia como modificador de la tasa, residencia dispersa, fuga, reocupación, migración interna y entre facciones, decisión recurrente de presión sobre la tierra. Las epidemias del siglo XVI (1520, 1531, 1545–1548, 1576–1580) como datos. Mestizaje como flujo de nacimientos, con tasas de juguete | Misma semilla y mismos comandos dan el mismo estado; el tamaño de un pop nunca queda bajo el piso y la tasa efectiva es base más modificadores (QuickCheck); la población total se conserva en la migración; en una campaña sin jugador, la población de cada región crece y cae con sus epidemias y el desglose lo explica |
+| 6a | Erosión del suelo | Como antes: degradación en el paso 11, `celda.degradacion` y `celda.tasa_erosion`, modificador de erosión sobre la capacidad, efecto de terrazas y roturación, modo de mapa por capacidad; desde 1530, ganado y arado como modificadores de la tasa (patrón regional) | En la campaña, los hexágonos con presión sostenida pierden una fracción visible de capacidad; con terrazas pierden menos de la mitad que sin ellas; en 10 años se pierde menos del 2 %; el escenario de crisis funciona con el sistema activo o inactivo. Solo se empieza si el hito 6 pasó su criterio |
+| 7 | Coerción, diplomacia e IA sencilla | Lo que era el hito 4 (casus belli, treguas, prestigio, combate automático, abasto, asedio, rebeliones, temporada de guerra, guerra ritual, incursiones, saqueo, requisa, celdas enemigas o disputadas, beneficio por guarnición) para todas las facciones; vínculos, concesiones, títulos y tributo entre facciones, con el reparto de conquistas de una alianza como títulos concurrentes de extracción; bandas nómadas sin trojes y con campamentos; **la IA sencilla para todas las facciones no jugables**: las cuatro reglas en planificador y ejecutor, con la personalidad de su tipo en `datos/personalidades/` | Una guerra sin casus belli cuesta prestigio; cada ataque de la IA se explica con su poder relativo o su oportunismo; en una campaña de 1418 a 1605 sin jugador hay guerras, alianzas, tributos y rebeliones en cada región, ninguna facción se queda con todo el mapa y el número de facciones activas por década queda en un rango acordado; el jugador purépecha toma al menos 1,5 decisiones con costo por año sin eventos escritos |
+| 8 | Personajes, sucesión y crisis | Personajes con linaje, edad, muerte anual, heredero designado y sucesión (también la de las facciones de IA, que pueden votar en la de otra); sistema general de crisis; prisioneros con destino ritual en la legitimidad; la expedición castellana como facción que aparece en 1519; la alianza de 1520 como crisis; la transición de 1530 (`ElegirFaccion`) a la república de indios; Corona, Audiencia, encomenderos y órdenes religiosas como facciones de IA con títulos (encomienda, doctrina) | El demo de crisis se reproduce con los sistemas genéricos; aceptar o rechazar la alianza lleva a partidas distintas; en 1530 el jugador elige su facción y la partida y la crónica siguen hasta 1605; una sucesión de IA sin heredero abre una disputa visible en la crónica |
+| 9 | Sistemas del periodo largo | Grupos de poder, consejo, políticas y reformas; religión (política religiosa, templos con niveles, sincretismo); tecnología por difusión; los cinco ejes de poder leídos por las fórmulas; mercado parcial si no entró en el hito 3; jurisdicciones coloniales y congregaciones | Cada sistema tiene su ley y un efecto visible en el desglose a lo largo de la campaña entera; activar o desactivar un sistema por escenario no rompe a los demás |
+| 10 | Contenido purépecha | Inventario histórico con fuentes (facciones, altépetl, vínculos y estado de 1418, empezando por el Altiplano y Michoacán; ver `docs/tareas_paralelas.md`, T6); guion purépecha de 1418 a 1605 con fases, decisiones recurrentes y la cadena histórica; el tutorial 1475–1530 con el contenido del prototipo HTML; ganchos entre lo construido y la crisis; pantalla final con la crónica | Toda situación tiene fuente o dice "por verificar"; el arnés de variedad pasa sobre los 187 años (ningún tipo supera el 25 %, dos tipos nuevos por década); dos partidas con reinos distintos llegan a 1520 y la crisis se resuelve distinto por lo que cada uno construyó |
+| 11 | Calibración | Sustituir el contenido de juguete: población, tributo, fuerzas, personalidades, constantes de cada sistema; niveles de dificultad como datos | Ningún archivo de la campaña conserva datos marcados como provisionales; ingresos, agravio, población y guerras quedan en los rangos acordados tras correr el arnés entero |
+| 12 | Prueba con jugadores | Lo que eran el 0b, el 5b y el 7: el tutorial con una persona que no sea el autor; la campaña con unas cinco personas; repositorio público y versión jugable | Tutorial: la persona explica tres decisiones, cuál le costó más y qué no esperaba. Campaña: al menos cinco personas describen "el reino que construyeron" sin que se les pregunte |
 
-**Plan de respaldo.** El escenario de crisis 1519–1530 del hito 5 ya es un juego completo y validado por sí mismo. Si la campaña del hito 6 se atasca, se publica el escenario de crisis y la campaña sigue como trabajo posterior, sin perder nada de lo construido. Los hitos 3b y 6a tampoco están en el camino crítico: si el tiempo aprieta, se posponen, su paso queda vacío y el escenario los desactiva, sin tocar lo demás.
+**Plan de respaldo.** La campaña se recorta con datos, nunca con sistemas: si el tiempo aprieta, se publica primero un escenario más corto (el tutorial 1475–1530, o 1418–1530) con el mismo código, y el periodo novohispano sigue como trabajo posterior. Los hitos 6a y 9 no están en el camino crítico: un sistema que no esté listo queda como paso vacío y el escenario lo desactiva.
 
-**Extensión opcional del prototipo.** Si el prototipo de mesa o el hito 4 muestran que la administración se siente delgada, se adelanta una versión mínima de políticas (dos opciones por categoría) y reformas (tres en total) después del hito 4. Es barata porque solo usa magnitudes, modificadores y condiciones; si no hace falta, se queda para el juego completo. La candidata para ese lugar es la política interna con grupos de poder (ver *Política interna: grupos, consejo y reformas*).
-
-**Después del prototipo (juego completo, sin reconstruir):** facciones cortesanas, políticas y reformas (paso 12); ranking y esferas (paso 13); mercado (paso 6); religión y difusión tecnológica (paso 15); nuevas regiones (ampliar la máscara; los frentes abstractos pasan al mapa); capa táctica (el contrato ya existe); el periodo 1530–1605.
+**Lo que ya no se hace.** El frente abstracto del Valle de México se queda solo para el tutorial: en la campaña la guerra del Valle se libra en el mapa. La "extensión opcional" de políticas y reformas ya no es opcional: entra en el hito 9.
 
 ## Riesgos y decisiones abiertas
 
@@ -2540,7 +2583,9 @@ El mayor riesgo es el alcance: un juego que mezcla dos géneros completos puede 
 
 **Riesgos**
 
-- **Alcance.** Una campaña de 55 años es ambiciosa para una sola persona. Mitigación: recortar con datos, la regla de oro de las palancas, los criterios de cada hito y el plan de respaldo (el escenario de crisis como juego terminado).
+- **Alcance.** Una campaña de 187 años sobre toda Mesoamérica, con todos los sistemas, es mucho más ambiciosa que la de 55 años en Michoacán, y es el mayor riesgo del proyecto. Mitigación: una sola facción jugable y eventos escritos solo para ella; IA sencilla de cuatro reglas para todas las demás; contenido de juguete hasta el hito 11; la regla de oro de las palancas; los criterios de cada hito; y el plan de respaldo (publicar un escenario más corto con el mismo código).
+- **Una IA sencilla produce una historia absurda.** Con decenas de facciones jugadas por reglas, un imperio puede comerse el mapa o todo puede congelarse en 187 años. Mitigación: el criterio del hito 7 mide guerras, alianzas y número de facciones activas por década con la campaña sin jugador, y los umbrales de cada personalidad son datos.
+- **El rendimiento con el mapa entero.** 150 000 celdas, cientos de asentamientos y decenas de facciones durante unos 68 000 ticks. Mitigación: `CLAUDE.md` ya pide diseñar a esa escala y medir con `--escala 7500x20`; el hito 5 fija el presupuesto antes de seguir.
 - **La arquitectura de extensión se vuelve un fin en sí misma.** Magnitudes, modificadores y hechos pueden crecer hasta ser un motor genérico sin juego. Mitigación: el motor del hito 1a solo contiene lo que este documento ya exige y tiene un plazo fijo, el del hito 0; después, cada pieza crece cuando una mecánica concreta lo pide (ver *Dos vías en paralelo*). El lenguaje de expresiones no se construye hasta que alguien que no programa en Haskell lo necesite.
 - **El cliente consume más esfuerzo del previsto.** Las interfaces densas de datos son laboriosas en Godot. Mitigación: biblioteca de componentes desde el hito 2, desglose tomado del espejo y no por consulta, y presupuestar la mitad del esfuerzo del cliente para esta capa.
 - **El espejo del cliente miente.** Un modificador que no llega, que sobra o que se fusiona mal deja tooltips sin explicación. Mitigación: el valor siempre se calcula desde los modificadores (invariante), entidades completas en lugar de deltas finos, instantánea con modificadores al conectar, reconectar y cargar, y las cuatro pruebas del espejo.
@@ -2550,7 +2595,7 @@ El mayor riesgo es el alcance: un juego que mezcla dos géneros completos puede 
 - **Representación.** Riesgo de estereotipar facciones, y de reducir la religión mesoamericana al sacrificio. Mitigación: consultar historiadores y comunidades indígenas desde temprano; la legitimidad tiene varias fuentes equilibradas y el arnés comprueba que el ritual no domina; autónimos de las identidades revisados con fuentes.
 - **Licencia.** Si se reutiliza código de OpenVic, el proyecto debe ser GPL-3.0.
 - **Coma flotante.** Mitigación: enteros o punto fijo en todo el estado y en las fórmulas; la coma flotante queda solo en el cliente, para dibujar.
-- **El periodo novohispano multiplica el alcance.** Dos opciones de facción, nuevos actores, asentamientos e identidades. Mitigación: queda fuera del prototipo; el prototipo solo reserva el espacio (rango que crece, destino genérico del tributo, efectos de asentamiento, jurisdicción) y la segunda opción de facción llega después de la primera.
+- **El periodo novohispano multiplica el alcance.** Dos opciones de facción, nuevos actores, asentamientos e identidades. Mitigación: entra en los hitos 8 y 9 con contenido de juguete; después de 1530 solo es jugable la continuación del reino purépecha, y la segunda opción de facción queda para después.
 - **La autoridad compartida multiplica los conflictos.** Varias facciones con títulos sobre la misma entidad pueden dar órdenes contradictorias. Mitigación: cada comando es exclusivo o concurrente, el titular exclusivo se decide por autoridad efectiva con empate por id, y disputar ese lugar es una acción con costo, no un efecto secundario.
 - **El catálogo de identidades multiplica los pops.** Condición, autoadscripción y categorías pueden hacer crecer el número de pops por asentamiento. Mitigación: la categoría es una identidad más, la autoadscripción queda fuera de la clave y las condiciones se activan por escenario.
 - **La población se vuelve opaca.** Dispersión, fuga, migración y crecimiento a la vez pueden producir movimientos que el jugador no entiende. Mitigación: cada flujo es un modificador o un hecho con fuente, visible en el desglose y en la crónica; se valida con el arnés en el hito 3b.
@@ -2585,13 +2630,18 @@ El mayor riesgo es el alcance: un juego que mezcla dos géneros completos puede 
 - [ ] Constantes de `eficiencia_altepetl` y `FRACCION_TRABAJADORA` (hito 0)
 - [ ] Duración de la veintena en cada velocidad y opciones del jugador para detener el reloj (hito 2)
 - [ ] Si el acto II del hito 0 se repite: más decisiones recurrentes, escenario de inicio más tardío (por ejemplo, 1490) o un acto I más corto (hito 0)
-- [ ] Fecha de la batalla de Taximaroa, con fuente (hito 0)
+- [ ] Fecha de la batalla de Taximaroa, con fuente (tutorial)
+- [ ] Estado del reino purépecha en 1418: qué cronología de Taríacuri y de los tres señores (Hirípan, Tangáxoan, Hiquíngare) se sigue, con fuentes; si en 1418 hay una facción purépecha o tres unidas por un vínculo (hito 10; hasta entonces, estado de juguete)
+- [ ] Lista de facciones de 1418 y sus tipos, con fuentes, empezando por el Altiplano y Michoacán (hito 10; hasta entonces, la lista de juguete de *Tipos de facción*)
+- [ ] Forma del reparto de conquistas de la Triple Alianza (2/5, 2/5, 1/5, por verificar con Carrasco): títulos concurrentes de extracción con una parte cada uno, u otra obligación del vínculo (hito 7)
+- [ ] Presupuesto de milisegundos por tick con el mapa entero y todas las facciones (al empezar el hito 5)
+- [ ] Revisión de los términos en purépecha de los eventos con hablantes o lingüistas (hito 10)
 - [ ] Ritmos de dispersión y migración, y pérdida de producción por celda enemiga o disputada (hitos 3b y 4)
 - [ ] Qué cuenta como "directamente conectada" para la segunda opción de facción tras 1530, y qué hereda la república de indios del reino construido (juego completo)
 - [ ] Matriz de validación de los cinco ejes: facciones de cada época contra ejes, con valor aproximado y fuente; decide si algún eje se fusiona o se parte (antes de implementar la república de indios)
 - [ ] Tipos de facción con su perfil por defecto de ejes, comandos y personalidad (juego completo)
 - [ ] Eje principal y clase (exclusivo o concurrente) de cada comando del catálogo (al implementar cada comando)
-- [ ] Qué facción representa Chiapas (al ampliar el mapa)
+- [ ] Qué facción representa Chiapas (hito 4, de juguete; hito 10, con fuentes)
 - [ ] Perfil de ejes del cazonci en el tutorial: si Legitimidad y Administración se comparten con el sacerdocio y los gobernadores, verificado con la *Relación de Michoacán* (hito 0 en la hoja de cálculo; antes de fijar datos)
 - [ ] Alcance de Yucatán, Tabasco, Honduras y El Salvador (juego completo)
 - [ ] Clasificaciones, autónimos y fechas del catálogo de identidades, en especial zapoteco, tzeltal, chiapaneca, triqui, chatino y las categorías de casta (al ampliar el mapa)
@@ -2628,12 +2678,17 @@ El mayor riesgo es el alcance: un juego que mezcla dos géneros completos puede 
 - [ ] Exportador de mapas desde el editor de Godot (después del prototipo; no ahora)
 - [ ] Scripting general en el juego completo: conjunto cerrado con fórmulas con nombre, lenguaje de expresiones, DSL, Lua o WASM (antes de publicar la documentación para modders)
 
-**Diferido al juego completo:** colapso de asentamientos, línea de suministros, comercio entre ciudades, patrón regional de erosión del periodo hispánico, paralelización, presupuestos de rendimiento para el mapa de 45 000 celdas, formato binario del protocolo táctico.
+**Diferido (fuera del alcance del motor por ahora):** colapso de asentamientos, línea de suministros, comercio entre ciudades, patrón regional de erosión del periodo hispánico, paralelización, presupuestos de rendimiento finos (el presupuesto del mapa entero se fija en el hito 5), formato binario del protocolo táctico.
 
 **Decisiones tomadas**
 
 - El prototipo es una rebanada vertical: se recorta contenido con datos, nunca sistemas
-- Escenarios en lugar de versiones: campaña 1475–1530 y crisis 1519–1530
+- El juego del motor es la campaña 1418–1605 sobre el mapa completo, con todos los sistemas (1 de noviembre de 2026); el prototipo HTML está terminado y es la base del tutorial 1475–1530
+- Sistemas completos con contenido de juguete primero; contenido histórico y calibración después; los datos de juguete se marcan como provisionales
+- Eventos escritos solo para la facción purépecha y su continuación
+- Cada capital de la Triple Alianza es una facción; la alianza es un vínculo con reparto de conquistas
+- En la campaña no hay frentes abstractos: la guerra del Valle se libra en el mapa
+- Escenarios en lugar de versiones: campaña 1418–1605, tutorial 1475–1530 y crisis 1519–1530
 - Mapa global con máscara de región jugable desde el día 1
 - El núcleo es un procesador de grafos: la malla hexagonal es el primer proveedor y la geometría es solo del cliente
 - Las constantes de espacio se expresan en kilómetros o días de marcha, nunca en celdas
@@ -2665,7 +2720,7 @@ El mayor riesgo es el alcance: un juego que mezcla dos géneros completos puede 
 - La capa estratégica envía entidades completas y el cliente reemplaza; la fusión de deltas finos queda para la capa táctica
 - Mapa como malla generada por código: colores planos en el hito 2, material de atlas desde el hito 3
 - Cliente construido como biblioteca de componentes reutilizables desde el hito 2
-- Plan de respaldo: el escenario de crisis 1519–1530 es publicable por sí solo
+- Plan de respaldo: la campaña se recorta por fecha con datos (tutorial 1475–1530 o 1418–1530), nunca por sistemas
 - Crónica del reino como estado almacenado y base de la pantalla final
 - Caminos, crecimiento y erosión entran al prototipo en etapas con hitos separados (3, 3b y 6a); cada una pasa su criterio antes de empezar la siguiente
 - Terrazas y roturación son obras de celda definidas en datos; la roturación cambia el terreno con el efecto `cambiar_terreno` y es irreversible en el prototipo
@@ -2690,7 +2745,7 @@ El mayor riesgo es el alcance: un juego que mezcla dos géneros completos puede 
 - JSON en el protocolo del prototipo, con la serialización aislada en `Protocolo/`
 - Estado en enteros o punto fijo
 - Tiempo real con pausa, como Europa Universalis y Victoria II
-- Una sola facción jugable en el prototipo: el reino purépecha
+- Una sola facción jugable: el reino purépecha y, tras 1530, su continuación; todas las demás las juega una IA sencilla y no tienen eventos escritos
 - Fechas visibles en calendario juliano y, desde octubre de 1583 en la Nueva España, gregoriano, con la veintena al lado
 - La cadena histórica corre siempre que se cumplan sus condiciones; las decisiones la desvían, no la apagan
 - La aparición del Tepeyac se queda como mecánica del juego completo, medida en el gradiente de sincretismo
