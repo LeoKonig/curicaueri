@@ -42,6 +42,7 @@ data ErrorMapa
   | CeldaAislada CeldaId
   | EscalaInvalida
   | VecinosSinCelda CeldaId
+  | CostoNegativo CeldaId CeldaId
   deriving (Eq, Show)
 
 validarMapa :: Mapa -> [ErrorMapa]
@@ -61,6 +62,12 @@ validarMapa m = concat
   , [ VecinosSinCelda (CeldaId vi)
     | vi <- IntMap.keys vecinos
     , not (IntMap.member vi celdas)
+    ]
+    -- Los recorridos por el grafo (Dijkstra) suponen costos no negativos.
+  , [ CostoNegativo (CeldaId ai) b
+    | (ai, vs) <- IntMap.toList vecinos
+    , (b, con) <- vs
+    , connCosto con < Fijo 0
     ]
   ]
   where

@@ -503,6 +503,9 @@ main = hspec $ do
     it "validarMapa detecta una conexión asimétrica" $ do
       let m = mapaPrueba { mapaVecinos = IntMap.adjust (const []) 0 (mapaVecinos mapaPrueba) }
       any esAsimetrica (validarMapa m) `shouldBe` True
+    it "validarMapa rechaza un costo negativo" $ do
+      let m = mapaPrueba { mapaVecinos = IntMap.adjust (map (\(b, con) -> (b, con { connCosto = Fijo (-1) }))) 0 (mapaVecinos mapaPrueba) }
+      any (\e -> case e of CostoNegativo _ _ -> True; _ -> False) (validarMapa m) `shouldBe` True
 
   describe "asignación de celdas" $ do
     -- mapaPrueba es hexagonal de 5 × 4 con 1,0 km por celda: dos celdas vecinas están a 1 km.
