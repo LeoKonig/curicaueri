@@ -1491,7 +1491,7 @@ El freno a llenar el reino de edificios no es un límite de casillas ni un "uno 
 
 **Los materiales salen de la tierra.** La tabla de terrenos declara qué material rinde cada terreno y cuántos trabajadores pide su extracción (sierra: piedra; bosque: madera). Cada veintena, la cuadrilla va primero a sacar el material que falta, de las celdas del altépetl que lo tienen (las mejores primero, como en la producción), y el resto trabaja en el sitio. Lo extraído se acopia en la obra, que avanza solo hasta donde le alcanza el material. Una fortaleza de piedra en un llano sin sierra cerca no avanza con su propia cuadrilla: necesita tributo en especie o un sustituto (adobe, si se domina; ver *La tecnología como receta alternativa*).
 
-**El tributo en especie: material de fuera, más caro y más lento.** Si el material no está en las celdas del altépetl, la obra puede pedirlo a un sujeto que sí lo tenga. El sujeto lo extrae con sus propios trabajadores (`retirar_trabajadores`, motivo `tributo_obra`, con agravio en su altépetl como cualquier tributo) y lo envía. Cuesta más tiempo y más dinero que extraerlo en casa:
+**El tributo en especie: material de fuera, más caro y más lento.** Si el material no está en las celdas del altépetl, la obra puede pedirlo a otro altépetl de la facción que sí lo tenga, sea o no su sujeto. Quien lo envía lo extrae con sus propios trabajadores (`retirar_trabajadores`, motivo `tributo_obra`) y le cuesta agravio según su condición: un sujeto, el de cualquier tributo; un señorío, más, porque obedece a su propio señor. Un altépetl independiente no envía: es otra facción, y lo suyo será el comercio. Fuera de eso no hay más regla: lo que frena pedir material lejos es el retraso y el costo del transporte. Cuesta más tiempo y más dinero que extraerlo en casa:
 
 - **Tiempo:** el material llega con un retraso que crece con la distancia por el grafo (días de marcha), en veintenas enteras.
 - **Dinero:** cada entrega cobra al tesoro un costo de transporte que crece con la cantidad y la distancia. Si el tesoro no alcanza, la entrega espera; no se pierde.
@@ -1509,14 +1509,29 @@ Un edificio no aporta un número fijo por copia. Cada tipo de edificio aporta, p
 | --- | --- | --- | --- |
 | `lineal` | a · n | Trojes, caminos | Cada copia rinde lo mismo |
 | `logaritmica` | a · ln(1 + n) | Monumentos | Cada copia añade prestigio, cada vez menos |
-| `por_asistentes` | a · ln(1 + S / ref), con S los fieles atendidos | Yácatas | Una yácata sirve a quienes pueden asistir y a lo que sus sacerdotes atienden |
+| `por_asistentes` | a · ln(1 + S / ref), con S los fieles atendidos | Templos: yácatas, y en el juego completo iglesias y catedrales | Un templo sirve a los fieles de su tradición que pueden asistir y a los que sus sacerdotes atienden |
 | `por_guarnicion` | a · Σ min(1, guarnición / guarnición por edificio) | Fortalezas, cuarteles | Una fortaleza sin guerreros no defiende; cada fortaleza guarnecida rinde lo mismo |
 
-- **Fieles atendidos (yácata).** S = min(población que puede asistir, n · capacidad por yácata · min(1, sacerdotes / (n · sacerdotes por yácata))). Una yácata de más sin sacerdotes no atiende a nadie, y una yácata en un pueblo chico no tiene a quién atender.
+- **Fieles atendidos.** S = min(fieles que asisten, n · capacidad por templo · min(1, sacerdotes / (n · sacerdotes por templo))). Un templo de más sin sacerdotes no atiende a nadie, y uno en un pueblo chico no tiene a quién atender. Quién asiste se explica en *La asistencia a los templos*.
 - **Guarnición (fortaleza y cuartel).** Hasta que existan las guarniciones (hito 4), cada fortaleza cuenta entera. Los cuarteles, cuando lleguen, usan la leva disponible en lugar de la guarnición.
 - **Leyes.** Toda fórmula de beneficio es no decreciente en el número de edificios y en la población a la que sirve. Las logarítmicas son cóncavas: la copia n + 1 nunca aporta más que la n.
 
-**Sacerdotes.** Hoy `sacerdocio` es un grupo de poder de la facción, no un estrato de pops. Para que la yácata dependa de los sacerdotes del lugar, entra un estrato de pops `sacerdote`, que no trabaja la tierra, como la nobleza. El grupo de poder sigue siendo de la facción (V5, *Los grupos*), y su poder puede crecer con los sacerdotes que hay, pero eso es una decisión aparte.
+**Sacerdotes.** Hoy `sacerdocio` es un grupo de poder de la facción, no un estrato de pops. Para que el templo dependa de los sacerdotes del lugar, entra un estrato de pops `sacerdote`, que no trabaja la tierra, como la nobleza. Un sacerdote atiende los templos de su tradición: los de la tradición purépecha, las yácatas; el clero católico, las iglesias. El grupo de poder sigue siendo de la facción (V5, *Los grupos*), y su poder puede crecer con los sacerdotes que hay, pero eso es una decisión aparte.
+
+### La asistencia a los templos
+
+El mismo mecanismo sirve para las yácatas del prototipo y para las iglesias, conventos y catedrales del periodo novohispano. Cada templo declara su **tradición** (la purépecha, la católica; lista que crece) y su **nivel**:
+
+- **Local.** Atiende a los fieles de su zona. Cada pop va al templo local de su tradición más cercano por el costo del grafo, hasta `ALCANCE_TEMPLO_LOCAL`, y nadie se cuenta dos veces. Es el mismo reparto que asigna las celdas a los asentamientos (*Reparto de celdas*), con los templos como fuentes, una vez por tradición. El beneficio va al altépetl del templo: agravio, producción.
+- **Centro ceremonial.** Una yácata mayor (las de Tzintzuntzan e Ihuatzio) o, más tarde, una catedral. Atiende a los fieles de su tradición de todo el reino, con un peso que baja con la distancia hasta `ALCANCE_CENTRO_CEREMONIAL`, como el peregrinaje a las grandes fiestas. Su beneficio es de la facción (legitimidad), con su fórmula y su tope. Un pop puede contar a la vez en su templo local y en un centro ceremonial, porque son beneficios distintos.
+
+**La religión decide a dónde va cada quien.** Un pop solo asiste a templos de una tradición que practica, y en la proporción en que la practica:
+
+- Su afinidad con la tradición católica es su `gradiente_catolicismo` g, y con la tradicional, 1 − g. Un pop con g = 0,3 cuenta como 0,7 de sus miembros en la yácata y 0,3 en la iglesia. El sincretismo de V5 se ve así en los templos, sin regla aparte, y ni los católicos van a las yácatas ni los fieles de Curicaueri a la catedral.
+- En el juego completo, con un gradiente por culto, la afinidad es el gradiente de cada uno.
+- Una identidad cuya tradición no es la purépecha (nahua, hñähñú) no asiste a las yácatas, salvo que los datos declaren compatibles las dos tradiciones. Qué tradiciones mesoamericanas comparten templos es un dato por verificar.
+
+En el prototipo todos los pops tienen g = 0, así que hasta 1525 la asistencia católica es cero sin código especial.
 
 ### Dónde se construye: ciudad o casilla
 
@@ -2592,8 +2607,8 @@ El mayor riesgo es el alcance: un juego que mezcla dos géneros completos puede 
 - [ ] Base de `asentamiento.reservas_asedio` por terreno (hito 3)
 - [ ] Factores de costo del grafo: `costo_movimiento` por terreno, `COSTO_CRUCE_RIO`, `COSTO_NAVEGACION`, `COSTO_SIN_PUERTO`, y qué ríos de Michoacán son navegables, con fuentes (hito 3)
 - [ ] Obras: trabajo, materiales, cuadrilla máxima, veintenas mínimas y oficio de cada edificio; sustento por trabajador de la cuadrilla; rendimiento y trabajadores de la extracción por terreno (hito 3)
-- [ ] Tributo en especie de materiales: velocidad de transporte (días de marcha por veintena de retraso), costo de transporte por unidad y distancia, y qué sujetos pueden enviar (los del altépetl o cualquiera de la facción) (hito 3)
-- [ ] Beneficio de las yácatas: capacidad de fieles y sacerdotes por yácata, quién cuenta como "puede asistir" (el altépetl, el radio de producción o una distancia), y la proporción de sacerdotes por asentamiento, con fuentes (*Relación de Michoacán*) (hito 3)
+- [ ] Tributo en especie de materiales: velocidad de transporte (km de llano por veintena de retraso), costo de transporte por unidad y distancia, y el agravio extra de un señorío (hito 3)
+- [ ] Beneficio de los templos: capacidad de fieles y sacerdotes por templo, `ALCANCE_TEMPLO_LOCAL`, `ALCANCE_CENTRO_CEREMONIAL` y su caída con la distancia, qué yácatas son centros ceremoniales, la proporción de sacerdotes por asentamiento y qué tradiciones comparten templos, con fuentes (*Relación de Michoacán*, Pollard) (hito 3)
 - [ ] Si el estrato `sacerdote` mueve el poder del grupo de poder `sacerdocio` (con la política interna)
 - [ ] Conocimientos del prototipo (cantería, arquitectura ceremonial, metalurgia…), sus bases por facción y la escala de "aprender haciendo" (hito 3)
 - [ ] Qué pasa con un edificio en una celda que cambia de dueño: sigue siendo de su constructor, pasa a quien la controla o se daña en el saqueo (hito 4)
@@ -2649,6 +2664,8 @@ El mayor riesgo es el alcance: un juego que mezcla dos géneros completos puede 
 - Caminos, crecimiento y erosión entran al prototipo en etapas con hitos separados (3, 3b y 6a); cada una pasa su criterio antes de empezar la siguiente
 - Terrazas y roturación son obras de celda definidas en datos; la roturación cambia el terreno con el efecto `cambiar_terreno` y es irreversible en el prototipo
 - Un solo costo por conexión, simétrico, en km de llano: longitud × terreno medio de sus celdas (`celda.costo_movimiento`, con el camino y la roturación como modificadores) × factor de río; el agua navegable es barata y solo se alcanza desde un puerto. Todas las reglas que recorren el grafo, también el radio de producción (`RADIO_PRODUCCION`), usan el costo
+- La asistencia a los templos tiene dos niveles: el templo local atiende a los pops de su tradición más cercanos por el costo del grafo, sin contar a nadie dos veces; el centro ceremonial, a los de todo el reino con peso por distancia. Cada pop asiste según su afinidad con la tradición (1 − g a la tradicional, g a la católica). Es el mismo mecanismo para yácatas y templos católicos
+- El tributo en especie de materiales lo puede enviar cualquier altépetl de la facción que no sea independiente, con agravio según su condición; la distancia, por el retraso y el transporte, es el freno
 - El freno a multiplicar edificios es económico, no un límite de casillas: tesoro, una cuadrilla que sale con `retirar_trabajadores`, materiales extraídos en las celdas o recibidos como tributo en especie (más lento y más caro), oficio con conocimiento codificado y tácito, y un beneficio por tipo de edificio que calcula una fórmula con nombre (lineal, logarítmica, por asistentes o por guarnición)
 - Los materiales de construcción no son bienes con existencias: se extraen para cada obra y se acopian en ella
 - Cada edificio declara sus ámbitos (asentamiento, celda o los dos); una obra en celda solo rinde bajo control de su dueño

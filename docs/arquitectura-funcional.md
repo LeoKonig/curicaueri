@@ -1311,7 +1311,7 @@ donde cada término falta si no aplica: sin T, no hay tope por trabajo; sin mate
 
 4. **Fin.** Cuando P = 1 y las veintenas de obra llegan a D, la obra termina: R_a baja en C, se recalcula el beneficio de su tipo (abajo), se aplican los efectos al terminar y se emite `edificio_terminado`.
 
-**Tributo en especie** (etapa 2). El comando que empieza la obra puede nombrar, por material, un sujeto s que lo enviará. El sujeto extrae con sus propios trabajadores (`retirar_trabajadores`, motivo `tributo_obra`, con el agravio del tributo) y cada veintena crea una entrega:
+**Tributo en especie** (etapa 2). El comando que empieza la obra puede nombrar, por material, otro altépetl s de la facción que lo enviará; se rechaza si s es independiente (`Cabecera f` con f ≠ la facción, sección 14b). El altépetl s extrae con sus propios trabajadores (`retirar_trabajadores`, motivo `tributo_obra`), recibe el agravio del tributo, multiplicado por `AGRAVIO_TRIBUTO_SENORIO` si su condición es `Senorio`, y cada veintena crea una entrega:
 
 ```math
 \text{llega} = t + 20\cdot\Big\lceil \frac{d_{\text{costo}}(s, a)}{v} \Big\rceil, \qquad \text{costo} = k \cdot q \cdot d_{\text{costo}}(s, a)
@@ -1338,8 +1338,21 @@ con n las obras terminadas con ese oficio. No escribe la base, que sigue siendo 
 | `fija` | a, si n ≥ 1 (el primer corte; por defecto) | — |
 | `lineal` | a · n | — |
 | `logaritmica` | a · ln(1 + n) | — |
-| `por_asistentes` | a · ln(1 + S / ref), S = min(N_a, n · cap · min(1, Σ sacerdotes_a / (n · s))) | N_a: población que puede asistir; sacerdotes del estrato `sacerdote` del altépetl |
+| `por_asistentes` | a · ln(1 + S / ref), S = min(F, n · cap · min(1, σ / (n · s))) | F: fieles que asisten (abajo); σ: sacerdotes de la tradición del templo en el estrato `sacerdote` |
 | `por_guarnicion` | a · Σ_i min(1, g_i / g) | g_i: guarnición asignada al edificio i; hasta el hito 4, g_i = g |
+
+**Asistencia.** Cada templo e tiene una tradición τ(e) y un nivel. Un pop p practica la tradición τ con afinidad
+
+```math
+\phi_p(\tau) = \begin{cases} g_p & \tau = \text{católica} \\ 1 - g_p & \tau = \text{tradición de la identidad de } p \text{ (o compatible con ella, por datos)} \\ 0 & \text{si no} \end{cases}
+```
+
+con g_p el `gradiente_catolicismo`. Para cada tradición τ:
+
+- **Local.** Los templos locales de τ son fuentes de un reparto como `asignarCeldas`, sobre el costo del grafo con tope `ALCANCE_TEMPLO_LOCAL`: cada pop va al de menor (d_costo, id), una sola vez. Los fieles del templo local e son F_e = Σ_{p → e} N_p · φ_p(τ), y el beneficio va al altépetl de e.
+- **Centro ceremonial.** Para un centro e de τ, F_e = Σ_p N_p · φ_p(τ) · w(d_costo(p, e)), con w(d) = max(0, 1 − d / `ALCANCE_CENTRO_CEREMONIAL`); el beneficio es de la facción. Se calcula con un recorrido desde los centros, con tope de distancia.
+
+Cada pop suma a lo sumo 1 en los templos locales del conjunto de tradiciones (Σ_τ φ_p(τ) ≤ 1), así que nadie asiste dos veces a lo local. Los recorridos son del paso 16: las tradiciones y los templos se cuentan por decenas, y cada recorrido tiene tope.
 
 El ln se calcula con la tabla de la sección 15. El desglose lleva los argumentos del contexto (n, N_a, sacerdotes), así que explica el número aunque cambie cada veintena.
 
@@ -1491,6 +1504,7 @@ Las reglas del diseño, escritas como propiedades. En un lenguaje puro, "la mism
 | Obra acotada | 0 ≤ P ≤ 1 y P no decrece; 0 ≤ A_g ≤ M_g; ninguna obra termina antes de D veintenas; con T = 0 y sin materiales, la obra es la del primer corte (sección 14i) |
 | Cuadrilla conservada | Mientras dura la obra, R_a la incluye y W_a ≥ 0; al terminar o cancelarse, R_a vuelve a su valor sin la obra |
 | Materiales sin trampa | Ningún material se paga con valor: solo con extracción o entrega; una entrega no llega antes de su retraso ni sin pagar su transporte |
+| Asistencia sin duplicados | En los templos locales, la suma de los fieles de todos los templos no pasa de Σ_p N_p; un pop con g = 0 no cuenta en templos católicos y uno con g = 1 no cuenta en yácatas |
 | Beneficio monótono | Toda fórmula de beneficio es no decreciente en n y en su contexto; `logaritmica` y `por_asistentes` son cóncavas en n: la copia n + 1 nunca aporta más que la n |
 | Recetas sin ciclos | Ninguna receta depende, directa o indirectamente, de sí misma; la carga lo rechaza (sección 14e) |
 | Migración de guardados | Un guardado de la versión anterior se carga, se vuelve a guardar y es válido en la actual |
