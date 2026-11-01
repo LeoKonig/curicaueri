@@ -817,6 +817,30 @@ main = hspec $ do
     it "un guardado corrupto falla con ErrorEstructura" $
       fmap (const ()) (cargar juguete mapaPrueba (BL.pack [0xff, 0x00]))
         `shouldSatisfy` either ((== ErrorEstructura) . errCategoria) (const False)
+    -- La misma partida con otra versión escrita en el guardado.
+    let conVersion n bs = case A.decode bs of
+          Just (A.Object o) -> A.encode (A.Object (KM.insert "version" (A.toJSON (n :: Int)) o))
+          _                 -> bs
+        errorDe = either Just (const Nothing) . cargar juguete mapaPrueba
+    it "un guardado de la versión anterior se rechaza con ErrorVersion y dice qué hacer" $ do
+      let Just e = errorDe (conVersion (versionGuardado - 1) (guardar estSusp))
+      errCategoria e `shouldBe` ErrorVersion
+      errMensaje e `shouldSatisfy` T.isInfixOf ("versión " <> T.pack (show (versionGuardado - 1)))
+      errMensaje e `shouldSatisfy` T.isInfixOf "No hay migración"
+      errMensaje e `shouldSatisfy` T.isInfixOf "empieza una nueva"
+    it "un guardado de una versión posterior se rechaza y pide actualizar el juego" $ do
+      let Just e = errorDe (conVersion (versionGuardado + 1) (guardar estSusp))
+      errCategoria e `shouldBe` ErrorVersion
+      errMensaje e `shouldSatisfy` T.isInfixOf "actualiza el juego"
+    it "un guardado sin versión falla con ErrorEstructura, no con ErrorVersion" $ do
+      let sinVersion bs = case A.decode bs of
+            Just (A.Object o) -> A.encode (A.Object (KM.delete "version" o))
+            _                 -> bs
+          Just e = errorDe (sinVersion (guardar estSusp))
+      errCategoria e `shouldBe` ErrorEstructura
+    it "el guardado de ahora lleva la versión que lee" $
+      fmap (const ()) (cargar juguete mapaPrueba (conVersion versionGuardado (guardar estSusp)))
+        `shouldBe` Right ()
 
   describe "ley del derivado a mitad de veintena" $ do
     -- Paso 16 en el día 20; un comando en el día 23 cambia el descontento;

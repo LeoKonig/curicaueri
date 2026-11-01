@@ -1,10 +1,10 @@
 {
-  "version_esquema": 1,
+  "version_esquema": 2,
   "eventos": [
     {
       "id": "rebaja",
       "tipo": "evento",
-      "cd_veintenas": 36,
+      "cd_veintenas": 27,
       "peso": 1,
       "liga": {
         "a": {
@@ -45,6 +45,17 @@
                 0,
                 100
               ]
+            },
+            {
+              "tipo": "estado",
+              "campo": "locks.tributo",
+              "fijar": {
+                "formula": "tick_mas",
+                "args": {
+                  "t": "$tick",
+                  "n": "BLOQUEO_TASAS"
+                }
+              }
             }
           ],
           "titulo_clave": "eventos.rebaja.opciones.rebajar.titulo",
@@ -129,6 +140,17 @@
                 0,
                 100
               ]
+            },
+            {
+              "tipo": "estado",
+              "campo": "$a.autonomia",
+              "fijar": {
+                "formula": "tick_mas",
+                "args": {
+                  "t": "$tick",
+                  "n": "AUTONOMIA_VEINTENAS"
+                }
+              }
             }
           ],
           "titulo_clave": "eventos.autonomia.opciones.conceder.titulo",
@@ -264,6 +286,17 @@
                   ]
                 }
               ]
+            },
+            {
+              "tipo": "estado",
+              "campo": "locks.impuesto",
+              "fijar": {
+                "formula": "tick_mas",
+                "args": {
+                  "t": "$tick",
+                  "n": "BLOQUEO_TASAS"
+                }
+              }
             }
           ],
           "titulo_clave": "eventos.excedente.opciones.bajar_impuesto.titulo",
@@ -310,8 +343,23 @@
           "efectos": [
             {
               "tipo": "estado",
-              "campo": "capitan",
+              "campo": "captain",
               "fijar": "ambicioso"
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$capital",
+              "magnitud": "lealtad",
+              "sumar": {
+                "formula": "negar",
+                "args": {
+                  "x": "LEALTAD_CAPITAN"
+                }
+              },
+              "clamp": [
+                0,
+                100
+              ]
             }
           ],
           "titulo_clave": "eventos.capitan.opciones.nombrar.titulo",
@@ -373,7 +421,7 @@
     {
       "id": "cosecha",
       "tipo": "evento",
-      "cd_veintenas": 36,
+      "cd_veintenas": 27,
       "peso": 1,
       "condicion": [
         {
@@ -397,7 +445,29 @@
                   }
                 }
               ],
-              "entonces": [],
+              "entonces": [
+                {
+                  "tipo": "para_cada",
+                  "entidad": "altepetl",
+                  "filtro": {
+                    "troje": true,
+                    "independent": false
+                  },
+                  "efectos": [
+                    {
+                      "tipo": "estado",
+                      "campo": "$alts.trojeVacia",
+                      "fijar": {
+                        "formula": "tick_mas",
+                        "args": {
+                          "t": "$tick",
+                          "n": 36
+                        }
+                      }
+                    }
+                  ]
+                }
+              ],
               "sino": [
                 {
                   "tipo": "magnitud",
@@ -491,7 +561,7 @@
     {
       "id": "refugiados",
       "tipo": "evento",
-      "cd_veintenas": 36,
+      "cd_veintenas": 27,
       "peso": 1,
       "condicion": [
         {
@@ -562,7 +632,7 @@
     {
       "id": "moroso",
       "tipo": "evento",
-      "cd_veintenas": 36,
+      "cd_veintenas": 27,
       "peso": 1,
       "liga": {
         "a": {
@@ -716,12 +786,250 @@
           "id": "esperar",
           "efectos": [],
           "titulo_clave": "eventos.heredero.opciones.esperar.titulo",
-          "costo_visible_clave": "eventos.heredero.opciones.esperar.costo_visible"
+          "costo_visible_clave": "eventos.heredero.opciones.esperar.costo_visible",
+          "riesgo": "Sin heredero designado, la muerte del cazonci abre una sucesión disputada"
         }
       ],
       "descripcion_clave": "eventos.heredero.descripcion",
       "titulo_clave": "eventos.heredero.titulo",
       "cuerpo_clave": "eventos.heredero.cuerpo"
+    },
+    {
+      "id": "presagio_sequia",
+      "tipo": "evento",
+      "cd_veintenas": 54,
+      "peso": 1,
+      "condicion": [
+        {
+          "tipo": "tick_min",
+          "t": 12
+        },
+        {
+          "tipo": "flag",
+          "campo": "sequiaEn",
+          "es": null
+        },
+        {
+          "tipo": "probabilidad",
+          "p": "PROB_SEQUIA_TICK"
+        }
+      ],
+      "opciones": [
+        {
+          "id": "almacenar",
+          "costo": {
+            "tesoro": 200
+          },
+          "efectos": [
+            {
+              "tipo": "estado",
+              "campo": "sequiaEn",
+              "fijar": {
+                "formula": "tick_mas",
+                "args": {
+                  "t": "$tick",
+                  "n": "AVISO_SEQUIA"
+                }
+              }
+            },
+            {
+              "tipo": "estado",
+              "campo": "sequiaPreparada",
+              "fijar": true
+            }
+          ]
+        },
+        {
+          "id": "rogativas",
+          "costo": {
+            "tesoro": 80
+          },
+          "efectos": [
+            {
+              "tipo": "estado",
+              "campo": "sequiaEn",
+              "fijar": {
+                "formula": "tick_mas",
+                "args": {
+                  "t": "$tick",
+                  "n": "AVISO_SEQUIA"
+                }
+              }
+            },
+            {
+              "tipo": "estado",
+              "campo": "sequiaPreparada",
+              "fijar": false
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": 2
+            }
+          ]
+        },
+        {
+          "id": "ignorar",
+          "efectos": [
+            {
+              "tipo": "estado",
+              "campo": "sequiaEn",
+              "fijar": {
+                "formula": "tick_mas",
+                "args": {
+                  "t": "$tick",
+                  "n": "AVISO_SEQUIA"
+                }
+              }
+            },
+            {
+              "tipo": "estado",
+              "campo": "sequiaPreparada",
+              "fijar": false
+            }
+          ],
+          "riesgo": "La sequía golpea de lleno: hambre, agravio y población perdida"
+        }
+      ]
+    },
+    {
+      "id": "incursion_respuesta",
+      "tipo": "evento",
+      "cd_veintenas": 18,
+      "peso": 2,
+      "liga": {
+        "a": {
+          "entidad": "altepetl",
+          "filtro": {
+            "independent": false,
+            "raidedAt": {
+              "min": {
+                "formula": "tick_mas",
+                "args": {
+                  "t": "$tick",
+                  "n": -2
+                }
+              }
+            }
+          }
+        }
+      },
+      "condicion": [],
+      "opciones": [
+        {
+          "id": "perseguir",
+          "efectos": [
+            {
+              "tipo": "resolver",
+              "formula": "roll_expedicion",
+              "args": {
+                "ratio": {
+                  "formula": "fuerza_expedicion",
+                  "args": {}
+                }
+              },
+              "victoria": [
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$faccion",
+                  "magnitud": "prestigio",
+                  "sumar": 2
+                },
+                {
+                  "tipo": "prisioneros",
+                  "sumar": 100
+                },
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$a",
+                  "magnitud": "agravio",
+                  "sumar": -5,
+                  "clamp": [
+                    0,
+                    100
+                  ]
+                }
+              ],
+              "empate": [
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$a",
+                  "magnitud": "agravio",
+                  "sumar": -2,
+                  "clamp": [
+                    0,
+                    100
+                  ]
+                }
+              ],
+              "derrota": [
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$faccion",
+                  "magnitud": "ejercito",
+                  "factor": 0.95
+                },
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$faccion",
+                  "magnitud": "prestigio",
+                  "sumar": -2
+                },
+                {
+                  "tipo": "magnitud",
+                  "entidad": "$a",
+                  "magnitud": "lealtad",
+                  "sumar": -5,
+                  "clamp": [
+                    0,
+                    100
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "reforzar",
+          "costo": {
+            "tesoro": 150
+          },
+          "efectos": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$a",
+              "magnitud": "guarnicion",
+              "sumar": 500,
+              "clamp": [
+                0,
+                2000
+              ]
+            }
+          ]
+        },
+        {
+          "id": "dejar",
+          "efectos": [
+            {
+              "tipo": "magnitud",
+              "entidad": "$a",
+              "magnitud": "agravio",
+              "sumar": 6,
+              "clamp": [
+                0,
+                100
+              ]
+            },
+            {
+              "tipo": "magnitud",
+              "entidad": "$faccion",
+              "magnitud": "prestigio",
+              "sumar": -1
+            }
+          ]
+        }
+      ]
     }
   ]
 }

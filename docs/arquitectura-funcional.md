@@ -385,6 +385,17 @@ La cercanía física (producción, erosión, frontera) usa d_km; el desplazamien
 
 El orden lexicográfico (distancia, id) hace el desempate determinista. Se calcula con un Dijkstra multifuente sobre d_km.
 
+**Ids globales de celda (V5, *El mapa completo*).** La malla se traza en hojas con proyección de área igual; cada celda tiene coordenadas axiales (q, r) con origen fijo en su hoja h. El id las codifica en el `CeldaId` entero que ya existe, así que el tipo, el `IntMap` y el protocolo no cambian:
+
+```math
+\text{id}(h, q, r) = h \cdot 2^{42} + (q + 2^{20}) \cdot 2^{21} + (r + 2^{20}),
+\qquad |q|, |r| < 2^{20}
+```
+
+Los vecinos se deducen de (q, r); solo las excepciones (ríos, pasos, costas, lagos navegables) se guardan. **Ley de ampliación:** para dos máscaras M ⊆ M', toda celda de M tiene en el mapa de M' el mismo id, los mismos atributos y las mismas conexiones con sus vecinos de M. El proveedor actual (`fila × ancho + columna`) no la cumple y se reemplaza antes de ampliar el mapa.
+
+**Costo y escala.** Las celdas son datos casi fijos: el trabajo de cada tick es proporcional a las entidades que cambian, no a las celdas. Con 150 000 celdas y 150 000 pops de prueba (`--escala 7500x20`), el tick cuesta hoy unos 0,53 s, casi todo en proyectar y comparar la vista entera; lo que lo baja es pasar a `cambiosOpt` (en `Motor.Proyeccion`) el registro de entidades sucias del tick, en lugar de todas.
+
 ## 9. La influencia en el semianillo tropical
 
 La influencia de una fuente s sobre una celda c decae con el costo de llegar:
@@ -935,6 +946,16 @@ Las condiciones son las de la sección 11b, más `Ocurrio hecho`: verdadera si e
 
 Todo lo demás llega a un destino. Un título cuyo destino no puede recibirlo, porque el destino no es soberano ni titular sobre esa entidad, se pierde y lo anota el hecho. Los ids de facción no se reutilizan.
 
+**Condición del altépetl (V5, *Condición del altépetl*).** Entra con las rebeliones del hito 4:
+
+```haskell
+data Condicion = Sujeto | Senorio | Cabecera FaccionId    -- campo altCondicion
+-- por defecto, para los guardados anteriores: Sujeto si altSujetoA = Just _, Cabecera 1 si no
+-- independiente = Cabecera f con f de tipo senorio_independiente
+```
+
+Una rebelión triunfante activa una facción nueva desde la plantilla del tipo `senorio_independiente` (un id nuevo, nunca reutilizado), emite `faccion_aparece` y deja al altépetl como `Cabecera f`; el sometimiento la elimina con `AlAbsorbente` y deja al altépetl como `Senorio` o `Sujeto`. Sujeto y señorío difieren en quién gobierna (gobernador nombrado o señor propio), no en la bolsa: por eso ninguno de los dos es facción.
+
 **Sin un tipo "entidad política".** La interfaz común a facción, señorío y asentamiento ya existe: son las magnitudes, pares (entidad, nombre). El tesoro de un señorío es `altepetl:2 / tesoro`, con el mismo código que el de la facción; los grupos son datos. No se introduce una clase de tipos `Polity` ni un registro con todos los campos opcionales.
 
 ## 14c. Vínculos, concesiones y propuestas (juego completo)
@@ -1383,6 +1404,8 @@ Las reglas del diseño, escritas como propiedades. En un lenguaje puro, "la mism
 | Ruta cortada sin aportes | Si una celda de la ruta está bajo control enemigo, ningún aporte que dependa de la ruta suma al flujo |
 | Guerreros conservados | Desertar, disolverse o amotinarse nunca cambia la población total; solo el combate y el hambre la reducen. Ningún retiro de trabajadores queda negativo |
 | Asedio con costo para ambos | Durante un asedio, el abasto del sitiador sigue sus reglas y las reservas de la plaza no suben sin levantar el sitio |
+| Independencia de la vista | La traza es función solo de (s0, σ, registro de comandos): ni la cámara, ni los paneles abiertos, ni los ajustes gráficos del cliente cambian un solo valor del estado |
+| Condición del altépetl coherente | `altCondicion a == Cabecera f` si y solo si f está activa y a es su centro; un altépetl `Sujeto` o `Senorio` tiene `altSujetoA` y comparte la bolsa de su facción |
 | Crisis del sacrificio única por umbral | Cada umbral dispara la crisis a lo sumo una vez por partida, también tras guardar y cargar |
 
 **Dos leyes que se parecen y no son la misma.** "La explicación es el cálculo" es interna al núcleo: el valor publicado sale de la misma lista que el desglose. La completitud del espejo es entre núcleo y cliente: esa lista llega entera a Godot. Un modificador puede cumplir la primera y fallar la segunda, si el núcleo lo cuenta pero no lo envía. Por eso hacen falta las dos.
@@ -1395,7 +1418,7 @@ Esta tabla es la proyección formal de la tabla de hitos de V5: para cada hito, 
 
 | Hito | Piezas formales |
 | --- | --- |
-| 0 | Ninguna en Haskell; corre en paralelo con 1a y 2. El prototipo de mesa valida las fórmulas antes de programarlas: producción con el factor escaso, agravio y lealtad como relajación, legitimidad que vuelve a su base. El arnés de 30 años es el mismo pliegue `partida` con agentes de reglas. Su criterio de variedad es una función sobre la traza, con la medición (`diferencias`) separada del juicio (`evaluar` con umbrales en datos): ninguna clase de decisión supera el 25 % del total y cada década trae al menos dos clases nuevas. Entrega las fórmulas que pasen como especificaciones con su tabla de casos (sección 1) |
+| 0 | Ninguna en Haskell; corre en paralelo con 1a y 2. El prototipo de mesa valida las fórmulas antes de programarlas: producción con el factor escaso, agravio y lealtad como relajación, legitimidad que vuelve a su base. El arnés de 30 años es el mismo pliegue `partida` con agentes de reglas. Su criterio de variedad es una función sobre la traza, con la medición (`diferencias`) separada del juicio (`evaluar` con umbrales en datos): ninguna clase de decisión supera el 25 % del total y cada década trae al menos dos clases nuevas. Desde la iteración v5 suma los criterios de tensión de `docs/evaluacion_hito0.md`: la estrategia con criterio supera a las reglas fijas según el veredicto del juego; invertir una decisión pesa más que perturbar el azar; ninguna opción sin costo (`validar_opciones.py`); y el modelo de espera, que clasifica cada veintena en decisión, anticipación o vacía. Entrega las fórmulas que pasen como especificaciones con su tabla de casos (sección 1) |
 | 1a | Paquete `motor`, polimórfico en el juego: `Fijo`, `desdeDecimal` y sus tablas; `Aporte` y `valorEfectivo`; `Mapa`, proveedor hexagonal y `validarMapa`; `Sistema` con `lee`/`escribe`, `activo`, `correr` con pasos identidad y la guarda de veintena; `rng` con SplitMix64; `Estado` con persistente y derivado; `cargarDatos` con versión de esquema; intérprete de efectos con suspensión; `proyeccion` y `cambios` genéricos; agente nulo; `Escenario`; `Juego` y el juego de juguete con sus seis rutas; bucle de la cáscara; leyes de repetición, estabilidad, ida y vuelta, explicación, conmutatividad, rechazo sin daño, rango, conservación y espejo, todas comprobadas con el juego de juguete. No depende del hito 0; plazo de tres semanas. Mods, migraciones de esquema, mapa irregular y agente aleatorio, cuando algo los pida |
 | 1b | Paquete `reglas`: `aplicarComando` para tesoro, tasas y presupuesto; agravio de los pops; fórmulas del hito 0 con sus tablas de casos como pruebas; validación de personalidades; el escenario inicial; el campo `requiere` en el catálogo de comandos con su valor por defecto y `autorizar` como primera línea de `aplicarCmd` (con `Todo`, nunca rechaza) y la ley de autoridad neutra; las leyes de 1a, ahora con el juego real. Empieza cuando el hito 0 pasa su parte automática (0a) |
 | 2 | `cambios` optimizado (la versión de referencia ya existe desde el 1a), `consultar`, mensaje `hola` con la versión; leyes del espejo. (Cliente: `aplicar` en GDScript con el corpus dorado, malla con colores planos, barra superior; el reloj real y las cinco velocidades viven en la cáscara) |

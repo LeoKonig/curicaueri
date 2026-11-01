@@ -23,7 +23,7 @@ Sin cabal-install, con `runghc Setup.hs` (ver el README). Las pruebas necesitan 
 1. **`motor` no importa `reglas`.** El motor no sabe nada de purépechas: se prueba con el juego de juguete de `nucleo/test/Spec.hs`. Solo entra al motor lo que V5 o el documento funcional exigen.
 2. **Determinismo.** Nada de `Double` en el estado: `Fijo` (escala 10 000) o enteros. El azar sale de `rng σ nombre tick`. Los mapas se recorren por clave y los empates se rompen por id.
 3. **Magnitudes con modificadores.** Los sistemas escriben la base o crean y terminan modificadores con fuente; nunca el valor efectivo. Cada magnitud tiene un solo escritor, salvo que se declare lo contrario. El desglose debe explicar cada número.
-4. **Valores por defecto.** Todo campo nuevo tiene un valor por defecto con el que lo existente no cambia. Los guardados anteriores siguen cargando.
+4. **Valores por defecto.** Todo campo nuevo tiene un valor por defecto con el que lo existente no cambia. Los guardados anteriores siguen cargando; si un cambio no puede cumplirlo, sube `versionGuardado` en un commit propio y `cargar` rechaza los anteriores con un aviso claro (V5, *Guardado*), mientras no haya migración ni partidas reales que conservar.
 5. **Nada sin uso.** No se añaden campos, comandos ni archivos "por si acaso". Cada pieza entra con lo que la usa, con su ley o su prueba, y en el hito que le toca (tabla de *Hitos* en V5).
 6. **Datos, no código.** Escenarios, guion, bienes, ejes y grupos son JSON validados al cargar, con todos los errores acumulados. Las condiciones usan el lenguaje cerrado del guion (`Motor.Guion`); no se inventan otros.
 7. **El protocolo se escribe a mano.** Los nombres JSON viven en `Motor.Protocolo`, `Reglas.Comando` y `cliente/red/protocolo.gd`, y cada mensaje tiene su archivo dorado en `pruebas_compartidas/`. Si cambias el cable, actualiza los dorados a propósito y sube la versión cuando la compatibilidad lo pida.
@@ -33,6 +33,8 @@ Sin cabal-install, con `runghc Setup.hs` (ver el README). Las pruebas necesitan 
 
 - **Grupos de poder:** `nobleza_guerrera`, `administradores`, `sacerdocio`, `mercaderes`. No son facciones.
 - **Facción:** unidad de decisión con centro, bolsa común y objetivos comunes (las tres preguntas de V5, *Qué es una facción*). No es "territorio, tesoro y títulos". Antes de 1530 los altépetl sujetos no son facciones.
+- **Altépetl:** la unidad política (`altepetl` en el código). En pantalla, el término de cada cultura y época (ireta, altépetl, pueblo de indios). Su condición es sujeto, señorío o independiente; «señorío» es una condición, no otra entidad. No se renombra.
+- **La vista no cambia el resultado:** nada de lo que el cliente mira o ajusta entra en la simulación (V5, *Escala de la simulación*).
 - **Ejes de poder:** coerción, extracción, legitimidad (es `faccion.legitimidad`), administración y red, declarados en `datos/ejes.json`.
 - **Moneda:** el tesoro y los costos se cuentan en unidades de valor. Con moneda designada, las magnitudes nominales (el tesoro) se cuentan en la moneda, y los flujos pasan por `enCuenta` al tipo del día. Ver V5, *La moneda designada y la inflación*.
 - **Bienes como magnitudes de la facción:** `bien.<id>.existencias` y `bien.<id>.produccion`. Su escritor será el sistema de producción del paso 6 (hito 3).

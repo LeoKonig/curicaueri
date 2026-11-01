@@ -22,7 +22,7 @@
   <div style="height:64px;flex:none;display:flex;align-items:center;gap:10px;padding:0 12px 0 0;background:linear-gradient(#3a2d1d,#1c150e 60%,#140f0a);border-bottom:2px solid #9a7a40;box-shadow:0 4px 16px #000c;position:relative;z-index:20">
     <div style="display:flex;align-items:center;gap:9px;padding:0 10px 0 6px;height:100%;border-right:1px solid #5a4426;white-space:nowrap">
       <div style="width:42px;height:42px;border-radius:50%;padding:2px;background:linear-gradient(#e0c48a,#7a5a2a)"><div style="width:100%;height:100%;border-radius:50%;background:repeating-linear-gradient(45deg,#3a3022 0 5px,#2a2218 5px 10px);display:flex;align-items:center;justify-content:center;font:400 8px 'IBM Plex Mono',monospace;color:#a89878;text-align:center;line-height:1.1">{{ hud.retCaz1 }}<br>{{ hud.retCaz2 }}</div></div>
-      <div><div style="font:700 14px Spectral,serif;letter-spacing:1.5px;text-transform:uppercase;color:#f3dfae">{{ hud.titulo }}</div><div style="font:500 12px Spectral,serif;color:#c8b48a">{{ rulerLine }}</div></div>
+      <div><div style="font:700 14px Spectral,serif;letter-spacing:1.5px;text-transform:uppercase;color:#f3dfae">{{ hud.titulo }}</div><div style="font:500 12px Spectral,serif;color:#c8b48a;display:flex;gap:6px;align-items:center">{{ rulerLine }} <select value="{{ dificultad }}" onChange="{{ onDificultad }}" title="{{ dificultadTip }}" style="background:#1a140d;color:#f3e8cf;border:1px solid #9a7a40;padding:3px 4px;font:600 12px Spectral,serif"><sc-for list="{{ dificultadOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.id }}">{{ o.label }}</option></sc-for></select></div></div>
     </div>
     <div style="display:flex;flex:1;min-width:0">
       <sc-for list="{{ chips }}" as="c" hint-placeholder-count="5">
@@ -34,6 +34,11 @@
     </div>
     <div style="display:flex;align-items:center;gap:8px;padding:0 10px;height:100%;border-left:1px solid #5a4426;border-right:1px solid #5a4426;white-space:nowrap">
       <div style="text-align:center;min-width:132px"><div style="font:600 14px Spectral,serif;color:#f3dfae">{{ hud.veintena }}</div><div style="font:500 12px Spectral,serif;color:#c8b48a">{{ hud.anio }}</div><div style="display:flex;gap:2px;justify-content:center;margin-top:3px"><sc-for list="{{ cells }}" as="c" hint-placeholder-count="18"><i style="width:7px;height:4px;background:{{ c }};display:block"></i></sc-for></div></div>
+      <div style="display:flex;flex-direction:column;gap:3px;align-items:stretch">
+        <div style="display:flex;gap:3px"><button onClick="{{ reloj.alternar }}" title="{{ reloj.tip }}" style="flex:1;padding:3px 8px;background:{{ reloj.fondo }};border:1px solid #e0c48a;color:#fff1d0;cursor:pointer;font:700 12px Spectral,serif">{{ reloj.icono }}</button><select value="{{ reloj.velocidad }}" onChange="{{ reloj.cambiar }}" title="{{ reloj.velTip }}" style="background:#1a140d;color:#f3e8cf;border:1px solid #9a7a40;padding:2px;font:600 11px Spectral,serif"><sc-for list="{{ reloj.opciones }}" as="o" hint-placeholder-count="5"><option value="{{ o.id }}">{{ o.label }}</option></sc-for></select></div>
+        <div title="{{ reloj.diaTip }}" style="height:3px;background:#2a2016;border:1px solid #5a4426"><i style="display:block;height:100%;width:{{ reloj.avance }};background:#e0c48a"></i></div>
+        <div style="font:500 10px Spectral,serif;color:#c8b48a;text-align:center">{{ reloj.dia }}</div>
+      </div>
       <div style="display:flex;flex-direction:column;gap:3px">
         <button onClick="{{ endTurn }}" title="{{ hud.avanzarT }}" style="padding:3px 10px;background:linear-gradient(#8a3322,#5a1e12);border:1px solid #e0c48a;color:#fff1d0;cursor:pointer;font:600 11px Spectral,serif;letter-spacing:1px;text-transform:uppercase" style-hover="background:#a8432c">{{ hud.avanzar }}</button>
         <button onClick="{{ runUntil }}" title="{{ hud.hastaT }}" style="padding:3px 10px;background:linear-gradient(#3a2d1d,#221a11);border:1px solid #9a7a40;color:#f0d9a0;cursor:pointer;font:600 11px Spectral,serif;letter-spacing:1px;text-transform:uppercase" style-hover="background:#4a3a24">{{ hud.hasta }}</button>
@@ -241,7 +246,7 @@
         <div style="padding:12px 18px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px"><sc-for list="{{ endStats }}" as="s" hint-placeholder-count="9"><div style="display:flex;justify-content:space-between;padding:5px 10px;background:#14100b;border:1px solid #3a2d1d"><span style="color:#c8b48a;font-size:12px">{{ s.k }}</span><b style="color:#f0d9a0">{{ s.v }}</b></div></sc-for></div>
         <div style="padding:0 18px 4px;font:600 12px Spectral,serif;letter-spacing:2px;text-transform:uppercase;color:#c8b48a">{{ fin.logTitulo }}</div>
         <div style="flex:1;min-height:120px;overflow-y:auto;padding:0 18px 10px;font-size:12px"><sc-for list="{{ endLog }}" as="e" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:62px 1fr 1fr;gap:8px;padding:2px 0;border-bottom:1px solid #2a2016"><span style="color:#e0c48a">{{ e.when }}</span><span>{{ e.what }}</span><b style="color:{{ e.color }};font-weight:500">{{ e.why }}</b></div></sc-for></div>
-        <div style="padding:10px 18px;display:flex;gap:8px;border-top:1px solid #3a2d1d"><button onClick="{{ openChron }}" style="padding:10px 16px;background:transparent;color:#f0d9a0;border:1px solid #9a7a40;font:600 13px Spectral,serif;letter-spacing:1px;text-transform:uppercase;cursor:pointer">{{ fin.cron }}</button><button onClick="{{ exportLog }}" style="padding:10px 16px;background:transparent;color:#f0d9a0;border:1px solid #9a7a40;font:600 13px Spectral,serif;letter-spacing:1px;text-transform:uppercase;cursor:pointer">{{ fin.exportar }}</button><button onClick="{{ restart }}" style="flex:1;padding:10px;background:linear-gradient(#8a3322,#5a1e12);color:#fff1d0;border:1px solid #e0c48a;font:600 14px Spectral,serif;letter-spacing:2px;text-transform:uppercase;cursor:pointer">{{ fin.reiniciar }}</button></div>
+        <div style="padding:10px 18px;display:flex;gap:8px;border-top:1px solid #3a2d1d"><button onClick="{{ openChron }}" style="padding:10px 16px;background:transparent;color:#f0d9a0;border:1px solid #9a7a40;font:600 13px Spectral,serif;letter-spacing:1px;text-transform:uppercase;cursor:pointer">{{ fin.cron }}</button><button onClick="{{ exportLog }}" style="padding:10px 16px;background:transparent;color:#f0d9a0;border:1px solid #9a7a40;font:600 13px Spectral,serif;letter-spacing:1px;text-transform:uppercase;cursor:pointer">{{ fin.exportar }}</button><span style="display:flex;align-items:center;gap:6px;color:#c8b48a;font:600 12px Spectral,serif">{{ fin.dificultad }} <select value="{{ dificultad }}" onChange="{{ onDificultad }}" title="{{ dificultadTip }}" style="background:#1a140d;color:#f3e8cf;border:1px solid #9a7a40;padding:3px 4px;font:600 12px Spectral,serif"><sc-for list="{{ dificultadOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.id }}">{{ o.label }}</option></sc-for></select></span><button onClick="{{ restart }}" style="flex:1;padding:10px;background:linear-gradient(#8a3322,#5a1e12);color:#fff1d0;border:1px solid #e0c48a;font:600 14px Spectral,serif;letter-spacing:2px;text-transform:uppercase;cursor:pointer">{{ fin.reiniciar }}</button></div>
       </div>
     </div>
   </sc-if>
@@ -252,11 +257,18 @@
 class Component extends DCLogic {
   state = { err: '', sel: 'zacapu', selSet: 'Zacapu', tab: 'resumen', layer: 'influencia', left: 'tributo', chron: false, mz: 1, mx: 0, my: 0, lo: true, ro: true };
   g = null; D = null; T = null; drag = null; GC = 16; GR = 12;
-  componentDidMount() { window.__hito0 = this; window.createHarness = () => this.makeHarness(); if (!this.D) this.load(); }
+  componentDidMount() { window.__hito0 = this; window.addEventListener('keydown', this.relojTecla); window.createHarness = () => this.makeHarness(); if (!this.D) this.load(); }
   async load() {
     try {
-      const f = (n) => fetch('datos/' + n + '.json').then(r => { if (!r.ok) throw new Error('datos/' + n + '.json: ' + r.status); return r.json(); });
+      // Sin caché: los cinco archivos de datos cambian entre versiones, y un navegador que conserva
+      // uno de la v4 mezcla datos viejos con el código nuevo.
+      const f = (n) => fetch('datos/' + n + '.json', { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error('datos/' + n + '.json: ' + r.status); return r.json(); });
       const [C, E, K, A, T] = await Promise.all(['constantes', 'eventos', 'crisis', 'acciones', 'es'].map(f));
+      // Cada archivo declara su versión; la v4 usaba 1. Se nombra el archivo que no coincide.
+      const VERSION_DATOS = 2;
+      for (const [n, d] of Object.entries({ constantes: C, eventos: E, crisis: K, acciones: A, es: T })) {
+        if (d.version_esquema !== VERSION_DATOS) throw new Error('datos/' + n + '.json es de la versión ' + (d.version_esquema ?? 'desconocida') + ' y esta página pide la ' + VERSION_DATOS + ': actualiza la carpeta datos/ y recarga con Ctrl+Shift+R');
+      }
       this.D = { C, E: E.eventos, K: K.crisis, A: A.acciones }; this.T = T;
       this.newGame(); this.forceUpdate();
       if (new URLSearchParams(location.search).has('i18n')) {
@@ -351,12 +363,24 @@ class Component extends DCLogic {
       TREGUA_ALIANZA: 'guerra.tregua_alianza', TREGUA_CHICHIMECA: 'guerra.tregua_chichimeca', EDAD_SUCESION_FORZADA: 'personajes.edad_sucesion_forzada', CASUS_VENTANA: 'guerra.casus_ventana',
       SIN_CASUS_ALIANZA: 'guerra.sin_casus_alianza', SIN_CASUS_CHICHIMECA: 'guerra.sin_casus_chichimeca', ENEMIGO_ALIANZA: 'guerra.enemigo_alianza', ENEMIGO_CHICHIMECA: 'guerra.enemigo_chichimeca',
       COSTO_YACATA: 'construccion.costo.yacata', COSTO_FORTALEZA: 'construccion.costo.fortaleza', COSTO_TROJE: 'construccion.costo.troje', COSTO_RECLUTAR: 'acciones.reclutar_costo', TROPAS_RECLUTAR: 'acciones.reclutar_tropas',
-      COSTO_REGALOS: 'acciones.regalos_costo', PRESTIGIO_REGALOS: 'acciones.regalos_prestigio', TESORO_TRABAJO: 'prisioneros.tesoro_trabajo', TESORO_RESCATE: 'prisioneros.tesoro_rescate' };
+      COSTO_REGALOS: 'acciones.regalos_costo', PRESTIGIO_REGALOS: 'acciones.regalos_prestigio', TESORO_TRABAJO: 'prisioneros.tesoro_trabajo', TESORO_RESCATE: 'prisioneros.tesoro_rescate',
+      COSTO_GRAN_YACATA: 'construccion.costo.gran_yacata', PROB_SEQUIA_TICK: 'sequia.prob_por_tick', AVISO_SEQUIA: 'sequia.aviso_veintenas', COSTO_FIESTA: 'acciones.fiesta_costo', AGRAVIO_FIESTA: 'acciones.fiesta_agravio', AUTONOMIA_VEINTENAS: 'autonomia.veintenas', BLOQUEO_TASAS: 'acciones.bloqueo_tasas', LEALTAD_CAPITAN: 'acciones.capitan_lealtad', TRIBUTO_PAZ: 'invasion.tributo_paz', TRIBUTO_EXIGIDO: 'invasion.tributo_exigido' };
     const p = A[name]; if (!p) { if (!soft) console.warn('Constante desconocida: ' + name); return soft ? undefined : 0; }
     return this.cp(p);
   }
   // ---------- partida
+  // Niveles de dificultad: cada nivel sobrescribe constantes (rutas con punto) sobre la base
+  // de constantes.json. Solo cambia presión y margen; nunca da ventajas ocultas al enemigo.
+  nivelInicial() { let q = null; try { q = new URLSearchParams(window.location.search).get('dificultad'); } catch (e) {}
+    const D = this.D.C0.dificultades || {}; return this.dificultad || (q && D[q] ? q : null) || this.D.C0.dificultad_inicial || 'normal'; }
+  constantesDe(nivel) { const C = JSON.parse(JSON.stringify(this.D.C0)), O = (C.dificultades || {})[nivel] || {};
+    for (const k in O) { if (k[0] === '_') continue; const ps = k.split('.'), last = ps.pop(); const t = ps.reduce((o, p) => o[p], C); t[last] = O[k]; }
+    return C; }
   newGame() {
+    if (this.relojOn) this.relojParar(); this.relojFrac = 0;
+    if (!this.D.C0) this.D.C0 = JSON.parse(JSON.stringify(this.D.C));
+    const nivel = this.nivelInicial();
+    this.D = Object.assign({}, this.D, { C: this.constantesDe(nivel) });
     const C = this.D.C, R = 39, W = Math.sqrt(3) * R, hash = (c, r) => (((c * 73856093) ^ (r * 19349663)) >>> 0) % 100;
     const YLD = { maiz: 20, pescado: 18, sal: 14, mantas: 18, obsidiana: 10, cobre: 24 };
     const hexes = [];
@@ -368,12 +392,12 @@ class Component extends DCLogic {
       const vx = [0, 1, 2, 3, 4, 5].map(i => { const a = Math.PI / 3 * i - Math.PI / 2; return [+(cx + R * Math.cos(a)).toFixed(1), +(cy + R * Math.sin(a)).toFixed(1)]; });
       hexes.push({ c, r, cx, cy, hs, terr, res, yield: YLD[res], vx, owner: null, contested: false, raided: 0, inf: {} });
     }
-    const mk = (id, name, pop, loyalty, agravio, governor, distance, tags) => ({ id, name, pop, loyalty, agravio, governor, distance, tags, garrison: 0, yacata: false, fortaleza: false, troje: false, building: null, buildProgress: 0, independent: false, moroso: false, calm: 0, territory: [], territoryValue: 0, res: {} });
+    const mk = (id, name, pop, loyalty, agravio, governor, distance, tags) => ({ id, name, pop, loyalty, agravio, governor, distance, tags, garrison: 0, yacata: false, fortaleza: false, troje: false, gran_yacata: false, autonomia: 0, trojeVacia: 0, raidedAt: -999, building: null, buildProgress: 0, independent: false, moroso: false, calm: 0, territory: [], territoryValue: 0, res: {} });
     const s0 = (Date.now() & 0xffffff) | 1;
-    this.g = { seed: s0, seed0: s0, t: 0, v: 1, year: 1475, endYear: 1485, treasury: 800, prestige: 20, army: 40000, morale: 7,
+    this.g = { seed: s0, seed0: s0, t: 0, v: 1, year: 1475, endYear: 1485, dificultad: nivel, treasury: C.inicio.tesoro, prestige: 20, army: 40000, morale: 7,
       taxes: { tributo: 3, impuesto: 3 }, budget: { ejercito: 30, administracion: 25, obras: 30, diplomacia: 15 }, hexes, queue: [], log: [], chron: [], lastEvent: {}, modal: null, ended: false, ready: false,
       flags: { war: false, truce: 0, truceChi: 0, cazonciDead: false, rebel: false }, cazonci: { age: 40, heir: null }, ruler: 'zuangua', captain: 'veterano', prisoners: 0,
-      tributeOut: { amount: 0, left: 0 }, invasionAnio: 1478, ultimatum: null, oleada: 0, invasor: null, invTropas: this.D.C.invasion.tropas, lastRaid: -999, harvest: { left: 0, pen: 0 }, debtTicks: 0, series: [], lastAuto: -999,
+      tributeOut: { amount: 0, left: 0 }, invasionAnio: 1478, ultimatum: null, oleada: 0, invasor: null, invTropas: this.D.C.invasion.tropas, lastRaid: -999, harvest: { left: 0, pen: 0 }, locks: { tributo: 0, impuesto: 0 }, sequiaEn: null, sequiaPreparada: false, defensa: null, fin: null, ultFiesta: -999, debtTicks: 0, series: [], lastAuto: -999,
       alts: [mk('tzintzuntzan', 'Tzintzuntzan', 30000, 80, 10, 'tangaxoan', 0, []), mk('zacapu', 'Zacapu', 12000, 60, 40, 'inepto', 2, ['frontera_norte']), mk('uruapan', 'Uruapan', 18000, 75, 15, 'capaz', 1, [])],
       chars: { zuangua: { name: 'Zuangua', admin: 3, command: 2, age: 40, alive: true }, tangaxoan: { name: 'Tangáxoan', admin: 4, command: 3, age: 28, alive: true }, hijo: { name: 'Hijo del cazonci', admin: 1, command: 1, age: 14, alive: true }, rival: { name: 'Señor de Uruapan', admin: 2, command: 4, age: 35, alive: true }, inepto: { name: 'Gobernador Inepto', admin: 1, command: 2, age: 45, alive: true }, capaz: { name: 'Gobernador Capaz', admin: 3, command: 2, age: 38, alive: true }, ambicioso: { name: 'Capitán Ambicioso', admin: 2, command: 5, age: 30, alive: true }, veterano: { name: 'Capitán Veterano', admin: 2, command: 3, age: 50, alive: true }, vacante: { name: 'Vacante', admin: 0, command: 0, age: 0, alive: true } } };
     const PO = { tzintzuntzan: [['purepecha', 'nobleza', 0.1], ['purepecha', 'comun', 0.75], ['otomi', 'comun', 0.15]], zacapu: [['purepecha', 'comun', 0.7], ['otomi', 'comun', 0.3]], uruapan: [['purepecha', 'comun', 0.85], ['nahua', 'comun', 0.15]] };
@@ -382,6 +406,8 @@ class Component extends DCLogic {
     { let bi = 0, bd = 1e9; this.g.hexes.forEach((h, i) => { const d = Math.hypot(h.cx - 790, h.cy - 505); if (d < bd) { bd = d; bi = i; } }); this.g.ejercito = { pos: bi, dest: null, path: [], prog: 0 }; }
     this.recalc(); this.recalc(); this.g.ready = true; this.g.chron = [];
     this.chronicle(this.t('cronica.inicio'), 'crisis');
+    this.chronicle(this.t('cronica.dificultad', { nivel: this.t('dificultad.' + nivel) }), 'crisis');
+    this.chronicle(this.t('cronica.metas', { prestigio: String(C.metas.prestigio), lealtad: String(C.metas.lealtad) }), 'crisis');
   }
   R() { let a = this.g.seed += 0x6D2B79F5; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
   chronicle(text, type) { this.g.chron.push({ year: this.g.year, v: this.g.v, text, type: type || '' }); }
@@ -420,8 +446,8 @@ class Component extends DCLogic {
   }
   eff(a) { return this.effLines(a).tot / 100; }
   taxM(a) { const g = this.g, b = this.D.C.economia.tasa_base; return a && a.id === 'tzintzuntzan' ? g.taxes.impuesto / b : (g.taxes.tributo + g.taxes.impuesto) / (2 * b); }
-  tShare(a) { const g = this.g; return a.id === 'tzintzuntzan' ? 0 : g.taxes.tributo / (g.taxes.tributo + g.taxes.impuesto); }
-  incomeParts(a) { const EC = this.D.C.economia, e = this.eff(a), t = this.taxM(a), y = (a.yacata ? 1.1 : 1) * (a.fortaleza ? 0.95 : 1); return { pop: a.pop * EC.ingreso_por_pop * e * t * y, terr: a.territoryValue * EC.ingreso_por_territorio * e * t }; }
+  tShare(a) { const g = this.g; if (a.id === 'tzintzuntzan') return 0; const s = g.taxes.tributo / (g.taxes.tributo + g.taxes.impuesto); return a.autonomia > g.t ? s * this.D.C.autonomia.factor_tributo : s; }
+  incomeParts(a) { const EC = this.D.C.economia, e = this.eff(a), t = this.taxM(a), y = (a.yacata ? 1.1 : 1) * (a.fortaleza ? 0.95 : 1); const ag = 1 - Math.min(0.6, a.agravio * (EC.penal_agravio_ingreso || 0)); return { pop: a.pop * EC.ingreso_por_pop * e * t * y * ag, terr: a.territoryValue * EC.ingreso_por_territorio * e * t * ag }; }
   rawIncome(a) { const p = this.incomeParts(a); return p.pop + p.terr; }
   tributeIn() { return this.g.alts.filter(a => a.id !== 'tzintzuntzan' && !a.independent && !a.moroso).reduce((s, a) => s + this.rawIncome(a) * this.tShare(a), 0); }
   income(a) { const own = this.rawIncome(a) * (1 - this.tShare(a)); return a.id === 'tzintzuntzan' ? own + this.tributeIn() : own; }
@@ -438,10 +464,10 @@ class Component extends DCLogic {
   pYear(r) { const P = this.D.C.guerra.p_ataque; if (r <= P.r_min) return P.max; const p = r >= 1 ? P.base * Math.exp(-P.k * (r - 1)) : P.base + P.slope * (1 - r) / 0.7; return Math.min(P.max, P.escala_prototipo * p); }
   clampG() { const g = this.g, t = g.alts.reduce((s, a) => s + a.garrison, 0); if (t > g.army) { const k = g.army / t; g.alts.forEach(a => a.garrison = Math.round(a.garrison * k)); } }
   needs(a, p) { const g = this.g; let food = 0, rest = 0; for (const k in a.res) { if (k === 'maiz' || k === 'pescado') food += a.res[k]; else rest += a.res[k]; }
-    const hp = g.harvest.left > 0 ? g.harvest.pen : 0, sub = Math.max(0, Math.min(100, food * 9000 / a.pop + (a.troje ? 15 : 0) - hp)), cot = Math.min(100, rest * 7000 / a.pop), b = p && p.estrato === 'nobleza' ? 20 : 0;
+    const hp = g.harvest.left > 0 ? g.harvest.pen : 0, sub = Math.max(0, Math.min(100, food * 9000 / a.pop + (a.troje && !(a.trojeVacia > g.t) ? 15 : 0) - hp)), cot = Math.min(100, rest * 7000 / a.pop), b = p && p.estrato === 'nobleza' ? 20 : 0;
     return { sub: Math.min(100, sub + b), cot: Math.min(100, cot + b) }; }
   popParts(a, p) { const g = this.g, gov = g.chars[a.governor], tx = p.estrato === 'nobleza' ? 0.5 : 1, n = this.needs(a, p), r1 = (x) => Math.round(x * 10) / 10;
-    return [{ k: 'Tributo', v: a.id === 'tzintzuntzan' ? 0 : this.tx(g.taxes.tributo - 3) * tx }, { k: 'Impuesto interno', v: this.tx(g.taxes.impuesto - 3) * tx }, { k: 'Gobernador (adm ' + gov.admin + ')', v: (2 - gov.admin) * 3 }, { k: 'Yácata', v: a.yacata ? -5 : 0 }, { k: 'Troje', v: a.troje ? -3 : 0 }, { k: 'Ocupación por guarnición', v: r1(Math.max(0, a.garrison - a.pop / 30) / 500) }, { k: 'Subsistencia sin cubrir', v: r1((100 - n.sub) / 100 * 8) }, { k: 'Necesidades cotidianas sin cubrir', v: r1((100 - n.cot) / 100 * 4) }, { k: 'Identidad ajena', v: p.identidad === 'purepecha' ? 0 : 2 }, { k: 'Distancia a la capital', v: a.distance * 1.5 }]; }
+    return [{ k: 'Tributo', v: a.id === 'tzintzuntzan' ? 0 : this.tx(g.taxes.tributo - 3) * tx }, { k: 'Impuesto interno', v: this.tx(g.taxes.impuesto - 3) * tx }, { k: 'Gobernador (adm ' + gov.admin + ')', v: (2 - gov.admin) * 3 }, { k: 'Yácata', v: a.yacata ? -5 : 0 }, { k: 'Troje', v: a.troje ? -3 : 0 }, { k: 'Ocupación por guarnición', v: r1(Math.max(0, a.garrison - a.pop / 30) / 500) }, { k: 'Subsistencia sin cubrir', v: r1((100 - n.sub) / 100 * 8) }, { k: 'Necesidades cotidianas sin cubrir', v: r1((100 - n.cot) / 100 * 4) }, { k: 'Identidad ajena', v: p.identidad === 'purepecha' ? 0 : 2 }, { k: 'Distancia a la capital', v: a.distance * 1.5 }, { k: 'Desgaste (exigencias de la nobleza local, cargas de la frontera)', v: a.id === 'tzintzuntzan' ? this.D.C.presion.desgaste_capital : this.D.C.presion.desgaste_anual }, { k: 'Gran yácata de Curicaueri', v: this.alt('tzintzuntzan').gran_yacata ? -this.D.C.presion.alivio_gran_yacata : 0 }]; }
   agravioParts(a) { const P = a.pops.map(p => this.popParts(a, p)); return P[0].map((l, i) => ({ k: l.k, v: Math.round(P.reduce((s, pp, j) => s + pp[i].v * a.pops[j].tam, 0) / a.pop * 10) / 10 })); }
   ageChars() { const g = this.g, PC = this.D.C.personajes; for (const [id, c] of Object.entries(g.chars)) { if (!c.alive || id === g.ruler || id === 'vacante') continue; if (this.R() < Math.max(0, (c.age - PC.edad_envejecimiento) * PC.prob_muerte_por_anio) + PC.prob_muerte_base) { c.alive = false; this.chronicle(this.t('cronica.muerte', { personaje: c.name }), 'crisis'); g.alts.forEach(a => { if (a.governor === id) a.governor = 'vacante'; }); if (g.captain === id) g.captain = 'vacante'; if (g.cazonci.heir === id) g.cazonci.heir = null; } } }
   // ---------- motor de datos
@@ -484,6 +510,8 @@ class Component extends DCLogic {
       case 'fuerza_guerra': return this.warStrength() / (A.enemigo || this.enemigoAlianza());
       case 'p_ataque_alianza': return 1 - Math.pow(1 - this.pYear(A.ratio), 1 / C.ticks_por_anio);
       case 'roll_guerra': return this.roll(A.ratio);
+      case 'fuerza_expedicion': { const X = C.guerra.expedicion, g = this.g, casus = g.t - g.lastRaid <= C.guerra.casus_ventana ? X.bono_casus : 0; return (1 + X.por_mando * (g.chars[g.captain].command - 3)) * Math.min(this.field(), X.destacamento) / X.enemigo + casus; }
+      case 'roll_expedicion': { const X = C.guerra.expedicion, e = A.ratio * (X.base + X.varianza * this.R()); return e > X.victoria ? 'victoria' : e < X.derrota ? 'derrota' : 'empate'; }
       case 'tick_mas': return A.t + A.n;
       case 'perdida_cosecha': return A.troje ? 0.98 : 0.95;
       case 'negar': return -A.x;
@@ -546,10 +574,15 @@ class Component extends DCLogic {
     const g = this.g, ws = this.warStrength(), C = this.D.C;
     switch (k) {
       case 'fuerza_guerra': return Math.round(ws).toLocaleString('es-MX');
-      case 'enemigo_alianza': return f(this.enemigoAlianza());
+      case 'enemigo_alianza': return Math.round(this.enemigoAlianza()).toLocaleString('es-MX');
       case 'ratio': return Math.round(ws / this.enemigoAlianza() * 100) + '%';
       case 'odds': case 'odds_alianza': return this.odds(ws / this.enemigoAlianza()).txt;
-      case 'odds_chichimeca': return this.odds(ws / C.guerra.enemigo_chichimeca).txt;
+      case 'odds_chichimeca': { const X = C.guerra.expedicion, r = this.F('fuerza_expedicion', {}, {}), lo = r * X.base, w = r * X.varianza, c = (x) => Math.round(Math.max(0, Math.min(1, x)) * 100), v = c((lo + w - X.victoria) / w), d = c((X.derrota - lo) / w); return 'victoria ' + v + '% · empate ' + (100 - v - d) + '% · derrota ' + d + '%'; }
+      case 'prob_frontera': return this.probBatalla(false) + '%';
+      case 'prob_capital': return this.probBatalla(true) + '%';
+      case 'resistencia_asedio': return String(this.resistenciaAsedio());
+      case 'tropas_invasor': return g.invasor ? Math.round(g.invasor.tropas).toLocaleString('es-MX') : '0';
+      case 'tributo_paz': return String(C.invasion.tributo_paz);
       case 'casus_chichimeca': return g.t - g.lastRaid <= C.guerra.casus_ventana ? 'Casus belli: incursión reciente' : 'Sin casus belli: prestigio −' + C.guerra.sin_casus_chichimeca;
     }
     return undefined;
@@ -581,7 +614,7 @@ class Component extends DCLogic {
     const ctx = { bind: bind || {} };
     const pre = kind === 'crisis' ? 'crisis' : 'eventos', TX = (f, oid) => this.txt(pre, def, f, ctx, oid);
     let opts = def.opciones.map(o => { const ok = this.conds(o.requisitos, ctx) && this.canPay(o.costo, ctx); return { o, ok, title: TX('titulo', o.id), cost: TX('costo_visible', o.id), why: ok ? '' : this.t('modal.requisitos_fallidos') }; });
-    if (kind === 'crisis') opts = opts.filter(x => x.ok);
+    if (kind === 'crisis' && !opts.some(x => x.ok)) opts = [];   // se ven las opciones que no alcanzan, deshabilitadas y con su motivo
     this.g.modal = { def, kind, ctx, title: TX('titulo'), cuerpo: TX('cuerpo'), desc: TX('descripcion'), options: opts };
   }
   pick(i) {
@@ -604,7 +637,23 @@ class Component extends DCLogic {
     this.logD(title, title, !!def.de_rumbo, m0, !def.de_rumbo); this.recalc(); this.forceUpdate();
   }
   // ---------- ciclo
-  endTurn = () => { this.step(); this.forceUpdate(); }
+  endTurn = () => { this.relojFrac = 0; this.step(); this.forceUpdate(); }
+  // Reloj en tiempo real (V5, *Velocidades*): corre solo, se detiene en cada decisión y sigue al resolverla.
+  // Cada veintena dura reloj.segundos[v]; la barra muestra el día de la veintena (20 días).
+  relojVel() { const R = this.D.C.reloj; return Math.min(R.segundos.length, Math.max(1, this.relojV || R.velocidad_inicial)); }
+  relojEspera() { const g = this.g; return !g || g.ended || !!g.modal || !!g.tac || (typeof document !== 'undefined' && document.hidden); }
+  relojAlternar = () => { if (this.relojOn) this.relojParar(); else this.relojIniciar(); this.forceUpdate(); }
+  relojIniciar() { clearInterval(this.relojTimer); this.relojOn = true; this.relojFrac = this.relojFrac || 0; let prev = Date.now(), diaPrev = -1;
+    this.relojTimer = setInterval(() => { const ahora = Date.now(), dt = (ahora - prev) / 1000; prev = ahora;
+      if (!this.relojOn || this.relojEspera()) return;
+      this.relojFrac += dt / this.D.C.reloj.segundos[this.relojVel() - 1];
+      if (this.relojFrac >= 1) { this.relojFrac = 0; diaPrev = -1; this.step(); this.forceUpdate(); return; }
+      const dia = Math.floor(this.relojFrac * this.D.C.reloj.dias_por_veintena); if (dia !== diaPrev) { diaPrev = dia; this.forceUpdate(); } }, 100); }
+  relojParar() { this.relojOn = false; clearInterval(this.relojTimer); }
+  relojTecla = (e) => { const tag = (e.target && e.target.tagName) || ''; if (/INPUT|SELECT|TEXTAREA/.test(tag) || !this.g || this.g.modal) return;
+    if (e.code === 'Space') { e.preventDefault(); this.relojAlternar(); }
+    else if (/^[1-9]$/.test(e.key) && +e.key <= this.D.C.reloj.segundos.length) { this.relojV = +e.key; this.forceUpdate(); } }
+  componentWillUnmount() { this.relojParar(); if (typeof window !== 'undefined') window.removeEventListener('keydown', this.relojTecla); }
   runUntil = () => { let n = 0; while (this.g && !this.g.modal && !this.g.ended && n < 220) { this.step(); n++; } this.forceUpdate(); }
   step() {
     const g = this.g, C = this.D.C; if (!g || g.ended || g.modal) return;
@@ -612,20 +661,21 @@ class Component extends DCLogic {
     this.resolveLog(false);
     g.treasury += (this.totalIncome() - this.totalExpenses()) / TY;
     if (g.treasury < 0) { g.treasury = 0; g.debtTicks++; const dt = g.debtTicks; if (dt === 1) this.chronicle(this.t('cronica.tesoro_agotado'), 'crisis'); if (dt % C.deuda.moral_cada === 1) g.morale = Math.max(0, g.morale - 1); if (dt % C.deuda.prestigio_cada === 1) g.prestige -= 1; g.army = Math.round(g.army * C.deuda.desercion); this.clampG(); } else g.debtTicks = 0;
-    for (const a of g.alts) { if (a.independent) continue; for (const p of a.pops) { const d = this.popParts(a, p).reduce((s, l) => s + l.v, 0) / TY; p.agravio = cl(p.agravio + d); const tgt = 100 - p.agravio + Math.min(20, a.garrison / 100); p.lealtad = cl(p.lealtad + (tgt - p.lealtad) * 0.02 + (a.yacata ? 2 / TY : 0)); } }
+    for (const a of g.alts) { if (a.independent) continue; for (const p of a.pops) { const d = this.popParts(a, p).reduce((s, l) => s + l.v, 0) / TY; p.agravio = cl(p.agravio + d); const PR = C.presion, techo = PR.techo_lealtad - PR.techo_por_distancia * a.distance - (p.identidad === 'purepecha' ? 0 : PR.techo_identidad), tgt = Math.min(techo, 100 - p.agravio + Math.min(20, a.garrison / 100)); p.lealtad = cl(p.lealtad + (tgt - p.lealtad) * 0.02 + (a.yacata ? 2 / TY : 0)); } }
     if (g.harvest.left > 0) g.harvest.left--;
-    g.prisoners = Math.floor(g.prisoners * C.prisioneros.decaimiento); if (g.tributeOut.left > 0) g.tributeOut.left--; this.marchar(); this.incTick(); this.invMarcha();
+    if (g.sequiaEn != null && g.t >= g.sequiaEn) { const SQ = C.sequia; g.harvest = { left: SQ.duracion, pen: g.sequiaPreparada ? SQ.penal_preparado : SQ.penalizacion }; this.chronicle(this.t(g.sequiaPreparada ? 'cronica.sequia_preparada' : 'cronica.sequia_llega'), 'crisis'); g.sequiaEn = null; g.sequiaPreparada = false; }
+    g.prisoners = Math.floor(g.prisoners * C.prisioneros.decaimiento); if (g.tributeOut.left > 0) g.tributeOut.left--; if (g.invasor && g.defensa) { const dst = g.defensa === 'frontera' ? g.invasor.pos : this.capIdx(); if (!g.ejercito.incursion && g.ejercito.pos !== dst && g.ejercito.dest !== dst) this.ordenar(dst); } this.marchar(); this.incTick(); this.invMarcha();
     if (g.v === TY) { this.ageChars(); const M = C.morale, Dp = C.diplomacia;
       if (g.budget.ejercito < M.ejercito_bajo) g.morale = Math.max(0, g.morale - 1); else if (g.budget.ejercito > M.ejercito_alto) g.morale = Math.min(10, g.morale + 1);
       if (g.budget.diplomacia < Dp.prestigio_bajo) g.prestige -= 1; else if (g.budget.diplomacia >= Dp.prestigio_alto) g.prestige += 2; else if (g.budget.diplomacia >= Dp.prestigio_medio) g.prestige += 1;
       if (g.taxes.tributo >= 2 && !g.alts.some(a => a.moroso || a.independent)) g.prestige += 1; }
     const CO = C.construccion;
-    for (const a of g.alts) if (a.building && g.budget.obras >= CO.presupuesto_minimo) { a.buildProgress++; if (a.buildProgress >= CO.duracion[a.building]) { this.chronicle(this.t('cronica.obra_terminada', { edificio: this.t('edificios.' + a.building + '.nombre').toLowerCase(), alt: a.name }), 'consequence'); a[a.building] = true; g.prestige += a.building === 'fortaleza' ? CO.prestigio_fortaleza : CO.prestigio_yacata; a.building = null; } }
+    for (const a of g.alts) if (a.building && g.budget.obras >= CO.presupuesto_minimo) { a.buildProgress++; if (a.buildProgress >= CO.duracion[a.building]) { this.chronicle(this.t('cronica.obra_terminada', { edificio: this.t('edificios.' + a.building + '.nombre').toLowerCase(), alt: a.name }), 'consequence'); a[a.building] = true; g.prestige += a.building === 'fortaleza' ? CO.prestigio_fortaleza : a.building === 'gran_yacata' ? CO.prestigio_gran_yacata : CO.prestigio_yacata; a.building = null; } }
     this.recalc();
     const IN = C.incursion;
     for (const a of g.alts) { if (a.independent) continue;
       const fr = a.territory.filter(h => h.terr !== 'lago' && g.hexes.some(n => !n.owner && n.terr !== 'lago' && Math.hypot(n.cx - h.cx, n.cy - h.cy) < 115));
-      if (fr.length && this.R() < IN.prob_por_tick * (1 - Math.min(0.7, a.garrison / IN.guarnicion_div)) * (g.hexes[g.ejercito.pos].owner === a.id ? 0.5 : 1)) { fr[Math.floor(this.R() * fr.length)].raided = g.t + IN.marca_veintenas; a.pops.forEach(p => p.tam = Math.round(p.tam * IN.perdida_poblacion)); g.lastRaid = g.t; this.chronicle(this.t('cronica.incursion', { alt: a.name }), 'crisis'); } }
+      if (fr.length && this.R() < IN.prob_por_tick * (1 - Math.min(0.7, a.garrison / IN.guarnicion_div)) * (g.hexes[g.ejercito.pos].owner === a.id ? 0.5 : 1)) { fr[Math.floor(this.R() * fr.length)].raided = g.t + IN.marca_veintenas; a.pops.forEach(p => { p.tam = Math.round(p.tam * IN.perdida_poblacion); p.agravio = cl(p.agravio + IN.agravio); }); a.raidedAt = g.t; g.lastRaid = g.t; this.chronicle(this.t('cronica.incursion', { alt: a.name }), 'crisis'); } }
     this.recalc(); this.clampG();
     g.queue = []; g.flags.rebel = false;
     const evs = [];
@@ -650,9 +700,13 @@ class Component extends DCLogic {
   }
   advance() {
     const g = this.g, TY = this.D.C.ticks_por_anio; g.t++; g.v = g.t % TY + 1; const y = 1475 + Math.floor(g.t / TY);
-    if (y !== g.year) { this.pushSeries(); g.year = y; if (y === this.D.C.invasion.ultimatum_anio && !g.ultimatum) this.emitirUltimatum(); if (y === g.invasionAnio && !g.invasor) this.spawnInvasor(); g.cazonci.age++; Object.values(g.chars).forEach(c => c.age++); if (y >= g.endYear) { g.ended = true; this.resolveLog(true); return; }
+    if (y !== g.year) { this.pushSeries(); g.year = y; if (y === this.D.C.invasion.ultimatum_anio && !g.ultimatum) this.emitirUltimatum(); if (y === g.invasionAnio && !g.invasor) this.spawnInvasor(); g.cazonci.age++; Object.values(g.chars).forEach(c => c.age++); if (y >= g.endYear) { g.ended = true; g.fin = g.fin || 'anio'; this.resolveLog(true); return; }
       this.chronicle(this.t('cronica.anio_resumen', { anio: String(y), tesoro: Math.round(g.treasury).toLocaleString('es-MX'), prestigio: String(g.prestige), hexes: String(g.alts.filter(a => !a.independent).reduce((s, a) => s + a.territory.length, 0)) })); }
   }
+  // ---------- metas del reinado (cambio 5)
+  metas() { const g = this.g, M = this.D.C.metas, m = this.metrics();
+    return [{ k: 'Conservar Tzintzuntzan', ok: !g.capitalCaida }, { k: 'Ningún señorío independiente', ok: m.ind === 0 }, { k: 'Prestigio ≥ ' + M.prestigio, ok: m.pre >= M.prestigio }, { k: 'Lealtad media ≥ ' + M.lealtad, ok: m.lea >= M.lealtad }]; }
+  veredicto() { const L = this.metas(), n = L.filter(x => x.ok).length; const nivel = this.g.capitalCaida ? 'caida' : n === 4 ? 'triunfo' : n >= 3 ? 'reinado_firme' : n >= 2 ? 'supervivencia' : 'decadencia'; return { nivel, cumplidas: n, metas: L, texto: this.t('fin.veredicto.' + nivel) }; }
   // ---------- registro
   metrics() { const g = this.g, al = g.alts.filter(a => !a.independent), n = al.length || 1; return { tes: Math.round(g.treasury), pre: g.prestige, lea: al.reduce((s, a) => s + a.loyalty, 0) / n, agr: al.reduce((s, a) => s + a.agravio, 0) / n, ter: al.reduce((s, a) => s + a.territory.length, 0), ind: g.alts.filter(a => a.independent).length, ej: g.army, net: Math.round(this.totalIncome() - this.totalExpenses() + this.expenseLines().filter(l => l.k === 'Obras').reduce((s, l) => s + l.v, 0)) }; }
   logD(d, o, s, m0, r) { const g = this.g; g.log.push({ t: g.t, year: g.year, v: g.v, decision: d, option: o, routine: !!r, structural: !!s, changing: !!s, done: false, m0: m0 || this.metrics(), m1: null, why: s ? this.t('resolucion.motivo.estructural') : '' }); }
@@ -670,11 +724,11 @@ class Component extends DCLogic {
   col(n) { return n > 0 ? '#a9cc62' : n < 0 ? '#e8876c' : '#c8b48a'; }
   exportLog = () => {
     const g = this.g; if (!g) return; this.resolveLog(false);
-    const pay = { juego: 'Hito 0 v4', semilla: g.seed0, fecha_actual: g.year + '·V' + g.v, tasas: g.taxes, presupuesto: g.budget, rubrica: { decisiones: g.log.length, de_rumbo: g.log.filter(e => e.changing).length },
+    const pay = { juego: 'Hito 0 v5', semilla: g.seed0, fecha_actual: g.year + '·V' + g.v, tasas: g.taxes, presupuesto: g.budget, rubrica: { decisiones: g.log.length, de_rumbo: g.log.filter(e => e.changing).length },
       decisiones: g.log.map(e => ({ t: e.t, fecha: e.year + '·V' + e.v, decision: e.decision, opcion: e.option, rutina: e.routine, estructural: e.structural, de_rumbo: e.changing, resuelta: e.done, motivo: e.why, antes: e.m0, despues: e.m1 })),
       serie_anual: g.series, cronica: g.chron.map(e => ({ fecha: e.year + '·V' + e.v, tipo: e.type, texto: e.text })) };
     const s = JSON.stringify(pay, null, 2);
-    try { const b = new Blob([s], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'hito0-v4-log-' + g.seed0 + '.json'; document.body.appendChild(a); a.click(); a.remove(); } catch (err) {}
+    try { const b = new Blob([s], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'hito0-v5-log-' + g.seed0 + '.json'; document.body.appendChild(a); a.click(); a.remove(); } catch (err) {}
     try { navigator.clipboard.writeText(s).catch(() => {}); } catch (err) {}
   }
   makeHarness() {
@@ -723,21 +777,32 @@ class Component extends DCLogic {
   ordenar(dst) { if (this.g.ejercito.incursion) return; const e = this.g.ejercito, H = this.g.hexes, prev = new Map([[e.pos, -1]]), q = [e.pos]; while (q.length) { const i = q.shift(); if (i === dst) break; for (let k = 0; k < 6; k++) { const n = this.nbIdx(H[i], k); if (n == null || prev.has(n) || H[n].terr === 'lago') continue; prev.set(n, i); q.push(n); } } if (!prev.has(dst)) return; const path = []; for (let i = dst; i !== e.pos; i = prev.get(i)) path.unshift(i); e.path = path; e.dest = dst; e.prog = 0; }
   marchar() { const e = this.g.ejercito; if (!e || !e.path.length) return; if (++e.prog < 2) return; e.prog = 0; e.pos = e.path.shift(); if (!e.path.length) { e.dest = null; this.chronicle(this.t('cronica.ejercito_llega'), 'consequence'); } }
   ejercitoEn(a) { return this.g.hexes[this.g.ejercito.pos].owner === a.id ? this.field() * 0.1 : 0; }
-  spawnInvasor() { const H = this.g.hexes; let bi = 0, bd = 1e9; H.forEach((h, i) => { if (h.terr === 'lago') return; const d = Math.hypot(h.cx - 1100, h.cy - 700); if (d < bd) { bd = d; bi = i; } }); this.g.invasor = { pos: bi, spawn: bi, tropas: this.g.oleada ? Math.round(this.g.army * this.D.C.invasion.objetivo_ratio) : this.D.C.invasion.tropas, prog: 0, combatido: false, asedio: 0 }; this.g.oleada = (this.g.oleada || 0) + 1; this.chronicle(this.t('cronica.invasor_llega', { n: this.g.invasor.tropas.toLocaleString('es-MX') }), 'crisis'); }
+  spawnInvasor() { const H = this.g.hexes; let bi = 0, bd = 1e9; H.forEach((h, i) => { if (h.terr === 'lago') return; const d = Math.hypot(h.cx - 1100, h.cy - 700); if (d < bd) { bd = d; bi = i; } }); this.g.invasor = { pos: bi, spawn: bi, tropas: this.g.oleada ? Math.round(this.g.army * this.D.C.invasion.objetivo_ratio) : this.g.invTropas, prog: 0, combatido: false, asedio: 0 }; this.g.oleada = (this.g.oleada || 0) + 1; this.chronicle(this.t('cronica.invasor_llega', { n: this.g.invasor.tropas.toLocaleString('es-MX') }), 'crisis'); }
   capIdx() { const H = this.g.hexes, cap = this.SET().find(s => s.o === 'tzintzuntzan' && s.cap); let bi = 0, bd = 1e9; H.forEach((h, i) => { if (h.terr === 'lago') return; const d = Math.hypot(h.cx - cap.p[0], h.cy - cap.p[1]); if (d < bd) { bd = d; bi = i; } }); return bi; }
   emitirUltimatum() { const g = this.g, IV = this.D.C.invasion; g.ultimatum = { estado: 'pendiente', monto: IV.tributo_exigido }; this.chronicle(this.t('cronica.ultimatum', { monto: String(IV.tributo_exigido) }), 'crisis'); }
   pagarUltimatum() { const g = this.g, U = g.ultimatum; if (!U || U.estado !== 'pendiente' || g.treasury < U.monto) return; g.treasury -= U.monto; U.estado = 'pagado'; g.invasionAnio += this.D.C.invasion.pospuesta_anios; g.prestige = Math.max(0, g.prestige - 1); this.chronicle(this.t('cronica.ultimatum_pagado', { anio: String(g.invasionAnio) }), 'consequence'); this.forceUpdate(); }
   rechazarUltimatum() { const g = this.g; if (!g.ultimatum || g.ultimatum.estado !== 'pendiente') return; g.ultimatum.estado = 'rechazado'; this.chronicle(this.t('cronica.ultimatum_rechazado'), 'crisis'); this.forceUpdate(); }
-  batalla() { const g = this.g, v = g.invasor, IV = this.D.C.invasion, fld = this.field(), ratio = (fld / Math.max(1, v.tropas * IV.fuerza_mexica)) * (0.85 + 0.3 * this.R()); v.combatido = true; v.enfrentado = v.pos; v.descanso = this.D.C.invasion.descanso_pasos; const fmt = (n) => n.toLocaleString('es-MX');
-    if (ratio >= 1) { const bi = Math.round(v.tropas * IV.bajas_victoria_invasor), bp = Math.round(fld * IV.bajas_victoria_propia); v.tropas -= bi; g.army -= bp; v.asedio = 0; this.chronicle(this.t('cronica.batalla_victoria', { invasores: fmt(bi), bajas: fmt(bp) }), 'consequence'); this.chronicle(this.t('cronica.invasion_derrotada'), 'consequence'); g.invasor = null; g.invasionAnio = g.year + IV.recuperacion_anios; }
+  batalla() { const g = this.g, v = g.invasor, IV = this.D.C.invasion, fld = this.field(), ratio = this.ratioBatalla(v.pos === this.capIdx()) * (1 - IV.ruido + 2 * IV.ruido * this.R()); v.combatido = true; v.enfrentado = v.pos; v.descanso = this.D.C.invasion.descanso_pasos; const fmt = (n) => n.toLocaleString('es-MX');
+    if (ratio >= 1) { const bi = Math.round(v.tropas * IV.bajas_victoria_invasor), bp = Math.round(fld * IV.bajas_victoria_propia); v.tropas -= bi; g.army -= bp; v.asedio = 0; this.chronicle(this.t('cronica.batalla_victoria', { invasores: fmt(bi), bajas: fmt(bp) }), 'consequence'); this.chronicle(this.t('cronica.invasion_derrotada'), 'consequence'); g.invasor = null; g.defensa = null; g.prestige += IV.prestigio_victoria; g.prisoners += IV.prisioneros_victoria; g.invasionAnio = g.year + IV.recuperacion_anios; }
     else { const bp = Math.round(fld * IV.bajas_derrota_propia), bi = Math.round(v.tropas * IV.bajas_derrota_invasor); v.tropas -= bi; g.army -= bp; this.chronicle(this.t('cronica.batalla_derrota', { bajas: fmt(bp) }), 'crisis'); if (v.pos === this.capIdx() && !v.asedio) { v.asedio = 1; this.chronicle(this.t('cronica.asedio_inicia'), 'crisis'); } }
     this.clampG(); this.recalc(); }
+  // Fuerza propia en una batalla contra el invasor: lo que se decidió antes pesa (capitán, moral,
+  // fortaleza y guarnición de la capital), el azar poco (IV.ruido). Es la misma cuenta que muestran
+  // las probabilidades del modal de invasión.
+  ratioBatalla(enCapital) { const g = this.g, v = g.invasor, IV = this.D.C.invasion, cap = this.alt('tzintzuntzan'); if (!v) return 1;
+    const mando = 1 + IV.por_mando * (g.chars[g.captain].command - 3), moral = 1 + IV.por_moral * (g.morale - 7);
+    const casa = enCapital ? 1 + IV.bono_defensa + (cap.fortaleza ? IV.bono_fortaleza : 0) : 1;
+    const tropas = this.field() + (enCapital ? cap.garrison : 0);
+    return tropas * mando * moral * casa / Math.max(1, v.tropas * IV.fuerza_mexica); }
+  probBatalla(enCapital) { const IV = this.D.C.invasion, r = this.ratioBatalla(enCapital), lo = r * (1 - IV.ruido), hi = r * (1 + IV.ruido); return Math.round(100 * Math.max(0, Math.min(1, (hi - 1) / Math.max(1e-9, hi - lo)))); }
+  resistenciaAsedio() { const IV = this.D.C.invasion, g = this.g, cap = this.alt('tzintzuntzan'), trojes = g.alts.filter(a => !a.independent && a.troje && !(a.trojeVacia > g.t)).length;
+    return IV.resistencia_base + IV.resistencia_por_troje * trojes + (cap.fortaleza ? IV.resistencia_por_fortaleza : 0); }
   invMarcha() { const v = this.g.invasor; if (!v || ++v.prog < 2) return; v.prog = 0; const g = this.g, H = g.hexes, IV = this.D.C.invasion, capPt = this.SET().find(s => s.o === 'tzintzuntzan' && s.cap), d = (h) => Math.hypot(h.cx - capPt.p[0], h.cy - capPt.p[1]), cap = this.capIdx(), enc = () => { if (g.ejercito.pos === g.invasor.pos && !g.ejercito.incursion && g.invasor.enfrentado !== g.invasor.pos) this.batalla(); };
     const obj = Math.round(g.army * IV.objetivo_ratio); if (v.combatido && v.tropas < obj) v.tropas = Math.min(obj, v.tropas + IV.refuerzo_por_paso);
     enc();
     if (!g.invasor) return;
     if (v.descanso > 0) { v.descanso--; this.clampG(); return; }
-    if (v.asedio > 0) { v.asedio++; g.treasury = Math.max(0, g.treasury - IV.asedio_costo_tesoro); if (v.asedio % 3 === 0) g.prestige = Math.max(0, g.prestige - 1); if (this.R() < IV.prob_rendicion) { H.forEach(h => { if (h.owner === 'tzintzuntzan' && h.terr !== 'lago') h.raided = Infinity; }); this.chronicle(this.t('cronica.capital_rendida'), 'crisis'); g.invasor = null; g.invasionAnio = 9999; g.capitalCaida = true; this.recalc(); return; } this.clampG(); return; }
+    if (v.asedio > 0) { v.asedio++; g.treasury = Math.max(0, g.treasury - IV.asedio_costo_tesoro); if (v.asedio % 3 === 0) g.prestige = Math.max(0, g.prestige - 1); v.tropas = Math.round(v.tropas * (1 - IV.desgaste_asedio)); if (v.tropas < IV.tropas * IV.retirada_fraccion) { this.chronicle(this.t('cronica.asedio_levanta'), 'consequence'); g.invasor = null; g.defensa = null; g.invasionAnio = g.year + IV.recuperacion_anios; return; } if (v.asedio > this.resistenciaAsedio()) { H.forEach(h => { if (h.owner === 'tzintzuntzan' && h.terr !== 'lago') h.raided = Infinity; }); this.chronicle(this.t('cronica.capital_rendida'), 'crisis'); g.invasor = null; g.invasionAnio = 9999; g.capitalCaida = true; g.fin = 'capital'; g.ended = true; this.recalc(); this.resolveLog(true); return; } this.clampG(); return; }
     let best = v.pos; for (let k = 0; k < 6; k++) { const n = this.nbIdx(H[v.pos], k); if (n != null && H[n].terr !== 'lago' && d(H[n]) < d(H[best])) best = n; }
     if (best === v.pos) return;
     v.pos = best; H[best].raided = g.t + IV.ocupacion_ticks; enc(); if (!g.invasor) return;
@@ -827,13 +892,23 @@ class Component extends DCLogic {
     const bAct = {}; grp('edificios').forEach((v, i) => { const d = acts.filter(x => x.d.grupo === 'edificios')[i].d; bAct[d.edificio] = { v, d }; });
     return {
       ready: true, notReady: false,
+      reloj: (() => { const R = this.D.C.reloj, v = this.relojVel(), on = !!this.relojOn, espera = on && this.relojEspera(), dia = Math.floor((this.relojFrac || 0) * R.dias_por_veintena) + 1;
+        return { icono: on ? '❚❚' : '▶', fondo: on ? 'linear-gradient(#3a6a3a,#1e3a1e)' : 'linear-gradient(#8a3322,#5a1e12)', tip: this.t(on ? 'reloj.pausar' : 'reloj.correr'),
+          velocidad: String(v), velTip: this.t('reloj.velocidad_tip'), opciones: R.segundos.map((x, i) => ({ id: String(i + 1), label: this.t('reloj.velocidad', { n: i + 1, s: x }) })),
+          cambiar: (e) => { this.relojV = +e.target.value; this.forceUpdate(); },
+          avance: Math.round(100 * (this.relojFrac || 0)) + '%', dia: espera && g.modal ? this.t('reloj.detenido') : this.t('reloj.dia', { d: dia, total: R.dias_por_veintena }), diaTip: this.t('reloj.dia_tip') }; })(),
       rulerLine: this.t('hud.cazonci', { nombre: g.chars[g.ruler].name }),
+      dificultad: this.dificultad || g.dificultad, dificultadTip: this.t('dificultad.tip'),
+      dificultadOpts: Object.keys(this.D.C0.dificultades || {}).filter(k => k[0] !== '_').map(id => ({ id, label: this.t('dificultad.' + id) })),
+      onDificultad: (e) => { const v = e.target.value; this.dificultad = v;
+        if (g.t === 0 && !g.ended) { this.newGame(); } else if (!g.ended) this.chronicle(this.t('cronica.dificultad_proxima', { nivel: this.t('dificultad.' + v) }), 'consequence');
+        this.forceUpdate(); },
       lDisp: st.lo === false ? 'none' : 'flex', rDisp: st.ro === false ? 'none' : 'flex', lW: st.lo === false ? '36px' : '300px', lBtn: st.lo === false ? '▶' : '◀ Ocultar', lTitle: st.lo === false ? 'Mostrar paneles' : 'Ocultar paneles', rBtn: st.ro === false ? '◀' : '▶ Ocultar', rTitle: st.ro === false ? 'Mostrar paneles' : 'Ocultar paneles', toggleL: () => this.setState({ lo: st.lo === false }), toggleR: () => this.setState({ ro: st.ro === false }),
       mapT: 'translate(' + (st.mx || 0) + 'px,' + (st.my || 0) + 'px) scale(' + (st.mz || 1) + ')', mapWheel: this.mapWheel, mapDown: this.mapDown, mapMove: this.mapMove, mapUp: this.mapUp, mapZ: { in: this.mapIn, out: this.mapOut, reset: this.mapReset },
       selT: { eficiencia: this.t('sel.eficiencia'), pob: this.t('sel.poblacion'), ingreso: this.t('sel.ingreso', { valor: '@@' }).split('@@')[0].trim(), anio: this.t('comun.por_anio'), lealtad: this.t('sel.lealtad'), agravio: this.t('sel.agravio'), guarnicion: this.t('sel.guarnicion'), garMax: this.t('sel.guarnicion_max', { max: '@@' }).split('@@')[0].trim() },
       pan: { popsNota: this.t('pops.nota'), prod: this.t('paneles.produccion_territorio'), balance: this.t('paneles.balance_veintena'), iretas: this.t('paneles.iretas_contribuyentes'), capitan: this.t('paneles.capitan_ejercito'), herederoLabel: this.t('paneles.heredero', { nombre: '' }).trim(), reino: this.t('paneles.reino'), prisTit: this.t('paneles.prisioneros_titulo', { n: f(g.prisoners) }), presupuesto: this.t('paneles.presupuesto'), diplomacia: this.t('paneles.diplomacia'), eventos: this.t('paneles.eventos_alertas'), cronica: this.t('paneles.cronica_reciente'), verCronica: this.t('paneles.ver_cronica') },
       mapa: { lago: this.t('mapa.lago_patzcuaro'), frontera: this.t('mapa.frontera_chichimeca'), valle1: this.t('mapa.valle_de_mexico').split(' ').slice(0, 2).join(' '), valle2: this.t('mapa.valle_de_mexico').split(' ').slice(2).join(' '), minimapa: this.t('mapa.minimapa') },
-      fin: { titulo: this.t('fin.titulo', { anio: String(g.endYear) }), logTitulo: this.t('fin.log_titulo'), cron: this.t('fin.boton_cronica'), exportar: this.t('fin.boton_exportar'), reiniciar: this.t('fin.boton_reiniciar') },
+      fin: { dificultad: this.t('fin.dificultad'), titulo: this.t('fin.titulo', { anio: String(g.endYear) }) + ' · ' + this.t('dificultad.' + g.dificultad), logTitulo: this.t('fin.log_titulo'), cron: this.t('fin.boton_cronica'), exportar: this.t('fin.boton_exportar'), reiniciar: this.t('fin.boton_reiniciar') },
       hud: { titulo: this.t('hud.titulo_reino'), retCaz1: this.t('hud.retrato_cazonci').split(' ')[0], retCaz2: this.t('hud.retrato_cazonci').split(' ')[1], veintena: this.t('hud.veintena', { n: g.v, total: TY }), anio: this.t('hud.anio', { anio: String(g.year) }), avanzar: this.t('hud.avanzar'), avanzarT: this.t('hud.avanzar_titulo'), hasta: this.t('hud.hasta_decision'), hastaT: this.t('hud.hasta_decision_titulo'), decis: this.t('hud.etiqueta_decisiones'), rumbo: this.t('hud.etiqueta_rumbo'), cron: this.t('hud.boton_cronica'), cronT: this.t('hud.boton_cronica_titulo'), log: this.t('hud.boton_log'), logT: this.t('hud.boton_log_titulo') },
       chips: [
         { color: '#e2bf52', l: this.t('chips.tesoro.letra'), tip: this.t('chips.tesoro.tip'), value: f(g.treasury), vc: g.debtTicks ? '#e8876c' : '#f3e8cf', trend: this.t('chips.tesoro.trend', { neto: this.sg(Math.round(net / TY)) }), tc: this.col(net) },
@@ -863,7 +938,7 @@ class Component extends DCLogic {
       goods: [['maiz', 'Maíz'], ['pescado', 'Pescado'], ['sal', 'Sal'], ['cobre', 'Cobre'], ['obsidiana', 'Obsidiana'], ['mantas', 'Mantas']].map(([k, n]) => ({ n, c: RC[k][1], v: f(prodTot[k] || 0) })),
       balance: [{ k: 'Ingresos', v: '+' + f(inc / TY), c: '#a9cc62' }, ...this.expenseLines().filter(l => l.v).map(l => ({ k: l.k, v: '−' + f(l.v / TY), c: '#e8876c' })), { k: 'Neto', v: this.sg(Math.round(net / TY)), c: this.col(net) }],
       contrib: g.alts.map(a => { const s = status(a); return { n: a.name, s: s[0], sc: s[1], v: a.independent ? '—' : f(this.income(a)), onClick: () => this.setState({ sel: a.id, selSet: a.name }) }; }),
-      taxSliders: [['tributo', this.t('paneles.tasa_tributo'), this.t('paneles.tasa_tributo_nota', { agravio: this.sg(this.tx(g.taxes.tributo - 3)) })], ['impuesto', this.t('paneles.impuesto_interno'), this.t('paneles.impuesto_interno_nota', { agravio: this.sg(this.tx(g.taxes.impuesto - 3)) })]].map(([k, n, note]) => ({ n, v: g.taxes[k], note, onChange: (e) => { g.taxes[k] = +e.target.value; this.forceUpdate(); } })),
+      taxSliders: [['tributo', this.t('paneles.tasa_tributo'), this.t('paneles.tasa_tributo_nota', { agravio: this.sg(this.tx(g.taxes.tributo - 3)) })], ['impuesto', this.t('paneles.impuesto_interno'), this.t('paneles.impuesto_interno_nota', { agravio: this.sg(this.tx(g.taxes.impuesto - 3)) })]].map(([k, n, note]) => ({ n, v: g.taxes[k], note, onChange: (e) => { const v = +e.target.value; if (v > g.taxes[k] && g.locks[k] > g.t) return; g.taxes[k] = v; this.forceUpdate(); } })),
       budget: [['ejercito', this.t('presupuesto.ejercito.nombre'), this.t('presupuesto.ejercito.nota', { mantenimiento: f(g.army * C.economia.mantenimiento_por_soldado) })], ['administracion', this.t('presupuesto.administracion.nombre'), this.t('presupuesto.administracion.nota')], ['obras', this.t('presupuesto.obras.nombre'), this.t('presupuesto.obras.nota')], ['diplomacia', this.t('presupuesto.diplomacia.nombre'), this.t('presupuesto.diplomacia.nota')]].map(([k, n, note]) => ({ n, v: g.budget[k], note: note + ' · ' + f(g.budget[k] * C.economia.tesoro_por_punto_presupuesto) + '/año', onChange: (e) => { g.budget[k] = +e.target.value; this.forceUpdate(); } })),
       budgetSum: Object.values(g.budget).reduce((s, x) => s + x, 0), budgetColor: Object.values(g.budget).reduce((s, x) => s + x, 0) > 100 ? '#e8876c' : '#c8b48a',
       court: Object.entries(g.chars).filter(([i]) => i !== 'vacante').map(([i, c]) => { const gv = g.alts.find(a => a.governor === i); return { name: c.name, role: !c.alive ? this.t('roles.difunto') : i === g.ruler ? this.t('roles.cazonci') : i === g.cazonci.heir ? this.t('roles.heredero') : i === g.captain ? this.t('roles.capitan') : gv ? this.t('roles.gobernador', { alt: gv.name }) : '', stats: this.t('stats_corte.formato', { edad: c.age, admin: c.admin, mando: c.command }), op: c.alive ? 1 : 0.45 }; }),
@@ -893,7 +968,7 @@ class Component extends DCLogic {
       alerts: alerts.slice(0, 5), chronShort: g.chron.slice(-6).reverse().map(cc), chronAll: g.chron.slice().reverse().map(cc),
       modal: M ? { title: M.title, cuerpo: M.cuerpo, desc: M.desc, kind: M.kind === 'crisis' ? this.t('modal.crisis') : this.t('modal.decision'), kc: M.kind === 'crisis' ? '#ee9a80' : '#e0c48a' } : false,
       modalOptions: M ? M.options.map((o, i) => ({ title: o.title, cost: o.cost, why: o.why, off: !o.ok, op: o.ok ? 1 : 0.45, pick: () => this.pick(i) })) : [],
-      ended: g.ended, endColor: rub ? '#a9cc62' : '#e8876c', endRubric: rub ? this.t('fin.rubrica_si') : this.t('fin.rubrica_no'),
+      ended: g.ended, endColor: rub ? '#a9cc62' : '#e8876c', endRubric: (g.ended ? this.veredicto().texto + ' · ' + this.veredicto().metas.map(x => (x.ok ? '✓ ' : '✗ ') + x.k).join(' · ') + ' · ' : '') + (rub ? this.t('fin.rubrica_si') : this.t('fin.rubrica_no')),
       endStats: [[this.t('fin.stats.tesoro'), f(g.treasury)], [this.t('fin.stats.prestigio'), g.prestige], [this.t('fin.stats.ejercito'), f(g.army)], [this.t('fin.stats.territorio'), this.metrics().ter + ' ' + this.t('comun.hexes')], [this.t('fin.stats.lealtad_media'), Math.round(avgL)], [this.t('fin.stats.decisiones'), total], [this.t('fin.stats.de_rumbo'), chg], [this.t('fin.stats.iretas_rebeldes'), g.alts.filter(a => a.independent).length], [this.t('fin.stats.cazonci'), g.chars[g.ruler].name]].map(([k, v]) => ({ k, v })),
       endLog: g.log.map(e => ({ when: e.year + '·V' + e.v, what: e.decision === e.option ? e.decision : this.t('fin.log_what', { decision: e.decision, opcion: e.option }), why: e.why || '—', color: e.changing ? '#a9cc62' : '#c8b48a' })),
       restart: () => { this.newGame(); this.setState({ chron: false }); this.forceUpdate(); }
