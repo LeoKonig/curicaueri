@@ -197,5 +197,6 @@ juegoDatos c dr = let bienes = bienesDe (drTerrenos dr) in Juego
   , juegoDerivar     = \g _ p -> derivarPurepecha c dr g (persistenteJuego p)
   , juegoProyectar   = proyectar
   , juegoAgentes     = Map.empty
-  , juegoCatalogoMag = Map.unions [catalogoMag, catalogoGrupos (drGrupos dr), catalogoBienes bienes]
+  , juegoCatalogoMag = Map.unions [ catalogoMag, catalogoGrupos (drGrupos dr), catalogoBienes bienes
+                                  , catalogoConocimientos (drEdificios dr) ]
   }

@@ -31,6 +31,15 @@ module Reglas.Edificios
   , Nivel (..)
   , Culto (..)
   , Tradicion (..)
+  , Conocimiento (..)
+  , conocimientos
+  , magCodificado
+  , magTacito
+  , catalogoConocimientos
+  , conConocimientos
+  , dominio
+  , productividad
+  , fuentePractica
   , edificiosVacios
   , cargarEdificios
   , idsEdificios
@@ -129,6 +138,16 @@ data Tradicion = Tradicion
   , trGradiente   :: Bool
   } deriving (Eq, Show)
 
+-- | Un conocimiento del oficio (V5, *Tecnología y educación*; *Las obras*,
+-- etapa 3): sus bases en el escenario y cuánto enseña la práctica. Sus dos
+-- magnitudes son de la facción.
+data Conocimiento = Conocimiento
+  { cnId         :: Text
+  , cnCodificado :: Fijo   -- ^ base de @conocimiento.<id>.codificado@
+  , cnTacito     :: Fijo   -- ^ base de @conocimiento.<id>.tacito@
+  , cnPractica   :: Fijo   -- ^ α: la práctica aporta α · ln(1 + n) al tácito
+  } deriving (Eq, Show)
+
 data DefEdificio = DefEdificio
   { deId          :: Text
   , deCostoValor  :: Fijo                -- ^ unidades de valor, del tesoro
@@ -138,6 +157,7 @@ data DefEdificio = DefEdificio
   , deCuadrillaMax :: Int
   , deMaximo      :: Maybe Int           -- ^ copias por altépetl; sin límite por omisión
   , deCulto       :: Maybe Culto
+  , deOficio      :: Maybe (Text, Fijo)  -- ^ conocimiento y dominio mínimo; sin oficio por omisión
   , deMods        :: [DefModEdificio]
   , deAlTerminar  :: [EfectoTerminar]
   } deriving (Eq, Show)
@@ -148,13 +168,59 @@ conCuadrilla d = deTrabajo d > Fijo 0 || not (Map.null (deMateriales d))
 
 -- | Los edificios por id. El orden del archivo se conserva para el catálogo.
 data Edificios = Edificios
-  { edOrden       :: [Text]
-  , edDefs        :: Map Text DefEdificio
-  , edTradiciones :: [Tradicion]
+  { edOrden         :: [Text]
+  , edDefs          :: Map Text DefEdificio
+  , edTradiciones   :: [Tradicion]
+  , edConocimientos :: [Conocimiento]
   } deriving (Eq, Show)
 
 edificiosVacios :: Edificios
-edificiosVacios = Edificios [] Map.empty []
+edificiosVacios = Edificios [] Map.empty [] []
+
+conocimientos :: Edificios -> [Conocimiento]
+conocimientos = edConocimientos
+
+magCodificado, magTacito :: Text -> Magnitud
+magCodificado k = Magnitud ("conocimiento." <> k <> ".codificado")
+magTacito k     = Magnitud ("conocimiento." <> k <> ".tacito")
+
+rangoConocimiento :: RangoMag
+rangoConocimiento = RangoMag (Fijo 0) (fi 100)
+
+-- | Las dos magnitudes de cada conocimiento, para el catálogo del juego.
+catalogoConocimientos :: Edificios -> Map Magnitud DefMagnitud
+catalogoConocimientos eds = Map.fromList
+  [ (m, DefMagnitud n rangoConocimiento ("m." <> n) Nothing False)
+  | k <- edConocimientos eds, m@(Magnitud n) <- [magCodificado (cnId k), magTacito (cnId k)] ]
+
+-- | El escenario con las bases de cada conocimiento en la facción.
+conConocimientos :: Edificios -> Estado Purepecha -> Estado Purepecha
+conConocimientos eds est =
+  let p = estadoPersistente est
+      com = persistenteComun p
+      alm = foldl' (\al k -> fijarBase entFaccion (magTacito (cnId k)) (cnTacito k)
+                               (fijarBase entFaccion (magCodificado (cnId k)) (cnCodificado k) al))
+                   (comunMagnitudes com) (edConocimientos eds)
+      p' = p { persistenteComun = com { comunMagnitudes = alm } }
+  in est { estadoPersistente = p', estadoOrigen = Origen (estadoTick est) p' }
+
+-- | El dominio de un conocimiento (fórmula con nombre @dominio_tecnologia@,
+-- sección 14e; provisional: el mínimo del codificado y el tácito), con sus
+-- valores efectivos.
+dominio :: Estado Purepecha -> Text -> Fijo
+dominio est k = min (valor (magCodificado k)) (valor (magTacito k))
+  where
+    alm = comunMagnitudes (persistenteComun (estadoPersistente est))
+    valor m = maybe (Fijo 0) (valorEn (derivadoVigentes (estadoDerivado est)) (estadoTick est) rangoConocimiento)
+                (Map.lookup (entFaccion, m) alm)
+
+-- | η: cuánto rinde la gente de la obra, el dominio entre 100; 1 sin oficio.
+productividad :: Estado Purepecha -> DefEdificio -> Fijo
+productividad est d = maybe uno (\(k, _) -> dominio est k ./. desdeEntero 100) (deOficio d)
+
+-- | La fuente del aporte de la práctica al conocimiento tácito.
+fuentePractica :: Text -> Fuente
+fuentePractica k = Fuente "practica" k
 
 idsEdificios :: Edificios -> [Text]
 idsEdificios = edOrden
@@ -182,7 +248,7 @@ fuenteEdificio e (AltId a) = Fuente "edificio" (e <> ":" <> T.pack (show a))
 cargarEdificios :: Text -> Map Magnitud DefMagnitud -> Value -> Validacion Edificios
 cargarEdificios archivo catalogo v = case A.parseEither leer v of
   Left e -> falla (ErrorCarga ErrorEstructura archivo "" (T.pack e))
-  Right (trads, crudos) ->
+  Right (trads, cons, crudos) ->
     let ids = [ crId c | c <- crudos ]
         repetidos = traverse (\i -> if length (filter (== i) ids) > 1
                                       then err ErrorEsquema ("edificios." <> i) "edificio repetido"
@@ -191,16 +257,28 @@ cargarEdificios archivo catalogo v = case A.parseEither leer v of
         tradRep = traverse (\i -> if length (filter (== i) tradIds) > 1
                                     then err ErrorEsquema ("tradiciones." <> i) "tradición repetida"
                                     else pure ()) (nub tradIds)
-    in (\_ _ ds -> Edificios ids (Map.fromList [ (deId d, d) | d <- ds ]) trads)
-         <$> repetidos <*> tradRep <*> traverse (validar tradIds) crudos
+        conIds = map cnId cons
+        conRep = traverse (\i -> if length (filter (== i) conIds) > 1
+                                    then err ErrorEsquema ("conocimientos." <> i) "conocimiento repetido"
+                                    else pure ()) (nub conIds)
+        conOk = traverse (\k ->
+                  let r x = "conocimientos." <> cnId k <> "." <> x
+                      rango x y = if y >= Fijo 0 && y <= fi 100 then pure () else err ErrorRango (r x) "fuera de 0..100"
+                  in rango "codificado" (cnCodificado k) *> rango "tacito" (cnTacito k)
+                     *> (if cnPractica k >= Fijo 0 then pure () else err ErrorRango (r "practica") "no puede ser negativa"))
+                cons
+    in (\_ _ _ _ ds -> Edificios ids (Map.fromList [ (deId d, d) | d <- ds ]) trads cons)
+         <$> repetidos <*> tradRep <*> conRep <*> conOk <*> traverse (validar tradIds conIds) crudos
   where
     err :: CategoriaError -> Text -> Text -> Validacion b
     err cat ruta msg = falla (ErrorCarga cat archivo ruta msg)
     leer = A.withObject "edificios" $ \o -> do
       ts <- o A..:? "tradiciones" A..!= [] >>= mapM (A.withObject "tradicion" (\t ->
               Tradicion <$> t A..: "id" <*> t A..:? "identidades" A..!= [] <*> t A..:? "por_gradiente" A..!= False))
+      cs <- o A..:? "conocimientos" A..!= [] >>= mapM (A.withObject "conocimiento" (\k ->
+              Conocimiento <$> k A..: "id" <*> k A..: "codificado" <*> k A..: "tacito" <*> k A..:? "practica" A..!= Fijo 0))
       es <- o A..: "edificios" >>= mapM edificio
-      pure (ts, es)
+      pure (ts, cs, es)
     edificio = A.withObject "edificio" $ \o -> do
       i     <- o A..: "id"
       costo <- o A..: "costo"
@@ -212,10 +290,12 @@ cargarEdificios archivo catalogo v = case A.parseEither leer v of
       cmax  <- o A..:? "cuadrilla_maxima" A..!= 0
       maxi  <- o A..:? "maximo"
       cultoV <- o A..:? "culto"
+      oficio <- o A..:? "oficio" >>= traverse (A.withObject "oficio" (\f ->
+                  (,) <$> f A..: "conocimiento" <*> f A..: "dominio_minimo"))
       mods  <- o A..:? "modificadores" A..!= []
       fins  <- o A..:? "al_terminar" A..!= []
-      pure (Crudo i val vs trab mats ins cmax maxi cultoV mods fins)
-    validar tradIds c =
+      pure (Crudo i val vs trab mats ins cmax maxi cultoV oficio mods fins)
+    validar tradIds conIds c =
       let i = crId c
           ruta x = "edificios." <> i <> "." <> x
           positivoOCero r x msg = if x >= Fijo 0 then pure () else err ErrorRango r msg
@@ -239,12 +319,19 @@ cargarEdificios archivo catalogo v = case A.parseEither leer v of
           modsV  = traverse (modificador (ruta "modificadores")) (zip [0 :: Int ..] (crMods c))
           finsV  = traverse (efecto (ruta "al_terminar")) (zip [0 :: Int ..] (crFins c))
           def cu ms fs = DefEdificio i (crValor c) (crVeintenas c) (crTrabajo c) (crMateriales c)
-                                     (crCuadrillaMax c) (crMaximo c) cu ms fs
+                                     (crCuadrillaMax c) (crMaximo c) cu (crOficio c) ms fs
+          oficioOk = case crOficio c of
+            Nothing -> pure ()
+            Just (k, dmin) ->
+              (if k `elem` conIds then pure ()
+               else err ErrorReferencia (ruta "oficio.conocimiento") ("conocimiento que el archivo no declara: " <> k))
+              *> (if dmin >= Fijo 0 && dmin <= fi 100 then pure ()
+                  else err ErrorRango (ruta "oficio.dominio_minimo") "fuera de 0..100")
           sinCulto cu ms = if any ((== FPorAsistentes) . dmeFormula) ms && cu == Nothing
                              then err ErrorEsquema (ruta "culto") "un beneficio «por_asistentes» necesita el culto del templo"
                              else pure ()
       in (\cu ms fs -> def cu ms fs) <$> cultoV <*> modsV <*> finsV
-           <* valorOk <* trabOk <* matsOk <* veintOk <* insOk <* cuadOk <* maxOk
+           <* valorOk <* trabOk <* matsOk <* veintOk <* insOk <* cuadOk <* maxOk <* oficioOk
            <* (case (valValor cultoV, valValor modsV) of
                  (Just cu, Just ms) -> sinCulto cu ms
                  _ -> pure ())
@@ -301,6 +388,7 @@ cargarEdificios archivo catalogo v = case A.parseEither leer v of
 data Crudo = Crudo
   { crId :: Text, crValor :: Fijo, crVeintenas :: Int, crTrabajo :: Fijo, crMateriales :: Map Text Fijo
   , crInsumos :: [Value], crCuadrillaMax :: Int, crMaximo :: Maybe Int, crCulto :: Maybe Value
+  , crOficio :: Maybe (Text, Fijo)
   , crMods :: [Value], crFins :: [Value] }
 
 -- ---------------------------------------------------------------------------
@@ -454,6 +542,11 @@ iniciarObra c eds eid alt cuadrilla est = do
     else if cuadrilla /= 0
       then Left (Rechazo (eid <> " no lleva cuadrilla"))
       else Right ()
+  case deOficio d of
+    Just (k, dmin) | dominio est k < dmin ->
+      Left (Rechazo ("falta oficio para " <> eid <> ": " <> k <> " " <> mostrarFijo (dominio est k)
+                     <> ", mínimo " <> mostrarFijo dmin))
+    _ -> Right ()
   let tesoro = baseFaccion magTesoro est
   if tesoro < deCostoValor d
     then Left (Rechazo ("no alcanza el tesoro: " <> eid <> " cuesta " <> mostrarFijo (deCostoValor d)
@@ -481,7 +574,8 @@ construccion c eds = Sistema
   { sisNombre   = NombreSistema "construccion"
   , sisCadencia = Periodo
   , sisLee      = Set.empty
-  , sisEscribe  = Set.fromList (magTesoro : [ dmeMagnitud m | d <- Map.elems (edDefs eds), m <- deMods d ]
+  , sisEscribe  = Set.fromList (magTesoro : map (magTacito . cnId) (edConocimientos eds)
+                                ++ [ dmeMagnitud m | d <- Map.elems (edDefs eds), m <- deMods d ]
                                 ++ [ m | d <- Map.elems (edDefs eds), SumarBase _ m _ <- deAlTerminar d ])
   , sisEjecutar = \_ est ->
       if Map.null (edDefs eds) then (est, []) else
@@ -506,6 +600,9 @@ avanzar c eds umbral (est, hs, restante) (alt, o) = case Map.lookup (obEdificio 
     | otherwise ->
         let t = let Tick x = estadoTick est in fromIntegral x :: Int
             der = derivadoJuego (estadoDerivado est)
+            -- η, el oficio: el dominio del conocimiento entre 100 (1 sin oficio).
+            -- Sin ningún dominio la gente no rinde nada: la obra espera.
+            eta = max (Fijo 1) (productividad est d)
             -- 1. Llegan las entregas de tributo cuyo día llegó, si el tesoro
             --    paga su transporte; si no, esperan a la veintena siguiente.
             llegar (e, acop, quedan) en
@@ -527,8 +624,8 @@ avanzar c eds umbral (est, hs, restante) (alt, o) = case Map.lookup (obEdificio 
                   dist = Map.lookup alt (dpDistancias der) >>= Map.lookup (toFuente tr)
               in case dist of
                    Just dd | falta > Fijo 0, not (null celdas) ->
-                     let e = min (toCuadrilla tr) (trabajadoresPara falta celdas)
-                         x = min falta (Map.findWithDefault (Fijo 0) g (produccionCeldas e celdas))
+                     let e = min (toCuadrilla tr) (trabajadoresPara (falta ./. eta) celdas)
+                         x = min falta (eta .*. Map.findWithDefault (Fijo 0) g (produccionCeldas e celdas))
                      in if x <= Fijo 0 then ec
                         else ec ++ [Entrega g x (toFuente tr) (t + diasDeTransporte c dd) (cCostoTransporte c .*. x .*. dd)]
                    _ -> ec
@@ -544,15 +641,15 @@ avanzar c eds umbral (est, hs, restante) (alt, o) = case Map.lookup (obEdificio 
               let falta = faltaDe g acop enCamino2
                   celdas = Map.findWithDefault [] g mats
               in if falta <= Fijo 0 || libres <= 0 || null celdas then (libres, acop) else
-                 let e = min libres (trabajadoresPara falta celdas)
-                     x = min falta (Map.findWithDefault (Fijo 0) g (produccionCeldas e celdas))
+                 let e = min libres (trabajadoresPara (falta ./. eta) celdas)
+                     x = min falta (eta .*. Map.findWithDefault (Fijo 0) g (produccionCeldas e celdas))
                  in (libres - e, Map.insert g (Map.findWithDefault (Fijo 0) g acop .+. x) acop)
             (libresL, acopio2) = foldl' extraer (cef, acopio1) (Map.toList (deMateriales d))
             fraccion = if Map.null (deMateriales d) then uno
                        else minimum [ min uno (Map.findWithDefault (Fijo 0) g acopio2 ./. m)
                                     | (g, m) <- Map.toList (deMateriales d) ]
             tope = deTrabajo d .*. fraccion
-            trabajo' = max (obTrabajo o) (min tope (obTrabajo o .+. desdeEntero libresL))
+            trabajo' = max (obTrabajo o) (min tope (obTrabajo o .+. eta .*. desdeEntero libresL))
             o' = o { obAcopio = acopio2, obEnCamino = enCamino2 }
         in if cef == 0
              then terminarSi d o' restante est1
@@ -571,7 +668,8 @@ avanzar c eds umbral (est, hs, restante) (alt, o) = case Map.lookup (obEdificio 
               com  = persistenteComun p
               alm  = foldl' (\al (SumarBase e m v) -> sumarBase (entD e) m v al) (comunMagnitudes com) (deAlTerminar d)
               (alm', fuera) = quitarAgravioTributo alt (obTributos o') alm
-              est2 = est1 { estadoPersistente = p { persistenteComun = com { comunMagnitudes = alm' } } }
+              alm'' = maybe alm' (\(k, _) -> practica eds k (persistenteJuego p) alm') (deOficio d)
+              est2 = est1 { estadoPersistente = p { persistenteComun = com { comunMagnitudes = alm'' } } }
               t = estadoTick e0
           in (est2, hs ++ [Hecho "edificio_terminado" t [ref] (Map.fromList [("edificio", deId d)])]
                        ++ map (hechoModificadorTerminado t "fuente") fuera, rest)
@@ -721,6 +819,26 @@ quitarAgravioTributo alt trs alm0 = foldl' quitar (alm0, []) (Map.toList trs)
            Nothing -> (alm, fuera)
            Just x  -> (Map.insert k x { almacenMods = filter ((/= f) . modFuente) (almacenMods x) } alm,
                        fuera ++ filter ((== f) . modFuente) (almacenMods x))
+
+-- | Aprender haciendo (sección 14i): el modificador de la práctica sobre el
+-- conocimiento tácito de la facción, con fuente @practica:<k>@ y valor
+-- α · ln(1 + n), con n los edificios terminados que piden ese oficio. Se fija
+-- al terminar cada obra; no hay otro escritor de ese modificador.
+practica :: Edificios -> Text -> Purepecha -> Almacen -> Almacen
+practica eds k jue alm =
+  case [ cn | cn <- edConocimientos eds, cnId cn == k ] of
+    [] -> alm
+    (cn : _) ->
+      let n = length [ () | a <- Map.elems (ppAltepetl jue), e <- altEdificios a
+                          , Just d <- [Map.lookup e (edDefs eds)], fmap fst (deOficio d) == Just k ]
+          ap = Aporte (cnPractica cn .*. lnF (desdeEntero (n + 1))) (Fijo 0)
+          clave = (entFaccion, magTacito k)
+          f = fuentePractica k
+          x = Map.findWithDefault (AlmacenMag (Fijo 0) []) clave alm
+      in if any ((== f) . modFuente) (almacenMods x)
+           then Map.insert clave x { almacenMods = [ if modFuente m == f then m { modAporte = ap } else m
+                                                 | m <- almacenMods x ] } alm
+           else agregarVarios [Modificador 0 (magTacito k) entFaccion ap f Nothing Nothing Nothing AlcancePropia] alm
 
 negarF :: Fijo -> Fijo
 negarF (Fijo x) = Fijo (negate x)

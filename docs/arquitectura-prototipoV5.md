@@ -1552,7 +1552,7 @@ Cada edificio declara en `ambitos` dónde puede levantarse: en el asentamiento (
 | --- | --- | --- |
 | 1 | Cuadrilla con `retirar_trabajadores`, trabajo, sustento de la partida de obras, duración mínima, materiales extraídos en las celdas del altépetl, beneficio por fórmula (lineal, logarítmica, por asistentes), asistencia a templos locales y centros ceremoniales por tradición, estrato `sacerdote` | 3 (hecha) |
 | 2 | Tributo en especie de materiales, con retraso y costo de transporte | 3 (hecha) |
-| 3 | Oficio: conocimientos con bases del escenario, dominio mínimo, productividad y aprender haciendo | 3 |
+| 3 | Oficio: conocimientos con bases del escenario, dominio mínimo, productividad y aprender haciendo | 3 (hecha) |
 | 4 | Ámbito de celda para cualquier edificio, condición de control, aporte a la influencia, beneficio por guarnición | 4 |
 
 **Compatibilidad.** Un edificio que no declara trabajo, materiales, oficio ni fórmula se comporta como en el primer corte del hito 3: sin cuadrilla, avanza una veintena de obra por cada veintena en que la partida de obras llega al umbral del prototipo, hasta sus veintenas, y aporta un modificador fijo. Los datos y los guardados de ese corte siguen valiendo (regla 8).

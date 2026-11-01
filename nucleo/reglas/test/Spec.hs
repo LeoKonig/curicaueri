@@ -332,7 +332,7 @@ main = do
         dr   = Reglas.Juego.datosVacios { Reglas.Juego.drEdificios = eds, Reglas.Juego.drTerrenos = terrenosArchivo }
         j    = Reglas.Juego.juegoDatos constantesDefault dr
         conDerivado e = e { estadoDerivado = derivar j (entGrafo ent) (estadoTick e) (estadoPersistente e) }
-        e0   = conDerivado estadoInicial1475
+        e0   = conDerivado (conConocimientos eds estadoInicial1475)
         -- Corre los días [desde .. hasta], con los comandos del primero.
         correrDias cmds desde hasta est0 =
           foldl' (\(e, hs) t -> let (e', hs') = paso j ent (Semilla 1) (Tick t)
@@ -358,7 +358,7 @@ main = do
                        in conDerivado st { estadoPersistente = p { persistenteJuego = ju { ppPops = Map.map f (ppPops ju) } } }
         terminadoEn hs = [ t | h <- hs, hechoTipo h == "edificio_terminado", let Tick t = hechoTick h ]
         -- La yácata de Zacapu con una cuadrilla de 500, hasta terminarla.
-        (conYacata, hsYacata) = correrDias (construir "yacata" 2 500) 0 400 e0
+        (conYacata, hsYacata) = correrDias (construir "yacata" 2 500) 0 800 e0
         diaYacata = case terminadoEn hsYacata of { (t : _) -> t; [] -> -1 }
         def e = maybe (error ("falta " <> T.unpack e)) id (defEdificio eds e)
         culto e = deCulto (def e)
@@ -514,6 +514,61 @@ main = do
       [ dpNombre p | d <- catalogoComandosConMateriales ["yacata"] ["madera", "piedra"], dcTipo d == "pedir_tributo_obra", p <- dcParametros d ]
         `shouldBe` ["altepetl", "material", "fuente", "cuadrilla"]
 
+    it "oficio: datos/edificios.json declara los conocimientos y el dominio es el mínimo de codificado y tácito" $ do
+      map cnId (conocimientos eds) `shouldBe` ["arquitectura_ceremonial", "canteria"]
+      dominio e0 "arquitectura_ceremonial" `shouldBe` fi 45
+      dominio e0 "canteria" `shouldBe` fi 55
+      productividad e0 (def "yacata") `shouldBe` Fijo 4500
+      productividad e0 (def "troje") `shouldBe` uno
+
+    it "oficio: la carga rechaza un conocimiento desconocido, un mínimo o una base fuera de rango y uno repetido" $ do
+      let o = A.object
+          malo = o [ "conocimientos" A..= [ o ["id" A..= ("c" :: Text), "codificado" A..= ("120" :: Text), "tacito" A..= ("1" :: Text)]
+                                         , o ["id" A..= ("c" :: Text), "codificado" A..= ("1" :: Text), "tacito" A..= ("1" :: Text)] ]
+                   , "edificios" A..= [ o [ "id" A..= ("a" :: Text), "costo" A..= o ["valor" A..= ("1" :: Text), "veintenas" A..= (1 :: Int)]
+                                          , "oficio" A..= o ["conocimiento" A..= ("magia" :: Text), "dominio_minimo" A..= ("101" :: Text)] ] ] ]
+          Validacion errs _ = cargarEdificios "malo.json" catalogoMag malo
+      map errRuta errs `shouldMatchList`
+        [ "conocimientos.c", "conocimientos.c.codificado", "edificios.a.oficio.conocimiento", "edificios.a.oficio.dominio_minimo" ]
+
+    it "oficio: sin el dominio mínimo la obra se rechaza sin daño" $ do
+      let sinSaber = conDerivado estadoInicial1475
+      forM_ [ (e0, ConstruirEdificio "gran_yacata" (AltId 1) 1000), (sinSaber, ConstruirEdificio "yacata" (AltId 2) 500) ] $ \(st, c) ->
+        case aplicar1 c st of
+          (st', _, [Rechazo _]) -> foto st' `shouldBe` foto st
+          _ -> expectationFailure ("se esperaba un rechazo: " <> show c)
+
+    it "oficio: con más dominio la misma obra termina antes" $ do
+      let maestros = let p = estadoPersistente e0; com = persistenteComun p
+                     in conDerivado e0 { estadoPersistente = p { persistenteComun = com { comunMagnitudes =
+                          fijarBase entFaccion (magTacito "arquitectura_ceremonial") (fi 100)
+                            (fijarBase entFaccion (magCodificado "arquitectura_ceremonial") (fi 100) (comunMagnitudes com)) } } }
+          (_, hsM) = correrDias (construir "yacata" 2 500) 0 600 maestros
+          (_, hsN) = correrDias (construir "yacata" 2 500) 0 600 e0
+      case (terminadoEn hsM, terminadoEn hsN) of
+        (tm : _, tn : _) -> tm `shouldSatisfy` (< tn)
+        r -> expectationFailure ("las dos obras debían terminar: " <> show r)
+
+    it "aprender haciendo: cada yácata suma al tácito, y dos desbloquean la gran yácata" $ do
+      -- Dos obras a la vez necesitan partida para las dos cuadrillas: 60 puntos son 20 por veintena, 1 000 trabajadores.
+      -- Uruapan no alcanza ninguna sierra (el costo del terreno): su piedra llega como tributo de Tzintzuntzan.
+      let empezar = construir "yacata" 2 500 ++ [Sellado (Tick 0) (FaccionId 1) 1 (ConstruirEdificio "yacata" (AltId 3) 500)]
+          -- Con 60 de partida y dos yácatas el tesoro de 1475 se vacía en unas
+          -- catorce veintenas, y sin tesoro el tributo espera: se le da más.
+          (s0, _) = correrDias empezar 0 0 (conTesoro (fi 10000) (conPresupuestoObras 60 e0))
+          (s1, _) = correrDias [Sellado (Tick 1) (FaccionId 1) 0 (PedirTributoObra (AltId 3) "piedra" (AltId 1) 400)] 1 1 s0
+          (dos, _) = correrDias [] 2 900 s1
+          tacito st = maybe (Fijo 0) (valorEn (derivadoVigentes (estadoDerivado st)) (estadoTick st) (RangoMag (Fijo 0) (fi 100)))
+                        (Map.lookup (entFaccion, magTacito "arquitectura_ceremonial") (alm st))
+      map (altEdificios . flip altDe dos) [2, 3] `shouldBe` [["yacata"], ["yacata"]]
+      cercaCon 20 (tacito dos) (45 + 5 * log 3)   -- el ln en punto fijo tiene error de unas diezmilésimas
+      [ modFuente m | m <- maybe [] almacenMods (Map.lookup (entFaccion, magTacito "arquitectura_ceremonial") (alm dos)) ]
+        `shouldBe` [fuentePractica "arquitectura_ceremonial"]
+      dominio dos "arquitectura_ceremonial" `shouldSatisfy` (>= fi 50)
+      case aplicar1 (ConstruirEdificio "gran_yacata" (AltId 1) 1000) dos of
+        (_, _, []) -> pure ()
+        (_, _, rs) -> expectationFailure ("rechazado: " <> show rs)
+
     it "la obra extrae su material, trabaja y termina; nunca antes de su duración mínima" $ do
       diaYacata `shouldSatisfy` (>= 7 * 20)
       altObra (altDe 2 conYacata) `shouldBe` Nothing
@@ -566,12 +621,12 @@ main = do
 
     it "sin sacerdotes una yácata no atiende a nadie" $ do
       let sinSacerdotes = conPops (\pop -> if popEstrato pop == "sacerdote" then pop { popTamano = 0 } else pop) conYacata
-          (st, _) = correrDias [] 401 420 sinSacerdotes
+          (st, _) = correrDias [] 801 820 sinSacerdotes
       efectivo (entRefAlt (AltId 2)) magTasaAgravio st `shouldBe` Fijo 0
 
     it "la religión decide: con gradiente 1 nadie va a la yácata, y nadie va a un templo de otra tradición" $ do
       let catolicos = conPops (\pop -> pop { popGradiente = uno }) conYacata
-          (st, _) = correrDias [] 401 420 catolicos
+          (st, _) = correrDias [] 801 820 catolicos
           trPurepecha = head [ t | t <- tradiciones eds, trId t == "purepecha" ]
           trCatolica  = head [ t | t <- tradiciones eds, trId t == "catolica" ]
           popDe i = jue conYacata `seq` (ppPops (jue conYacata) Map.! PopId i)

@@ -81,7 +81,7 @@ import Reglas.Comando
 import Reglas.Constantes (constantesDefault)
 import Reglas.Escenario
 import Reglas.Estado (Purepecha, ppAltepetl, ppPops)
-import Reglas.Edificios (cargarEdificios, edificiosVacios, idsEdificios)
+import Reglas.Edificios (cargarEdificios, conConocimientos, edificiosVacios, idsEdificios)
 import Reglas.Produccion (bienesDe)
 import Motor.Terrenos (DefTerreno (..), cargarTerrenos, conCostoDeTerreno, validarTerrenosDelMapa)
 import Motor.Recorrido (grafoDe)
@@ -183,7 +183,7 @@ main = do
                        (a, _ : b) | [(x, "")] <- reads a, [(y, "")] <- reads b -> (x, y)
                        _ -> (0, 0)
       eSinGrupos = escalar (ancho * alto) escN escK (reubicar ancho alto estadoInicial1475)
-  eConGrupos <- validado (conGrupos (T.pack (opcion "--grupos" "")) grupos tipoFaccion1475 eSinGrupos)
+  eConGrupos <- conConocimientos edificios <$> validado (conGrupos (T.pack (opcion "--grupos" "")) grupos tipoFaccion1475 eSinGrupos)
   -- El derivado del estado inicial (qué celdas trabaja cada altépetl), para
   -- que la primera veintena ya produzca. Es el mismo que daría cargar la
   -- partida en el tick 0.
