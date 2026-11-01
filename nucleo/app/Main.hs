@@ -29,7 +29,7 @@
 module Main (main) where
 
 import Control.Concurrent (forkIO, threadDelay)
-import Control.Exception (IOException, bracket, finally, try)
+import Control.Exception (IOException, bracket, evaluate, finally, try)
 import Control.Monad (forM, forM_, unless, when)
 import qualified Data.Aeson as A
 import qualified Data.ByteString.Char8 as BC
@@ -38,7 +38,7 @@ import Data.IORef
 import Data.Int (Int64)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-import GHC.Clock (getMonotonicTimeNSec)
+import GHC.Clock (getMonotonicTime, getMonotonicTimeNSec)
 import Network.Socket
 import System.Environment (getArgs)
 import System.IO
@@ -69,7 +69,7 @@ import Agente
 import Reglas.Comando
 import Reglas.Constantes (constantesDefault)
 import Reglas.Escenario
-import Reglas.Estado (Purepecha)
+import Reglas.Estado (Purepecha, ppAltepetl, ppPops)
 import qualified Reglas.Juego as RJ
 
 -- | Milisegundos por día, de la velocidad 1 (más lenta) a la 5 (más rápida).
@@ -126,7 +126,12 @@ main = do
   mapaR <- either (fail . show) pure (proveedorHexagonal datosMapa1475 { hexAncho = ancho, hexAlto = alto })
   createDirectoryIfMissing True carpeta
   let juego = RJ.juego constantesDefault
-      e0    = reubicar ancho alto estadoInicial1475
+      -- --escala 7500x20: altépetl y pops de prueba para medir el costo a la
+      -- escala del mapa completo (solo para la prueba de rendimiento del núcleo).
+      (escN, escK) = case break (== 'x') (opcion "--escala" "") of
+                       (a, _ : b) | [(x, "")] <- reads a, [(y, "")] <- reads b -> (x, y)
+                       _ -> (0, 0)
+      e0    = escalar (ancho * alto) escN escK (reubicar ancho alto estadoInicial1475)
   agente <- case opcion "--agente" "" of
     "" -> case opcion "--reproducir-agente" "" of
       "" -> pure Nothing
@@ -176,9 +181,18 @@ main = do
 -- final como una instantánea del protocolo.
 sinCliente :: Config -> RJ.JuegoPurepecha -> Mapa -> IORef Partida -> Int -> FilePath -> Bool -> IO ()
 sinCliente conf juego mapaR ref n volcar conMetricas = do
-  forM_ [1 .. n] $ \_ -> avanzar conf juego mapaR ref
+  t0 <- getMonotonicTime
+  forM_ [1 .. n] $ \_ -> do
+    (p0, p1, hs, _, _) <- avanzar conf juego mapaR ref
+    -- Forzar el mensaje de cambios de cada tick, como hace la sesión al enviarlo.
+    evaluate (BL.length (aLinea (NCambios (relojDePartida p1) (cambios (pVista p0) (pVista p1)) hs)))
+  t1 <- getMonotonicTime
   p <- readIORef ref
-  registro ("sin cliente: " <> T.pack (show n) <> " ticks, el estado está en el tick " <> T.pack (show (pSiguiente p - 1)))
+  registro ("sin cliente: " <> T.pack (show n) <> " ticks, el estado está en el tick " <> T.pack (show (pSiguiente p - 1))
+            <> "; " <> T.pack (show (fromIntegral (round (100000 * (t1 - t0) / fromIntegral (max 1 n)) :: Int) / 100 :: Double)) <> " ms por tick en promedio ("
+            <> T.pack (show (Map.size (ppAltepetl (persistenteJuego (estadoPersistente (pEstado p)))))) <> " altépetl, "
+            <> T.pack (show (Map.size (ppPops (persistenteJuego (estadoPersistente (pEstado p)))))) <> " pops, "
+            <> T.pack (show (cAncho conf * cAlto conf)) <> " celdas)")
   unless (null volcar) $ BL.writeFile volcar (aLinea (NInstantanea (relojDePartida p) (pVista p)) <> "\n")
   -- Las métricas del hito 0 sobre lo que presentó el director (V5, criterio del hito 0).
   when conMetricas $ do

@@ -385,6 +385,17 @@ La cercanía física (producción, erosión, frontera) usa d_km; el desplazamien
 
 El orden lexicográfico (distancia, id) hace el desempate determinista. Se calcula con un Dijkstra multifuente sobre d_km.
 
+**Ids globales de celda (V5, *El mapa completo*).** La malla se traza en hojas con proyección de área igual; cada celda tiene coordenadas axiales (q, r) con origen fijo en su hoja h. El id las codifica en el `CeldaId` entero que ya existe, así que el tipo, el `IntMap` y el protocolo no cambian:
+
+```math
+\text{id}(h, q, r) = h \cdot 2^{42} + (q + 2^{20}) \cdot 2^{21} + (r + 2^{20}),
+\qquad |q|, |r| < 2^{20}
+```
+
+Los vecinos se deducen de (q, r); solo las excepciones (ríos, pasos, costas, lagos navegables) se guardan. **Ley de ampliación:** para dos máscaras M ⊆ M', toda celda de M tiene en el mapa de M' el mismo id, los mismos atributos y las mismas conexiones con sus vecinos de M. El proveedor actual (`fila × ancho + columna`) no la cumple y se reemplaza antes de ampliar el mapa.
+
+**Costo y escala.** Las celdas son datos casi fijos: el trabajo de cada tick es proporcional a las entidades que cambian, no a las celdas. Con 150 000 celdas y 150 000 pops de prueba (`--escala 7500x20`), el tick cuesta hoy unos 0,53 s, casi todo en proyectar y comparar la vista entera; lo que lo baja es pasar a `cambiosOpt` (en `Motor.Proyeccion`) el registro de entidades sucias del tick, en lugar de todas.
+
 ## 9. La influencia en el semianillo tropical
 
 La influencia de una fuente s sobre una celda c decae con el costo de llegar:
@@ -935,6 +946,16 @@ Las condiciones son las de la sección 11b, más `Ocurrio hecho`: verdadera si e
 
 Todo lo demás llega a un destino. Un título cuyo destino no puede recibirlo, porque el destino no es soberano ni titular sobre esa entidad, se pierde y lo anota el hecho. Los ids de facción no se reutilizan.
 
+**Condición del altépetl (V5, *Condición del altépetl*).** Entra con las rebeliones del hito 4:
+
+```haskell
+data Condicion = Sujeto | Senorio | Cabecera FaccionId    -- campo altCondicion
+-- por defecto, para los guardados anteriores: Sujeto si altSujetoA = Just _, Cabecera 1 si no
+-- independiente = Cabecera f con f de tipo senorio_independiente
+```
+
+Una rebelión triunfante activa una facción nueva desde la plantilla del tipo `senorio_independiente` (un id nuevo, nunca reutilizado), emite `faccion_aparece` y deja al altépetl como `Cabecera f`; el sometimiento la elimina con `AlAbsorbente` y deja al altépetl como `Senorio` o `Sujeto`. Sujeto y señorío difieren en quién gobierna (gobernador nombrado o señor propio), no en la bolsa: por eso ninguno de los dos es facción.
+
 **Sin un tipo "entidad política".** La interfaz común a facción, señorío y asentamiento ya existe: son las magnitudes, pares (entidad, nombre). El tesoro de un señorío es `altepetl:2 / tesoro`, con el mismo código que el de la facción; los grupos son datos. No se introduce una clase de tipos `Polity` ni un registro con todos los campos opcionales.
 
 ## 14c. Vínculos, concesiones y propuestas (juego completo)
@@ -1383,6 +1404,8 @@ Las reglas del diseño, escritas como propiedades. En un lenguaje puro, "la mism
 | Ruta cortada sin aportes | Si una celda de la ruta está bajo control enemigo, ningún aporte que dependa de la ruta suma al flujo |
 | Guerreros conservados | Desertar, disolverse o amotinarse nunca cambia la población total; solo el combate y el hambre la reducen. Ningún retiro de trabajadores queda negativo |
 | Asedio con costo para ambos | Durante un asedio, el abasto del sitiador sigue sus reglas y las reservas de la plaza no suben sin levantar el sitio |
+| Independencia de la vista | La traza es función solo de (s0, σ, registro de comandos): ni la cámara, ni los paneles abiertos, ni los ajustes gráficos del cliente cambian un solo valor del estado |
+| Condición del altépetl coherente | `altCondicion a == Cabecera f` si y solo si f está activa y a es su centro; un altépetl `Sujeto` o `Senorio` tiene `altSujetoA` y comparte la bolsa de su facción |
 | Crisis del sacrificio única por umbral | Cada umbral dispara la crisis a lo sumo una vez por partida, también tras guardar y cargar |
 
 **Dos leyes que se parecen y no son la misma.** "La explicación es el cálculo" es interna al núcleo: el valor publicado sale de la misma lista que el desglose. La completitud del espejo es entre núcleo y cliente: esa lista llega entera a Godot. Un modificador puede cumplir la primera y fallar la segunda, si el núcleo lo cuenta pero no lo envía. Por eso hacen falta las dos.

@@ -33,6 +33,8 @@ Sin cabal-install, con `runghc Setup.hs` (ver el README). Las pruebas necesitan 
 
 - **Grupos de poder:** `nobleza_guerrera`, `administradores`, `sacerdocio`, `mercaderes`. No son facciones.
 - **Facción:** unidad de decisión con centro, bolsa común y objetivos comunes (las tres preguntas de V5, *Qué es una facción*). No es "territorio, tesoro y títulos". Antes de 1530 los altépetl sujetos no son facciones.
+- **Altépetl:** la unidad política (`altepetl` en el código). En pantalla, el término de cada cultura y época (ireta, altépetl, pueblo de indios). Su condición es sujeto, señorío o independiente; «señorío» es una condición, no otra entidad. No se renombra.
+- **La vista no cambia el resultado:** nada de lo que el cliente mira o ajusta entra en la simulación (V5, *Escala de la simulación*).
 - **Ejes de poder:** coerción, extracción, legitimidad (es `faccion.legitimidad`), administración y red, declarados en `datos/ejes.json`.
 - **Moneda:** el tesoro y los costos se cuentan en unidades de valor. Con moneda designada, las magnitudes nominales (el tesoro) se cuentan en la moneda, y los flujos pasan por `enCuenta` al tipo del día. Ver V5, *La moneda designada y la inflación*.
 - **Bienes como magnitudes de la facción:** `bien.<id>.existencias` y `bien.<id>.produccion`. Su escritor será el sistema de producción del paso 6 (hito 3).

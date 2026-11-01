@@ -103,3 +103,30 @@ reubicar ancho alto e =
       j' = j { ppAltepetl = Map.map mover (ppAltepetl j) }
       p' = p { persistenteJuego = j' }
   in e { estadoPersistente = p', estadoOrigen = Origen (Tick 0) p' }
+
+-- | El escenario con @n@ altépetl sujetos más, de @k@ pops cada uno, repartidos
+-- por un mapa de @celdas@ celdas. Solo sirve para medir cuánto cuesta la
+-- simulación a la escala del mapa completo (unos 7 500 asentamientos y
+-- 150 000 celdas) antes de diseñar optimizaciones. Los altépetl copian a
+-- Zacapu: sujetos de Tzintzuntzan, con su gobernador y su distancia.
+escalar :: Int -> Int -> Int -> Estado Purepecha -> Estado Purepecha
+escalar celdas n k e
+  | n <= 0 || k <= 0 = e
+  | otherwise =
+      let p   = estadoPersistente e
+          j   = persistenteJuego p
+          com = persistenteComun p
+          a0  = 1 + maximum (0 : [ i | AltId i <- Map.keys (ppAltepetl j) ])
+          p0  = 1 + maximum (0 : [ i | PopId i <- Map.keys (ppPops j) ])
+          identidades = ["purepecha", "hnahnu", "nahua"]
+          alts = [ Altepetl (AltId (a0 + x)) "Sujeto de prueba" (Just (PerId 3)) (fi (1 + x `mod` 3))
+                            (Just (AltId 1)) (fi 60) ((x * 7919) `mod` max 1 celdas)
+                 | x <- [0 .. n - 1] ]
+          pops = [ Pop (PopId (p0 + x * k + y)) (AltId (a0 + x)) (identidades !! (y `mod` 3)) "comun" 500 (fi 60)
+                 | x <- [0 .. n - 1], y <- [0 .. k - 1] ]
+          ags  = [ ((entRefPop (popId q), Magnitud "agravio"), AlmacenMag (fi 30) []) | q <- pops ]
+          j'   = j { ppAltepetl = Map.union (ppAltepetl j) (Map.fromList [ (altId a, a) | a <- alts ])
+                   , ppPops     = Map.union (ppPops j) (Map.fromList [ (popId q, q) | q <- pops ]) }
+          com' = com { comunMagnitudes = Map.union (comunMagnitudes com) (Map.fromList ags) }
+          p'   = p { persistenteJuego = j', persistenteComun = com' }
+      in e { estadoPersistente = p', estadoOrigen = Origen (Tick 0) p' }
