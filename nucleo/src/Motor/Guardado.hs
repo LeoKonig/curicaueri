@@ -51,6 +51,30 @@ instance FromJSON Fuente where
   parseJSON = withObject "Fuente" $ \o ->
     Fuente <$> o .: "tipo" <*> o .: "ref"
 
+-- | La condición de un modificador se guarda con sus umbrales y ticks tal
+-- cual (no con las fechas del guion): lo guardado no depende del calendario.
+instance ToJSON Condicion where
+  toJSON = \case
+    Siempre       -> object ["tipo" .= ("siempre" :: Text)]
+    Mayor r m u   -> object ["tipo" .= ("mayor" :: Text), "entidad" .= r, "magnitud" .= m, "umbral" .= u]
+    Menor r m u   -> object ["tipo" .= ("menor" :: Text), "entidad" .= r, "magnitud" .= m, "umbral" .= u]
+    DesdeTick n   -> object ["tipo" .= ("desde_tick" :: Text), "tick" .= n]
+    Todas cs      -> object ["tipo" .= ("todas" :: Text), "condiciones" .= cs]
+    Alguna cs     -> object ["tipo" .= ("alguna" :: Text), "condiciones" .= cs]
+    No c          -> object ["tipo" .= ("no" :: Text), "condicion" .= c]
+instance FromJSON Condicion where
+  parseJSON = withObject "Condicion" $ \o -> do
+    t <- o .: "tipo" :: Parser Text
+    case t of
+      "siempre"    -> pure Siempre
+      "mayor"      -> Mayor <$> o .: "entidad" <*> o .: "magnitud" <*> o .: "umbral"
+      "menor"      -> Menor <$> o .: "entidad" <*> o .: "magnitud" <*> o .: "umbral"
+      "desde_tick" -> DesdeTick <$> o .: "tick"
+      "todas"      -> Todas <$> o .: "condiciones"
+      "alguna"     -> Alguna <$> o .: "condiciones"
+      "no"         -> No <$> o .: "condicion"
+      _            -> fail ("Condicion desconocida: " <> T.unpack t)
+
 instance ToJSON Alcance where
   toJSON = \case
     AlcancePropia -> String "propia"

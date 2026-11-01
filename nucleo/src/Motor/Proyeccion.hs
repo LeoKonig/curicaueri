@@ -10,6 +10,7 @@ import Motor.Estado
 import Motor.Juego
 import Motor.Magnitudes
 import Motor.Vista
+import Data.IntSet (IntSet)
 import Data.Text (Text)
 
 proyeccion :: Juego s c -> Estado s -> Vista
@@ -19,11 +20,12 @@ proyeccion j est = Vista t (Map.fromList [(evRef ev, ev) | ev <- evs])
     alm      = comunMagnitudes (persistenteComun (estadoPersistente est))
     catalogo = juegoCatalogoMag j
     ejJuego  = juegoProyectar j est
-    evs      = map (completar t alm catalogo) ejJuego
+    evs      = map (completar (derivadoVigentes (estadoDerivado est)) t alm catalogo) ejJuego
 
--- | Solo se proyectan los modificadores activos en el tick de la vista.
-completar :: Tick -> Almacen -> Map Magnitud DefMagnitud -> EntidadJuego -> EntidadVista
-completar t alm catalogo ej =
+-- | Solo se proyectan los modificadores que cuentan en el tick de la vista
+-- (en su ventana y, si son condicionales, vigentes).
+completar :: IntSet -> Tick -> Almacen -> Map Magnitud DefMagnitud -> EntidadJuego -> EntidadVista
+completar vig t alm catalogo ej =
   EntidadVista (ejRef ej) (ejCampos ej) mags
   where
     ref  = ejRef ej
@@ -33,7 +35,7 @@ completar t alm catalogo ej =
     deLaEntidad = Map.takeWhileAntitone ((== ref) . fst)
                     (Map.dropWhileAntitone ((< ref) . fst) alm)
     mags = Map.fromList
-      [ (m, magnitudVista dm (almacenBase x) (filter (activoEn t) (almacenMods x)))
+      [ (m, magnitudVista dm (almacenBase x) (filter (cuentaEn vig t) (almacenMods x)))
       | ((_, m), x) <- Map.toList deLaEntidad
       , Just dm <- [Map.lookup m catalogo]
       ]

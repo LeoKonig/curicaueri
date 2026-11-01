@@ -54,22 +54,11 @@ intensidad fuente e = Map.findWithDefault uno fuente (edIntensidades (director e
 -- Condiciones
 -- ---------------------------------------------------------------------------
 
+-- | La condición, evaluada con los modificadores vigentes del derivado actual.
 evaluar :: Map Magnitud DefMagnitud -> Estado s -> Condicion -> Bool
-evaluar cat e = go
-  where
-    alm = comunMagnitudes (persistenteComun (estadoPersistente e))
-    valor r m = case (Map.lookup (r, m) alm, Map.lookup m cat) of
-      (Just x, Just d)  -> valorEn (estadoTick e) (dmRango d) x
-      (Just x, Nothing) -> valorEn (estadoTick e) (RangoMag (Fijo minBound) (Fijo maxBound)) x
-      _                 -> Fijo 0
-    go = \c -> case c of
-      Siempre     -> True
-      Mayor r m u -> valor r m > u
-      Menor r m u -> valor r m < u
-      DesdeTick n -> let Tick t = estadoTick e in t >= n
-      Todas cs    -> all go cs
-      Alguna cs   -> any go cs
-      No c'       -> not (go c')
+evaluar cat e =
+  evaluarCondicion cat (derivadoVigentes (estadoDerivado e)) (estadoTick e)
+                   (comunMagnitudes (persistenteComun (estadoPersistente e)))
 
 -- ---------------------------------------------------------------------------
 -- Fases

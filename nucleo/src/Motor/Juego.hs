@@ -69,7 +69,7 @@ pasoDetallado j ent sigma t cmds s = let (s', hs, r, _) = pasoCompleto j ent sig
 -- director (17).
 pasoCompleto :: Juego s c -> Entorno -> Semilla -> Tick -> [Sellado c] -> [Respuesta] -> Estado s
              -> (Estado s, [Hecho], [(Sellado c, Rechazo)], [(Respuesta, Rechazo)])
-pasoCompleto j ent sigma t cmdsJugador respuestas s00 = (sFinal, hsF ++ hs0 ++ hs1 ++ hsR ++ hs2 ++ hsD, rechazos, rechazosR)
+pasoCompleto j ent sigma t cmdsJugador respuestas s00 = (sFinal, hsF ++ hs0 ++ hs1 ++ hsR ++ hs2 ++ hsV ++ hsD, rechazos, rechazosR)
   where
     guion = entGuion ent
     mapa = entMapa ent
@@ -84,7 +84,7 @@ pasoCompleto j ent sigma t cmdsJugador respuestas s00 = (sFinal, hsF ++ hs0 ++ h
       Right (e', hs') -> (e', hs ++ hs', rs)
       Left m          -> (e, hs, rs ++ [(r, Rechazo m)])
     (s2, hs2)     = correr sigma t (juegoSistemas j) s1
-    s3            = pasoDerivar j mapa t (pasoMoneda (entEconomia ent) t s2)
+    (s3, hsV)     = pasoDerivar j mapa t (pasoMoneda (entEconomia ent) t s2)
     (sFinal, hsD) = pasoDirector (juegoCatalogoMag j) guion (rng sigma "director" t) t s3
 
 pasoAgentes :: Juego s c -> Semilla -> Tick -> Estado s -> ([Sellado c], Estado s)
@@ -115,14 +115,35 @@ pasoAgentes j sigma t s =
   where
     unFid (FaccionId i) = "f" <> T.pack (show i)
 
-pasoDerivar :: Juego s c -> Mapa -> Tick -> Estado s -> Estado s
+-- | El paso 16: al empezar el periodo recalcula el derivado y guarda de qué
+-- se calculó (el origen). Un modificador condicional que estaba vigente y ya
+-- no lo está emite `modificador_terminado` con la razón `condicion`, pero
+-- sigue en el almacén: si su condición vuelve a cumplirse, vuelve a contar.
+-- (Un modificador que expiró ya emitió su hecho al empezar el tick y no está
+-- en el almacén, así que no se anuncia dos veces.)
+pasoDerivar :: Juego s c -> Mapa -> Tick -> Estado s -> (Estado s, [Hecho])
 pasoDerivar j mapa t s =
   let cal = comunCalendario (persistenteComun (estadoPersistente s))
   in if esInicioDePeriodo cal t
-       then let p = estadoPersistente s
-            in s { estadoDerivado = derivar j mapa t p
-                 , estadoOrigen   = Origen t p }
-       else s
+       then let p       = estadoPersistente s
+                d       = derivar j mapa t p
+                antes   = derivadoVigentes (estadoDerivado s)
+                ahora   = derivadoVigentes d
+                perdidos = [ m | x <- Map.elems (comunMagnitudes (persistenteComun p))
+                               , m <- almacenMods x
+                               , modId m `IntSet.member` antes
+                               , not (modId m `IntSet.member` ahora) ]
+            in ( s { estadoDerivado = d, estadoOrigen = Origen t p }
+               , map (hechoModificadorTerminado t "condicion") perdidos )
+       else (s, [])
+
+hechoModificadorTerminado :: Tick -> Text -> Modificador -> Hecho
+hechoModificadorTerminado t razon m =
+  Hecho "modificador_terminado" t [modEntidad m] (Map.fromList
+    [ ("id",       T.pack (show (modId m)))
+    , ("magnitud", let Magnitud n = modMagnitud m in n)
+    , ("fuente",   fuenteTipo (modFuente m))
+    , ("razon",    razon) ])
 
 aplicarCola :: Juego s c -> [Sellado c] -> Estado s
             -> (Estado s, [Hecho], [Rechazo])
@@ -141,14 +162,26 @@ aplicarColaDetallada j cmds s0 = foldl' aplicarUno (s0, [], []) (sortBy cmp cmds
       Left  r         -> (e, hs, rs ++ [(c, r)])
 
 -- | El derivado completo: primero el del juego, luego qué modificadores
--- condicionales están vigentes (vacío hasta el hito 3; la forma ya es final).
+-- condicionales están vigentes.
 derivar :: Juego s c -> Mapa -> Tick -> Persistente s -> Derivado s
-derivar j m t p =
-  let dj = juegoDerivar j m t p
-  in Derivado (vigentesEn t p dj) dj
+derivar j m t p = Derivado (vigentesEn (juegoCatalogoMag j) t p) (juegoDerivar j m t p)
 
-vigentesEn :: Tick -> Persistente s -> DerivadoDe s -> IntSet
-vigentesEn _ _ _ = IntSet.empty
+-- | Los ids de los modificadores condicionales cuya condición se cumple en t.
+-- Las condiciones leen valores efectivos SIN los modificadores condicionales
+-- (se evalúan con un conjunto de vigentes vacío). Es una decisión de diseño:
+-- si una condición pudiera leer una magnitud que otro condicional modifica,
+-- el resultado dependería del orden de evaluación o de un punto fijo. Así el
+-- cálculo es una función pura de (t, persistente), que es lo que exige la ley
+-- del derivado reproducible (documento funcional, sección 4).
+vigentesEn :: Map Magnitud DefMagnitud -> Tick -> Persistente s -> IntSet
+vigentesEn cat t p = IntSet.fromList
+  [ modId m
+  | x <- Map.elems alm
+  , m <- almacenMods x
+  , Just c <- [modCondicion m]
+  , activoEn t m
+  , evaluarCondicion cat IntSet.empty t alm c ]
+  where alm = comunMagnitudes (persistenteComun p)
 
 -- | Al empezar el tick, los modificadores cuyo fin llegó se quitan del
 -- almacén y cada uno emite un hecho `modificador_terminado`. El valor
@@ -157,11 +190,7 @@ pasoExpirar :: Tick -> Estado s -> (Estado s, [Hecho])
 pasoExpirar t s =
   let com          = persistenteComun (estadoPersistente s)
       (alm', venc) = expirar t (comunMagnitudes com)
-      hecho m = Hecho "modificador_terminado" t [modEntidad m] (Map.fromList
-        [ ("id",       T.pack (show (modId m)))
-        , ("magnitud", let Magnitud n = modMagnitud m in n)
-        , ("fuente",   fuenteTipo (modFuente m))
-        , ("razon",    "expiro") ])
+      hecho = hechoModificadorTerminado t "expiro"
   in if null venc then (s, [])
      else ( s { estadoPersistente = (estadoPersistente s)
                   { persistenteComun = com { comunMagnitudes = alm' } } }

@@ -1,6 +1,9 @@
 {-# LANGUAGE StrictData #-}
 module Motor.Magnitudes where
 
+import Data.Int (Int64)
+import Data.IntSet (IntSet)
+import qualified Data.IntSet as IntSet
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
@@ -24,6 +27,21 @@ newtype Magnitud = Magnitud Text
 data Fuente = Fuente { fuenteTipo :: Text, fuenteRef :: Text }
   deriving (Eq, Show)
 
+-- | Condiciones sobre el estado visible. Un lenguaje pequeño y cerrado: se
+-- valida al cargar y se evalúa sin efectos. Lo usan el guion (fases y
+-- situaciones) y los modificadores condicionales; no hay otro lenguaje de
+-- condiciones. Vive aquí, y no en "Motor.Guion", porque el modificador la
+-- necesita y el guion ya importa este módulo.
+data Condicion
+  = Siempre
+  | Mayor EntRef Magnitud Fijo        -- ^ valor efectivo > umbral
+  | Menor EntRef Magnitud Fijo        -- ^ valor efectivo < umbral
+  | DesdeTick Int64                  -- ^ a partir de un día (en el JSON, "desde_fecha")
+  | Todas [Condicion]
+  | Alguna [Condicion]
+  | No Condicion
+  deriving (Eq, Show)
+
 data Alcance = AlcancePropia | AlcanceRuta | AlcanceCeldas
   deriving (Eq, Show)
 
@@ -35,7 +53,7 @@ data Modificador = Modificador
   , modFuente    :: Fuente
   , modInicio    :: Maybe Tick
   , modFin       :: Maybe Tick
-  , modCondicion :: Maybe Text      -- TODO: tipo real
+  , modCondicion :: Maybe Condicion -- ^ si la tiene, cuenta solo mientras está vigente (ver 'cuentaEn')
   , modAlcance   :: Alcance
   } deriving (Eq, Show)
 
@@ -54,6 +72,15 @@ valorEfectivo (RangoMag lo hi) base mods =
 activoEn :: Tick -> Modificador -> Bool
 activoEn t m = maybe True (<= t) (modInicio m) && maybe True (t <) (modFin m)
 
+-- | ¿Cuenta el modificador en el tick t? Tiene que estar en su ventana y,
+-- si es condicional, su id tiene que estar entre los vigentes: el conjunto
+-- que el paso 16 calcula al empezar la veintena (@derivadoVigentes@). La
+-- condición no se evalúa aquí: vale toda la veintena, igual que el resto del
+-- derivado (documento funcional, sección 6).
+cuentaEn :: IntSet -> Tick -> Modificador -> Bool
+cuentaEn vig t m =
+  activoEn t m && maybe True (const (modId m `IntSet.member` vig)) (modCondicion m)
+
 -- | Almacén: base y modificadores por (entidad, magnitud).
 data AlmacenMag = AlmacenMag
   { almacenBase :: Fijo
@@ -70,9 +97,29 @@ data DefMagnitud = DefMagnitud
   , dmEscritoresMultiples :: Bool        -- default False
   } deriving (Eq, Show)
 
--- | Valor efectivo en el tick t: solo cuentan los modificadores activos.
-valorEn :: Tick -> RangoMag -> AlmacenMag -> Fijo
-valorEn t r x = valorEfectivo r (almacenBase x) (filter (activoEn t) (almacenMods x))
+-- | Valor efectivo en el tick t: solo cuentan los modificadores que
+-- 'cuentaEn' acepta, dados los vigentes del derivado.
+valorEn :: IntSet -> Tick -> RangoMag -> AlmacenMag -> Fijo
+valorEn vig t r x = valorEfectivo r (almacenBase x) (filter (cuentaEn vig t) (almacenMods x))
+
+-- | Evalúa una condición sobre el almacén. Los valores que lee son efectivos,
+-- con los modificadores condicionales que digan @vig@. Una magnitud que no
+-- existe vale 0; si falta en el catálogo, no se acota.
+evaluarCondicion :: Map Magnitud DefMagnitud -> IntSet -> Tick -> Almacen -> Condicion -> Bool
+evaluarCondicion cat vig t alm = go
+  where
+    sinRango = RangoMag (Fijo minBound) (Fijo maxBound)
+    valor r m = case Map.lookup (r, m) alm of
+      Nothing -> Fijo 0
+      Just x  -> valorEn vig t (maybe sinRango dmRango (Map.lookup m cat)) x
+    go = \c -> case c of
+      Siempre     -> True
+      Mayor r m u -> valor r m > u
+      Menor r m u -> valor r m < u
+      DesdeTick n -> let Tick tt = t in tt >= n
+      Todas cs    -> all go cs
+      Alguna cs   -> any go cs
+      No c'       -> not (go c')
 
 -- | Id para un modificador nuevo: uno más que el mayor del almacén. Es
 -- determinista porque solo depende del almacén.

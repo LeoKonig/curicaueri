@@ -51,7 +51,7 @@ Los archivos dorados del protocolo y del espejo viven fuera, en `../pruebas_comp
 | --- | --- |
 | `Motor.Base` | Punto fijo (`Fijo`, escala 10 000), `desdeDecimal`, `ln`/`exp` deterministas, ids |
 | `Motor.Azar` | SplitMix64 y hash FNV-1a propios; `rng σ sistema tick` sin estado |
-| `Motor.Magnitudes` | Monoide `Aporte`, `valorEfectivo`, modificadores con ventana (`activoEn`, `valorEn`), alta (`agregarModificador`) y vencimiento (`expirar`) |
+| `Motor.Magnitudes` | Monoide `Aporte`, `valorEfectivo`, modificadores con ventana (`activoEn`) y condición (`Condicion`, `cuentaEn`, `valorEn` con los vigentes del derivado, `evaluarCondicion`), alta (`agregarModificador`) y vencimiento (`expirar`) |
 | `Motor.Hechos` | El tipo `Hecho` |
 | `Motor.Mapa` | Mapa como grafo, proveedor hexagonal, `validarMapa` |
 | `Motor.Estado` | `Estado s`, `Persistente s`, `Comun s`, `Derivado s`, `Origen s`; contexto, preguntas y decisiones pendientes |
@@ -170,7 +170,6 @@ Vive en `test/Spec.hs`. Son aldeas con población y descontento, tres sistemas (
 - Los rangos de prestigio y legitimidad son provisionales: el prototipo no los acota.
 
 **Huecos conocidos del motor**, que se cierran cuando una mecánica los pida:
-- Las condiciones de los modificadores no se evalúan (`vigentesEn` devuelve vacío hasta el hito 3).
 - Los agentes reciben una `Proyeccion` vacía; la proyección por facción llega con la IA del hito 4.
 - `cambios` usa el registro "todas las entidades"; el registro real de entidades tocadas es del hito 2.
 - `paso` recibe el `Entorno` con el mapa y el guion; faltan el catálogo y el desfase del documento funcional.
