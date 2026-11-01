@@ -25,12 +25,18 @@ escenario1475 = Purepecha
                     (Just (PerId 4)) (fi 1) (Just (AltId 1)) (fi 75) 101 Nothing [])
       ]
   , ppPops = Map.fromList
-      [ (PopId 1, Pop (PopId 1) (AltId 1) "purepecha" "nobleza" 3000  (fi 80))
-      , (PopId 2, Pop (PopId 2) (AltId 1) "purepecha" "comun"   27000 (fi 70))
-      , (PopId 3, Pop (PopId 3) (AltId 2) "purepecha" "comun"   8400  (fi 55))
-      , (PopId 4, Pop (PopId 4) (AltId 2) "hnahnu"    "comun"   3600  (fi 45))
-      , (PopId 5, Pop (PopId 5) (AltId 3) "purepecha" "comun"   15300 (fi 70))
-      , (PopId 6, Pop (PopId 6) (AltId 3) "nahua"     "comun"   2700  (fi 50))
+      [ (PopId 1, Pop (PopId 1) (AltId 1) "purepecha" "nobleza" 3000  (fi 80) (Fijo 0))
+      , (PopId 2, Pop (PopId 2) (AltId 1) "purepecha" "comun"   27000 (fi 70) (Fijo 0))
+      , (PopId 3, Pop (PopId 3) (AltId 2) "purepecha" "comun"   8400  (fi 55) (Fijo 0))
+      , (PopId 4, Pop (PopId 4) (AltId 2) "hnahnu"    "comun"   3600  (fi 45) (Fijo 0))
+      , (PopId 5, Pop (PopId 5) (AltId 3) "purepecha" "comun"   15300 (fi 70) (Fijo 0))
+      , (PopId 6, Pop (PopId 6) (AltId 3) "nahua"     "comun"   2700  (fi 50) (Fijo 0))
+        -- Sacerdotes de los templos de cada altépetl (V5, *Las obras*). Cifras de
+        -- relleno, por verificar con la *Relación de Michoacán*: Tzintzuntzan,
+        -- centro del culto de Curicaueri, concentra a la mayoría.
+      , (PopId 7, Pop (PopId 7) (AltId 1) "purepecha" "sacerdote" 400 (fi 85) (Fijo 0))
+      , (PopId 8, Pop (PopId 8) (AltId 2) "purepecha" "sacerdote" 60  (fi 70) (Fijo 0))
+      , (PopId 9, Pop (PopId 9) (AltId 3) "purepecha" "sacerdote" 100 (fi 75) (Fijo 0))
       ]
   , ppPersonajes = Map.fromList
       -- Grupos ilustrativos, por verificar: el linaje real y el Inepto son de la
@@ -130,7 +136,7 @@ escalar celdas n k e
           alts = [ Altepetl (AltId (a0 + x)) "Sujeto de prueba" (Just (PerId 3)) (fi (1 + x `mod` 3))
                             (Just (AltId 1)) (fi 60) ((x * 7919) `mod` max 1 celdas) Nothing []
                  | x <- [0 .. n - 1] ]
-          pops = [ Pop (PopId (p0 + x * k + y)) (AltId (a0 + x)) (identidades !! (y `mod` 3)) "comun" 500 (fi 60)
+          pops = [ Pop (PopId (p0 + x * k + y)) (AltId (a0 + x)) (identidades !! (y `mod` 3)) "comun" 500 (fi 60) (Fijo 0)
                  | x <- [0 .. n - 1], y <- [0 .. k - 1] ]
           ags  = [ ((entRefPop (popId q), Magnitud "agravio"), AlmacenMag (fi 30) []) | q <- pops ]
               ++ [ ((entRefAlt (altId a), magProduccionAlt), AlmacenMag baseProduccionAlt []) | a <- alts ]

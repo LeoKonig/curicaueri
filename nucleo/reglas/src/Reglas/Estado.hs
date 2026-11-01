@@ -42,15 +42,33 @@ instance FromJSON Altepetl where
              <*> o .: "altDistancia" <*> o .: "altSujetoA" <*> o .: "altLealtad"
              <*> o .: "altCelda" <*> o .:? "altObra" <*> o .:? "altEdificios" .!= []
 
--- | Una obra en curso (V5, *Las palancas*, Construcción). Como en el
--- prototipo, avanza una veintena de obra por cada veintena en que la partida
--- de obras llega al mínimo; por eso se guarda el avance y no una fecha de
--- término, que dependería del presupuesto futuro.
+-- | Una obra en curso (V5, *Las obras*; documento funcional, sección 14i).
+-- Se guarda lo hecho, no una fecha de término, que dependería del
+-- presupuesto y de la gente futuros:
+--
+-- * las veintenas de obra transcurridas y la duración mínima D;
+-- * la cuadrilla, retirada de la producción mientras dure la obra;
+-- * el trabajo hecho en el sitio, en trabajador·veintena;
+-- * el material acopiado, por material.
+--
+-- Una obra sin cuadrilla es la del primer corte: avanza una veintena de obra
+-- por cada veintena en que la partida de obras llega al mínimo.
 data Obra = Obra
-  { obEdificio :: Text
-  , obAvance   :: Int    -- ^ veintenas de obra hechas
-  , obTotal    :: Int    -- ^ veintenas de obra que exige el edificio
-  } deriving (Eq, Show, Generic, ToJSON, FromJSON)
+  { obEdificio  :: Text
+  , obAvance    :: Int    -- ^ veintenas de obra hechas
+  , obTotal     :: Int    -- ^ D: veintenas de obra mínimas
+  , obCuadrilla :: Int    -- ^ C: trabajadores retirados para la obra (0 sin cuadrilla)
+  , obTrabajo   :: Fijo   -- ^ trabajo hecho en el sitio
+  , obAcopio    :: Map Text Fijo  -- ^ material acopiado
+  } deriving (Eq, Show, Generic, ToJSON)
+
+-- | Las obras guardadas en el primer corte del hito 3 no traen cuadrilla,
+-- trabajo ni acopio: cargan sin ellos.
+instance FromJSON Obra where
+  parseJSON = withObject "Obra" $ \o ->
+    Obra <$> o .: "obEdificio" <*> o .: "obAvance" <*> o .: "obTotal"
+         <*> o .:? "obCuadrilla" .!= 0 <*> o .:? "obTrabajo" .!= Fijo 0
+         <*> o .:? "obAcopio" .!= Map.empty
 
 data Pop = Pop
   { popId        :: PopId
@@ -59,7 +77,24 @@ data Pop = Pop
   , popEstrato   :: Text
   , popTamano    :: Int
   , popLealtad   :: Fijo
-  } deriving (Eq, Show, Generic, ToJSON, FromJSON)
+  , popGradiente :: Fijo   -- ^ @gradiente_catolicismo@, de 0 (culto tradicional) a 1 (católico); 0 en el prototipo
+  } deriving (Eq, Show, Generic, ToJSON)
+
+-- | Los guardados anteriores no traen gradiente: cargan con 0, el culto
+-- tradicional.
+instance FromJSON Pop where
+  parseJSON = withObject "Pop" $ \o ->
+    Pop <$> o .: "popId" <*> o .: "popAltepetl" <*> o .: "popIdentidad" <*> o .: "popEstrato"
+        <*> o .: "popTamano" <*> o .: "popLealtad" <*> o .:? "popGradiente" .!= Fijo 0
+
+-- | Los estratos que no trabajan la tierra: la nobleza y los sacerdotes.
+estratoNoTrabaja :: Text -> Bool
+estratoNoTrabaja e = e == "nobleza" || e == estratoSacerdote
+
+-- | El estrato de los sacerdotes (V5, *Las obras*: sacerdotes). Atienden los
+-- templos de su tradición; no trabajan la tierra.
+estratoSacerdote :: Text
+estratoSacerdote = "sacerdote"
 
 data Personaje = Personaje
   { perId     :: PerId
@@ -148,14 +183,24 @@ data CeldaTrabajo = CeldaTrabajo
   , ctRendimiento  :: Map Text Fijo
   } deriving (Eq, Show)
 
--- | El derivado del juego (paso 16): las celdas que trabaja cada altépetl,
--- de la mejor a la peor. Nunca se guarda: se recalcula desde el origen.
-newtype DerivadoPurepecha = DerivadoPurepecha
-  { dpCeldas :: Map AltId [CeldaTrabajo] }
-  deriving (Eq, Show)
+-- | El derivado del juego (paso 16). Nunca se guarda: se recalcula desde el
+-- origen.
+--
+-- * Las celdas que trabaja cada altépetl, de la mejor a la peor.
+-- * Las celdas de cada material de obra que puede extraer cada altépetl,
+--   también de la mejor a la peor (con un solo bien en el rendimiento).
+-- * Los fieles de cada templo local y de cada centro ceremonial, por
+--   (altépetl del templo, tradición): cuántos asisten, ya con su afinidad
+--   y, en los centros, con el peso de la distancia.
+data DerivadoPurepecha = DerivadoPurepecha
+  { dpCeldas       :: Map AltId [CeldaTrabajo]
+  , dpMateriales   :: Map AltId (Map Text [CeldaTrabajo])
+  , dpFielesLocal  :: Map (AltId, Text) Fijo
+  , dpFielesCentro :: Map (AltId, Text) Fijo
+  } deriving (Eq, Show)
 
 derivadoPurepechaVacio :: DerivadoPurepecha
-derivadoPurepechaVacio = DerivadoPurepecha Map.empty
+derivadoPurepechaVacio = DerivadoPurepecha Map.empty Map.empty Map.empty Map.empty
 
 type instance DerivadoDe Purepecha = DerivadoPurepecha
 type instance PlanDe     Purepecha = ()

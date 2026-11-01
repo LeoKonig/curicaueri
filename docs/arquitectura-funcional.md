@@ -1278,13 +1278,14 @@ data CostoObra = CostoObra
   , coOficio     :: Maybe (Conocimiento, Fijo) }   -- conocimiento y dominio mínimo; Nothing por defecto
 
 data Obra = Obra                          -- en el altépetl (o en la celda, etapa 4); persistente
-  { obEdificio :: Text
-  , obCuadrilla :: Int                    -- C, la que eligió el jugador, ≤ cuadrilla máxima
-  , obAvance   :: Fijo                    -- P ∈ [0, 1]
-  , obAcopio   :: Map Material Fijo       -- A_g ∈ [0, M_g]
-  , obEnCamino :: [Entrega]               -- tributo en especie que viene en camino
-  , obVeintenas :: Int }                  -- veintenas de obra transcurridas
-data Entrega = Entrega { enDe :: AltId, enMaterial :: Material, enCantidad :: Fijo, enLlega :: Tick, enCosto :: Fijo }
+  { obEdificio  :: Text
+  , obAvance    :: Int                    -- v: veintenas de obra transcurridas
+  , obTotal     :: Int                    -- D
+  , obCuadrilla :: Int                    -- C, la que eligió el jugador, ≤ cuadrilla máxima; 0 sin cuadrilla
+  , obTrabajo   :: Fijo                   -- w: trabajo hecho, ≤ T
+  , obAcopio    :: Map Material Fijo }    -- A_g ∈ [0, M_g]
+-- etapa 2: obEnCamino :: [Entrega], con
+-- data Entrega = Entrega { enDe :: AltId, enMaterial :: Material, enCantidad :: Fijo, enLlega :: Tick, enCosto :: Fijo }
 ```
 
 `Material` es texto, como los bienes: un dato de la tabla de terrenos (`materiales`, con su rendimiento y sus trabajadores por celda, igual que `rendimiento` en la sección 12, pero sin existencias en la facción).
@@ -1297,11 +1298,17 @@ C^{\text{ef}} = \min\Big(C,\ \Big\lfloor \frac{\text{partida de obras disponible
 
 con s = `SUSTENTO_CUADRILLA` por trabajador y veintena, en valor. Si hay varias obras, la partida se reparte en orden de altépetl, y el desglose dice cuántos trabajan de cuántos.
 
-**Un paso de obra** (paso 10, cada veintena). Con η = dominio(oficio) / 100 (1 sin oficio; la fórmula `dominio_tecnologia` de la sección 14e) y F_g = M_g − A_g − (lo que viene en camino) lo que falta de cada material:
+**Un paso de obra** (paso 10, cada veintena). La obra no guarda su avance P sino lo hecho (v, w y A); P se lee como
+
+```math
+P = \min\Big(\frac{v}{D},\ \frac{w}{T},\ \min_g \frac{A_g}{M_g}\Big)
+```
+
+y la obra termina cuando las tres razones llegan a 1. Es la misma regla que la de abajo, sin acumular el redondeo de P. Con η = dominio(oficio) / 100 (1 sin oficio; la fórmula `dominio_tecnologia` de la sección 14e) y F_g = M_g − A_g − (lo que viene en camino) lo que falta de cada material:
 
 1. **Extracción.** La cuadrilla va primero a los materiales que faltan, en orden de material. Para cada g, sobre las celdas del altépetl que rinden g, ordenadas como en la sección 12, se calcula con la misma fórmula del factor escaso cuántos trabajadores E_g sacan F_g, sin pasar de los que quedan libres. Lo extraído, x_g = η · produccionCeldas(E_g, celdas_g), se acopia: A_g ← min(M_g, A_g + x_g).
 2. **Entregas.** Las entregas con `enLlega` ≤ t se suman al acopio si el tesoro paga su costo; si no, esperan a la veintena siguiente.
-3. **Obra en el sitio.** Con L = C^ef − Σ_g E_g:
+3. **Obra en el sitio.** Con L = C^ef − Σ_g E_g, el trabajo crece w ← min(T · min_g A_g/M_g, w + η L) y v ← v + 1 (solo en las veintenas en que trabaja alguien de la cuadrilla). En términos de P:
 
 ```math
 P_{t+1} = \min\Big(1,\ P_t + \frac{1}{D},\ P_t + \frac{\eta\, L}{T},\ \min_g \frac{A_g}{M_g}\Big)
@@ -1309,7 +1316,7 @@ P_{t+1} = \min\Big(1,\ P_t + \frac{1}{D},\ P_t + \frac{\eta\, L}{T},\ \min_g \fr
 
 donde cada término falta si no aplica: sin T, no hay tope por trabajo; sin materiales, no hay tope por acopio. Con T = 0 y sin materiales no hay cuadrilla, y P avanza 1/D en cada veintena en que la partida de obras llega a `cObrasPresupuestoMinimo`: es la obra del primer corte.
 
-4. **Fin.** Cuando P = 1 y las veintenas de obra llegan a D, la obra termina: R_a baja en C, se recalcula el beneficio de su tipo (abajo), se aplican los efectos al terminar y se emite `edificio_terminado`.
+4. **Fin.** Cuando v ≥ D, w ≥ T y A_g ≥ M_g para todo g, la obra termina: R_a baja en C, se recalcula el beneficio de su tipo (abajo), se aplican los efectos al terminar y se emite `edificio_terminado`.
 
 **Tributo en especie** (etapa 2). El comando que empieza la obra puede nombrar, por material, otro altépetl s de la facción que lo enviará; se rechaza si s es independiente (`Cabecera f` con f ≠ la facción, sección 14b). El altépetl s extrae con sus propios trabajadores (`retirar_trabajadores`, motivo `tributo_obra`), recibe el agravio del tributo, multiplicado por `AGRAVIO_TRIBUTO_SENORIO` si su condición es `Senorio`, y cada veintena crea una entrega:
 
@@ -1338,7 +1345,7 @@ con n las obras terminadas con ese oficio. No escribe la base, que sigue siendo 
 | `fija` | a, si n ≥ 1 (el primer corte; por defecto) | — |
 | `lineal` | a · n | — |
 | `logaritmica` | a · ln(1 + n) | — |
-| `por_asistentes` | a · ln(1 + S / ref), S = min(F, n · cap · min(1, σ / (n · s))) | F: fieles que asisten (abajo); σ: sacerdotes de la tradición del templo en el estrato `sacerdote` |
+| `por_asistentes` | a · ln(1 + S / ref), S = min(F, n · cap, cap · σ / s) | F: fieles que asisten (abajo); σ: sacerdotes de la tradición del templo en el estrato `sacerdote` |
 | `por_guarnicion` | a · Σ_i min(1, g_i / g) | g_i: guarnición asignada al edificio i; hasta el hito 4, g_i = g |
 
 **Asistencia.** Cada templo e tiene una tradición τ(e) y un nivel. Un pop p practica la tradición τ con afinidad

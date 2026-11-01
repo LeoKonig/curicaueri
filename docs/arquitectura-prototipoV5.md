@@ -1512,7 +1512,7 @@ Un edificio no aporta un número fijo por copia. Cada tipo de edificio aporta, p
 | `por_asistentes` | a · ln(1 + S / ref), con S los fieles atendidos | Templos: yácatas, y en el juego completo iglesias y catedrales | Un templo sirve a los fieles de su tradición que pueden asistir y a los que sus sacerdotes atienden |
 | `por_guarnicion` | a · Σ min(1, guarnición / guarnición por edificio) | Fortalezas, cuarteles | Una fortaleza sin guerreros no defiende; cada fortaleza guarnecida rinde lo mismo |
 
-- **Fieles atendidos.** S = min(fieles que asisten, n · capacidad por templo · min(1, sacerdotes / (n · sacerdotes por templo))). Un templo de más sin sacerdotes no atiende a nadie, y uno en un pueblo chico no tiene a quién atender. Quién asiste se explica en *La asistencia a los templos*.
+- **Fieles atendidos.** S = min(fieles que asisten, n · capacidad por templo, capacidad por templo · sacerdotes / sacerdotes por templo). Un templo de más sin sacerdotes no atiende a nadie, y uno en un pueblo chico no tiene a quién atender. Quién asiste se explica en *La asistencia a los templos*.
 - **Guarnición (fortaleza y cuartel).** Hasta que existan las guarniciones (hito 4), cada fortaleza cuenta entera. Los cuarteles, cuando lleguen, usan la leva disponible en lugar de la guarnición.
 - **Leyes.** Toda fórmula de beneficio es no decreciente en el número de edificios y en la población a la que sirve. Las logarítmicas son cóncavas: la copia n + 1 nunca aporta más que la n.
 
@@ -1546,7 +1546,7 @@ Cada edificio declara en `ambitos` dónde puede levantarse: en el asentamiento (
 
 | Etapa | Qué entra | Hito |
 | --- | --- | --- |
-| 1 | Cuadrilla con `retirar_trabajadores`, trabajo, sustento de la partida de obras, duración mínima, materiales extraídos en las celdas del altépetl, beneficio por fórmula (lineal, logarítmica, por asistentes), estrato `sacerdote` | 3 |
+| 1 | Cuadrilla con `retirar_trabajadores`, trabajo, sustento de la partida de obras, duración mínima, materiales extraídos en las celdas del altépetl, beneficio por fórmula (lineal, logarítmica, por asistentes), asistencia a templos locales y centros ceremoniales por tradición, estrato `sacerdote` | 3 (hecha) |
 | 2 | Tributo en especie de materiales, con retraso y costo de transporte | 3 |
 | 3 | Oficio: conocimientos con bases del escenario, dominio mínimo, productividad y aprender haciendo | 3 |
 | 4 | Ámbito de celda para cualquier edificio, condición de control, aporte a la influencia, beneficio por guarnición | 4 |
