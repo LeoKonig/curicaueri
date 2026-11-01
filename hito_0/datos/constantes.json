@@ -233,5 +233,41 @@
     "duracion": 12,
     "penalizacion": 45,
     "penal_preparado": 10
+  },
+  "inicio": {
+    "tesoro": 800
+  },
+  "dificultad_inicial": "normal",
+  "dificultades": {
+    "_nota": "Cada nivel sobrescribe constantes por ruta; sube la presión o quita margen, nunca da ventajas ocultas al enemigo. Los niveles se definen por cuánta habilidad exigen (calibrado con hito_0/evaluacion/calibrar_dificultad.js): en fácil triunfa cualquier estrategia sensata; en normal hay que jugar bien; en difícil incluso jugando bien se pierde a menudo.",
+    "facil": {
+      "inicio.tesoro": 900
+    },
+    "normal": {
+      "inicio.tesoro": 700,
+      "invasion.tropas": 34000,
+      "invasion.recuperacion_anios": 3,
+      "invasion.objetivo_ratio": 0.7,
+      "presion.desgaste_anual": 6,
+      "rebelion.umbral_lealtad": 50,
+      "metas.prestigio": 42,
+      "metas.lealtad": 62,
+      "sequia.prob_por_tick": 0.04,
+      "incursion.prob_por_tick": 0.034,
+      "guerra.expedicion.enemigo": 4800
+    },
+    "dificil": {
+      "inicio.tesoro": 600,
+      "invasion.tropas": 38000,
+      "invasion.recuperacion_anios": 3,
+      "invasion.objetivo_ratio": 0.75,
+      "presion.desgaste_anual": 7,
+      "rebelion.umbral_lealtad": 52,
+      "metas.prestigio": 45,
+      "metas.lealtad": 65,
+      "sequia.prob_por_tick": 0.045,
+      "incursion.prob_por_tick": 0.04,
+      "guerra.expedicion.enemigo": 5000
+    }
   }
 }
