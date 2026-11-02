@@ -230,7 +230,7 @@ data DerivadoPurepecha = DerivadoPurepecha
 - **Lo común va en `Comun`.** Las magnitudes, las decisiones suspendidas, los planes y la crónica son iguales en cualquier juego, así que ningún juego los redefine.
 - **Los restos van en el juego.** Son fracciones de lo que crezca o migre en cada juego. El motor da las funciones genéricas (crecer con resto, repartir por mayor resto), pero no sabe qué cantidades existen.
 - **El derivado tiene dos partes, y las dos existen.** El motor también deriva algo: qué modificadores condicionales están vigentes. Su condición se evalúa en el paso 16 contra el derivado recién calculado del juego, y vale durante toda la veintena (sección 6). Por eso `derivar` calcula primero la parte del juego y luego la del motor.
-- **Todo lo que perderse al guardar cambiaría la partida es persistente:** las decisiones pendientes, los planes de la IA, los restos y la crónica.
+- **Todo lo que perderse al guardar cambiaría la partida es persistente:** las decisiones pendientes, los planes de la IA, los restos, la crónica y el fin de la partida (`comunFin`: tick y razón; una partida terminada ya no avanza).
 
 **Un problema que hay que resolver: guardar a mitad de una veintena.** El derivado se calcula en el paso 16 de un tick de veintena, y la partida se puede guardar cualquier día de la veintena. Si `cargar` recalculara el derivado desde el persistente del momento de guardar, usaría un estado que ya cambió (comandos, movimientos y combates de los días siguientes, el narrador de ese mismo tick). El derivado resultante sería distinto del que tenía la partida, y la partida cargada se separaría de la original: la ley de derivado reproducible fallaría.
 

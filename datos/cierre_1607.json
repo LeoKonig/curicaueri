@@ -1,0 +1,43 @@
+{
+  "_nota": "Cierre de la campaña 1418–1607 como guion que carga solo (T7/T13): la crónica, la fecha del fin y la situación de 1605. T13 lo pega en el guion de la campaña de 1418; las fechas de los guiones cuentan desde el inicio del escenario que los carga. La obra nueva es la primera parte del Quijote (Madrid, 1605); la apertura que se muestra al final está en cliente/textos/es.json.",
+  "tipos": [
+    "noticias"
+  ],
+  "cronica": {
+    "fase": "cronica.fase",
+    "copia_pedida": "cronica.copia_pedida",
+    "fin_partida": "cronica.fin"
+  },
+  "fin": {
+    "fecha": "1607-12-31"
+  },
+  "situaciones": [
+    {
+      "id": "se_publica_una_obra_nueva",
+      "tipo": "noticias",
+      "peso": "100",
+      "enfriamiento": 100000,
+      "plazo": 365,
+      "fases": [],
+      "condicion": {
+        "tipo": "desde_fecha",
+        "fecha": "1605-01-01"
+      },
+      "opciones": [
+        {
+          "id": "dejarla_pasar",
+          "efectos": []
+        },
+        {
+          "id": "conseguir_una_copia",
+          "efectos": [
+            {
+              "tipo": "hecho",
+              "tag": "copia_pedida"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
