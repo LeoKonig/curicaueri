@@ -4,8 +4,8 @@ Recibido el 2 de noviembre de 2026. Son cinco textos que produjo un asistente de
 
 ## Estado
 
-- **Nada está verificado.** Ni las fechas, ni las citas con página, ni los nombres en purépecha, ni las cifras.
-- Las citas con página (por ejemplo «Carrasco, p. 60») **no se han cotejado** con los PDF originales. Hay que abrirlos uno por uno.
+- **Casi nada está verificado.** Solo se cotejaron las citas de Vargas, Carot y Pollard (ver *Cotejo con los PDF*). Todo lo demás (fechas, nombres en purépecha, cifras y las citas de Oliveros, Carrasco y Santamarina) sigue por verificar.
+- Las citas con página de Oliveros, Carrasco y Santamarina (por ejemplo «Carrasco, p. 60») **no se han cotejado** con los PDF originales.
 - Las mecánicas (porcentajes, «Estabilidad», «Manpower», «Oro», «Prestigio») **son inventos de la IA**, no salen de ninguna fuente y no usan el vocabulario del juego (ejes de poder, bienes, magnitudes con modificadores; ver `CLAUDE.md`). Sirven como idea, no como dato.
 - Según `CLAUDE.md`, las propuestas externas se verifican contra V5 y el código antes de adoptarlas, y las afirmaciones históricas sin fuente llevan «por verificar».
 
@@ -53,6 +53,39 @@ Son sospechas de la primera lectura, hechas de memoria y sin cotejar. **También
 | 14 | 5, evento 14 | Inundación en 1449 y 1499, «recurrente cada 50 años» | La periodicidad parece inventada | Carrasco, p. 544 |
 | 15 | 5, evento 6 | Calendario civil «de 360 días» | El año solar mesoamericano tiene 365 (360 más 5); verificar si es la cita o un descuido | Santamarina, p. 6 |
 | 16 | 5, evento 11 | El Tlacxitlan «se establece en 1430» | La cita de Carrasco dice que la figura «podría ser» un consejo; no da fecha | Carrasco, p. 154 |
+
+## Cotejo con los PDF (2 de noviembre de 2026)
+
+Se cotejaron las citas contra tres de las obras: Carot, «Otra visión de la historia purépecha»; Vargas Uribe, «Percepción de espacio y conquistas territoriales…»; y Perlstein Pollard, «El imperio tarasco en el mundo mesoamericano» (*Relaciones* 99, 2004, pp. 115-145). Faltan Oliveros Morales, Carrasco, Santamarina y la *Relación de Michoacán*: sus citas **siguen sin cotejar**. Las páginas de Vargas son las del PDF (la numeración del libro, 402-415, no aparece en las páginas interiores). Las de Carot son las impresas (27-40). Las de Pollard se deducen del PDF y son aproximadas.
+
+### Citas del texto 2 contra los PDF
+
+| Evento (texto 2) | Fuente citada | Resultado |
+| --- | --- | --- |
+| 1. Centro y cuatro partes | Vargas, p. 4 | **Textual.** Chupi-Tirípeme en la isla de la Pacanda; Pareo, Pechátaro, Curínguaro-achurín e Irámuco. |
+| 2. Mano derecha y mano izquierda | Vargas, p. 5 | **Textual**, pero junta dos apartados: el Sur «lado izquierdo» y los Uirambanecha (III.7) y el Norte «mano derecha» con Tirípeme-xungápeti (III.6). Las ventajas y desventajas porcentuales son invento de la IA. |
+| 3. Peregrinación a Zacapu | Carot, p. 38 (Rea) | **Textual.** Es una fuente secundaria tardía (la *Crónica* de fray Alonso de la Rea) y dice que el rey visitaba al sumo sacerdote «cada año» para pagar las primicias. La fecha «c. 1450-1520» no está en la cita. |
+| 6. Rebelión de los caciques de Tierra Caliente | Pollard, p. 123 | **No localizada.** Las frases «controlaban directamente», «áreas periféricas» y «estructura política… estaba dividida» no aparecen en el PDF. Tratarla como no verificada. |
+| 12. Conquista divina | Vargas, p. 7 (Le Clézio) | **Textual.** |
+| 13. Taximaroa | Vargas, p. 7 | **Textual**, con la grafía «Tzitzic-Pandácuare» (el texto la escribe «Tzilzic-Pandacuare»). Ver la discrepancia de fechas más abajo. |
+| 14. Retorno de los uacúsecha | Carot, pp. 27-28 y 37 | **Textual.** «Los que regresan a los lugares de salida original de sus ancestros» (p. 27) y «Este reencuentro ocurre precisamente en Naranja» (p. 37). |
+| 15. Caída de la periferia | Vargas, p. 7 (Herrejón, Corona) | **Textual**, con «Zuanga» (el texto la escribe «Zhuanga»). Dice «aparentemente» y que Zuanga murió «cerca de 1520». |
+| 19. Thares | Carot, p. 35 | **Textual** («Mal llamadas… thares»). |
+| 20. Cerámica pintada al negativo | Carot, p. 39 | **Textual** (policromía y técnica negativa). |
+| 7. Purga dinástica | *Relación*, 3.ª parte, cap. XXIII | Sin cotejar. En Pollard aparece «Timas», sin revisar. |
+| 4, 5, 8 a 11, 16 a 18, 21 | Oliveros Morales | Sin cotejar (falta el PDF). |
+
+Resumen: de 10 citas de Vargas y Carot, 9 son textuales (con variantes de grafía) y 1 de Pollard no se encuentra. El patrón de las citas con página es fiable en Vargas y Carot, pero la de Pollard obliga a **cotejar también las de Oliveros, Carrasco y Santamarina**, aunque estén bien referenciadas.
+
+### Lo que dicen esos PDF sobre los puntos dudosos de la tabla
+
+- **Punto 1 (Ihuatzio = Coyoacán):** «Coyoacán» no aparece en ninguno de los tres PDF. Pollard dice que Taríacuri instaló a sus sobrinos Hiripan y Tangáxoan como señores de Ihuatzio y Tzintzuntzan. Sin respaldo aquí.
+- **Punto 2 (cronología):** hay discrepancia de décadas **dentro de estos mismos PDF**. Pollard sitúa el predominio del linaje de Taríacuri entre 1250 y 1350. Vargas dice que Tangáxoan murió «cerca de 1479». El texto 1 da la muerte de Taríacuri hacia 1420. Esto confirma lo que dice V5: el estado de 1418 es una decisión abierta.
+- **Punto 6 (señores locales):** Pollard (pp. 128-129, aprox.) dice que en las zonas multiétnicas de la frontera los señores locales «fueron seleccionados, con la aprobación del rey tarasco, a administrar sus pueblos», y que el gobernador tarasco de Acámbaro estaba a cargo sólo de la comunidad tarasca. Eso **no respalda** la afirmación del texto 1 (evento 8) de que los purépechas no dejaban en el poder a los señores locales, y la matiza: los dejaban, con aprobación del rey.
+- **Punto 7 (guerra contra Axayácatl):** hay **tres fechas**: 1476-77 (Pollard, campaña azteca contra la expansión tarasca), 1469-78 (Vargas, «gran guerra») y 1478 (texto 1). Elegir con fuente.
+- **Glosario:** Pollard (pp. 124-125, aprox.) lista los cargos con «ocámbecha: recolectores de tributo» y «petámuti: el principal sacerdote». Respalda el glosario del texto 1. No dice «gobernadores militares» para los ocámbecha.
+- **Otros datos útiles de Vargas, p. 7:** Tzitzic-Pandácuare, hijo de Tangáxoan, «adquirió control único del Estado Tarasco» y conquistó el sudoeste de Jalisco, Colima y Zacatula «en el año de 1460» (cronología de Brand y Corona, por verificar).
+- **Sin respaldo en estos PDF:** Ixtapan y Tzintzicha no aparecen en Pollard. Las afirmaciones sobre la sal de Ixtapan y los nombres de Tzintzicha o Tangáxoan II deben venir de otra fuente.
 
 ## Cómo se adopta algo de aquí
 
