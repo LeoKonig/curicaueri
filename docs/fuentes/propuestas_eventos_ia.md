@@ -75,7 +75,7 @@ Se cotejaron las citas contra tres de las obras: Carot, «Otra visión de la his
 | 7. Purga dinástica | *Relación*, 3.ª parte, cap. XXIII | Sin cotejar. En Pollard aparece «Timas», sin revisar. |
 | 4, 5, 8 a 11, 16 a 18, 21 | Oliveros Morales | Sin cotejar (falta el PDF). |
 
-Resumen: de 10 citas de Vargas y Carot, 9 son textuales (con variantes de grafía) y 1 de Pollard no se encuentra. El patrón de las citas con página es fiable en Vargas y Carot, pero la de Pollard obliga a **cotejar también las de Oliveros, Carrasco y Santamarina**, aunque estén bien referenciadas.
+Resumen: de las 10 citas cotejadas, las 9 de Vargas y Carot son textuales (con variantes de grafía) y la de Pollard no aparece. Una cita fallida basta para **cotejar también las de Oliveros, Carrasco y Santamarina**, aunque estén bien referenciadas.
 
 ### Lo que dicen esos PDF sobre los puntos dudosos de la tabla
 
