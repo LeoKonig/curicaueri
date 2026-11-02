@@ -4,8 +4,8 @@ Recibido el 2 de noviembre de 2026. Son cinco textos que produjo un asistente de
 
 ## Estado
 
-- **Casi nada está verificado.** Solo se cotejaron las citas de Vargas, Carot y Pollard (ver *Cotejo con los PDF*). Todo lo demás (fechas, nombres en purépecha, cifras y las citas de Oliveros, Carrasco y Santamarina) sigue por verificar.
-- Las citas con página de Oliveros, Carrasco y Santamarina (por ejemplo «Carrasco, p. 60») **no se han cotejado** con los PDF originales.
+- **Casi nada está verificado.** Solo se cotejaron las citas de siete obras (ver *Cotejo con los PDF*). Todo lo demás (fechas, nombres en purépecha, cifras, mecánicas y las afirmaciones sin cita) sigue por verificar.
+- Las citas con página de las obras cotejadas no son fiables tal cual: aun cuando aparecen, a veces traen la página equivocada o recortes. Se copia del PDF, no del texto de la IA.
 - Las mecánicas (porcentajes, «Estabilidad», «Manpower», «Oro», «Prestigio») **son inventos de la IA**, no salen de ninguna fuente y no usan el vocabulario del juego (ejes de poder, bienes, magnitudes con modificadores; ver `CLAUDE.md`). Sirven como idea, no como dato.
 - Según `CLAUDE.md`, las propuestas externas se verifican contra V5 y el código antes de adoptarlas, y las afirmaciones históricas sin fuente llevan «por verificar».
 
@@ -56,7 +56,7 @@ Son sospechas de la primera lectura, hechas de memoria y sin cotejar. **También
 
 ## Cotejo con los PDF (2 de noviembre de 2026)
 
-Se cotejaron las citas contra seis de las obras: Carot, «Otra visión de la historia purépecha»; Vargas Uribe, «Percepción de espacio y conquistas territoriales…»; Perlstein Pollard, «El imperio tarasco en el mundo mesoamericano» (*Relaciones* 99, 2004, pp. 115-145); Oliveros Morales, *Tzintzuntzan, capital del reino purépecha*; Carrasco, *Estructura político-territorial del Imperio tenochca*; y Santamarina Novillo, *El sistema de dominación azteca: el Imperio Tepaneca*. Falta la *Relación de Michoacán*: sus citas **siguen sin cotejar**. Método: se buscaron en el texto de cada PDF fragmentos distintivos de cada cita (de cinco a ocho palabras) y, cuando no aparecían, se leyó el contexto. No se leyó cada cita completa palabra por palabra. Las páginas de Vargas, Carot y Oliveros coinciden con las citadas (Oliveros con desfases de hasta 2). En Carrasco y Santamarina la numeración del PDF no es la impresa; abajo se da la **página del PDF**.
+Se cotejaron las citas contra siete obras: Carot, «Otra visión de la historia purépecha»; Vargas Uribe, «Percepción de espacio y conquistas territoriales…»; Perlstein Pollard, «El imperio tarasco en el mundo mesoamericano» (*Relaciones* 99, 2004, pp. 115-145); Oliveros Morales, *Tzintzuntzan, capital del reino purépecha*; Carrasco, *Estructura político-territorial del Imperio tenochca*; y Santamarina Novillo, *El sistema de dominación azteca: el Imperio Tepaneca*. Y la *Relación de Michoacán* en la edición epub de Jerónimo de Alcalá (sin paginación fija; se cita por parte y capítulo). Método: se buscaron en el texto de cada PDF fragmentos distintivos de cada cita (de cinco a ocho palabras) y, cuando no aparecían, se leyó el contexto. No se leyó cada cita completa palabra por palabra. Las páginas de Vargas, Carot y Oliveros coinciden con las citadas (Oliveros con desfases de hasta 2). En Carrasco y Santamarina la numeración del PDF no es la impresa; abajo se da la **página del PDF**.
 
 ### Citas del texto 2 contra los PDF
 
@@ -72,14 +72,14 @@ Se cotejaron las citas contra seis de las obras: Carot, «Otra visión de la his
 | 15. Caída de la periferia | Vargas, p. 7 (Herrejón, Corona) | **Textual**, con «Zuanga» (el texto la escribe «Zhuanga»). Dice «aparentemente» y que Zuanga murió «cerca de 1520». |
 | 19. Thares | Carot, p. 35 | **Textual** («Mal llamadas… thares»). |
 | 20. Cerámica pintada al negativo | Carot, p. 39 | **Textual** (policromía y técnica negativa). |
-| 7. Purga dinástica | *Relación*, 3.ª parte, cap. XXIII | Sin cotejar (falta la *Relación*). En Pollard aparece «Timas», sin revisar. |
+| 7. Purga dinástica | *Relación*, 3.ª parte, cap. XXIII | **Textual** (ver *Relación de Michoacán* abajo). |
 | 4, 5, 8 a 11, 16 a 18, 21 | Oliveros Morales | **Las frases clave aparecen** (ver más abajo). |
 
 Resumen de Vargas, Carot y Pollard: de las 10 citas, las 9 de Vargas y Carot son textuales (con variantes de grafía) y la de Pollard no aparece. Los resultados de las otras tres obras están en las tres secciones siguientes.
 
 ### Lo que dicen esos PDF sobre los puntos dudosos de la tabla
 
-- **Punto 1 (Ihuatzio = Coyoacán):** «Coyoacán» no aparece en Vargas, Carot ni Pollard. **Oliveros sí escribe «Ihuatzio (Cuyuacan)»** (PDF p. 62), junto a «Tzintzuntzan (Mychuacan)», con Hirepan y Tangáxoan como sobrinos de Taríacuri y Huiquingaje como su hijo menor. La identificación tiene entonces respaldo; la regla de cambiar el nombre en el mapa según quién domine es una idea de la IA y no sale de ninguna fuente.
+- **Punto 1 (Ihuatzio = Coyoacán):** **Respaldado por la *Relación*.** Dice que Taríacuri repartió el señorío en tres («tú, Hiripan… el pueblo de Coyoacán; tú, Tangáxoan… Michoacán; tú, Hiquíngare… Pátzcuaro») y «Coyoacán» aparece 27 veces en el epub. Oliveros escribe «Ihuatzio (Cuyuacan)» (PDF p. 62). El epub no usa el nombre «Ihuatzio». Vargas, Carot y Pollard no mencionan «Coyoacán». La regla de cambiar el nombre en el mapa según quién domine es idea de la IA, no sale de ninguna fuente.
 - **Punto 2 (cronología):** hay discrepancia de décadas **dentro de estos mismos PDF**. Pollard sitúa el predominio del linaje de Taríacuri entre 1250 y 1350. Vargas dice que Tangáxoan murió «cerca de 1479». El texto 1 da la muerte de Taríacuri hacia 1420. Esto confirma lo que dice V5: el estado de 1418 es una decisión abierta.
 - **Punto 6 (señores locales):** Pollard (pp. 128-129, aprox.) dice que en las zonas multiétnicas de la frontera los señores locales «fueron seleccionados, con la aprobación del rey tarasco, a administrar sus pueblos», y que el gobernador tarasco de Acámbaro estaba a cargo sólo de la comunidad tarasca. Eso **no respalda** la afirmación del texto 1 (evento 8) de que los purépechas no dejaban en el poder a los señores locales, y la matiza: los dejaban, con aprobación del rey.
 - **Punto 7 (guerra contra Axayácatl):** hay **tres fechas**: 1476-77 (Pollard, campaña azteca contra la expansión tarasca), 1469-78 (Vargas, «gran guerra») y 1478 (texto 1). Elegir con fuente.
@@ -146,6 +146,20 @@ Los **conceptos** sí están: Santamarina trata la dominación territorial contr
 
 Dato útil para V5 (*Por qué 1418*): Santamarina cita a Chimalpahin, «4 tochtli» (1418), para la muerte de Huehue Ixtlilxochitl a manos de chalcas y tepanecas por orden de Tezozomoc (PDF p. 400), y fecha la guerra tepaneca contra Tetzcoco en **1413-1418** (PDF p. 442, citando a Davies). Eso respalda lo que V5 dice del año 1418.
 
+### Relación de Michoacán (textos 1, 2 y 5)
+
+| Cita | Resultado |
+| --- | --- |
+| T2-7 «a sus hermanos mandólos matar el cazonci nuevo por inducimiento de un principal Timas» | **Textual.** El motivo en la *Relación*: Timas le decía que se echaban con las mujeres del cazonci y que querían quitarle el señorío. Luego el cazonci «lloraba que habían muerto sus hermanos». No dice nada de quebrar la línea de Pátzcuaro (eso es de la IA). Va justo antes de la noticia del español en Taximaroa, el 23 de febrero. |
+| T5-3 «no tenían otra virtud sino la de la liberalidad, que tenían por afrenta ser escasos» | **Textual**, y es de la *Relación*: describe a los señores **purépechas**, no a los mexicas (la IA lo presenta como «costumbres aztecas»). |
+| T5-12 «si algún principal tomaba alguna mujer de las del cazonci, mandábale matar, y a sus hijos…» | **Textual**, de la *Relación*; no está en Carrasco (confirma la atribución errónea). Es justicia **purépecha**. |
+| T5-15 «vino luego una pestilencia de viruelas… murieron todos los obispos de los cúes, y todos los señores» | **Textual**, de la *Relación*; habla de la provincia de Michoacán: murió «el cazonci viejo Zuanga» y quedaron sus hijos Tangáxoan y otros. **No** es una cita sobre los mexicas ni sobre «el Huey Tlatoani». |
+| T1-9 Equataconsquaro «de las flechas», justicia general de veinte días, el petámuti | **Aparece**: la fiesta, la justicia general «hoy uno, mañana otro, hasta que se cumplían los veinte días» y el sacerdote mayor llamado Petámuti. Los presos eran quienes no traían leña, los espías, los malhechores, etc. |
+| T1-10 Sicuíndiro, renovación de los cúes con esclavos | **Aparece**: «era fiesta de Sicuíndiro cuando renovaban los cúes de Curicaueri» y se tomaron esclavos. Las cuatro nubes (blanca, amarilla, colorada y negra) aparecen en la *Relación*, pero en un baile aparte; la unión con Sicuíndiro y la diosa Cuerauáperi es de la IA, por verificar. |
+
+Sin localizar en la *Relación*: que los hijos de Hiquíngare fueran ejecutados por embriaguez (punto 3 de la tabla; el capítulo XXXV trata de «los señores que hubo después de muertos Hiripan, Tangáxoan e Hiquíngare» y falta leerlo) y que las cenizas del cazonci de 1530 se enterraran en Pátzcuaro (en la *Relación* son las cenizas de **Taríacuri** las que están en Pátzcuaro; posible mezcla). Tampoco aparecen los nombres «… Uandakua» (punto 5), aunque el epub usa la grafía del siglo XVI y la ausencia no prueba que sean inventados.
+
+
 ### Resumen del cotejo
 
 | Obra | Citas cotejadas | Aparecen | No aparecen |
@@ -156,6 +170,7 @@ Dato útil para V5 (*Por qué 1418*): Santamarina cita a Chimalpahin, «4 tochtl
 | Oliveros Morales | 10 | 10 (una con grafía distinta) | 0 |
 | Carrasco | 25 | 22 | 3 (hambre de 1450-1454; máxima expresión de Tlacaxipehualiztli; cita del cazonci, que es de la *Relación*) |
 | Santamarina | 10 | 0 | 10 |
+| *Relación de Michoacán* | 6 | 6 | 0 |
 
 Las tres fallas de Carrasco, la de Pollard y las diez de Santamarina muestran el patrón: **las citas con página de la IA son fiables para obras cortas y para Oliveros, y poco fiables para libros largos**. Aun las que aparecen traen páginas equivocadas o recortes. Antes de usar una cita en `datos/` o en un texto visible, se abre el PDF y se copia de ahí.
 
