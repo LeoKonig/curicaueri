@@ -103,7 +103,14 @@ Los pasos, desde una terminal:
    ```sh
    nix develop .#cliente --command sh -c '"$GODOT" --path cliente'
    ```
-   Si la ventana no aparece o Godot falla al abrir la ventana, es el caso de la nota de nixGL más abajo.
+   Si Godot falla con `Could not initialize OpenGL ES`, `Required Vulkan instance extension` o `Unable to create DisplayServer`, el Godot de Nix no encuentra los controladores gráficos de tu sistema. Hay dos salidas:
+   - **Lo más sencillo:** instala Godot 4.3 o posterior desde [godotengine.org](https://godotengine.org) y ábrelo con `godot --path cliente` desde la carpeta del proyecto, con el núcleo del paso 2 ya corriendo.
+   - **Con nixGL**, que pone los controladores del sistema al Godot de Nix. Toma la ruta del Godot del entorno y pásala por nixGL:
+     ```sh
+     GODOT_BIN=$(nix develop .#cliente --command sh -c 'echo "$GODOT"')
+     nix run --impure github:nix-community/nixGL -- "$GODOT_BIN" --path cliente
+     ```
+     Esta variante no la he probado con tu tarjeta; si falla, usa la opción anterior.
 4. La partida empieza en pausa. Pulsa ▶ para correr el reloj. Para detener el núcleo, vuelve a su terminal y pulsa Ctrl+C.
 
 Para ver la pantalla final sin esperar a 1607, arranca el núcleo del paso 2 con el guion de prueba, que termina el día 11, en lugar de `datos/guion_1475.json`:
@@ -116,7 +123,7 @@ Si prefieres un entorno con todo (compilar, pruebas, Godot y Python), usa `nix d
 
 Notas:
 - **Antes de `nix develop` o `nix run`**, cualquier archivo nuevo debe estar en git (`git add`): Nix solo ve los archivos que git conoce.
-- **Godot con ventana:** el Godot de nixpkgs necesita acceso a la tarjeta gráfica. Fuera de NixOS suele hacer falta [nixGL](https://github.com/nix-community/nixGL), o usar un Godot 4.3 o posterior instalado en el sistema: abre `cliente/project.godot` y pulsa F5 con el núcleo ya corriendo.
+- **Godot con ventana:** el Godot de nixpkgs necesita los controladores gráficos del sistema. Fuera de NixOS suele fallar con `OpenGL ES 3.0`, `VK_KHR_surface` o `Unable to create DisplayServer`; en ese caso usa Godot 4.3 o posterior instalado en el sistema (`godot --path cliente`) o la variante con [nixGL](https://github.com/nix-community/nixGL) del paso 3.
 - El cierre de 1607 (`datos/cierre_1607.json`) no se carga con estos comandos: es un guion de datos que todavía no está conectado a la campaña. Hasta que T13 lo integre, el guion de 1475 no termina en 1607.
 
 ## Pruebas
