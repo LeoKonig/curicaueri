@@ -28,6 +28,7 @@ Sin cabal-install, con `runghc Setup.hs` (ver el README). Las pruebas necesitan 
 6. **Datos, no código.** Escenarios, guion, bienes, ejes y grupos son JSON validados al cargar, con todos los errores acumulados. Las condiciones usan el lenguaje cerrado del guion (`Motor.Guion`); no se inventan otros.
 7. **El protocolo se escribe a mano.** Los nombres JSON viven en `Motor.Protocolo`, `Reglas.Comando` y `cliente/red/protocolo.gd`, y cada mensaje tiene su archivo dorado en `pruebas_compartidas/`. Si cambias el cable, actualiza los dorados a propósito y sube la versión cuando la compatibilidad lo pida.
 8. **Rechazo sin daño.** Un comando o una respuesta rechazados no cambian el estado y vuelven con un motivo legible.
+9. **El código no depende del arte de pago.** El juego funciona completo con recursos libres; el arte se carga por id de recurso desde un paquete configurable, y ningún archivo propietario se referencia como obligatorio ni entra al repositorio. Así el código libre y el arte de pago siguen siendo obras independientes (ver `LICENCIAS.md`). Las contribuciones externas se aceptan solo con el CLA aceptado (ver `CONTRIBUTING.md`).
 
 ## Vocabulario fijado (no lo cambies sin cambiar V5)
 
