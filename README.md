@@ -105,6 +105,7 @@ Los pasos, desde una terminal:
    ```
    Si Godot falla con `Could not initialize OpenGL ES`, `Required Vulkan instance extension` o `Unable to create DisplayServer`, el Godot de Nix no encuentra los controladores gráficos de tu sistema. Hay dos salidas:
    - **Lo más sencillo:** instala Godot 4.3 o posterior desde [godotengine.org](https://godotengine.org) y ábrelo con `godot --path cliente` desde la carpeta del proyecto, con el núcleo del paso 2 ya corriendo.
+     En Wayland, Godot escribe avisos sobre X11 (`X11 Display is not available`) y sobre el icono de la ventana (`xdg-toplevel-icon protocol not found`). Son normales y se pueden ignorar: Godot cambia a Wayland solo.
    - **Con nixGL**, que pone los controladores del sistema al Godot de Nix. Toma la ruta del Godot del entorno y pásala por nixGL:
      ```sh
      GODOT_BIN=$(nix develop .#cliente --command sh -c 'echo "$GODOT"')
