@@ -56,7 +56,7 @@ Son sospechas de la primera lectura, hechas de memoria y sin cotejar. **También
 
 ## Cotejo con los PDF (2 de noviembre de 2026)
 
-Se cotejaron las citas contra tres de las obras: Carot, «Otra visión de la historia purépecha»; Vargas Uribe, «Percepción de espacio y conquistas territoriales…»; y Perlstein Pollard, «El imperio tarasco en el mundo mesoamericano» (*Relaciones* 99, 2004, pp. 115-145). Faltan Oliveros Morales, Carrasco, Santamarina y la *Relación de Michoacán*: sus citas **siguen sin cotejar**. Las páginas de Vargas son las del PDF (la numeración del libro, 402-415, no aparece en las páginas interiores). Las de Carot son las impresas (27-40). Las de Pollard se deducen del PDF y son aproximadas.
+Se cotejaron las citas contra seis de las obras: Carot, «Otra visión de la historia purépecha»; Vargas Uribe, «Percepción de espacio y conquistas territoriales…»; Perlstein Pollard, «El imperio tarasco en el mundo mesoamericano» (*Relaciones* 99, 2004, pp. 115-145); Oliveros Morales, *Tzintzuntzan, capital del reino purépecha*; Carrasco, *Estructura político-territorial del Imperio tenochca*; y Santamarina Novillo, *El sistema de dominación azteca: el Imperio Tepaneca*. Falta la *Relación de Michoacán*: sus citas **siguen sin cotejar**. Método: se buscaron en el texto de cada PDF fragmentos distintivos de cada cita (de cinco a ocho palabras) y, cuando no aparecían, se leyó el contexto. No se leyó cada cita completa palabra por palabra. Las páginas de Vargas, Carot y Oliveros coinciden con las citadas (Oliveros con desfases de hasta 2). En Carrasco y Santamarina la numeración del PDF no es la impresa; abajo se da la **página del PDF**.
 
 ### Citas del texto 2 contra los PDF
 
@@ -72,20 +72,92 @@ Se cotejaron las citas contra tres de las obras: Carot, «Otra visión de la his
 | 15. Caída de la periferia | Vargas, p. 7 (Herrejón, Corona) | **Textual**, con «Zuanga» (el texto la escribe «Zhuanga»). Dice «aparentemente» y que Zuanga murió «cerca de 1520». |
 | 19. Thares | Carot, p. 35 | **Textual** («Mal llamadas… thares»). |
 | 20. Cerámica pintada al negativo | Carot, p. 39 | **Textual** (policromía y técnica negativa). |
-| 7. Purga dinástica | *Relación*, 3.ª parte, cap. XXIII | Sin cotejar. En Pollard aparece «Timas», sin revisar. |
-| 4, 5, 8 a 11, 16 a 18, 21 | Oliveros Morales | Sin cotejar (falta el PDF). |
+| 7. Purga dinástica | *Relación*, 3.ª parte, cap. XXIII | Sin cotejar (falta la *Relación*). En Pollard aparece «Timas», sin revisar. |
+| 4, 5, 8 a 11, 16 a 18, 21 | Oliveros Morales | **Las frases clave aparecen** (ver más abajo). |
 
-Resumen: de las 10 citas cotejadas, las 9 de Vargas y Carot son textuales (con variantes de grafía) y la de Pollard no aparece. Una cita fallida basta para **cotejar también las de Oliveros, Carrasco y Santamarina**, aunque estén bien referenciadas.
+Resumen de Vargas, Carot y Pollard: de las 10 citas, las 9 de Vargas y Carot son textuales (con variantes de grafía) y la de Pollard no aparece. Los resultados de las otras tres obras están en las tres secciones siguientes.
 
 ### Lo que dicen esos PDF sobre los puntos dudosos de la tabla
 
-- **Punto 1 (Ihuatzio = Coyoacán):** «Coyoacán» no aparece en ninguno de los tres PDF. Pollard dice que Taríacuri instaló a sus sobrinos Hiripan y Tangáxoan como señores de Ihuatzio y Tzintzuntzan. Sin respaldo aquí.
+- **Punto 1 (Ihuatzio = Coyoacán):** «Coyoacán» no aparece en Vargas, Carot ni Pollard. **Oliveros sí escribe «Ihuatzio (Cuyuacan)»** (PDF p. 62), junto a «Tzintzuntzan (Mychuacan)», con Hirepan y Tangáxoan como sobrinos de Taríacuri y Huiquingaje como su hijo menor. La identificación tiene entonces respaldo; la regla de cambiar el nombre en el mapa según quién domine es una idea de la IA y no sale de ninguna fuente.
 - **Punto 2 (cronología):** hay discrepancia de décadas **dentro de estos mismos PDF**. Pollard sitúa el predominio del linaje de Taríacuri entre 1250 y 1350. Vargas dice que Tangáxoan murió «cerca de 1479». El texto 1 da la muerte de Taríacuri hacia 1420. Esto confirma lo que dice V5: el estado de 1418 es una decisión abierta.
 - **Punto 6 (señores locales):** Pollard (pp. 128-129, aprox.) dice que en las zonas multiétnicas de la frontera los señores locales «fueron seleccionados, con la aprobación del rey tarasco, a administrar sus pueblos», y que el gobernador tarasco de Acámbaro estaba a cargo sólo de la comunidad tarasca. Eso **no respalda** la afirmación del texto 1 (evento 8) de que los purépechas no dejaban en el poder a los señores locales, y la matiza: los dejaban, con aprobación del rey.
 - **Punto 7 (guerra contra Axayácatl):** hay **tres fechas**: 1476-77 (Pollard, campaña azteca contra la expansión tarasca), 1469-78 (Vargas, «gran guerra») y 1478 (texto 1). Elegir con fuente.
 - **Glosario:** Pollard (pp. 124-125, aprox.) lista los cargos con «ocámbecha: recolectores de tributo» y «petámuti: el principal sacerdote». Respalda el glosario del texto 1. No dice «gobernadores militares» para los ocámbecha.
 - **Otros datos útiles de Vargas, p. 7:** Tzitzic-Pandácuare, hijo de Tangáxoan, «adquirió control único del Estado Tarasco» y conquistó el sudoeste de Jalisco, Colima y Zacatula «en el año de 1460» (cronología de Brand y Corona, por verificar).
 - **Sin respaldo en estos PDF:** Ixtapan y Tzintzicha no aparecen en Pollard. Las afirmaciones sobre la sal de Ixtapan y los nombres de Tzintzicha o Tangáxoan II deben venir de otra fuente.
+
+### Oliveros Morales (textos 1 y 2)
+
+| Evento | Cita | Resultado |
+| --- | --- | --- |
+| T2-4 Ocámbecha | p. 66 | **Aparece** («a los nombrados en esta nueva calidad de poder se les llamaba ocambecha…»). Responsables de oro, plata, mantas, sal, plumas, pieles y pescado. |
+| T2-5 Petámuti | p. 67 | **Aparece** («la principal figura después del rey», «personaje notorio y muy bien informado»). |
+| T2-8 Obsidiana | p. 79 | **Aparece** («fino cristal natural»). Nombra los veneros de Zinapécuaro-Acámbaro, Ucareo, Zinaparo y Cerro Prieto. **No habla de monopolio**: eso y los porcentajes son de la IA. |
+| T2-9 Spondylus | p. 81 | **Aparece** («casi 3 000 años»). |
+| T2-10 Metalurgia | p. 82 | **Aparece**, con una edición: el PDF dice «desde 700 d.C. el cobre y la plata fueron introducidos y adoptados» y el bronce «hacia 1200 d.C.» (PDF p. 83). Ecuador, según Hosler. |
+| T2-11 Sal | p. 80 | **Aparece.** |
+| T2-16 Yácatas | pp. 50 y 54 | 450 m de largo **aparece** (p. 50). «Cerca de 200 años» está en la PDF p. 56. |
+| T2-17 Palacio y ciudadela | p. 55 | **Aparece** (PDF pp. 54-55). |
+| T2-18 Casas de las mujeres | p. 68 | «Quatá peri» y el pasaje **aparecen**. «Yerri» no aparece con esa grafía (variante por revisar). |
+| T2-21 Incineración | pp. 32 y 73 | **Aparece.** |
+
+Datos de Oliveros que contradicen al texto 1 (**punto 2 de la tabla**): según Oliveros (PDF p. 67), Tangáxoan I reinó en Tzintzuntzan de **1454 a 1479**; luego Tzitzispandáquare; luego su hijo Zuanga, con el máximo apogeo hasta **1520**; y Tangáxoan II (Tzintzicha) hasta **1530**. Vargas coincide en 1479 para la muerte de Tangáxoan. El texto 1 da 1420 para la muerte de Taríacuri y pone la unificación de Tzitzispandáquare hacia 1450-1479. Nada de Oliveros respalda las cenizas enterradas en Pátzcuaro ni las salinas de Ixtapan y Alahuiztlán (los dos nombres de lugar no aparecen en Oliveros).
+
+### Carrasco (textos 3 a 5)
+
+Páginas del PDF (la paginación impresa que dio la IA falla en varias).
+
+| Cita | Página que dio la IA | Resultado |
+| --- | --- | --- |
+| Heredero de Tezozomoc derrocado por Maxtla | 60 | **Aparece** (PDF p. 56). |
+| Mexicanos alzaron a Itzcoatl; guerra que derrotó a Azcapotzalco; «se concertó entonces la Triple Alianza» | 59-60 | **Aparecen** (PDF p. 57). |
+| Entreveramiento; «dos quintos a Tenochtitlan» | 61 | **Aparecen** (PDF p. 49). |
+| Tlacopan «la menor de las tres» | 63 | **Aparece** (PDF p. 59). |
+| Calpixcazgos y provincias tributarias | 114 | **Aparecen** (sin página precisa). |
+| Guerras floridas (enemigos más poderosos…) | 14 | **Aparece** (PDF p. 11). |
+| Tierras de Chalco «amojonadas» | 60 | **Aparece** pero en la PDF p. 394, no en la zona de la Triple Alianza. |
+| «El gran hambre que asoló el valle en 1450-1454» | 60 | **No aparece.** No hay «gran hambre», «hambruna» ni «1450-1454» en todo el libro. Tratar como no verificada. |
+| Coaixtlahuacan en Oaxaca | 422 | **Aparece** (PDF p. 411). |
+| Moquihuix y Tlatelolco bajo gobernadores militares | 167 | **Aparece** (PDF p. 63, no en la 167). |
+| Axayácatl y los matlatzincas | 351 | **Aparece** (PDF p. 351). |
+| Tizoc fracasó en Metztitlan | 353 | **Aparece** (PDF p. 63). |
+| Templo Mayor, «los dos reyes nuestros hermanos» | 555 | **Aparece** (PDF p. 556). Si Michoacán asistió: sin comprobar. |
+| Tecuantepec, tras la conquista de Oztoman | 481 | **Aparece** (PDF p. 470). |
+| Huaxteca: Tziuhcoac, Tozapan, Tamapachco | 539 | **Aparece** (PDF p. 539). |
+| Suspensión del tributo de la Chinampan | 586 | **Aparece** (PDF p. 586). |
+| Yancuitlan y Zozollan | 418 | **Aparece** (PDF p. 418). |
+| Tlachquiauhco, «posada, de comer y beber» | 427 | **Aparece** (PDF p. 427). |
+| Tlacaxipehualiztli, «máxima expresión del poder político» | 547 | **No aparece.** El PDF p. 547 sí trata la fiesta (en el templo recién acabado tras vencer Moteuczoma Ilhuicamina a los huaxtecos), pero no con esas palabras. |
+| Panquetzaliztli y los mercaderes en Tochtepec | 463 | **Aparece** (PDF p. 463). |
+| Mercados (tianquiztli) | 147 | **Aparece** (PDF p. 142). |
+| Tlacxitlan, «tlatoque tlazopipilti…» | 154 | **Aparece** (PDF p. 152). Carrasco dice que la figura «podría ser» un consejo: **no da la fecha de 1430**. |
+| «Si algún principal tomaba alguna mujer de las del cazonci…» | 152 | **No aparece.** Es un pasaje de la *Relación de Michoacán*, atribuido por error a Carrasco. |
+| Reparto de tierras a los reyes y nobles | 50 | **Aparece** (PDF p. 50). |
+| Inundación, «noveno año del reinado» de Moteuczoma | 544 | **Aparece** (PDF p. 544). La periodicidad de 50 años no sale de ahí. |
+
+Sobre el punto 10 de la tabla: Carrasco dice que Moteuczoma Ilhuicamina fue hijo de Huitzilihuitl (PDF p. 153) y que Nezahualcoyotl era sobrino de Itzcoatl por el matrimonio de su padre con una hija de Huitzilihuitl. No dice que fuera hermano de Itzcoatl. Alahuiztlán y Oztoman aparecen como colonias militares en la frontera con los tarascos, no como salinas.
+
+### Santamarina Novillo (textos 3 a 5)
+
+**Ninguna de las 10 citas de Santamarina aparece.** El PDF tiene 520 páginas y las pp. 6 a 11 que citó la IA son el **índice general**, no el texto. Se buscaron varios fragmentos de cada una, entre ellos: «Tenochtitlan y Tlatelolco habían formado parte de él…», «el atepetl es, esencialmente, un grupo de población…», «el calpulli es la célula fundamental…», «la conquista la hicieron los indios», «una oportunidad tan soñada como inesperada…», «el faccionalismo a menudo…», «participaban en la elección del rey tenochca», «el calendario… ritual de 260 días» y «labores diplomáticas y de información». Ninguna está. Tampoco aparecen «260 días» ni «360 días» (punto 15) en Santamarina ni en Carrasco.
+
+Los **conceptos** sí están: Santamarina trata la dominación territorial contra la hegemónica (Hassig), las élites locales «colaboracionistas» y «el habitual principio de la reutilización de estructuras de dominación preexistentes» (PDF pp. 36-37). Las citas de la IA parecen paráfrasis presentadas como textuales, o vienen de otro texto de Santamarina que no tenemos. **No usar ninguna como cita.**
+
+Dato útil para V5 (*Por qué 1418*): Santamarina cita a Chimalpahin, «4 tochtli» (1418), para la muerte de Huehue Ixtlilxochitl a manos de chalcas y tepanecas por orden de Tezozomoc (PDF p. 400), y fecha la guerra tepaneca contra Tetzcoco en **1413-1418** (PDF p. 442, citando a Davies). Eso respalda lo que V5 dice del año 1418.
+
+### Resumen del cotejo
+
+| Obra | Citas cotejadas | Aparecen | No aparecen |
+| --- | --- | --- | --- |
+| Vargas Uribe | 5 | 5 | 0 |
+| Carot | 4 | 4 | 0 |
+| Perlstein Pollard | 1 | 0 | 1 |
+| Oliveros Morales | 10 | 10 (una con grafía distinta) | 0 |
+| Carrasco | 25 | 22 | 3 (hambre de 1450-1454; máxima expresión de Tlacaxipehualiztli; cita del cazonci, que es de la *Relación*) |
+| Santamarina | 10 | 0 | 10 |
+
+Las tres fallas de Carrasco, la de Pollard y las diez de Santamarina muestran el patrón: **las citas con página de la IA son fiables para obras cortas y para Oliveros, y poco fiables para libros largos**. Aun las que aparecen traen páginas equivocadas o recortes. Antes de usar una cita en `datos/` o en un texto visible, se abre el PDF y se copia de ahí.
 
 ## Cómo se adopta algo de aquí
 
