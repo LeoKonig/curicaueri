@@ -2,8 +2,6 @@
 
 **Versión: borrador del 2 de noviembre de 2026.**
 
-> **Aviso:** este es un borrador y **no ha sido revisado por un abogado**. Conviene que lo revise uno (idealmente con experiencia en derecho de autor de México) antes de aceptar la primera contribución externa.
-
 Gracias por querer contribuir a *Curicaueri: Flor y Canto* (el "Proyecto"). Este acuerdo existe para que el titular del Proyecto pueda seguir publicándolo como software libre y, además, conservar la opción de ofrecerlo bajo otros términos, incluidos los comerciales. **No te quita la titularidad de lo que escribas: solo le da al Proyecto el permiso para usarlo.**
 
 ## 1. Definiciones
