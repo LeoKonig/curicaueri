@@ -85,11 +85,15 @@ func actualizar(reloj: Dictionary) -> void:
 	_boton_pausa.text = "▶" if reloj["pausado"] else "⏸"
 
 
+## «1 de enero de 1476 (juliano)», a partir de la fecha del protocolo.
+static func texto_fecha(f: Dictionary) -> String:
+	return "%d de %s de %d (%s)" % [int(f["dia"]), MESES[int(f["mes"]) - 1], int(f["anio"]), f["calendario"]]
+
+
 ## El calendario viene del catálogo: "veintena" y "nemontemi" en el prototipo,
 ## "mes" o "semana" en otra época, sin cambiar este código.
 static func texto_reloj(reloj: Dictionary, calendario: Dictionary = {}) -> String:
-	var f: Dictionary = reloj["fecha"]
-	var fecha := "%d de %s de %d (%s)" % [int(f["dia"]), MESES[int(f["mes"]) - 1], int(f["anio"]), f["calendario"]]
+	var fecha := texto_fecha(reloj["fecha"])
 	var periodo: String
 	if reloj["fuera_de_periodo"]:
 		periodo = "%s, día %d" % [calendario.get("nombre_fuera", "fuera de periodo"), int(reloj["dia"])]

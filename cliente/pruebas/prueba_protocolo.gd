@@ -9,6 +9,10 @@ const Protocolo = preload("res://red/protocolo.gd")
 const BarraSuperior = preload("res://ui/barra_superior.gd")
 const PanelComandos = preload("res://ui/panel_comandos.gd")
 const PanelDecisiones = preload("res://ui/panel_decisiones.gd")
+const PanelCronica = preload("res://ui/panel_cronica.gd")
+const PantallaInicio = preload("res://ui/pantalla_inicio.gd")
+const PantallaFinal = preload("res://ui/pantalla_final.gd")
+const Textos = preload("res://red/textos.gd")
 const Comun = preload("res://pruebas/comun.gd")
 
 var fallos := 0
@@ -24,7 +28,7 @@ func _init() -> void:
 	var dir := Comun.ruta_compartidas().path_join("protocolo")
 	var leer = func(n): return Comun.leer_json(dir.path_join(n))
 	var espejo = Espejo.new()
-	for n in ["hola.json", "catalogo.json", "mapa.json", "instantanea.json", "cambios.json", "reloj.json", "error.json", "aviso.json", "prediccion.json", "decision.json", "decision_cantidad.json"]:
+	for n in ["hola.json", "catalogo.json", "mapa.json", "instantanea.json", "cambios.json", "reloj.json", "error.json", "aviso.json", "prediccion.json", "decision.json", "decision_cantidad.json", "cronica.json"]:
 		var m = leer.call(n)
 		_comprobar("se lee " + n, m is Dictionary and m.has("tipo"))
 		if m is Dictionary:
@@ -83,5 +87,72 @@ func _init() -> void:
 	_comprobar("pulsar una opción pide responder con su id", pedidas.size() == 1 and pedidas[0][0] == 3 and pedidas[0][1] == "resistir")
 	espejo.recibir(leer.call("decision_cerrada.json"))
 	_comprobar("decision_cerrada la quita del espejo", espejo.decisiones.size() == 1 and espejo.decisiones.has(4))
+	_probar_cronica_y_fin(leer, espejo)
 	print("protocolo: %d fallos" % fallos)
 	quit(1 if fallos > 0 else 0)
+
+
+func _probar_cronica_y_fin(leer: Callable, espejo) -> void:
+	_comprobar("«cronica» añade sus entradas al espejo", espejo.cronica.size() == 1 and espejo.cronica[0]["clave"] == "c.fase")
+	espejo.recibir(leer.call("cronica.json"))
+	_comprobar("una segunda «cronica» se añade a las anteriores", espejo.cronica.size() == 2)
+	_comprobar("mientras se juega, el espejo no tiene fin", espejo.fin.is_empty())
+	var panel = PanelCronica.new()
+	panel.espejo = espejo
+	root.add_child(panel)
+	panel.refrescar()
+	var etiquetas := panel.find_children("*", "Label", true, false)
+	_comprobar("el panel muestra la fecha de cada entrada", etiquetas.any(func(l): return l.text.contains("1 de enero de 1476")))
+	_comprobar("una clave sin texto se muestra con sus parámetros: " + PanelCronica.texto_de(espejo.cronica[0]),
+		PanelCronica.texto_de(espejo.cronica[0]).contains("c.fase") and PanelCronica.texto_de(espejo.cronica[0]).contains("fase=frontera"))
+	espejo.recibir(leer.call("fin.json"))
+	_comprobar("«fin» guarda la razón y sustituye la crónica por la completa", espejo.fin.get("razon", "") == "fecha" and espejo.cronica.size() == 1)
+	var inst = leer.call("instantanea.json")
+	espejo.recibir(inst)
+	_comprobar("una instantánea nueva borra la crónica y el fin (se cargó otra partida)", espejo.cronica.is_empty() and espejo.fin.is_empty())
+
+	# Textos: el epígrafe y la apertura del libro son los que se pidieron.
+	_comprobar("el epígrafe es el poema de Nezahualcóyotl",
+		Textos.de("inicio.epigrafe").begins_with("¡En buen tiempo vinimos a vivir,") and Textos.de("inicio.epigrafe").ends_with("que se viva!"))
+	_comprobar("la apertura del libro es la del Quijote",
+		Textos.de("libro.apertura").begins_with("En un lugar de la Mancha") and Textos.de("libro.apertura").ends_with("más cierta en el mundo."))
+	_comprobar("las plantillas sustituyen sus parámetros", Textos.formatear("{a} y {b}", {"a": 1, "b": "dos"}) == "1 y dos")
+
+	# Pantalla de inicio: el epígrafe y un botón que la cierra y avisa.
+	var inicio = PantallaInicio.new()
+	root.add_child(inicio)
+	inicio.construir()
+	var comenzo := []
+	inicio.comenzar.connect(func(): comenzo.append(true))
+	_comprobar("la pantalla de inicio muestra el epígrafe",
+		inicio.find_children("*", "Label", true, false).any(func(l): return l.text.contains("En buen tiempo vinimos a vivir")))
+	inicio.boton.pressed.emit()
+	_comprobar("«Comenzar» avisa y quita la pantalla", comenzo.size() == 1 and inicio.is_queued_for_deletion())
+
+	# Pantalla final: sin el libro, no hay botón; con él, «Abrir» muestra el párrafo.
+	var espejo_fin = Espejo.new()
+	espejo_fin.recibir(leer.call("fin.json"))
+	var sin_libro = PantallaFinal.new()
+	sin_libro.espejo = espejo_fin
+	root.add_child(sin_libro)
+	sin_libro.construir()
+	_comprobar("sin la copia en la crónica, la pantalla final no ofrece el libro", sin_libro.boton_abrir == null and not sin_libro.tiene_libro())
+	_comprobar("el resumen dice la fecha y las entradas: " + sin_libro.resumen(),
+		sin_libro.resumen().contains("1 de enero de 1476") and sin_libro.resumen().contains("1 entradas"))
+	var cargas := []
+	sin_libro.cargar_pedido.connect(func(): cargas.append(true))
+	var botones_fin := sin_libro.find_children("*", "Button", true, false)
+	botones_fin[0].pressed.emit()
+	_comprobar("la pantalla final pide cargar una partida", botones_fin.size() == 1 and cargas.size() == 1)
+
+	espejo_fin.cronica.append({"tick": 400, "fecha": {"anio": 1607, "mes": 12, "dia": 1, "calendario": "juliano"},
+		"tipo": "copia_obtenida", "entidades": [], "clave": "cronica.copia_obtenida", "params": {}})
+	var con_libro = PantallaFinal.new()
+	con_libro.espejo = espejo_fin
+	root.add_child(con_libro)
+	con_libro.construir()
+	_comprobar("con la copia en la crónica, ofrece abrir el libro", con_libro.boton_abrir != null and con_libro.tiene_libro())
+	_comprobar("el libro empieza cerrado", not con_libro.texto_libro.visible)
+	con_libro.boton_abrir.pressed.emit()
+	_comprobar("abrirlo muestra el párrafo del Quijote",
+		con_libro.texto_libro.visible and con_libro.texto_libro.text.begins_with("En un lugar de la Mancha"))
