@@ -211,3 +211,15 @@ nucleo --sin-cliente --ticks 18250 --guion datos/guion_1475.json --metricas
 ```
 
 Con el guion ilustrativo, en 50 años salen 85 situaciones. La parte máxima es 0,15, dentro del 25 %, y la novedad por década es `[2,2,2,2]`: cumple. El acto II, que dura de 1485 a 1519, escalona sus tipos con `"condicion": {"tipo": "desde_fecha", ...}` en 1495, 1505 y 1515, como el guion de juguete. Sin esas situaciones, la novedad de las décadas siguientes cae a 0 y el arnés lo detecta.
+
+## Licencia
+
+Cada parte del repositorio tiene su propia licencia (ver [`LICENCIAS.md`](LICENCIAS.md)):
+
+| Parte | Licencia |
+| --- | --- |
+| Código | GPL-3.0-or-later ([`LICENSE`](LICENSE)) |
+| Datos del juego (`datos/`) | CC BY 4.0 ([`datos/LICENSE`](datos/LICENSE)) |
+| Documentación (`docs/`) | CC BY 4.0 ([`docs/LICENSE`](docs/LICENSE)) |
+
+El nombre y el logotipo son marcas y no se licencian con lo anterior ([`MARCAS.md`](MARCAS.md)). Para contribuir, lee [`CONTRIBUTING.md`](CONTRIBUTING.md) y acepta el [CLA](CLA.md).
