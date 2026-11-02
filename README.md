@@ -74,6 +74,51 @@ Nix solo ve los archivos que git conoce: después de crear o mover un archivo, `
 
 Fuera de NixOS, el Godot de Nix corre bien sin interfaz (las pruebas), pero para el editor con tarjeta gráfica suele hacer falta [nixGL](https://github.com/nix-community/nixGL) o usar el Godot del sistema: las pruebas toman el de `$GODOT` si está definido.
 
+### Jugar con Nix
+
+Requisitos: Linux en x86_64 (el flake solo define ese sistema) y Nix con flakes activados. Si no los tienes, añade a `~/.config/nix/nix.conf`:
+
+```
+experimental-features = nix-command flakes
+```
+
+Los pasos, desde una terminal:
+
+1. Consigue el código y entra a la carpeta del proyecto:
+   ```sh
+   git clone https://github.com/LeoKonig/curicaueri.git
+   cd curicaueri
+   ```
+2. Arranca el núcleo con el escenario de 1475. La primera vez compila todo y tarda varios minutos. Déjalo corriendo:
+   ```sh
+   nix run . -- --puerto 4646 \
+     --guion datos/guion_1475.json \
+     --ejes datos/ejes.json \
+     --grupos datos/grupos.json \
+     --edificios datos/edificios.json \
+     --terrenos datos/terrenos.json
+   ```
+   Los archivos de `datos/` se leen desde la carpeta donde ejecutas el comando, así que ejecútalo desde la raíz del proyecto.
+3. En otra terminal, desde la misma carpeta, abre el cliente. Usa el Godot del entorno de Nix:
+   ```sh
+   nix develop .#cliente --command sh -c '"$GODOT" --path cliente'
+   ```
+   Si la ventana no aparece o Godot falla al abrir la ventana, es el caso de la nota de nixGL más abajo.
+4. La partida empieza en pausa. Pulsa ▶ para correr el reloj. Para detener el núcleo, vuelve a su terminal y pulsa Ctrl+C.
+
+Para ver la pantalla final sin esperar a 1607, arranca el núcleo del paso 2 con el guion de prueba, que termina el día 11, en lugar de `datos/guion_1475.json`:
+
+```sh
+nix run . -- --puerto 4646 --guion pruebas_compartidas/guion_fin.json
+```
+
+Si prefieres un entorno con todo (compilar, pruebas, Godot y Python), usa `nix develop` en lugar de los comandos de los pasos 2 y 3: dentro del entorno, `cd nucleo && cabal build all && cabal test all` compila y prueba el núcleo, y `"$(cd nucleo && cabal list-bin nucleo)" --puerto 4646 …` lo arranca con las mismas opciones.
+
+Notas:
+- **Antes de `nix develop` o `nix run`**, cualquier archivo nuevo debe estar en git (`git add`): Nix solo ve los archivos que git conoce.
+- **Godot con ventana:** el Godot de nixpkgs necesita acceso a la tarjeta gráfica. Fuera de NixOS suele hacer falta [nixGL](https://github.com/nix-community/nixGL), o usar un Godot 4.3 o posterior instalado en el sistema: abre `cliente/project.godot` y pulsa F5 con el núcleo ya corriendo.
+- El cierre de 1607 (`datos/cierre_1607.json`) no se carga con estos comandos: es un guion de datos que todavía no está conectado a la campaña. Hasta que T13 lo integre, el guion de 1475 no termina en 1607.
+
 ## Pruebas
 
 ```sh
