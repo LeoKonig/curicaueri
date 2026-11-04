@@ -1228,7 +1228,7 @@ comunMonedas :: Map EntRef EstadoMonetario
 designarMoneda :: Economia -> EntRef -> Maybe Text -> Tick -> Estado s -> Either Text (Estado s, [Hecho])
 ```
 
-**Paso.** Al empezar cada periodo, para cada entidad con moneda, se anota (t, p_m) en el historial, acotado a n + 1 entradas, con n los periodos por año. Corre después de los sistemas, que mueven existencias y producción, y antes del derivado:
+**Paso.** Al empezar cada periodo, para cada entidad con moneda, se anota (t, p_m) en el historial, acotado a n + 1 entradas, con n los periodos por año. Si la moneda tiene merma μ (`bnMerma`, de 0 a menos de 1; 0 si el archivo no la da), cada magnitud nominal pierde esa fracción: n' = n · (1 − μ). Es la contraparte de la merma de las existencias, que aplica el sistema de producción del juego (E' = E · (1 − μ) + Q, con punto fijo Q / μ): sin ella, la merma subiría el precio de la moneda y el tesoro ganaría valor por pudrirse. Corre después de los sistemas, que mueven existencias y producción, y antes del derivado:
 
 ```
 fases → expirar → agentes → cola + respuestas → sistemas → moneda → derivar → director
@@ -1535,6 +1535,8 @@ Las reglas del diseño, escritas como propiedades. En un lenguaje puro, "la mism
 | Moneda persistente | Guardar y cargar a mitad de periodo conserva la moneda y su historial, y la partida sigue igual; un guardado sin monedas carga sin monedas |
 | Historial por moneda | Cambiar de moneda vacía el historial: la inflación nunca compara dos monedas |
 | Valor conservado al cambiar de cuenta | Designar, cambiar o retirar la moneda no cambia el valor real de las magnitudes nominales, salvo el redondeo (sección 14g) |
+| Merma de lo nominal | Con una moneda de merma μ, lo nominal tras k periodos sin flujos es n · (1 − μ)^k (con el mismo redondeo); con μ = 0 la partida es idéntica a la de antes de la merma |
+| Existencias acotadas | Con producción constante Q y merma μ > 0, las existencias se acercan a Q / μ y nunca la superan si empiezan por debajo |
 | Nombramiento sin trinquete | Mientras dura un cargo, su aporte al poder del grupo es constante; al terminar el cargo, es 0 y sus modificadores emiten `modificador_terminado` (sección 14d) |
 | Facciones con rastro | Toda aparición emite `faccion_aparece` y toda desaparición `faccion_desaparece`; lo que tenía la facción llega a un destino declarado o se pierde por declaración; los ids no se reutilizan (sección 14b) |
 | Insumos en especie | Un insumo nunca se paga con valor; sin insumo ni sustituto, la actividad se rechaza sin cambiar el estado; la penalización es proporcional a la fracción que falta (sección 14h) |
