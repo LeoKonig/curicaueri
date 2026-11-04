@@ -88,6 +88,7 @@ func _init() -> void:
 	espejo.recibir(leer.call("decision_cerrada.json"))
 	_comprobar("decision_cerrada la quita del espejo", espejo.decisiones.size() == 1 and espejo.decisiones.has(4))
 	_probar_cronica_y_fin(leer, espejo)
+	_probar_textos_del_guion()
 	print("protocolo: %d fallos" % fallos)
 	quit(1 if fallos > 0 else 0)
 
@@ -156,3 +157,38 @@ func _probar_cronica_y_fin(leer: Callable, espejo) -> void:
 	con_libro.boton_abrir.pressed.emit()
 	_comprobar("abrirlo muestra el párrafo del Quijote",
 		con_libro.texto_libro.visible and con_libro.texto_libro.text.begins_with("En un lugar de la Mancha"))
+
+
+## El guion del tutorial (datos/guion_1475.json) y sus textos: cada situación
+## tiene título y texto, y cada opción su etiqueta y su costo visible; el panel
+## los usa en lugar del id.
+func _probar_textos_del_guion() -> void:
+	var guion = Comun.leer_json(Comun.ruta_compartidas().get_base_dir().path_join("datos/guion_1475.json"))
+	_comprobar("se lee el guion del tutorial", guion is Dictionary and guion.has("situaciones"))
+	if not guion is Dictionary:
+		return
+	var faltan := []
+	for s in guion["situaciones"]:
+		var id := str(s["id"])
+		for k in ["situacion." + id, "situacion.%s.texto" % id]:
+			if not Textos.existe(k):
+				faltan.append(k)
+		for o in s["opciones"]:
+			for k in ["situacion.%s.%s" % [id, o["id"]], "situacion.%s.%s.costo" % [id, o["id"]]]:
+				if not Textos.existe(k):
+					faltan.append(k)
+	_comprobar("cada situación y cada opción del guion tienen texto (faltan: %s)" % [faltan], faltan.is_empty())
+	var sin_texto := []
+	for clave in guion.get("cronica", {}).values():
+		if not Textos.existe(str(clave)):
+			sin_texto.append(clave)
+	_comprobar("cada entrada de la crónica del guion tiene texto (faltan: %s)" % [sin_texto], sin_texto.is_empty())
+	var d := {"id": 1, "situacion": "guerra_de_taximaroa", "tipo_situacion": "frontera", "plazo": 30,
+		"pregunta": {"tipo": "opcion", "opciones": ["dejar_que_resista_la_frontera", "levantar_a_todo_el_reino"]}}
+	_comprobar("el título sale del texto y no del id", PanelDecisiones.titulo_de(d) == Textos.de("situacion.guerra_de_taximaroa"))
+	_comprobar("la opción muestra su costo: " + PanelDecisiones.costo_de(d, "levantar_a_todo_el_reino"),
+		PanelDecisiones.costo_de(d, "levantar_a_todo_el_reino").contains("Tesoro −300"))
+	var sin := {"id": 2, "situacion": "sin_texto_alguno", "tipo_situacion": "x",
+		"pregunta": {"tipo": "opcion", "opciones": ["una_opcion"]}}
+	_comprobar("sin texto, el título y la opción son el id legible",
+		PanelDecisiones.titulo_de(sin) == "Sin Texto Alguno" and PanelDecisiones.opcion_de(sin, "una_opcion") == "Una Opcion" and PanelDecisiones.costo_de(sin, "una_opcion") == "")

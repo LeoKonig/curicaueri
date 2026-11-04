@@ -3,7 +3,14 @@
 ## llegan; no sabe nada de sucesiones ni de tributos. Un botón por opción o un
 ## selector para las preguntas de cantidad. Si el plazo vence, el núcleo aplica
 ## la primera opción y avisa con "decision_cerrada".
+##
+## Los textos salen de cliente/textos/es.json por el id de la situación:
+## «situacion.<id>» (título), «situacion.<id>.texto», «situacion.<id>.<opción>»
+## y «situacion.<id>.<opción>.costo» (el costo visible antes de confirmar).
+## Sin texto, se muestra el id legible, como antes.
 extends VBoxContainer
+
+const Textos = preload("res://red/textos.gd")
 
 signal respuesta_pedida(decision: int, respuesta: String)
 
@@ -24,12 +31,18 @@ func refrescar() -> void:
 	for id in ids:
 		var d: Dictionary = espejo.decisiones[id]
 		var titulo := Label.new()
-		titulo.text = "%s  [%s]" % [_legible(d["situacion"]), d.get("tipo_situacion", "")]
+		titulo.text = "%s  [%s]" % [titulo_de(d), tipo_de(d)]
 		titulo.add_theme_font_size_override("font_size", 17)
 		add_child(titulo)
+		var cuerpo := texto_de(d)
+		if cuerpo != "":
+			var l := Label.new()
+			l.text = cuerpo
+			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			add_child(l)
 		if d.get("plazo") != null:
 			var plazo := Label.new()
-			plazo.text = "Quedan %d días; si no respondes, se toma «%s»." % [maxi(0, int(d["plazo"]) - hoy), _omision(d["pregunta"])]
+			plazo.text = "Quedan %d días; si no respondes, se toma «%s»." % [maxi(0, int(d["plazo"]) - hoy), _omision(d)]
 			add_child(plazo)
 		var p: Dictionary = d["pregunta"]
 		if p["tipo"] == "opcion":
@@ -37,7 +50,10 @@ func refrescar() -> void:
 			add_child(fila)
 			for o in p["opciones"]:
 				var b := Button.new()
-				b.text = _legible(o)
+				b.text = opcion_de(d, str(o))
+				var c := costo_de(d, str(o))
+				if c != "":
+					b.text += "\n" + c
 				b.pressed.connect(func(): respuesta_pedida.emit(int(id), str(o)))
 				fila.add_child(b)
 		else:
@@ -58,7 +74,34 @@ static func _legible(t: String) -> String:
 	return t.replace("_", " ").capitalize() if t != "" else "?"
 
 
-static func _omision(p: Dictionary) -> String:
+## El texto de una clave, o el respaldo si no existe.
+static func _texto(clave: String, respaldo: String) -> String:
+	return Textos.de(clave) if Textos.existe(clave) else respaldo
+
+
+static func titulo_de(d: Dictionary) -> String:
+	return _texto("situacion." + str(d["situacion"]), _legible(str(d["situacion"])))
+
+
+static func tipo_de(d: Dictionary) -> String:
+	var t := str(d.get("tipo_situacion", ""))
+	return _texto("tipo_situacion." + t, t)
+
+
+static func texto_de(d: Dictionary) -> String:
+	return _texto("situacion.%s.texto" % d["situacion"], "")
+
+
+static func opcion_de(d: Dictionary, o: String) -> String:
+	return _texto("situacion.%s.%s" % [d["situacion"], o], _legible(o))
+
+
+static func costo_de(d: Dictionary, o: String) -> String:
+	return _texto("situacion.%s.%s.costo" % [d["situacion"], o], "")
+
+
+static func _omision(d: Dictionary) -> String:
+	var p: Dictionary = d["pregunta"]
 	if p["tipo"] == "opcion" and not p["opciones"].is_empty():
-		return _legible(p["opciones"][0])
+		return opcion_de(d, str(p["opciones"][0]))
 	return str(p.get("min", ""))

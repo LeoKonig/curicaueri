@@ -17,7 +17,7 @@ Prompts listos para pegar en distintas IA (Claude Code, otros asistentes con acc
 | 1 | T2 Crónica y fin de partida | `motor`: `Estado`, `Protocolo`; `app` | — | 3 / 6 |
 | 1 | T3 Asignación de celdas y terrenos | `motor`: `Mapa`; `datos/terrenos.json` | — | 3 |
 | 1 | T4 Nombramientos con grupos | `reglas`: `Comando`, `Estado`, `Escenario` | — | 3 |
-| 1 | T5 Guion real de 1475 | `datos/guion_1475.json` | — | 0 / 3 |
+| 1 | T5 Guion real de 1475 (hecha en `claude/guion-1475`) | `datos/guion_1475.json` | — | 0 / 3 |
 | 1 | T6 Investigación histórica | `docs/fuentes/` (sin código) | — | 0 |
 | 2 | T7 Cliente: crónica y pantalla de fin | `cliente/` | T2 | 3 / 6 |
 | 2 | T8 Obras: yácata, fortaleza, troje | `reglas`: `Comando`, `Sistemas` | T4 | 3 |

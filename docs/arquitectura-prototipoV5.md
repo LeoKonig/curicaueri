@@ -2208,6 +2208,7 @@ Al empezar una fase, sus sistemas e intensidades se copian al estado persistente
 - **en qué fases puede salir**, y una condición opcional;
 - **un peso**, un enfriamiento en días y un plazo para responder;
 - **sus opciones**, con efectos del mismo lenguaje que los eventos. La primera opción es la que se toma si vence el plazo.
+- **su fuente** (`_fuente`, solo documentación: el núcleo no la lee): de dónde sale el suceso y con qué certeza, para revisarlo cuando cambie una lectura histórica. Sus textos visibles (título, texto, etiqueta y costo de cada opción) viven en `cliente/textos/es.json` con la clave `situacion.<id>`, no en el guion.
 
 El guion se valida entero al cargar, y se informan todos los errores, no solo el primero: tipos fuera del vocabulario, fases desconocidas, situaciones sin opciones, efectos mal escritos.
 

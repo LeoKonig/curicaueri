@@ -1,17 +1,22 @@
 {
-  "_nota": "Guion ILUSTRATIVO del escenario 1475: muestra la forma (actos como fases, situaciones etiquetadas, director). El contenido real sale del hito 0.",
+  "_nota": "Guion del tutorial 1475-1530 (T5). Los sucesos históricos salen de docs/propuestas_cronica.md y las decisiones recurrentes del prototipo del hito 0 (hito_0/datos/eventos.json). Cada situación lleva en «_fuente» de dónde sale y su grado de certeza; el núcleo no lee ese campo. Los textos visibles están en cliente/textos/es.json (situacion.<id>, situacion.<id>.texto, situacion.<id>.<opción> y su .costo). TODOS LOS NÚMEROS SON DE RELLENO hasta calibrar (hito 11). La primera opción de cada situación es la que se toma si vence el plazo. Los sucesos de la cadena histórica salen una sola vez (enfriamiento 100000) dentro de su ventana de fechas.",
   "tipos": [
-    "sucesion",
+    "tributo",
+    "comercio",
+    "justicia",
+    "culto",
+    "frontera",
+    "obra",
+    "conquista",
     "tierra",
     "senorio",
     "milicia",
-    "frontera",
-    "tributo",
     "alianza",
-    "epidemia",
-    "culto",
     "rebelion",
-    "noticias"
+    "sucesion",
+    "presagio",
+    "noticias",
+    "epidemia"
   ],
   "fases": [
     {
@@ -24,21 +29,96 @@
     {
       "id": "acto_iii_crisis",
       "desde_fecha": "1519-01-01"
+    },
+    {
+      "id": "acto_iv_vasallaje",
+      "desde_fecha": "1523-03-01"
     }
   ],
+  "cronica": {
+    "matlatzincas_acogidos": "cronica.matlatzincas_acogidos",
+    "taximaroa_perdida": "cronica.taximaroa_perdida",
+    "axayacatl_derrotado": "cronica.axayacatl_derrotado",
+    "frontera_fortificada": "cronica.frontera_fortificada",
+    "yacatas_ampliadas": "cronica.yacatas_ampliadas",
+    "tierra_caliente_sometida": "cronica.tierra_caliente_sometida",
+    "mexicas_sin_ayuda": "cronica.mexicas_sin_ayuda",
+    "guerreros_a_tenochtitlan": "cronica.guerreros_a_tenochtitlan",
+    "viruelas": "cronica.viruelas",
+    "hermanos_muertos": "cronica.hermanos_muertos",
+    "vasallaje": "cronica.vasallaje",
+    "vasallaje_negociado": "cronica.vasallaje_negociado",
+    "resistencia": "cronica.resistencia",
+    "frailes_acogidos": "cronica.frailes_acogidos",
+    "thares_escondidos": "cronica.thares_escondidos",
+    "tesoro_escondido": "cronica.tesoro_escondido",
+    "fin_partida": "cronica.fin_1530"
+  },
+  "fin": {
+    "fecha": "1530-02-14",
+    "derrotas": [
+      {
+        "razon": "legitimidad_perdida",
+        "condicion": {
+          "tipo": "menor",
+          "entidad": {
+            "clase": "faccion",
+            "id": 1
+          },
+          "magnitud": "legitimidad",
+          "valor": "5"
+        }
+      }
+    ]
+  },
+  "director": {
+    "espaciado": 60,
+    "prob_base": "0.01",
+    "tension": "0.002",
+    "prob_max": "0.2",
+    "ventana_variedad": 4,
+    "penal_variedad": "1",
+    "bono_novedad": "1",
+    "dias_decada": 3650
+  },
   "situaciones": [
     {
-      "id": "sucesion_en_zacapu",
-      "tipo": "sucesion",
+      "id": "rebaja_en_zacapu",
+      "tipo": "tributo",
+      "_fuente": {
+        "origen": "hito_0/datos/eventos.json: rebaja",
+        "certeza": "decisión de juego, sin fuente histórica"
+      },
+      "peso": "1",
       "enfriamiento": 1460,
       "plazo": 40,
-      "fases": [
-        "acto_i_consolidacion",
-        "acto_ii_frontera"
-      ],
+      "fases": [],
+      "condicion": {
+        "tipo": "alguna",
+        "de": [
+          {
+            "tipo": "mayor",
+            "entidad": {
+              "clase": "pop",
+              "id": 3
+            },
+            "magnitud": "agravio",
+            "valor": "35"
+          },
+          {
+            "tipo": "mayor",
+            "entidad": {
+              "clase": "pop",
+              "id": 4
+            },
+            "magnitud": "agravio",
+            "valor": "35"
+          }
+        ]
+      },
       "opciones": [
         {
-          "id": "confirmar_al_heredero",
+          "id": "ignorar_la_peticion",
           "efectos": [
             {
               "tipo": "sumar_mag",
@@ -47,13 +127,1087 @@
                 "id": 3
               },
               "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            }
+          ]
+        },
+        {
+          "id": "rebajar_el_tributo",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-150"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "-20"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "-20"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rebaja_en_uruapan",
+      "tipo": "tributo",
+      "_fuente": {
+        "origen": "hito_0/datos/eventos.json: rebaja",
+        "certeza": "decisión de juego, sin fuente histórica"
+      },
+      "peso": "1",
+      "enfriamiento": 1460,
+      "plazo": 40,
+      "fases": [],
+      "condicion": {
+        "tipo": "alguna",
+        "de": [
+          {
+            "tipo": "mayor",
+            "entidad": {
+              "clase": "pop",
+              "id": 5
+            },
+            "magnitud": "agravio",
+            "valor": "35"
+          },
+          {
+            "tipo": "mayor",
+            "entidad": {
+              "clase": "pop",
+              "id": 6
+            },
+            "magnitud": "agravio",
+            "valor": "35"
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "ignorar_la_peticion",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            }
+          ]
+        },
+        {
+          "id": "rebajar_el_tributo",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-150"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "-20"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "-20"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tributario_moroso",
+      "tipo": "tributo",
+      "_fuente": {
+        "origen": "hito_0/datos/eventos.json: moroso",
+        "certeza": "decisión de juego, sin fuente histórica"
+      },
+      "peso": "1",
+      "enfriamiento": 1095,
+      "plazo": 40,
+      "fases": [],
+      "condicion": {
+        "tipo": "alguna",
+        "de": [
+          {
+            "tipo": "mayor",
+            "entidad": {
+              "clase": "pop",
+              "id": 5
+            },
+            "magnitud": "agravio",
+            "valor": "50"
+          },
+          {
+            "tipo": "mayor",
+            "entidad": {
+              "clase": "pop",
+              "id": 6
+            },
+            "magnitud": "agravio",
+            "valor": "50"
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "perdonar",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "-15"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "-15"
+            }
+          ]
+        },
+        {
+          "id": "exigir_con_amenaza",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "10"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "10"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "excedente_en_el_tesoro",
+      "tipo": "comercio",
+      "_fuente": {
+        "origen": "hito_0/datos/eventos.json: excedente",
+        "certeza": "decisión de juego, sin fuente histórica"
+      },
+      "peso": "1",
+      "enfriamiento": 1825,
+      "plazo": 40,
+      "fases": [],
+      "condicion": {
+        "tipo": "mayor",
+        "entidad": {
+          "clase": "faccion",
+          "id": 1
+        },
+        "magnitud": "tesoro",
+        "valor": "2000"
+      },
+      "opciones": [
+        {
+          "id": "guardarlo",
+          "efectos": []
+        },
+        {
+          "id": "regalos_a_los_senores_vecinos",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-200"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "5"
+            }
+          ]
+        },
+        {
+          "id": "ofrendas_a_curicaueri",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-200"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.sacerdocio.lealtad",
+              "valor": "5"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "equataconsquaro",
+      "tipo": "justicia",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 1 n.º 9 y texto 2 n.º 5",
+        "cita": "Relación de Michoacán (la fiesta y la justicia general aparecen); Oliveros Morales, p. 67",
+        "certeza": "alta para la fiesta y el petámuti; los efectos son de juego"
+      },
+      "peso": "2",
+      "enfriamiento": 1825,
+      "plazo": 40,
+      "fases": [],
+      "opciones": [
+        {
+          "id": "justicia_estricta",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.sacerdocio.poder",
+              "valor": "2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
               "valor": "3"
             }
           ]
         },
         {
-          "id": "imponer_a_un_noble_de_tzintzuntzan",
+          "id": "indultar_a_los_culpables",
           "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "-5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "-5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "-5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "-5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "-5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 1
+              },
+              "magnitud": "produccion",
+              "valor": "0.01"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sicuindiro",
+      "tipo": "culto",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 1 n.º 10",
+        "cita": "Relación de Michoacán («era fiesta de Sicuíndiro cuando renovaban los cúes de Curicaueri»)",
+        "certeza": "alta para la fiesta; las cuatro nubes y Cuerauáperi, por verificar"
+      },
+      "peso": "1",
+      "enfriamiento": 1460,
+      "plazo": 40,
+      "fases": [
+        "acto_i_consolidacion",
+        "acto_ii_frontera",
+        "acto_iii_crisis"
+      ],
+      "opciones": [
+        {
+          "id": "celebrarla_con_sobriedad",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.sacerdocio.lealtad",
+              "valor": "-3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-1"
+            }
+          ]
+        },
+        {
+          "id": "renovar_los_cues",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-150"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.sacerdocio.lealtad",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "peregrinacion_a_zacapu",
+      "tipo": "culto",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 2 n.º 3",
+        "cita": "Carot, «Otra visión de la historia purépecha», p. 38, citando a fray Alonso de la Rea",
+        "certeza": "media: la fuente es del siglo XVII"
+      },
+      "peso": "1",
+      "enfriamiento": 2190,
+      "plazo": 40,
+      "fases": [
+        "acto_i_consolidacion",
+        "acto_ii_frontera",
+        "acto_iii_crisis"
+      ],
+      "opciones": [
+        {
+          "id": "enviar_ofrendas",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-50"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "1"
+            }
+          ]
+        },
+        {
+          "id": "ir_en_persona",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-100"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "4"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "-5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "-5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.administradores.lealtad",
+              "valor": "-3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "exodo_matlatzinca",
+      "tipo": "frontera",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 4 n.º 5",
+        "cita": "Carrasco, Estructura político-territorial del Imperio tenochca, p. 351 («Muchos matlatzincas emigraron a Michoacán»)",
+        "certeza": "alta para la migración; la fecha de 1476 y los efectos, por verificar"
+      },
+      "peso": "20",
+      "enfriamiento": 100000,
+      "plazo": 60,
+      "fases": [
+        "acto_i_consolidacion"
+      ],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1476-01-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1481-01-01"
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "rechazarlos",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-2"
+            }
+          ]
+        },
+        {
+          "id": "acogerlos_en_zacapu",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 2
+              },
+              "magnitud": "produccion",
+              "valor": "0.05"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "1"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "matlatzincas_acogidos"
+            }
+          ]
+        },
+        {
+          "id": "asentarlos_en_la_frontera",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.poder",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "2"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "matlatzincas_acogidos"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "guerra_de_taximaroa",
+      "tipo": "frontera",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 1 n.º 7 y texto 2 n.º 13",
+        "cita": "Vargas Uribe, «Percepción de espacio…», p. 7 («derrotó al mexicano Axayacatl en la gran guerra de 1469-78»; «otra vez vinieron los mejicanos de Taximaroa y la destruyeron»)",
+        "certeza": "alta para la derrota de Axayácatl; la fecha exacta (1478 o 1479), por verificar"
+      },
+      "peso": "30",
+      "enfriamiento": 100000,
+      "plazo": 30,
+      "fases": [],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1478-06-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1481-01-01"
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "dejar_que_resista_la_frontera",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "10"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "10"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-3"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "taximaroa_perdida"
+            }
+          ]
+        },
+        {
+          "id": "levantar_a_todo_el_reino",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-300"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "10"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.poder",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.lealtad",
+              "valor": "5"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "axayacatl_derrotado"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "refugiados_chichimecas",
+      "tipo": "frontera",
+      "_fuente": {
+        "origen": "hito_0/datos/eventos.json: refugiados",
+        "certeza": "decisión de juego, sin fuente histórica"
+      },
+      "peso": "1",
+      "enfriamiento": 2190,
+      "plazo": 40,
+      "fases": [],
+      "condicion": {
+        "tipo": "desde_fecha",
+        "fecha": "1477-01-01"
+      },
+      "opciones": [
+        {
+          "id": "rechazarlos",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-2"
+            }
+          ]
+        },
+        {
+          "id": "acogerlos",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 2
+              },
+              "magnitud": "produccion",
+              "valor": "0.02"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fortificar_la_frontera_oriental",
+      "tipo": "obra",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 1 n.º 7 y texto 2 n.º 13",
+        "cita": "Vargas Uribe, p. 7; la línea de Yuririapúndaro a Cutzamala y Ajuchitlán, sin cita",
+        "certeza": "media; el trazado de la línea, por verificar"
+      },
+      "peso": "10",
+      "enfriamiento": 100000,
+      "plazo": 60,
+      "fases": [
+        "acto_ii_frontera"
+      ],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1485-01-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1495-01-01"
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "confiar_en_los_senores_de_frontera",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-2"
+            }
+          ]
+        },
+        {
+          "id": "levantar_las_fortalezas",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-400"
+            },
             {
               "tipo": "sumar_mag",
               "entidad": {
@@ -67,10 +1221,417 @@
               "tipo": "sumar_mag",
               "entidad": {
                 "clase": "pop",
-                "id": 1
+                "id": 4
               },
               "magnitud": "agravio",
+              "valor": "8"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.poder",
+              "valor": "3"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "frontera_fortificada"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ampliar_las_yacatas",
+      "tipo": "obra",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 1 n.º 12 y texto 2 n.º 16",
+        "cita": "Oliveros Morales, Tzintzuntzan, p. 50 (450 m por más de 250) y p. 54 (unos 200 años de obra)",
+        "certeza": "alta para la obra; los efectos son de juego"
+      },
+      "peso": "2",
+      "enfriamiento": 1825,
+      "plazo": 40,
+      "fases": [
+        "acto_ii_frontera"
+      ],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1487-01-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1501-01-01"
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "posponer_la_obra",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.sacerdocio.lealtad",
+              "valor": "-4"
+            }
+          ]
+        },
+        {
+          "id": "ampliar_la_plataforma",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-300"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.sacerdocio.lealtad",
+              "valor": "4"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.sacerdocio.poder",
+              "valor": "2"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "yacatas_ampliadas"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "campana_de_tierra_caliente",
+      "tipo": "conquista",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 1 n.º 6 y texto 2 n.º 2",
+        "cita": "Vargas Uribe, p. 5 (el sur, lado izquierdo, y los Uirambanecha, dioses de la tierra caliente); las salinas de Ixtapan y Alahuiztlán, sin cita",
+        "certeza": "media; las salinas como detonante del conflicto con los mexicas, por verificar"
+      },
+      "peso": "3",
+      "enfriamiento": 1460,
+      "plazo": 40,
+      "fases": [
+        "acto_ii_frontera"
+      ],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1486-01-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1501-01-01"
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "no_salir_a_campana",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.lealtad",
               "valor": "-3"
+            }
+          ]
+        },
+        {
+          "id": "campana_por_la_sal_y_el_cobre",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-250"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 3
+              },
+              "magnitud": "produccion",
+              "valor": "0.04"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "8"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.poder",
+              "valor": "2"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "tierra_caliente_sometida"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nombrar_ocambecha",
+      "tipo": "tributo",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 2 n.º 4 y texto 1 n.º 8",
+        "cita": "Oliveros Morales, p. 66 («a los nombrados en esta nueva calidad de poder se les llamaba ocambecha…»)",
+        "certeza": "alta para los ocambecha; la elección entre nobles y caciques es de juego"
+      },
+      "peso": "10",
+      "enfriamiento": 100000,
+      "plazo": 60,
+      "fases": [
+        "acto_ii_frontera"
+      ],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1488-01-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1499-01-01"
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "dejar_a_los_senores_locales",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 2
+              },
+              "magnitud": "produccion",
+              "valor": "0.03"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 3
+              },
+              "magnitud": "produccion",
+              "valor": "0.03"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.administradores.lealtad",
+              "valor": "-3"
+            }
+          ]
+        },
+        {
+          "id": "ocambecha_de_la_nobleza",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 2
+              },
+              "magnitud": "produccion",
+              "valor": "0.06"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 3
+              },
+              "magnitud": "produccion",
+              "valor": "0.06"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 2
+              },
+              "magnitud": "tasa_agravio",
+              "valor": "2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 3
+              },
+              "magnitud": "tasa_agravio",
+              "valor": "2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.poder",
+              "valor": "4"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.administradores.lealtad",
+              "valor": "-4"
+            }
+          ]
+        },
+        {
+          "id": "ocambecha_letrados",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 2
+              },
+              "magnitud": "produccion",
+              "valor": "0.05"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 3
+              },
+              "magnitud": "produccion",
+              "valor": "0.05"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.administradores.poder",
+              "valor": "4"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.lealtad",
+              "valor": "-4"
             }
           ]
         }
@@ -79,13 +1640,34 @@
     {
       "id": "presion_sobre_la_tierra",
       "tipo": "tierra",
-      "enfriamiento": 1460,
+      "_fuente": {
+        "origen": "V5, Decisiones recurrentes (presión sobre la tierra)",
+        "certeza": "decisión de juego, sin fuente histórica"
+      },
+      "peso": "1",
+      "enfriamiento": 1825,
       "plazo": 40,
-      "fases": [],
+      "fases": [
+        "acto_ii_frontera",
+        "acto_iii_crisis"
+      ],
+      "condicion": {
+        "tipo": "desde_fecha",
+        "fecha": "1488-01-01"
+      },
       "opciones": [
         {
-          "id": "roturar_monte",
+          "id": "dejarlo_estar",
           "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "4"
+            },
             {
               "tipo": "sumar_mag",
               "entidad": {
@@ -93,7 +1675,39 @@
                 "id": 5
               },
               "magnitud": "agravio",
-              "valor": "2"
+              "valor": "4"
+            }
+          ]
+        },
+        {
+          "id": "roturar_monte",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-100"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 1
+              },
+              "magnitud": "produccion",
+              "valor": "0.03"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "-3"
             }
           ]
         },
@@ -103,250 +1717,145 @@
             {
               "tipo": "sumar_mag",
               "entidad": {
-                "clase": "pop",
-                "id": 2
+                "clase": "faccion",
+                "id": 1
               },
-              "magnitud": "agravio",
-              "valor": "-2"
+              "magnitud": "prestigio",
+              "valor": "1"
             },
             {
               "tipo": "sumar_mag",
               "entidad": {
                 "clase": "pop",
-                "id": 6
+                "id": 2
               },
               "magnitud": "agravio",
-              "valor": "4"
+              "valor": "-5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "3"
             }
           ]
         }
       ]
     },
     {
-      "id": "peticion_de_senorio_local",
-      "tipo": "senorio",
-      "enfriamiento": 1460,
+      "id": "obsidiana_de_zinapecuaro",
+      "tipo": "comercio",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 2 n.º 8 y texto 1 n.º 13",
+        "cita": "Oliveros Morales, p. 79 (la obsidiana como representación de Curicaueri)",
+        "certeza": "alta para el significado; el monopolio, por verificar"
+      },
+      "peso": "5",
+      "enfriamiento": 100000,
       "plazo": 40,
       "fases": [
         "acto_ii_frontera"
-      ],
-      "opciones": [
-        {
-          "id": "concederlo",
-          "efectos": [
-            {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 4
-              },
-              "magnitud": "agravio",
-              "valor": "-10"
-            },
-            {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 1
-              },
-              "magnitud": "agravio",
-              "valor": "3"
-            }
-          ]
-        },
-        {
-          "id": "negarlo",
-          "efectos": [
-            {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 4
-              },
-              "magnitud": "agravio",
-              "valor": "6"
-            }
-          ]
-        }
       ],
       "condicion": {
-        "tipo": "desde_fecha",
-        "fecha": "1495-01-01"
-      }
-    },
-    {
-      "id": "frontera_chichimeca",
-      "tipo": "frontera",
-      "enfriamiento": 1460,
-      "plazo": 40,
-      "fases": [
-        "acto_ii_frontera"
-      ],
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1490-01-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1506-01-01"
+            }
+          }
+        ]
+      },
       "opciones": [
         {
-          "id": "guarnicion",
+          "id": "dejar_el_comercio_libre",
           "efectos": [
             {
               "tipo": "sumar_mag",
               "entidad": {
-                "clase": "pop",
-                "id": 5
+                "clase": "faccion",
+                "id": 1
               },
-              "magnitud": "agravio",
+              "magnitud": "faccion.grupo.mercaderes.lealtad",
               "valor": "3"
             }
           ]
         },
         {
-          "id": "tregua_con_regalos",
+          "id": "reservarla_al_cazonci",
           "efectos": [
             {
               "tipo": "sumar_mag",
               "entidad": {
-                "clase": "pop",
+                "clase": "faccion",
                 "id": 1
               },
-              "magnitud": "agravio",
+              "magnitud": "tesoro",
+              "valor": "100"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
               "valor": "2"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tributo_mexica_exigido",
-      "tipo": "tributo",
-      "enfriamiento": 1460,
-      "plazo": 40,
-      "fases": [
-        "acto_ii_frontera"
-      ],
-      "opciones": [
-        {
-          "id": "negarse",
-          "efectos": [
+            },
             {
               "tipo": "sumar_mag",
               "entidad": {
-                "clase": "pop",
+                "clase": "faccion",
                 "id": 1
               },
-              "magnitud": "agravio",
-              "valor": "-2"
-            }
-          ]
-        },
-        {
-          "id": "pagar_en_especie",
-          "efectos": [
-            {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 2
-              },
-              "magnitud": "agravio",
-              "valor": "5"
-            },
-            {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 5
-              },
-              "magnitud": "agravio",
-              "valor": "5"
+              "magnitud": "faccion.grupo.mercaderes.lealtad",
+              "valor": "-6"
             }
           ]
         }
       ]
     },
     {
-      "id": "fiesta_de_curicaueri",
-      "tipo": "culto",
-      "enfriamiento": 1460,
-      "plazo": 40,
-      "fases": [],
-      "opciones": [
-        {
-          "id": "celebrarla_con_esplendor",
-          "efectos": [
-            {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 2
-              },
-              "magnitud": "agravio",
-              "valor": "-4"
-            },
-            {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 5
-              },
-              "magnitud": "agravio",
-              "valor": "-4"
-            }
-          ]
-        },
-        {
-          "id": "celebrarla_sobria",
-          "efectos": []
-        }
-      ]
-    },
-    {
-      "id": "noticias_del_oriente",
-      "tipo": "noticias",
-      "enfriamiento": 365,
+      "id": "peticion_de_senorio",
+      "tipo": "senorio",
+      "_fuente": {
+        "origen": "hito_0/datos/eventos.json: autonomia; propuestas_cronica.md, texto 2 n.º 6",
+        "cita": "Perlstein Pollard, «El imperio tarasco…», p. 123 (centro gobernado directamente, periferia por señores locales)",
+        "certeza": "media; la petición de Uruapan es de juego"
+      },
+      "peso": "1",
+      "enfriamiento": 2190,
       "plazo": 40,
       "fases": [
+        "acto_ii_frontera",
         "acto_iii_crisis"
       ],
+      "condicion": {
+        "tipo": "desde_fecha",
+        "fecha": "1495-01-01"
+      },
       "opciones": [
         {
-          "id": "enviar_espias",
-          "efectos": []
-        },
-        {
-          "id": "consultar_a_los_sacerdotes",
+          "id": "negarla",
           "efectos": [
-            {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 1
-              },
-              "magnitud": "agravio",
-              "valor": "-2"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "reclutamiento_de_la_milicia",
-      "tipo": "milicia",
-      "enfriamiento": 1460,
-      "plazo": 40,
-      "fases": [
-        "acto_ii_frontera"
-      ],
-      "opciones": [
-        {
-          "id": "levantar_la_milicia",
-          "efectos": [
-            {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 1
-              },
-              "magnitud": "agravio",
-              "valor": "3"
-            },
             {
               "tipo": "sumar_mag",
               "entidad": {
@@ -354,50 +1863,7 @@
                 "id": 5
               },
               "magnitud": "agravio",
-              "valor": "-2"
-            }
-          ]
-        },
-        {
-          "id": "reclutar_con_pago",
-          "efectos": [
-            {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 2
-              },
-              "magnitud": "agravio",
-              "valor": "-2"
-            }
-          ]
-        }
-      ],
-      "condicion": {
-        "tipo": "desde_fecha",
-        "fecha": "1495-01-01"
-      }
-    },
-    {
-      "id": "alianza_con_el_senorio_vecino",
-      "tipo": "alianza",
-      "enfriamiento": 1460,
-      "plazo": 40,
-      "fases": [
-        "acto_ii_frontera"
-      ],
-      "opciones": [
-        {
-          "id": "aceptar",
-          "efectos": [
-            {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 3
-              },
-              "magnitud": "agravio",
-              "valor": "-2"
+              "valor": "8"
             },
             {
               "tipo": "sumar_mag",
@@ -406,104 +1872,13 @@
                 "id": 6
               },
               "magnitud": "agravio",
-              "valor": "2"
-            }
-          ]
-        },
-        {
-          "id": "rechazar",
-          "efectos": [
+              "valor": "8"
+            },
             {
               "tipo": "sumar_mag",
               "entidad": {
                 "clase": "pop",
                 "id": 3
-              },
-              "magnitud": "agravio",
-              "valor": "2"
-            }
-          ]
-        }
-      ],
-      "condicion": {
-        "tipo": "desde_fecha",
-        "fecha": "1505-01-01"
-      }
-    },
-    {
-      "id": "mal_de_los_pueblos",
-      "tipo": "epidemia",
-      "enfriamiento": 1460,
-      "plazo": 40,
-      "fases": [
-        "acto_ii_frontera"
-      ],
-      "opciones": [
-        {
-          "id": "quemar_las_casas",
-          "efectos": [
-            {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 2
-              },
-              "magnitud": "agravio",
-              "valor": "4"
-            }
-          ]
-        },
-        {
-          "id": "esperar_a_que_pase",
-          "efectos": [
-            {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 5
-              },
-              "magnitud": "agravio",
-              "valor": "3"
-            }
-          ]
-        }
-      ],
-      "condicion": {
-        "tipo": "desde_fecha",
-        "fecha": "1505-01-01"
-      }
-    },
-    {
-      "id": "levantamiento_en_la_ribera",
-      "tipo": "rebelion",
-      "enfriamiento": 1460,
-      "plazo": 40,
-      "fases": [
-        "acto_ii_frontera"
-      ],
-      "opciones": [
-        {
-          "id": "sofocarlo",
-          "efectos": [
-            {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 4
-              },
-              "magnitud": "agravio",
-              "valor": "5"
-            }
-          ]
-        },
-        {
-          "id": "negociar_con_los_principales",
-          "efectos": [
-            {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 4
               },
               "magnitud": "agravio",
               "valor": "-3"
@@ -512,28 +1887,595 @@
               "tipo": "sumar_mag",
               "entidad": {
                 "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "-3"
+            }
+          ]
+        },
+        {
+          "id": "concederla",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "-10"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "-10"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 3
+              },
+              "magnitud": "produccion",
+              "valor": "-0.05"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "capitan_ambicioso",
+      "tipo": "milicia",
+      "_fuente": {
+        "origen": "hito_0/datos/eventos.json: capitan",
+        "certeza": "decisión de juego, sin fuente histórica"
+      },
+      "peso": "1",
+      "enfriamiento": 2555,
+      "plazo": 40,
+      "fases": [
+        "acto_ii_frontera"
+      ],
+      "condicion": {
+        "tipo": "desde_fecha",
+        "fecha": "1497-01-01"
+      },
+      "opciones": [
+        {
+          "id": "relegarlo",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.lealtad",
+              "valor": "-5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-1"
+            }
+          ]
+        },
+        {
+          "id": "nombrarlo_capitan_general",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.poder",
+              "valor": "4"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.administradores.lealtad",
+              "valor": "-4"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
                 "id": 1
               },
               "magnitud": "agravio",
+              "valor": "5"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "levantar_la_milicia",
+      "tipo": "milicia",
+      "_fuente": {
+        "origen": "guion ilustrativo anterior; V5, leva",
+        "certeza": "decisión de juego, sin fuente histórica"
+      },
+      "peso": "1",
+      "enfriamiento": 2190,
+      "plazo": 40,
+      "fases": [
+        "acto_ii_frontera",
+        "acto_iii_crisis"
+      ],
+      "condicion": {
+        "tipo": "desde_fecha",
+        "fecha": "1498-01-01"
+      },
+      "opciones": [
+        {
+          "id": "reclutar_con_pago",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-200"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.lealtad",
+              "valor": "2"
+            }
+          ]
+        },
+        {
+          "id": "levantar_la_leva",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "6"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "6"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "6"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "6"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "6"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
               "valor": "2"
             }
           ]
         }
+      ]
+    },
+    {
+      "id": "spondylus_de_la_costa",
+      "tipo": "comercio",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 2 n.º 9",
+        "cita": "Oliveros Morales, p. 81 (el Spondylus princeps en cultos funerarios y ornamentos)",
+        "certeza": "alta para el uso; los efectos son de juego"
+      },
+      "peso": "1",
+      "enfriamiento": 2190,
+      "plazo": 40,
+      "fases": [
+        "acto_ii_frontera"
+      ],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1495-01-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1516-01-01"
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "dejarla_a_los_mercaderes",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.mercaderes.poder",
+              "valor": "2"
+            }
+          ]
+        },
+        {
+          "id": "comprarla_para_los_templos",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-150"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.sacerdocio.lealtad",
+              "valor": "2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "matrimonio_con_un_senor_vecino",
+      "tipo": "alianza",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 2 n.º 18",
+        "cita": "Oliveros Morales, p. 68 (la yerri y la quatá peri en la casa del cazonci)",
+        "certeza": "alta para la casa de las mujeres; los matrimonios como alianza, por verificar"
+      },
+      "peso": "1",
+      "enfriamiento": 2190,
+      "plazo": 40,
+      "fases": [
+        "acto_ii_frontera"
       ],
       "condicion": {
         "tipo": "desde_fecha",
-        "fecha": "1515-01-01"
-      }
+        "fecha": "1505-01-01"
+      },
+      "opciones": [
+        {
+          "id": "negarla",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-1"
+            }
+          ]
+        },
+        {
+          "id": "aceptar_la_alianza",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-100"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "-5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "-5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.lealtad",
+              "valor": "-2"
+            }
+          ]
+        }
+      ]
     },
     {
-      "id": "tumulto_de_los_macehuales",
+      "id": "rebelion_de_la_periferia",
       "tipo": "rebelion",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 1 n.º 8 y texto 2 n.º 6",
+        "cita": "Perlstein Pollard, p. 123",
+        "certeza": "media; que los purépechas no dejaran el poder a los señores conquistados, por verificar"
+      },
+      "peso": "1",
       "enfriamiento": 1460,
       "plazo": 40,
       "fases": [
         "acto_ii_frontera",
         "acto_iii_crisis"
       ],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1505-01-01"
+          },
+          {
+            "tipo": "alguna",
+            "de": [
+              {
+                "tipo": "menor",
+                "entidad": {
+                  "clase": "faccion",
+                  "id": 1
+                },
+                "magnitud": "legitimidad",
+                "valor": "45"
+              },
+              {
+                "tipo": "mayor",
+                "entidad": {
+                  "clase": "pop",
+                  "id": 4
+                },
+                "magnitud": "agravio",
+                "valor": "55"
+              },
+              {
+                "tipo": "mayor",
+                "entidad": {
+                  "clase": "pop",
+                  "id": 6
+                },
+                "magnitud": "agravio",
+                "valor": "55"
+              }
+            ]
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "negociar_con_los_principales",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "-15"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "-15"
+            }
+          ]
+        },
+        {
+          "id": "sofocarla",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-250"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.poder",
+              "valor": "2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tumulto_de_los_macehuales",
+      "tipo": "rebelion",
+      "_fuente": {
+        "origen": "guion ilustrativo anterior",
+        "certeza": "decisión de juego, sin fuente histórica"
+      },
+      "peso": "1",
+      "enfriamiento": 1460,
+      "plazo": 40,
+      "fases": [],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1505-01-01"
+          },
+          {
+            "tipo": "mayor",
+            "entidad": {
+              "clase": "pop",
+              "id": 2
+            },
+            "magnitud": "agravio",
+            "valor": "45"
+          }
+        ]
+      },
       "opciones": [
         {
           "id": "dispersarlo",
@@ -542,10 +2484,19 @@
               "tipo": "sumar_mag",
               "entidad": {
                 "clase": "pop",
-                "id": 4
+                "id": 2
               },
               "magnitud": "agravio",
-              "valor": "4"
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "1"
             }
           ]
         },
@@ -556,37 +2507,1273 @@
               "tipo": "sumar_mag",
               "entidad": {
                 "clase": "pop",
-                "id": 4
+                "id": 2
               },
               "magnitud": "agravio",
-              "valor": "-2"
+              "valor": "-15"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-100"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "heredero_en_duda",
+      "tipo": "sucesion",
+      "_fuente": {
+        "origen": "hito_0/datos/eventos.json: heredero",
+        "cita": "Relación de Michoacán (a la muerte de Zuangua quedan sus hijos, entre ellos Tangáxoan Tzintzicha)",
+        "certeza": "decisión de juego sobre hechos documentados"
+      },
+      "peso": "10",
+      "enfriamiento": 100000,
+      "plazo": 40,
+      "fases": [
+        "acto_ii_frontera"
+      ],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1508-01-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1519-01-01"
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "esperar",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-3"
+            }
+          ]
+        },
+        {
+          "id": "designar_al_hijo_mayor",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-1"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.lealtad",
+              "valor": "3"
+            }
+          ]
+        },
+        {
+          "id": "que_decidan_los_principales",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.administradores.poder",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.lealtad",
+              "valor": "-3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "los_agueros",
+      "tipo": "presagio",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 1 n.º 11",
+        "certeza": "media: los agüeros están en la Relación; su lectura como crisis de fe, por verificar"
+      },
+      "peso": "10",
+      "enfriamiento": 100000,
+      "plazo": 40,
+      "fases": [],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1516-01-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1520-01-01"
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "callar_los_agueros",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-4"
+            }
+          ]
+        },
+        {
+          "id": "consultar_a_los_sacerdotes",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-100"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.sacerdocio.poder",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-1"
+            }
+          ]
+        },
+        {
+          "id": "prepararse_para_lo_desconocido",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-300"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.poder",
+              "valor": "2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "embajada_de_tenochtitlan",
+      "tipo": "noticias",
+      "_fuente": {
+        "origen": "V5, Cronología de la crisis (1519-1521); fuera de propuestas_cronica.md",
+        "cita": "Relación de Michoacán, tercera parte (por verificar capítulo)",
+        "certeza": "media; la respuesta del cazonci, por verificar"
+      },
+      "peso": "30",
+      "enfriamiento": 100000,
+      "plazo": 30,
+      "fases": [],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1519-10-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1520-09-01"
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "despedirlos",
+          "efectos": [
+            {
+              "tipo": "hecho",
+              "tag": "mexicas_sin_ayuda"
+            }
+          ]
+        },
+        {
+          "id": "enviar_guerreros",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-200"
             },
             {
               "tipo": "sumar_mag",
               "entidad": {
                 "clase": "pop",
-                "id": 1
+                "id": 2
               },
               "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.poder",
+              "valor": "2"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "guerreros_a_tenochtitlan"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "noticias_del_oriente",
+      "tipo": "noticias",
+      "_fuente": {
+        "origen": "guion ilustrativo anterior",
+        "certeza": "decisión de juego"
+      },
+      "peso": "1",
+      "enfriamiento": 365,
+      "plazo": 40,
+      "fases": [
+        "acto_iii_crisis"
+      ],
+      "opciones": [
+        {
+          "id": "consultar_a_los_sacerdotes",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.sacerdocio.poder",
+              "valor": "1"
+            }
+          ]
+        },
+        {
+          "id": "enviar_espias",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-50"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
               "valor": "1"
             }
           ]
         }
+      ]
+    },
+    {
+      "id": "las_viruelas",
+      "tipo": "epidemia",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 5 n.º 15 (cotejado: es de la Relación y habla de Michoacán)",
+        "cita": "Relación de Michoacán («vino luego una pestilencia de viruelas… murieron todos los obispos de los cúes, y todos los señores»)",
+        "certeza": "alta; la muerte de Zuangua en 1520, por verificar la fecha exacta"
+      },
+      "peso": "40",
+      "enfriamiento": 100000,
+      "plazo": 20,
+      "fases": [],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1520-06-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1521-06-01"
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "rogativas_a_los_dioses",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-100"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "8"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "8"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "8"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "8"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "8"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 1
+              },
+              "magnitud": "produccion",
+              "valor": "-0.08"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 2
+              },
+              "magnitud": "produccion",
+              "valor": "-0.08"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 3
+              },
+              "magnitud": "produccion",
+              "valor": "-0.08"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "viruelas"
+            }
+          ]
+        },
+        {
+          "id": "aislar_a_los_enfermos",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-6"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "12"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "12"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "12"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "12"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "12"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 1
+              },
+              "magnitud": "produccion",
+              "valor": "-0.04"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 2
+              },
+              "magnitud": "produccion",
+              "valor": "-0.04"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 3
+              },
+              "magnitud": "produccion",
+              "valor": "-0.04"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "viruelas"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "los_hermanos_del_cazonci",
+      "tipo": "sucesion",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 2 n.º 7 y texto 1 n.º 3",
+        "cita": "Relación de Michoacán, tercera parte, cap. XXIII («a sus hermanos mandólos matar el cazonci nuevo por inducimiento de un principal Timas»)",
+        "certeza": "alta (cotejado); que quebrara la línea de Pátzcuaro no está en la Relación"
+      },
+      "peso": "30",
+      "enfriamiento": 100000,
+      "plazo": 30,
+      "fases": [],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1520-09-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1522-01-01"
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "no_escuchar_a_timas",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.lealtad",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.poder",
+              "valor": "3"
+            }
+          ]
+        },
+        {
+          "id": "mandar_matar_a_los_hermanos",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-6"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.lealtad",
+              "valor": "-8"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-2"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "hermanos_muertos"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "entrada_castellana",
+      "tipo": "conquista",
+      "_fuente": {
+        "origen": "V5, Cronología de la crisis (1522: aceptar vasallaje, negociar o resistir)",
+        "cita": "la entrada de Cristóbal de Olid en 1522, sin cita",
+        "certeza": "alta para la entrada; las opciones son de juego"
+      },
+      "peso": "40",
+      "enfriamiento": 100000,
+      "plazo": 60,
+      "fases": [],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1522-03-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1523-03-01"
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "aceptar_el_vasallaje",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-10"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-10"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-300"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "vasallaje"
+            }
+          ]
+        },
+        {
+          "id": "negociar",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-500"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-4"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "vasallaje_negociado"
+            }
+          ]
+        },
+        {
+          "id": "resistir",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "8"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "4"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "15"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "15"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "15"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "15"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "15"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.poder",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-200"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "resistencia"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "llegada_de_los_franciscanos",
+      "tipo": "culto",
+      "_fuente": {
+        "origen": "V5, Cronología de la crisis (1525: llegada de los franciscanos); propuestas_cronica.md, texto 2 n.º 19 (thares)",
+        "cita": "Carot, p. 35 (los thares, piedras sagradas)",
+        "certeza": "alta para la llegada; la fecha, por verificar"
+      },
+      "peso": "20",
+      "enfriamiento": 100000,
+      "plazo": 40,
+      "fases": [
+        "acto_iv_vasallaje"
       ],
       "condicion": {
-        "tipo": "desde_fecha",
-        "fecha": "1515-01-01"
-      }
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1525-01-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1528-01-01"
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "tolerarlos",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.sacerdocio.lealtad",
+              "valor": "-6"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-3"
+            }
+          ]
+        },
+        {
+          "id": "acogerlos_en_tzintzuntzan",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.sacerdocio.lealtad",
+              "valor": "-12"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.sacerdocio.poder",
+              "valor": "-5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-5"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "frailes_acogidos"
+            }
+          ]
+        },
+        {
+          "id": "esconder_los_thares",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.sacerdocio.lealtad",
+              "valor": "6"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-4"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "thares_escondidos"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "oro_para_los_encomenderos",
+      "tipo": "tributo",
+      "_fuente": {
+        "origen": "V5, encomienda (hito 8)",
+        "certeza": "decisión de juego sobre hechos documentados; por verificar"
+      },
+      "peso": "1",
+      "enfriamiento": 730,
+      "plazo": 40,
+      "fases": [
+        "acto_iv_vasallaje"
+      ],
+      "opciones": [
+        {
+          "id": "pagar",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-150"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "4"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "4"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "4"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "4"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "4"
+            }
+          ]
+        },
+        {
+          "id": "esconder_el_oro",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nuno_de_guzman",
+      "tipo": "conquista",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 1 n.º 4",
+        "cita": "sin cita en las propuestas; la tortura por el oro y la ejecución, por verificar con la Relación",
+        "certeza": "alta para la ejecución en 1530; los detalles, por verificar"
+      },
+      "peso": "40",
+      "enfriamiento": 100000,
+      "plazo": 30,
+      "fases": [
+        "acto_iv_vasallaje"
+      ],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1529-06-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1530-02-01"
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "entregarlo_todo",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-400"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "10"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "10"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "10"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "10"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "10"
+            }
+          ]
+        },
+        {
+          "id": "esconder_el_tesoro",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-5"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "tesoro_escondido"
+            }
+          ]
+        }
+      ]
     }
-  ],
-  "director": {
-    "espaciado": 60,
-    "prob_base": "0.01",
-    "tension": "0.002",
-    "prob_max": "0.2",
-    "ventana_variedad": 4,
-    "penal_variedad": "1",
-    "bono_novedad": "1",
-    "dias_decada": 3650
-  }
+  ]
 }
