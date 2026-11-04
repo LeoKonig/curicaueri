@@ -3,6 +3,7 @@ module Motor.Estado where
 
 import Data.IntSet (IntSet)
 import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Sequence (Seq)
 import Data.Text (Text)
 import Motor.Base
@@ -103,7 +104,16 @@ data Comun s = Comun
   , comunDirector   :: EstadoDirector      -- fase en curso y memoria del director
   , comunMonedas    :: Map EntRef EstadoMonetario  -- solo las entidades con moneda designada
   , comunFin        :: Maybe FinPartida      -- Nothing mientras la partida sigue
+  , comunOcurridos  :: Map Text Tick         -- ^ índice de la crónica: tipo de hecho → último día en que entró.
+                                             --   No se guarda: se rehace de la crónica al cargar ('indiceCronica')
   }
+
+-- | El índice que lee la condición @ocurrio@: para cada tipo de hecho de la
+-- crónica, el último día en que entró. 'Motor.Cronica.pasoCronica' lo
+-- mantiene al añadir entradas; esta función lo rehace desde cero (al cargar,
+-- y en la ley que compara los dos).
+indiceCronica :: Foldable f => f EntradaCronica -> Map Text Tick
+indiceCronica = foldl (\m ec -> Map.insertWith max (ecTipo ec) (ecTick ec) m) Map.empty
 
 data Persistente s = Persistente
   { persistenteComun :: Comun s

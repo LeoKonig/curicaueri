@@ -22,7 +22,9 @@ import Motor.Mapa
 import Motor.Proyeccion (proyeccionCon, proyeccionIncremental, cambiarInteres)
 import Motor.Vista (EntidadJuego (..), EntidadVista (..), Interes (..), Vista (..), ValorVista (..))
 import qualified Data.Set as Set
-import Motor.Guion (Entorno (..), entornoSimple)
+import Motor.Guion (Entorno (..), entornoSimple, Guion (..), Situacion (..), cargarGuion)
+import Motor.Director (responderDecision)
+import Motor.Propios
 
 import qualified Reglas.Juego
 import Reglas.Juego (catalogoMag)
@@ -933,6 +935,7 @@ main = do
       validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j) `shouldBe` []
 
   pruebasFacciones gruposArchivo
+  pruebasPropios gruposArchivo
 
   pruebasMoneda terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo) dorMoneda
 
@@ -1544,3 +1547,102 @@ pruebasCosecha terrenos eco eds = describe "reglas: cosecha por estación y troj
 
   it "los sistemas con cosechas, bienes y troje pasan validarOrdenSistemas salvo las dos lecturas del precio" $
     length (validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j)) `shouldBe` 2 * Set.size (lecturasMoneda eco)
+
+-- ---------------------------------------------------------------------------
+-- Condiciones y efectos propios del guion (T14)
+-- ---------------------------------------------------------------------------
+
+-- | Un guion con una situación «la frontera cambia de manos» que usa las tres
+-- condiciones propias y cuyas opciones usan los cuatro efectos propios.
+guionPropios :: A.Value
+guionPropios = case A.decode "{\"tipos\": [\"t\"], \"situaciones\": [ {\"id\": \"frontera\", \"tipo\": \"t\", \"condicion\": {\"tipo\": \"todas\", \"de\": [ {\"tipo\": \"soberano\", \"altepetl\": 12, \"faccion\": 2}, {\"tipo\": \"faccion_activa\", \"faccion\": 2}, {\"tipo\": \"personaje_vivo\", \"personaje\": 1} ]}, \"opciones\": [ {\"id\": \"nada\", \"efectos\": []}, {\"id\": \"tomar_zacapu\", \"efectos\": [ {\"tipo\": \"transferir_altepetl\", \"altepetl\": 12, \"faccion\": 1}, {\"tipo\": \"modificador\", \"entidad\": {\"clase\": \"faccion\", \"id\": 1}, \"magnitud\": \"prestigio\", \"valor\": \"5\", \"dias\": 365} ]}, {\"id\": \"tomar_la_cabecera\", \"efectos\": [ {\"tipo\": \"modificador\", \"entidad\": {\"clase\": \"faccion\", \"id\": 1}, \"magnitud\": \"prestigio\", \"valor\": \"5\", \"dias\": 365}, {\"tipo\": \"transferir_altepetl\", \"altepetl\": 11, \"faccion\": 1} ]}, {\"id\": \"senorio\", \"efectos\": [ {\"tipo\": \"cambiar_condicion\", \"altepetl\": 12, \"condicion\": \"senorio\"} ]}, {\"id\": \"absorber\", \"efectos\": [ {\"tipo\": \"absorber_faccion\", \"faccion\": 2, \"absorbente\": 1} ]}, {\"id\": \"activar\", \"efectos\": [ {\"tipo\": \"activar_faccion\", \"faccion\": 3} ]} ]} ]}" of
+  Just v  -> v
+  Nothing -> error "guionPropios no es JSON"
+
+pruebasPropios :: Either [Text] Grupos -> Spec
+pruebasPropios gruposArchivo = describe "reglas: condiciones y efectos propios del guion (T14)" $ do
+  let f2 = FaccionId 2
+      f3 = FaccionId 3
+      gs = either (error . show) id gruposArchivo
+      j  = Reglas.Juego.juegoCon constantesDefault gs
+      le = lenguajeDe j
+      conG e = case conGrupos "datos/grupos.json" gs e of
+                 Validacion [] (Just x) -> x
+                 Validacion errs _ -> error (show (map errMensaje errs))
+      jue st = persistenteJuego (estadoPersistente st)
+      alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
+      -- Dos facciones (la 2 copia la 1, con los altépetl 11 a 13) y una
+      -- tercera potencial.
+      f3Pot :: Estado Purepecha -> Estado Purepecha
+      f3Pot st = let per = estadoPersistente st; p = persistenteJuego per
+                     fa = (ppFacciones p Map.! f1) { facId = f3, facEstado = Potencial, facJugable = False, facNombre = "Futura" }
+                 in st { estadoPersistente = per { persistenteJuego = p { ppFacciones = Map.insert f3 fa (ppFacciones p) } } }
+      base = f3Pot (conG (conCopia estadoInicial1475))
+      Validacion errs mg = cargarGuion (vocabularioDe le) "propios.json" inicio1475 guionPropios
+      Just g = mg
+      cond = siCondicion (head (guSituaciones g))
+      conDecision :: Estado Purepecha -> Estado Purepecha
+      conDecision st = let per = estadoPersistente st; c = persistenteComun per
+                           dp = DecisionPendiente 1 (PreguntaOpcion "opcion" ["nada", "tomar_zacapu", "tomar_la_cabecera", "senorio", "absorber", "activar"])
+                                  (Reanudacion "frontera" "" 0 Map.empty)
+                       in st { estadoPersistente = per { persistenteComun = c { comunDecisiones = Map.singleton 1 dp } } }
+      responder op st = responderDecision le g 1 op (conDecision st)
+      alt i st = ppAltepetl (jue st) Map.! AltId i
+      estadoFac f st = facEstado (ppFacciones (jue st) Map.! f)
+      hechos tipo hs = [ hechoParams h | h <- hs, hechoTipo h == tipo ]
+      igualSinDecision a b = (jue a, alm a) == (jue b, alm b)
+
+  it "el guion carga con el vocabulario del juego; sin él, cada condición y cada efecto propio es un error" $ do
+    errs `shouldBe` []
+    length (valErrores (cargarGuion vocabularioVacio "propios.json" inicio1475 guionPropios)) `shouldBe` 3 + 5
+
+  it "las condiciones leen el estado: soberano, facción activa y personaje vivo" $ do
+    evaluarEn le base cond `shouldBe` True
+    let muerto :: Estado Purepecha
+        muerto = let per = estadoPersistente base; p = persistenteJuego per
+                 in base { estadoPersistente = per { persistenteJuego = p { ppPersonajes = Map.adjust (\pe -> pe { perVivo = False }) (PerId 1) (ppPersonajes p) } } }
+    evaluarEn le muerto cond `shouldBe` False
+
+  it "transferir un altépetl: pasa con sus pops a la otra facción, sujeto a su cabecera y sin gobernador" $ do
+    let Right (fin, hs) = responder "tomar_zacapu" base
+        a = alt 12 fin
+    (altFaccion a, altSujetoA a, altGobernador a, altCondicion a) `shouldBe` (f1, Just (AltId 1), Nothing, Sujeto)
+    [ popAltepetl q | q <- Map.elems (ppPops (jue fin)), popAltepetl q == AltId 12 ] `shouldSatisfy` (not . null)
+    hechos "altepetl_transferido" hs `shouldBe` [Map.fromList [("de", "2"), ("a", "1")]]
+    evaluarEn le fin cond `shouldBe` False
+
+  it "un efecto rechazado deja la opción entera sin aplicar, también los efectos anteriores a él" $ do
+    let r = responder "tomar_la_cabecera" base
+    either id (const "") r `shouldSatisfy` ("cabecera" `T.isInfixOf`)
+
+  it "cambiar la condición de un altépetl sujeto a señorío" $ do
+    let Right (fin, _) = responder "senorio" base
+    altCondicion (alt 12 fin) `shouldBe` Senorio
+
+  it "absorber una facción con absorbente: todo pasa a él y el hecho dice que fue por evento" $ do
+    let Right (fin, hs) = responder "absorber" base
+    estadoFac f2 fin `shouldBe` Eliminada
+    [ altFaccion (alt i fin) | i <- [11, 12, 13] ] `shouldBe` replicate 3 f1
+    map (Map.lookup "razon") (hechos "faccion_desaparece" hs) `shouldBe` [Just "evento"]
+    evaluarEn le fin cond `shouldBe` False
+    -- Una facción que ya no está activa no se vuelve a absorber.
+    either id (const "") (responder "absorber" fin) `shouldSatisfy` ("no está activa" `T.isInfixOf`)
+
+  it "la facción del jugador no se absorbe con un efecto" $ do
+    let Just ep = Map.lookup "absorber_faccion" (leEfectos le)
+        r = epAplicar ep (A.object ["faccion" A..= (1 :: Int)]) base
+    either id (const "") r `shouldSatisfy` ("jugador" `T.isInfixOf`)
+
+  it "activar una facción potencial; activarla otra vez se rechaza" $ do
+    let Right (fin, hs) = responder "activar" base
+    estadoFac f3 fin `shouldBe` Activa
+    map (Map.lookup "razon") (hechos "faccion_aparece" hs) `shouldBe` [Just "evento"]
+    either id (const "") (responder "activar" fin) `shouldSatisfy` ("no es potencial" `T.isInfixOf`)
+
+  it "un rechazo no cambia el estado" $ do
+    let Left _ = responder "tomar_la_cabecera" base
+        Just ep = Map.lookup "transferir_altepetl" (leEfectos le)
+    case epAplicar ep (A.object ["altepetl" A..= (12 :: Int), "faccion" A..= (3 :: Int)]) base of
+      Left m -> m `shouldSatisfy` ("no está activa" `T.isInfixOf`)
+      Right (e, _) -> igualSinDecision e base `shouldBe` True
+

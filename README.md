@@ -201,7 +201,7 @@ Los actos de la partida son datos, no código: un **guion** en JSON con fases, s
 
 | Archivo | Qué es |
 | --- | --- |
-| `datos/guion_1475.json` | Guion del **tutorial** 1475–1530: cuatro actos (1475, 1485, 1519, 1523), 33 situaciones y el fin el 14 de febrero de 1530. Los sucesos históricos salen de `docs/propuestas_cronica.md` y las decisiones recurrentes, del prototipo del hito 0. Cada situación dice en `_fuente` de dónde sale y con qué certeza; sus textos visibles (título, texto, opciones y costo) están en `cliente/textos/es.json`. Los números son de relleno hasta calibrar |
+| `datos/guion_1475.json` | Guion del **tutorial** 1475–1530: cuatro actos (1475, 1485, 1519, 1523), 37 situaciones y el fin el 14 de febrero de 1530. Los sucesos históricos salen de `docs/propuestas_cronica.md` y las decisiones recurrentes, del prototipo del hito 0. Cada situación dice en `_fuente` de dónde sale y con qué certeza; sus textos visibles (título, texto, opciones y costo) están en `cliente/textos/es.json`. Los números son de relleno hasta calibrar |
 | `pruebas_compartidas/guion_integracion.json` | Una sola situación que sale el primer día, para la prueba del cliente |
 | `nucleo/test/guion_juguete.json` | El guion del juego de juguete, con el que se prueban fases, director y métricas |
 
@@ -211,9 +211,9 @@ Para medir un guion sin cliente:
 nucleo --sin-cliente --ticks 20200 --guion datos/guion_1475.json --metricas
 ```
 
-Con el guion del tutorial, de 1475 al fin de 1530 salen 135 situaciones (unas 2,5 por año). La parte máxima es 0,23, dentro del 25 %, y la novedad por década es `[4,2,3,4]`: cumple. El acto II, que dura de 1485 a 1519, escalona sus tipos con ventanas de fechas (`desde_fecha` y `no desde_fecha`): obras y conquistas hasta 1500, señorío y milicia desde 1495, alianza, rebelión y sucesión desde 1505. Sin esa escalada, la novedad de las décadas siguientes cae y el arnés lo detecta.
+Con el guion del tutorial, de 1475 al fin de 1530 salen 146 situaciones (unas 2,7 por año) si nadie responde. La parte máxima es 0,24, dentro del 25 %, y la novedad por década es `[4,2,3,4]`: cumple. El acto II, que dura de 1485 a 1519, escalona sus tipos con ventanas de fechas (`desde_fecha` y `no desde_fecha`): obras y conquistas hasta 1500, señorío y milicia desde 1495, alianza, rebelión y sucesión desde 1505. Sin esa escalada, la novedad de las décadas siguientes cae y el arnés lo detecta.
 
-**Cambiar o revisar un suceso histórico** es editar su situación en el guion (condición, ventana, opciones y efectos) y sus textos en `cliente/textos/es.json`; el motor no se toca. Un suceso de la cadena histórica sale una sola vez (`"enfriamiento": 100000`) dentro de su ventana. Después de editar, `--metricas` dice si el guion sigue variado, y la prueba de protocolo del cliente comprueba que cada situación y cada opción tengan su texto.
+**Cambiar o revisar un suceso histórico** es editar su situación en el guion (condición, ventana, opciones y efectos) y sus textos en `cliente/textos/es.json`; el motor no se toca. Las situaciones se encadenan con `ocurrio`: una opción emite un hecho (`{"tipo": "hecho", "tag": "taximaroa_fortificada"}`), la tabla `cronica` del guion lo anota y la condición de otra situación lo lee (`{"tipo": "ocurrio", "hecho": "taximaroa_fortificada", "dias": 1095}`). Lo que debe durar un tiempo va como `{"tipo": "modificador", …, "valor": "-5", "dias": 1095}`. El juego añade condiciones (`soberano`, `faccion_activa`, `personaje_vivo`) y efectos (`transferir_altepetl`, `cambiar_condicion`, `activar_faccion`, `absorber_faccion`) en `nucleo/reglas/src/Reglas/Propios.hs`; uno nuevo se programa ahí una vez y luego se usa desde los datos. Un suceso de la cadena histórica sale una sola vez (`"enfriamiento": 100000`) dentro de su ventana. Después de editar, `--metricas` dice si el guion sigue variado, y la prueba de protocolo del cliente comprueba que cada situación y cada opción tengan su texto.
 
 ## Licencia
 

@@ -31,6 +31,7 @@ import Reglas.Grupos
 import Reglas.Sistemas
 import Reglas.Facciones (facciones)
 import Reglas.Fusion (fusion)
+import Reglas.Propios (condicionesPropias, efectosPropios)
 -- El calendario visible y la fecha de inicio son del escenario; cuando los
 -- escenarios sean datos (T13), vendrán con él.
 import Reglas.Escenario (visible1475, inicio1475)
@@ -316,6 +317,8 @@ juegoDatos c dr = let bienes = bienesDe (drTerrenos dr) in Juego
   , juegoAgentes     = Map.empty
   , juegoCatalogoMag = Map.unions [ catalogoMag, catalogoGrupos (drGrupos dr), catalogoBienes bienes
                                   , catalogoConocimientos (drEdificios dr), catalogoMoneda (drEconomia dr) ]
+  , juegoCondiciones = condicionesPropias
+  , juegoEfectos     = efectosPropios (drGrupos dr) (drEconomia dr)
   }
 
 -- | Las tres magnitudes que escribe 'Motor.Moneda.pasoMoneda' en la facción

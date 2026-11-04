@@ -16,6 +16,7 @@ library
                     Reglas.Sistemas
                     Reglas.Fusion
                     Reglas.Facciones
+                    Reglas.Propios
                     Reglas.Escenario
                     Reglas.Juego
   hs-source-dirs:   src

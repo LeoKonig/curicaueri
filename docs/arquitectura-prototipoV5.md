@@ -2137,7 +2137,10 @@ Los eventos conectan la historia con los sistemas: dan bonificaciones, desencade
 | Efecto | Qué hace |
 | --- | --- |
 | `indicador` | Aporta un modificador a un indicador existente (en el prototipo, prestigio o legitimidad; admiración y diplomacia solo si se aprueban como indicadores) |
-| `modificador` | Aporta un modificador a una magnitud, con duración opcional |
+| `modificador` | Aporta un modificador a una magnitud (`valor` o `porcentaje`) durante `dias` días, con la situación y la opción como fuente; al terminar expira solo y la magnitud vuelve a su base. Un cambio permanente es `sumar_mag` sobre la base |
+| `transferir_altepetl` | Pasa un altépetl, con sus pops, a otra facción activa; queda sujeto a su cabecera y sin gobernador. No transfiere la cabecera de una facción (para eso, `absorber_faccion`) |
+| `cambiar_condicion` | Cambia la condición de un altépetl entre sujeto y señorío |
+| `activar_faccion` / `absorber_faccion` | Hace aparecer una facción potencial / hace desaparecer una activa, con su transferencia declarada o con todo hacia un absorbente; la facción del jugador no se absorbe con un efecto |
 | `elegir_cantidad` | Pide al jugador una cantidad entre un mínimo y un máximo |
 | `elegir_opcion` | Pide al jugador una opción de una lista |
 | `abrir_crisis` | Abre una crisis con sus participantes y opciones |
@@ -2210,7 +2213,9 @@ Al empezar una fase, sus sistemas e intensidades se copian al estado persistente
 - **sus opciones**, con efectos del mismo lenguaje que los eventos. La primera opción es la que se toma si vence el plazo.
 - **su fuente** (`_fuente`, solo documentación: el núcleo no la lee): de dónde sale el suceso y con qué certeza, para revisarlo cuando cambie una lectura histórica. Sus textos visibles (título, texto, etiqueta y costo de cada opción) viven en `cliente/textos/es.json` con la clave `situacion.<id>`, no en el guion.
 
-El guion se valida entero al cargar, y se informan todos los errores, no solo el primero: tipos fuera del vocabulario, fases desconocidas, situaciones sin opciones, efectos mal escritos.
+El guion se valida entero al cargar, y se informan todos los errores, no solo el primero: tipos fuera del vocabulario, fases desconocidas, situaciones sin opciones, efectos mal escritos, condiciones o efectos que el juego no conoce, y condiciones `ocurrio` sobre hechos que no entran en la crónica.
+
+**Cadenas de sucesos.** Las condiciones leen magnitudes, fechas, lo que ya pasó (`ocurrio`: un hecho entró en la crónica, alguna vez o en los últimos días que se digan) y el estado del juego (`soberano` de un altépetl, `faccion_activa`, `personaje_vivo`). Con eso una decisión cambia lo que viene: en el tutorial, hostigar a los mexicas en las salinas adelanta la entrada de Axayácatl un año y fortificar Taximaroa la atrasa y la vuelve un asedio; si Taximaroa cae, «la guerra sigue» cada temporada hasta que el jugador contraataque o pacte. La opción emite su hecho (`{"tipo": "hecho", "tag": …}`), la tabla `cronica` del guion lo anota y la condición de la siguiente situación lo lee. Un tipo de efecto o de condición nuevo se programa una vez en el juego (`Reglas.Propios`) y desde entonces se escribe en datos.
 
 **El director** decide cada día si presenta una situación y cuál:
 

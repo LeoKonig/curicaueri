@@ -1,9 +1,10 @@
 {-# LANGUAGE StrictData, OverloadedStrings, LambdaCase #-}
 module Motor.Efectos where
 
-import Data.Aeson (Value, withObject, (.:))
+import Data.Aeson (Value, withObject, (.:), (.:?))
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Types as A
+import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 
@@ -11,11 +12,12 @@ import Motor.Base
 import Motor.Estado
 import Motor.Hechos
 import Motor.Magnitudes
+import Motor.Propios
 
 -- ---------------------------------------------------------------------------
--- Efectos builtin. Los efectos propios del juego se añaden en 1b como
---   EExt Text Value
--- con un handler en Juego, sin cambiar la firma de `interpretar`.
+-- Efectos del motor y efectos propios del juego. Un efecto propio queda como
+-- su nombre y su objeto, ya validado al cargar ('EPropio'); el intérprete lo
+-- aplica con el 'EfectoPropio' que registró el juego (Motor.Propios).
 -- ---------------------------------------------------------------------------
 
 data Efecto
@@ -26,15 +28,20 @@ data Efecto
   | EHecho        Text
   | EElegirCantidad Text Int Int
   | EElegirOpcion   Text [Text]
+  | EModificador  EntRef Magnitud Aporte Int
+    -- ^ un modificador temporal sobre la magnitud: valor o porcentaje,
+    --   durante tantos días; su fuente es la situación y la opción
+  | EPropio       Text Value          -- ^ un efecto del juego: su nombre y sus argumentos validados
   deriving (Show, Eq)
 
 -- | Una opción de evento ya compilada. El intérprete nunca parsea JSON.
 newtype Programa = Programa [Efecto]
   deriving (Show, Eq)
 
--- | Se llama al cargar los datos, nunca durante la partida.
-compilarPrograma :: [Value] -> Either Text Programa
-compilarPrograma = fmap Programa . traverse parsearEfecto
+-- | Se llama al cargar los datos, nunca durante la partida. El vocabulario
+-- dice qué efectos propios tiene el juego y cómo se validan.
+compilarPrograma :: Vocabulario -> [Value] -> Either Text Programa
+compilarPrograma vo = fmap Programa . traverse (parsearEfecto vo)
 
 data Resultado s
   = Completado (Contexto, Estado s, [Hecho])
@@ -48,8 +55,8 @@ data Resultado s
 parsearEntRef :: Value -> Maybe EntRef
 parsearEntRef = A.parseMaybe A.parseJSON
 
-parsearEfecto :: Value -> Either Text Efecto
-parsearEfecto v = do
+parsearEfecto :: Vocabulario -> Value -> Either Text Efecto
+parsearEfecto vo v = do
   tag <- maybe (Left "efecto sin campo tipo") Right
            (A.parseMaybe (withObject "e" (.: "tipo")) v)
   case tag :: Text of
@@ -74,7 +81,19 @@ parsearEfecto v = do
     "elegir_opcion" -> do
       (var, opts) <- opcion
       Right (EElegirOpcion var opts)
-    other -> Left ("efecto no implementado: " <> other)
+    "modificador" -> do
+      (e, m, valor, pct, dias) <- maybe (Left "modificador inválido: pide entidad, magnitud, dias y valor o porcentaje") Right
+        (A.parseMaybe (withObject "m" $ \o ->
+           (,,,,) <$> o .: "entidad" <*> o .: "magnitud" <*> o .:? "valor" <*> o .:? "porcentaje" <*> o .: "dias") v)
+      aporte <- case (valor, pct) of
+        (Just x, Nothing) -> Right (Aporte x (Fijo 0))
+        (Nothing, Just p) -> Right (Aporte (Fijo 0) p)
+        _ -> Left "modificador: lleva «valor» o «porcentaje», uno de los dos"
+      if dias <= 0 then Left "modificador: «dias» tiene que ser positivo"
+                   else Right (EModificador e m aporte dias)
+    other -> case Map.lookup other (voEfectos vo) of
+      Just validar -> either (\m -> Left (other <> ": " <> m)) (const (Right (EPropio other v))) (validar v)
+      Nothing -> Left ("efecto no implementado: " <> other)
   where
     triple :: Either Text (EntRef, Magnitud, Fijo)
     triple = case A.parseMaybe (withObject "t" $ \o ->
@@ -99,8 +118,8 @@ parsearEfecto v = do
 -- Intérprete
 -- ---------------------------------------------------------------------------
 
-interpretar :: Text -> Text -> Programa -> Int -> Contexto -> Estado s -> Resultado s
-interpretar evento opcion prog@(Programa efectos) i ctx est
+interpretar :: Map Text (EfectoPropio s) -> Text -> Text -> Programa -> Int -> Contexto -> Estado s -> Resultado s
+interpretar propios evento opcion prog@(Programa efectos) i ctx est
   | i >= length efectos = Completado (ctx, est, [])
   | otherwise = paso (efectos !! i)
 
@@ -127,12 +146,24 @@ interpretar evento opcion prog@(Programa efectos) i ctx est
                    (Reanudacion evento opcion (i + 1) ctx)
                    (est, [])
 
+      EModificador e m aporte dias ->
+        let Tick t = estadoTick est
+            md = Modificador 0 m e aporte (Fuente "situacion" (evento <> "." <> opcion))
+                   (Just (Tick t)) (Just (Tick (t + fromIntegral dias))) Nothing AlcancePropia []
+        in seguir [] ctx (escribirBase (fst . agregarModificador md) est)
+
+      EPropio nombre args -> case Map.lookup nombre propios of
+        Nothing -> Fallo ("efecto propio desconocido: " <> nombre)
+        Just ep -> case epAplicar ep args est of
+          Left motivo     -> Fallo motivo
+          Right (est', hs) -> seguir hs ctx est'
+
       EElegirOpcion var opts ->
         Suspendido (PreguntaOpcion var opts)
                    (Reanudacion evento opcion (i + 1) ctx)
                    (est, [])
 
-    seguir hs ctx' est' = case interpretar evento opcion prog (i + 1) ctx' est' of
+    seguir hs ctx' est' = case interpretar propios evento opcion prog (i + 1) ctx' est' of
       Completado (c, e, h)    -> Completado (c, e, hs ++ h)
       Suspendido p rn (e, h)  -> Suspendido p rn (e, hs ++ h)
       Fallo msg               -> Fallo msg
@@ -149,12 +180,12 @@ escribirBase f est =
 -- Reanudar y almacenar la decisión pendiente
 -- ---------------------------------------------------------------------------
 
-reanudar :: ValorCtx -> DecisionPendiente -> Programa -> Estado s -> Resultado s
-reanudar valor dp prog est =
+reanudar :: Map Text (EfectoPropio s) -> ValorCtx -> DecisionPendiente -> Programa -> Estado s -> Resultado s
+reanudar propios valor dp prog est =
   let Reanudacion ev op idx ctx = dpReanudacion dp
       var  = preVariable (dpPregunta dp)
       ctx' = Map.insert var valor ctx
-  in interpretar ev op prog idx ctx' est
+  in interpretar propios ev op prog idx ctx' est
 
 -- | Resultado → estado, sin tocar el estado externo salvo para apuntar la
 -- decisión pendiente. El estado de un `Completado` ya incluye los efectos;

@@ -63,6 +63,8 @@ instance ToJSON Condicion where
     Todas cs      -> object ["tipo" .= ("todas" :: Text), "condiciones" .= cs]
     Alguna cs     -> object ["tipo" .= ("alguna" :: Text), "condiciones" .= cs]
     No c          -> object ["tipo" .= ("no" :: Text), "condicion" .= c]
+    Ocurrio h d   -> object ["tipo" .= ("ocurrio" :: Text), "hecho" .= h, "dias" .= d]
+    Propia n v    -> object ["tipo" .= ("propia" :: Text), "nombre" .= n, "argumentos" .= v]
 instance FromJSON Condicion where
   parseJSON = withObject "Condicion" $ \o -> do
     t <- o .: "tipo" :: Parser Text
@@ -74,6 +76,8 @@ instance FromJSON Condicion where
       "todas"      -> Todas <$> o .: "condiciones"
       "alguna"     -> Alguna <$> o .: "condiciones"
       "no"         -> No <$> o .: "condicion"
+      "ocurrio"    -> Ocurrio <$> o .: "hecho" <*> o .:? "dias"
+      "propia"     -> Propia <$> o .: "nombre" <*> o .: "argumentos"
       _            -> fail ("Condicion desconocida: " <> T.unpack t)
 
 instance ToJSON Alcance where
@@ -267,8 +271,14 @@ instance (ToJSON (PlanDe s)) => ToJSON (Comun s) where
     , "monedas"    .= monedasAJson (comunMonedas c)
     , "fin"        .= comunFin c
     ]
+-- | El índice de la crónica no se guarda: se rehace al cargar. Con firma
+-- propia porque 'PlanDe' es una familia de tipos y, sin ella, GHC 9.8 no
+-- sabe a qué 's' se refiere la actualización del registro.
+conIndice :: Comun s -> Comun s
+conIndice c = c { comunOcurridos = indiceCronica (comunCronica c) }
+
 instance (FromJSON (PlanDe s)) => FromJSON (Comun s) where
-  parseJSON = withObject "Comun" $ \o ->
+  parseJSON = withObject "Comun" $ \o -> fmap conIndice $
     Comun
       <$> (o .: "magnitudes" >>= almacenDeJson)
       <*> o .: "decisiones"
@@ -278,6 +288,7 @@ instance (FromJSON (PlanDe s)) => FromJSON (Comun s) where
       <*> (maybe directorInicial id <$> o .:? "director")   -- guardados anteriores al director
       <*> (maybe (pure Map.empty) monedasDeJson =<< o .:? "monedas")   -- guardados anteriores a la moneda
       <*> o .:? "fin"                                                  -- guardados anteriores al fin de partida: sigue
+      <*> pure Map.empty                                               -- el índice de la crónica: se rehace arriba
 
 instance (ToJSON s, ToJSON (PlanDe s)) => ToJSON (Persistente s) where
   toJSON p = object

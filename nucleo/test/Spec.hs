@@ -30,6 +30,7 @@ import Motor.Efectos
 import Motor.Agentes
 import Motor.Mapa
 import Motor.Guion
+import Motor.Propios
 import Motor.Director
 import Motor.Cronica (terminada)
 import Motor.Poblacion
@@ -203,7 +204,7 @@ proyectarAldeas est =
 -- | Se compila igual que al cargar los datos: si el JSON de la sequía estuviera
 -- mal escrito, las pruebas fallarían aquí y no a mitad de una partida.
 sequiaPrograma :: Programa
-sequiaPrograma = either (error . show) id (compilarPrograma efectosSequia)
+sequiaPrograma = either (error . show) id (compilarPrograma vocabularioVacio efectosSequia)
 
 -- | Guion mínimo para probar el vencimiento de una pregunta de cantidad. La
 -- situación no se presenta sola: solo importa que la reanudación encuentre su
@@ -300,7 +301,7 @@ guionJuguete = unsafeGuion
 
 {-# NOINLINE unsafeGuion #-}
 unsafeGuion :: Guion
-unsafeGuion = case A.decode guionBytes >>= \v -> valValor (cargarGuion "guion_juguete.json" inicioJuguete v) of
+unsafeGuion = case A.decode guionBytes >>= \v -> valValor (cargarGuion vocabularioVacio "guion_juguete.json" inicioJuguete v) of
   Just g  -> g
   Nothing -> error "test/guion_juguete.json no carga"
 
@@ -365,7 +366,7 @@ aplicarCmdJuguete est sell = case sellCmd sell of
           Nothing -> Left (Rechazo "decisión no encontrada")
           Just dp ->
             let est0 = quitarDecision d est
-                r    = reanudar (CEntero n) dp sequiaPrograma est0
+                r    = reanudar Map.empty (CEntero n) dp sequiaPrograma est0
             in case r of
                  Completado (_, e, hs)     -> Right (e, hs)
                  Suspendido _ _ (e, hs)    -> Right (e, hs)
@@ -399,7 +400,30 @@ juguete = Juego
                                 in Just (Set.map (EntRef "aldea") ((ids a Set.\\ ids b) <> (ids b Set.\\ ids a)))
   , juegoAgentes     = Map.empty
   , juegoCatalogoMag = catalogoToy
+  , juegoCondiciones = condicionesJuguete
+  , juegoEfectos     = efectosJuguete
   }
+
+-- | Una condición propia del juguete: la aldea existe. El motor solo sabe su
+-- nombre; el juguete la lee de su propio estado.
+condicionesJuguete :: Map.Map Text (CondicionPropia Aldeas)
+condicionesJuguete = Map.fromList
+  [ ("aldea_existe", condicionPropia (A.withObject "aldea_existe" (A..: "aldea"))
+                       (\i p -> i `elem` alIds (persistenteJuego p))) ]
+
+-- | Un efecto propio del juguete: fundar una aldea nueva. Se rechaza sin
+-- daño si ya existe.
+efectosJuguete :: Map.Map Text (EfectoPropio Aldeas)
+efectosJuguete = Map.fromList
+  [ ("fundar_aldea", efectoPropio (A.withObject "fundar_aldea" (A..: "aldea")) fundar) ]
+  where
+    fundar i est
+      | i `elem` alIds (persistenteJuego (estadoPersistente est)) = Left "la aldea ya existe"
+      | otherwise =
+          let per = estadoPersistente est
+              j = persistenteJuego per
+          in Right ( est { estadoPersistente = per { persistenteJuego = j { alIds = alIds j ++ [i] } } }
+                   , [Hecho "aldea_fundada" (estadoTick est) [EntRef "aldea" i] Map.empty] )
 
 estadoInicial :: Estado Aldeas
 estadoInicial = Estado
@@ -427,6 +451,7 @@ estadoInicial = Estado
           , comunDirector   = directorInicial
           , comunMonedas    = Map.empty
           , comunFin        = Nothing
+          , comunOcurridos  = Map.empty
           }
       , persistenteJuego = aldeas
       }
@@ -817,7 +842,7 @@ main = hspec $ do
 
   describe "suspensión y reanudación" $ do
     let estadoSuspendido =
-          let r = interpretar "sequia" "" sequiaPrograma 0 Map.empty estadoInicial
+          let r = interpretar Map.empty "sequia" "" sequiaPrograma 0 Map.empty estadoInicial
               id' = siguienteId estadoInicial
           in aplicarResultado id' r estadoInicial
 
@@ -829,7 +854,7 @@ main = hspec $ do
       let Just dp = Map.lookup 1
                       (comunDecisiones (persistenteComun (estadoPersistente estadoSuspendido)))
           est'   = quitarDecision 1 estadoSuspendido
-          r      = reanudar (CEntero 40) dp sequiaPrograma est'
+          r      = reanudar Map.empty (CEntero 40) dp sequiaPrograma est'
       case r of
         Completado (_, e, _) ->
           baseMag 1 (Magnitud "descontento") e `shouldBe` Just (fi 10)
@@ -850,7 +875,7 @@ main = hspec $ do
                         (comunDecisiones (persistenteComun (estadoPersistente estadoSuspendido)))
                         >>= \(k, _) -> Just k
           e0 = conPlazo dpId (Tick 0) estadoSuspendido
-          (e', hs) = pasoDirector catalogoToy guionSequia (Rng 1) (Tick 0) e0
+          (e', hs) = pasoDirector (lenguajeBasico catalogoToy) guionSequia (Rng 1) (Tick 0) e0
       Map.member dpId (comunDecisiones (persistenteComun (estadoPersistente e'))) `shouldBe` False
       [ v | h <- hs, hechoTipo h == "plazo_vencido", Just v <- [Map.lookup "opcion" (hechoParams h)] ]
         `shouldBe` ["0"]
@@ -1099,7 +1124,7 @@ main = hspec $ do
 
   describe "guardar y cargar" $ do
     let estSusp = aplicarResultado (siguienteId estadoInicial)
-                    (interpretar "sequia" "" sequiaPrograma 0 Map.empty estadoInicial) estadoInicial
+                    (interpretar Map.empty "sequia" "" sequiaPrograma 0 Map.empty estadoInicial) estadoInicial
     it "ida y vuelta con una decisión pendiente" $ do
       let Right e' = cargar juguete mapaPrueba (guardar estSusp)
       comunDecisiones (persistenteComun (estadoPersistente e'))
@@ -1513,7 +1538,7 @@ main = hspec $ do
       let malo = A.object [ "tipos" A..= ["guerra" :: Text], "fases" A..= [A.object ["id" A..= ("uno" :: Text)]]
                           , "situaciones" A..= [ A.object [ "id" A..= ("x" :: Text), "tipo" A..= ("sucesión" :: Text), "fases" A..= ["dos" :: Text]
                                                           , "opciones" A..= [A.object ["id" A..= ("a" :: Text), "efectos" A..= [A.object ["tipo" A..= ("volar" :: Text)]]]] ] ] ]
-      length (valErrores (cargarGuion "malo.json" inicioJuguete malo)) `shouldBe` 3
+      length (valErrores (cargarGuion vocabularioVacio "malo.json" inicioJuguete malo)) `shouldBe` 3
 
   describe "guion: fases" $ do
     let (s30, hs30) = avanzarCon entornoGuion [0..10949] estadoInicial
@@ -1593,6 +1618,7 @@ main = hspec $ do
 
   cronicaPruebas
   monedaPruebas
+  condicionesEfectosPruebas
   where
     mkSys :: NombreSistema -> Cadencia
           -> Set Magnitud -> Set Magnitud -> Sistema s
@@ -1781,7 +1807,7 @@ cronicaPruebas = describe "crónica y fin de partida" $ do
               [ "fecha" A..= ("1607-12-31" :: Text)
               , "derrotas" A..= [ A.object [ "razon" A..= (r :: Text), "condicion" A..= A.object ["tipo" A..= ("siempre" :: Text)] ] | r <- ds ] ] ]
     it "carga la tabla de la crónica y el fin, con su fecha y sus derrotas" $ do
-      let Just g = valValor (cargarGuion "x.json" inicioJuguete (v ["caida"]))
+      let Just g = valValor (cargarGuion vocabularioVacio "x.json" inicioJuguete (v ["caida"]))
       (guCronica g, fmap (map fst . fgDerrotas) (guFin g),
        fmap fgTick (guFin g) == Just (Just (fromIntegral (diaJuliano (Fecha 1607 12 31) - diaJuliano inicioJuguete))))
         `shouldBe` (Map.fromList [("fase", "c.fase")], Just ["caida"], True)
@@ -1790,10 +1816,10 @@ cronicaPruebas = describe "crónica y fin de partida" $ do
     describe "datos/cierre_1607.json" $ do
       bytes <- runIO (BL.readFile "../datos/cierre_1607.json")
       let Just valor = A.decode bytes
-          Just g = valValor (cargarGuion "cierre_1607.json" inicioJuguete valor)
+          Just g = valValor (cargarGuion vocabularioVacio "cierre_1607.json" inicioJuguete valor)
           tickDe f = fromIntegral (diaJuliano f - diaJuliano inicioJuguete)
       it "carga sin errores" $
-        valErrores (cargarGuion "cierre_1607.json" inicioJuguete valor) `shouldBe` []
+        valErrores (cargarGuion vocabularioVacio "cierre_1607.json" inicioJuguete valor) `shouldBe` []
       it "presenta la obra nueva desde 1605, con «dejarla pasar» como opción por omisión" $
         [ (siId s, siCondicion s, map fst (siOpciones s)) | s <- guSituaciones g ]
           `shouldBe` [("se_publica_una_obra_nueva", DesdeTick (tickDe (Fecha 1605 1 1)), ["dejarla_pasar", "conseguir_una_copia"])]
@@ -1801,7 +1827,7 @@ cronicaPruebas = describe "crónica y fin de partida" $ do
         (fmap fgTick (guFin g), fmap (null . fgDerrotas) (guFin g), Map.keys (guCronica g))
           `shouldBe` (Just (Just (tickDe (Fecha 1607 12 31))), Just True, ["copia_pedida", "fase", "fin_partida"])
     it "una derrota sin razón es un error de carga" $
-      length (valErrores (cargarGuion "x.json" inicioJuguete (v [""]))) `shouldBe` 1
+      length (valErrores (cargarGuion vocabularioVacio "x.json" inicioJuguete (v [""]))) `shouldBe` 1
 
 monedaPruebas :: Spec
 monedaPruebas = do
@@ -1995,3 +2021,98 @@ monedaPruebas = do
 -- | KM.adjust no existe en todas las versiones de aeson.
 ajustarKM :: (Value -> Value) -> KM.Key -> KM.KeyMap Value -> KM.KeyMap Value
 ajustarKM f k m = maybe m (\v -> KM.insert k (f v) m) (KM.lookup k m)
+
+-- ---------------------------------------------------------------------------
+-- Condiciones y efectos nuevos (T14): ocurrio, condiciones y efectos propios,
+-- modificador temporal
+-- ---------------------------------------------------------------------------
+
+-- | Un guion pequeño: «fundar» sale mientras no se haya fundado ninguna aldea;
+-- su opción «si» funda la aldea 3 (efecto propio del juguete) y baja el
+-- descontento de la aldea 1 con un modificador de 30 días. «celebrar» sale
+-- solo en el año siguiente a una fundación y si la aldea 3 existe
+-- (condición propia del juguete).
+guionPropio :: Value
+guionPropio = case A.decode "{\"tipos\": [\"t\"], \"cronica\": {\"aldea_fundada\": \"c.fundada\"}, \"situaciones\": [ {\"id\": \"fundar\", \"tipo\": \"t\", \"condicion\": {\"tipo\": \"no\", \"de\": {\"tipo\": \"ocurrio\", \"hecho\": \"aldea_fundada\"}}, \"opciones\": [ {\"id\": \"no\", \"efectos\": []}, {\"id\": \"si\", \"efectos\": [ {\"tipo\": \"fundar_aldea\", \"aldea\": 3}, {\"tipo\": \"modificador\", \"entidad\": {\"clase\": \"aldea\", \"id\": 1}, \"magnitud\": \"descontento\", \"valor\": \"-10\", \"dias\": 30} ]} ]}, {\"id\": \"celebrar\", \"tipo\": \"t\", \"condicion\": {\"tipo\": \"todas\", \"de\": [ {\"tipo\": \"ocurrio\", \"hecho\": \"aldea_fundada\", \"dias\": 365}, {\"tipo\": \"aldea_existe\", \"aldea\": 3} ]}, \"opciones\": [ {\"id\": \"si\", \"efectos\": []} ]} ]}" of
+  Just v  -> v
+  Nothing -> error "guionPropio no es JSON"
+
+-- | Pone una decisión pendiente de la situación @sid@, con sus opciones.
+conDecision :: Int -> Text -> [Text] -> Estado Aldeas -> Estado Aldeas
+conDecision i sid ops e =
+  let p = estadoPersistente e
+      c = persistenteComun p
+      dp = DecisionPendiente i (PreguntaOpcion "opcion" ops) (Reanudacion sid "" 0 Map.empty)
+  in e { estadoPersistente = p { persistenteComun = c { comunDecisiones = Map.insert i dp (comunDecisiones c) } } }
+
+condicionesEfectosPruebas :: Spec
+condicionesEfectosPruebas = describe "condiciones y efectos nuevos (T14)" $ do
+  let le = lenguajeDe juguete
+      Validacion errsPropio mg = cargarGuion (vocabularioDe le) "propio.json" inicioJuguete guionPropio
+      Just g = mg
+      sit sid = head [ x | x <- guSituaciones g, siId x == sid ]
+      ent = entornoCon g
+      -- Un día de partida con la respuesta dada: así el hecho entra en la crónica.
+      responderDia t r e = let (e', hs, _, rr) = pasoCompleto juguete ent (Semilla 1) (Tick t) [] [r] e in (e', hs, rr)
+      (s10, _) = avanzarCon ent [0 .. 10] estadoInicial
+      (fundado, hsF, rrF) = responderDia 11 (Respuesta 1 900 "si") (conDecision 900 "fundar" ["no", "si"] s10)
+      mods e = maybe [] almacenMods (Map.lookup (EntRef "aldea" 1, Magnitud "descontento") (comunMagnitudes (persistenteComun (estadoPersistente e))))
+      delGuion = [ m | m <- mods fundado, fuenteTipo (modFuente m) == "situacion" ]
+      aldeas e = alIds (persistenteJuego (estadoPersistente e))
+      cronicaDe = comunCronica . persistenteComun . estadoPersistente
+      ocurridos = comunOcurridos . persistenteComun . estadoPersistente
+  describe "ocurrio" $ do
+    let lectura t idx = (lecturaSimple catalogoToy IntSet.empty (Tick t) Map.empty) { lcOcurridos = idx }
+        idx = Map.fromList [("x", Tick 100)]
+    it "sin ventana: basta con que el hecho haya entrado alguna vez" $
+      (evaluarCondicion (lectura 150 idx) (Ocurrio "x" Nothing), evaluarCondicion (lectura 150 idx) (Ocurrio "y" Nothing))
+        `shouldBe` (True, False)
+    it "con ventana de d días: de t − d a t, ambos incluidos" $
+      map (\d -> evaluarCondicion (lectura 150 idx) (Ocurrio "x" (Just d))) [50, 49, 0]
+        `shouldBe` [True, False, False]
+    it "ley: el índice de la crónica es el que se rehace desde la crónica, también tras guardar y cargar" $ do
+      let conCronica = entornoCon guionJuguete { guCronica = Map.fromList [("fase", "c.fase"), ("situacion", "c.s")] }
+          (s, _) = avanzarCon conCronica [0 .. 2999] estadoInicial
+          Right cargado = cargar juguete mapaPrueba (guardar s)
+      (Map.size (ocurridos s) > 1, ocurridos s == indiceCronica (cronicaDe s), ocurridos cargado == ocurridos s)
+        `shouldBe` (True, True, True)
+  describe "condiciones y efectos propios del juego" $ do
+    it "el guion con condiciones y efectos propios carga sin errores con el vocabulario del juego" $
+      (errsPropio, length (guSituaciones g)) `shouldBe` ([], 2)
+    it "sin el vocabulario del juego, sus condiciones y sus efectos son errores de carga" $
+      length (valErrores (cargarGuion vocabularioVacio "propio.json" inicioJuguete guionPropio)) `shouldBe` 2
+    it "la opción aplica el efecto propio: funda la aldea y su hecho entra en la crónica" $
+      (rrF, aldeas fundado, [ hechoTipo h | h <- hsF, hechoTipo h == "aldea_fundada" ], Map.lookup "aldea_fundada" (ocurridos fundado))
+        `shouldBe` ([], [1, 2, 3], ["aldea_fundada"], Just (Tick 11))
+    it "ocurrio y la condición propia encadenan: «fundar» ya no sale y «celebrar» sí, hasta que pasa el año" $ do
+      let (unAno, _) = avanzarCon ent [12 .. 377] fundado
+      ( evaluarEn le s10 (siCondicion (sit "fundar")), evaluarEn le s10 (siCondicion (sit "celebrar"))
+        , evaluarEn le fundado (siCondicion (sit "fundar")), evaluarEn le fundado (siCondicion (sit "celebrar"))
+        , evaluarEn le unAno (siCondicion (sit "celebrar")) )
+        `shouldBe` (True, False, False, True, False)
+    it "un efecto propio rechazado no aplica nada de la opción: la respuesta vuelve con su motivo" $ do
+      let otra = conDecision 901 "fundar" ["no", "si"] fundado
+          (despues, _, rr) = responderDia 12 (Respuesta 2 901 "si") otra
+      ([ m | (_, Rechazo m) <- rr ], length (mods despues) == length (mods fundado), aldeas despues)
+        `shouldBe` (["la aldea ya existe"], True, [1, 2, 3])
+  describe "modificador temporal" $ do
+    it "la opción deja un modificador con fuente (situación y opción) que dura los días pedidos" $
+      [ (fuenteRef (modFuente m), modAporte m, modInicio m, modFin m) | m <- delGuion ]
+        `shouldBe` [("fundar.si", Aporte (fi (-10)) (Fijo 0), Just (Tick 11), Just (Tick 41))]
+    it "al llegar su fin expira solo, con su hecho, y la magnitud vuelve a su base" $ do
+      let (a40, _) = avanzarCon ent [12 .. 40] fundado
+          (a41, hs) = avanzarCon ent [41] a40
+      ( length [ m | m <- mods a40, fuenteTipo (modFuente m) == "situacion" ]
+        , length [ m | m <- mods a41, fuenteTipo (modFuente m) == "situacion" ]
+        , [ Map.lookup "fuente" (hechoParams h) | h <- hs, hechoTipo h == "modificador_terminado" ] )
+        `shouldBe` (1, 0, [Just "situacion"])
+  describe "carga" $ do
+    it "acumula todos los errores de condiciones y efectos nuevos" $ do
+      let malo = case A.decode "{\"tipos\": [\"t\"], \"cronica\": {\"x\": \"c.x\"}, \"situaciones\": [ {\"id\": \"a\", \"tipo\": \"t\", \"condicion\": {\"tipo\": \"todas\", \"de\": [ {\"tipo\": \"aldea_existe\"}, {\"tipo\": \"volar\"}, {\"tipo\": \"ocurrio\", \"hecho\": \"nunca_anotado\"}, {\"tipo\": \"ocurrio\", \"hecho\": \"x\", \"dias\": -1} ]}, \"opciones\": [ {\"id\": \"o1\", \"efectos\": [ {\"tipo\": \"fundar_aldea\"} ]}, {\"id\": \"o2\", \"efectos\": [ {\"tipo\": \"modificador\", \"entidad\": {\"clase\": \"aldea\", \"id\": 1}, \"magnitud\": \"descontento\", \"valor\": \"1\"} ]}, {\"id\": \"o3\", \"efectos\": [ {\"tipo\": \"modificador\", \"entidad\": {\"clase\": \"aldea\", \"id\": 1}, \"magnitud\": \"descontento\", \"valor\": \"1\", \"porcentaje\": \"0.1\", \"dias\": 5} ]}, {\"id\": \"o4\", \"efectos\": [ {\"tipo\": \"volar\"} ]} ]} ]}" of
+            Just v -> v
+            Nothing -> error "JSON"
+      length (valErrores (cargarGuion (vocabularioDe le) "malo.json" inicioJuguete malo)) `shouldBe` 8
+    it "las condiciones nuevas se guardan y se cargan tal cual (en los modificadores condicionales)" $ do
+      let cs = [Ocurrio "x" Nothing, Ocurrio "x" (Just 30), Propia "aldea_existe" (A.object ["tipo" A..= ("aldea_existe" :: Text), "aldea" A..= (3 :: Int)])]
+      map (A.decode . A.encode) cs `shouldBe` map Just cs
+

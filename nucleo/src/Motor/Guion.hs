@@ -36,6 +36,7 @@ import Motor.Calendario (Fecha (..), diaJuliano)
 import Motor.Carga (CategoriaError (..), ErrorCarga (..), Validacion (..), falla)
 import Motor.Efectos (Programa, compilarPrograma)
 import Motor.Magnitudes (Condicion (..), Magnitud (..))
+import Motor.Propios (Vocabulario (..))
 import Motor.Mapa (Mapa)
 import Motor.Recorrido (Grafo, grafoDe)
 import Motor.Moneda (Economia, economiaVacia)
@@ -133,20 +134,30 @@ entornoSimple m = entorno m guionVacio economiaVacia
 -- | Carga un guion desde JSON. Las fechas se convierten a ticks con la fecha
 -- juliana del tick 0. Acumula todos los errores: tipos fuera del vocabulario,
 -- fases o sistemas desconocidos, situaciones sin opciones, efectos mal
--- escritos (que se compilan aquí, no a mitad de la partida).
-cargarGuion :: Text -> Fecha -> Value -> Validacion Guion
-cargarGuion archivo inicio v = case A.parseEither leer v of
+-- escritos (que se compilan aquí, no a mitad de la partida), condiciones y
+-- efectos propios que el juego no conoce o con argumentos que no valida, y
+-- condiciones @ocurrio@ sobre hechos que nunca entran en la crónica.
+cargarGuion :: Vocabulario -> Text -> Fecha -> Value -> Validacion Guion
+cargarGuion vo archivo inicio v = case A.parseEither leer v of
   Left err -> falla (ErrorCarga ErrorEstructura archivo "" (T.pack err))
-  Right (tipos, fases, sits, params, cron, fin) -> do
+  Right (tipos, fases, sits, params, cron, fin) ->
     let idsFases = map faId fases
-    sits' <- traverse (validarSituacion tipos idsFases) sits
-    _ <- traverse (\i -> if length (filter (== i) idsFases) > 1
-                           then falla (ErrorCarga ErrorEsquema archivo ("fases." <> i) "fase repetida")
-                           else pure ()) (nub idsFases)
-    _ <- traverse (\(r, _) -> if T.null r
-                                then falla (ErrorCarga ErrorEsquema archivo "fin.derrotas" "una derrota sin razón")
-                                else pure ()) (maybe [] fgDerrotas fin)
-    pure (Guion tipos fases sits' params cron fin)
+        condiciones =
+             [ ("fases." <> faId f, c) | f <- fases, Just c <- [faCondicion f] ]
+          ++ [ ("situaciones." <> sid <> ".condicion", c) | (sid, _, _, _, _, _, c, _) <- sits ]
+          ++ [ ("fin.derrotas." <> r, c) | (r, c) <- maybe [] fgDerrotas fin ]
+    in
+    -- Aplicativo y no monádico: así se acumulan los errores de todas las
+    -- partes del guion.
+    (\sits' _ _ _ -> Guion tipos fases sits' params cron fin)
+      <$> traverse (validarSituacion tipos idsFases) sits
+      <*> traverse (uncurry (validarCondicion cron)) condiciones
+      <*> traverse (\i -> if length (filter (== i) idsFases) > 1
+                            then falla (ErrorCarga ErrorEsquema archivo ("fases." <> i) "fase repetida")
+                            else pure ()) (nub idsFases)
+      <*> traverse (\(r, _) -> if T.null r
+                                 then falla (ErrorCarga ErrorEsquema archivo "fin.derrotas" "una derrota sin razón")
+                                 else pure ()) (maybe [] fgDerrotas fin)
   where
     leer = A.withObject "guion" $ \o -> do
       tipos <- o A..: "tipos"
@@ -203,7 +214,10 @@ cargarGuion archivo inicio v = case A.parseEither leer v of
         "todas"   -> Todas <$> (o A..: "de" >>= mapM condicion)
         "alguna"  -> Alguna <$> (o A..: "de" >>= mapM condicion)
         "no"      -> No <$> (o A..: "de" >>= condicion)
-        _         -> fail ("condición desconocida: " <> T.unpack t)
+        "ocurrio" -> Ocurrio <$> o A..: "hecho" <*> o A..:? "dias"
+        -- Cualquier otro tipo es una condición propia del juego: se valida
+        -- después, con el vocabulario, para acumular todos los errores.
+        _         -> pure (Propia t (A.Object o))
 
     director = A.withObject "director" $ \o -> do
       let d = paramsPorOmision
@@ -229,7 +243,24 @@ cargarGuion archivo inicio v = case A.parseEither leer v of
           fasesOk = traverse (\f -> if f `elem` idsFases then pure ()
                                      else falla (ErrorCarga ErrorReferencia archivo ruta ("fase desconocida: " <> f))) fases
           opcionesOk = if null opciones then falla (ErrorCarga ErrorEsquema archivo ruta "sin opciones") else pure ()
-          progs = traverse (\(oid, efs) -> case compilarPrograma efs of
+          progs = traverse (\(oid, efs) -> case compilarPrograma vo efs of
                                Left err -> falla (ErrorCarga ErrorEsquema archivo (ruta <> ".opciones." <> oid) err)
                                Right p  -> pure (oid, p)) opciones
       in (\_ _ _ ps -> Situacion sid tipo peso enfr plazo fases cond ps) <$> tipoOk <*> fasesOk <*> opcionesOk <*> progs
+
+    -- Las condiciones propias, contra el vocabulario del juego; @ocurrio@,
+    -- contra la tabla de la crónica: un hecho que no está en ella nunca
+    -- entra en la crónica y la condición nunca se cumpliría.
+    validarCondicion cron ruta c = case c of
+      Todas cs -> () <$ traverse (validarCondicion cron ruta) cs
+      Alguna cs -> () <$ traverse (validarCondicion cron ruta) cs
+      No c' -> validarCondicion cron ruta c'
+      Ocurrio h d
+        | not (Map.member h cron) -> falla (ErrorCarga ErrorReferencia archivo ruta
+            ("ocurrio: el hecho «" <> h <> "» no está en la tabla «cronica» del guion, así que nunca entra en la crónica"))
+        | maybe False (< 0) d -> falla (ErrorCarga ErrorRango archivo ruta "ocurrio: «dias» no puede ser negativo")
+        | otherwise -> pure ()
+      Propia n args -> case Map.lookup n (voCondiciones vo) of
+        Nothing -> falla (ErrorCarga ErrorReferencia archivo ruta ("condición desconocida: " <> n))
+        Just validar -> either (\m -> falla (ErrorCarga ErrorEsquema archivo ruta (n <> ": " <> m))) pure (validar args)
+      _ -> pure ()

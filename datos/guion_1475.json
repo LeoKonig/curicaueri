@@ -37,14 +37,18 @@
   ],
   "cronica": {
     "matlatzincas_acogidos": "cronica.matlatzincas_acogidos",
+    "frontera_provocada": "cronica.frontera_provocada",
+    "taximaroa_fortificada": "cronica.taximaroa_fortificada",
     "taximaroa_perdida": "cronica.taximaroa_perdida",
     "axayacatl_derrotado": "cronica.axayacatl_derrotado",
+    "paz_con_los_mexicas": "cronica.paz_con_los_mexicas",
     "frontera_fortificada": "cronica.frontera_fortificada",
     "yacatas_ampliadas": "cronica.yacatas_ampliadas",
     "tierra_caliente_sometida": "cronica.tierra_caliente_sometida",
     "mexicas_sin_ayuda": "cronica.mexicas_sin_ayuda",
     "guerreros_a_tenochtitlan": "cronica.guerreros_a_tenochtitlan",
     "viruelas": "cronica.viruelas",
+    "hermanos_perdonados": "cronica.hermanos_perdonados",
     "hermanos_muertos": "cronica.hermanos_muertos",
     "vasallaje": "cronica.vasallaje",
     "vasallaje_negociado": "cronica.vasallaje_negociado",
@@ -781,13 +785,14 @@
               "valor": "-5"
             },
             {
-              "tipo": "sumar_mag",
+              "tipo": "modificador",
               "entidad": {
                 "clase": "faccion",
                 "id": 1
               },
               "magnitud": "faccion.grupo.administradores.lealtad",
-              "valor": "-3"
+              "valor": "-5",
+              "dias": 365
             }
           ]
         }
@@ -913,12 +918,121 @@
       ]
     },
     {
+      "id": "rumores_de_axayacatl",
+      "tipo": "frontera",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 1 n.º 7 y texto 2 n.º 13",
+        "cita": "Vargas Uribe, «Percepción de espacio…», p. 7 («derrotó al mexicano Axayacatl en la gran guerra de 1469-78»; «otra vez vinieron los mejicanos de Taximaroa y la destruyeron»)",
+        "certeza": "alta para la derrota de Axayácatl; la fecha exacta (1478 o 1479), por verificar; la cadena de decisiones es de juego"
+      },
+      "peso": "20",
+      "enfriamiento": 100000,
+      "plazo": 60,
+      "fases": [
+        "acto_i_consolidacion"
+      ],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1476-06-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1478-01-01"
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "esperar",
+          "efectos": []
+        },
+        {
+          "id": "hostigar_las_salinas",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-100"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 3
+              },
+              "magnitud": "produccion",
+              "valor": "0.02"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "frontera_provocada"
+            }
+          ]
+        },
+        {
+          "id": "fortificar_taximaroa",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-250"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "taximaroa_fortificada"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "guerra_de_taximaroa",
       "tipo": "frontera",
       "_fuente": {
         "origen": "propuestas_cronica.md, texto 1 n.º 7 y texto 2 n.º 13",
         "cita": "Vargas Uribe, «Percepción de espacio…», p. 7 («derrotó al mexicano Axayacatl en la gran guerra de 1469-78»; «otra vez vinieron los mejicanos de Taximaroa y la destruyeron»)",
-        "certeza": "alta para la derrota de Axayácatl; la fecha exacta (1478 o 1479), por verificar"
+        "certeza": "alta para la derrota de Axayácatl; la fecha exacta (1478 o 1479), por verificar; la cadena de decisiones es de juego"
       },
       "peso": "30",
       "enfriamiento": 100000,
@@ -928,14 +1042,39 @@
         "tipo": "todas",
         "de": [
           {
-            "tipo": "desde_fecha",
-            "fecha": "1478-06-01"
+            "tipo": "alguna",
+            "de": [
+              {
+                "tipo": "desde_fecha",
+                "fecha": "1478-06-01"
+              },
+              {
+                "tipo": "todas",
+                "de": [
+                  {
+                    "tipo": "ocurrio",
+                    "hecho": "frontera_provocada"
+                  },
+                  {
+                    "tipo": "desde_fecha",
+                    "fecha": "1477-06-01"
+                  }
+                ]
+              }
+            ]
           },
           {
             "tipo": "no",
             "de": {
               "tipo": "desde_fecha",
               "fecha": "1481-01-01"
+            }
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "ocurrio",
+              "hecho": "taximaroa_fortificada"
             }
           }
         ]
@@ -1082,6 +1221,323 @@
             {
               "tipo": "hecho",
               "tag": "axayacatl_derrotado"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "asedio_de_taximaroa",
+      "tipo": "frontera",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 1 n.º 7 y texto 2 n.º 13",
+        "cita": "Vargas Uribe, «Percepción de espacio…», p. 7 («derrotó al mexicano Axayacatl en la gran guerra de 1469-78»; «otra vez vinieron los mejicanos de Taximaroa y la destruyeron»)",
+        "certeza": "alta para la derrota de Axayácatl; la fecha exacta (1478 o 1479), por verificar; la cadena de decisiones es de juego"
+      },
+      "peso": "30",
+      "enfriamiento": 100000,
+      "plazo": 40,
+      "fases": [],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "desde_fecha",
+            "fecha": "1479-01-01"
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1481-06-01"
+            }
+          },
+          {
+            "tipo": "ocurrio",
+            "hecho": "taximaroa_fortificada"
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "que_aguante_la_guarnicion",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "taximaroa_perdida"
+            }
+          ]
+        },
+        {
+          "id": "socorrer_taximaroa",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-150"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "10"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.poder",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.lealtad",
+              "valor": "5"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "axayacatl_derrotado"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "la_guerra_sigue",
+      "tipo": "frontera",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 1 n.º 7 y texto 2 n.º 13",
+        "cita": "Vargas Uribe, «Percepción de espacio…», p. 7 («derrotó al mexicano Axayacatl en la gran guerra de 1469-78»; «otra vez vinieron los mejicanos de Taximaroa y la destruyeron»)",
+        "certeza": "alta para la derrota de Axayácatl; la fecha exacta (1478 o 1479), por verificar; la cadena de decisiones es de juego"
+      },
+      "peso": "20",
+      "enfriamiento": 180,
+      "plazo": 40,
+      "fases": [],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "ocurrio",
+            "hecho": "taximaroa_perdida",
+            "dias": 1095
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "alguna",
+              "de": [
+                {
+                  "tipo": "ocurrio",
+                  "hecho": "axayacatl_derrotado"
+                },
+                {
+                  "tipo": "ocurrio",
+                  "hecho": "paz_con_los_mexicas"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "resistir_otra_temporada",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-100"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "modificador",
+              "entidad": {
+                "clase": "altepetl",
+                "id": 2
+              },
+              "magnitud": "produccion",
+              "porcentaje": "-0.1",
+              "dias": 365
+            }
+          ]
+        },
+        {
+          "id": "contraatacar",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-300"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "8"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.poder",
+              "valor": "3"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 4
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 6
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "axayacatl_derrotado"
+            }
+          ]
+        },
+        {
+          "id": "pactar_con_los_mexicas",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-6"
+            },
+            {
+              "tipo": "modificador",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-5",
+              "dias": 1095
+            },
+            {
+              "tipo": "hecho",
+              "tag": "paz_con_los_mexicas"
             }
           ]
         }
@@ -2659,13 +3115,14 @@
           "id": "callar_los_agueros",
           "efectos": [
             {
-              "tipo": "sumar_mag",
+              "tipo": "modificador",
               "entidad": {
                 "clase": "faccion",
                 "id": 1
               },
               "magnitud": "legitimidad",
-              "valor": "-4"
+              "valor": "-6",
+              "dias": 1095
             }
           ]
         },
@@ -3187,6 +3644,10 @@
               },
               "magnitud": "faccion.grupo.nobleza_guerrera.poder",
               "valor": "3"
+            },
+            {
+              "tipo": "hecho",
+              "tag": "hermanos_perdonados"
             }
           ]
         },
@@ -3223,6 +3684,126 @@
             {
               "tipo": "hecho",
               "tag": "hermanos_muertos"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "conspiracion_de_los_hermanos",
+      "tipo": "sucesion",
+      "_fuente": {
+        "origen": "propuestas_cronica.md, texto 2 n.º 7 (la acusación de Timas); la conspiración es la consecuencia de juego de no escucharlo",
+        "certeza": "decisión de juego: la Relación cuenta que fueron muertos, no que conspiraran"
+      },
+      "peso": "20",
+      "enfriamiento": 100000,
+      "plazo": 40,
+      "fases": [],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "ocurrio",
+            "hecho": "hermanos_perdonados",
+            "dias": 1460
+          },
+          {
+            "tipo": "no",
+            "de": {
+              "tipo": "desde_fecha",
+              "fecha": "1525-01-01"
+            }
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "dejarlos_hacer",
+          "efectos": [
+            {
+              "tipo": "modificador",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-8",
+              "dias": 1095
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.lealtad",
+              "valor": "-5"
+            }
+          ]
+        },
+        {
+          "id": "desterrarlos",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "prestigio",
+              "valor": "-2"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.lealtad",
+              "valor": "-3"
+            },
+            {
+              "tipo": "modificador",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-2",
+              "dias": 730
+            }
+          ]
+        },
+        {
+          "id": "ganarlos_con_cargos",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "tesoro",
+              "valor": "-200"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.nobleza_guerrera.poder",
+              "valor": "4"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "faccion.grupo.administradores.lealtad",
+              "valor": "-4"
             }
           ]
         }

@@ -19,6 +19,7 @@ import qualified Data.Text as T
 
 import Motor.Base
 import Motor.Efectos (Programa, compilarPrograma)
+import Motor.Propios (vocabularioVacio)
 import Motor.Magnitudes
 import Motor.Mapa (Terreno(..), Recurso(..))
 import Motor.Sistema (Sistema(..), NombreSistema)
@@ -272,7 +273,7 @@ validarEventosV archivo v = do
   pure mempty { catProgramas = Map.fromList pares }
   where
     compilarEvento (EventoJSON eid ops) = traverse (compilarOpcion eid) ops
-    compilarOpcion eid (OpcionJSON oid efs) = case compilarPrograma efs of
+    compilarOpcion eid (OpcionJSON oid efs) = case compilarPrograma vocabularioVacio efs of
       Left err -> falla (ErrorCarga ErrorEsquema archivo
                           ("eventos." <> eid <> ".opciones." <> oid) err)
       Right p  -> pure ((eid, oid), p)
