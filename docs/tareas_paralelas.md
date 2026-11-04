@@ -43,7 +43,7 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 
 | Ronda | Tarea | Área (archivos principales) | Depende de | Hito |
 | --- | --- | --- | --- | --- |
-| 5 | T16 Cosecha por estación y merma con troje | `motor`: `Moneda`; `reglas`: `Produccion`, `Constantes`; `datos/terrenos.json`, `datos/edificios.json` | merma | 3 |
+| 5 | T16 Cosecha por estación y merma con troje (hecha en `claude/cosecha-estacion`) | `motor`: `Moneda`; `reglas`: `Produccion`, `Constantes`; `datos/terrenos.json`, `datos/edificios.json` | merma | 3 |
 | 5 | T17 Mala cosecha y abrir las trojes | `reglas`: `Produccion`, efectos propios; `datos/guion_1475.json` | T16, T5, T14 | 3 / 10 |
 
 ---
