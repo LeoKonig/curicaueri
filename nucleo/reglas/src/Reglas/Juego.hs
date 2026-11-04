@@ -31,6 +31,9 @@ import Reglas.Grupos
 import Reglas.Sistemas
 import Reglas.Facciones (facciones)
 import Reglas.Fusion (fusion)
+-- El calendario visible y la fecha de inicio son del escenario; cuando los
+-- escenarios sean datos (T13), vendrán con él.
+import Reglas.Escenario (visible1475, inicio1475)
 
 catalogoMag :: Map.Map Magnitud DefMagnitud
 catalogoMag = Map.fromList
@@ -65,10 +68,12 @@ data DatosReglas = DatosReglas
   , drEconomia  :: Economia                     -- ^ los bienes que pueden ser moneda (@datos/bienes_1475.json@);
                                                 --   vacía, nadie designa moneda y todo se cuenta en valor.
                                                 --   Es la misma que lleva el 'Motor.Guion.Entorno' para 'pasoMoneda'.
+  , drCosechas  :: Map.Map Text Cosecha         -- ^ ventanas de cosecha por bien (@cosechas@ de @datos/terrenos.json@);
+                                                --   un bien sin ventana se produce parejo todo el año
   }
 
 datosVacios :: DatosReglas
-datosVacios = DatosReglas gruposVacios edificiosVacios Map.empty economiaVacia
+datosVacios = DatosReglas gruposVacios edificiosVacios Map.empty economiaVacia Map.empty
 
 -- | Aplica un comando de la facción que lo sella (@sellFaccion@). Un comando
 -- de una facción que no existe o no está activa se rechaza; los que nombran
@@ -302,7 +307,7 @@ juegoCon c gs = juegoDatos c datosVacios { drGrupos = gs }
 juegoDatos :: Constantes -> DatosReglas -> Juego Purepecha Comando
 juegoDatos c dr = let bienes = bienesDe (drTerrenos dr) in Juego
   { juegoSistemas    = [ facciones (drGrupos dr) (drEconomia dr), construccion c (drEconomia dr) (drEdificios dr)
-                       , produccion c (drEconomia dr) bienes, hacienda c (drEconomia dr), evolucionAgravio c, fusion c ]
+                       , produccion c (drEconomia dr) (Cosechas (drCosechas dr) visible1475 inicio1475) bienes, hacienda c (drEconomia dr), evolucionAgravio c, fusion c ]
   , juegoAplicarCmd  = aplicarComando c dr
   , juegoDerivar     = \g _ p -> derivarPurepecha c dr g (persistenteJuego p)
   , juegoProyectar   = proyectar
