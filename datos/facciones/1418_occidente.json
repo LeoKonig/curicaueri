@@ -1,0 +1,267 @@
+{
+  "_provisional": true,
+  "_nota": "Contenido de JUGUETE para la campaña 1418-1607 (V5, Tipos de facción y niveles de detalle; hito 4). Facciones, fechas, tipos, posiciones y cifras son provisionales y por verificar: el inventario con fuentes es T6. Las celdas siguen la geografía a grandes rasgos sobre el mapa provisional de 40 × 30 (oeste a la izquierda, norte arriba).",
+  "facciones": [
+    {
+      "id": 1,
+      "nombre": "Reino purépecha",
+      "tipo": "reino_centralizado",
+      "estado": "activa",
+      "gobernante": 1,
+      "tesoro": "1000",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 1,
+          "nombre": "Cazonci de Tzintzuntzan",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 1,
+          "nombre": "Tzintzuntzan",
+          "celda": 612,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 2,
+              "identidad": "purepecha",
+              "estrato": "nobleza",
+              "tamano": 2000,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 1,
+              "identidad": "purepecha",
+              "estrato": "comun",
+              "tamano": 20000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "nombre": "Pátzcuaro",
+          "celda": 651,
+          "condicion": "sujeto",
+          "sujeto_a": 1,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 3,
+              "identidad": "purepecha",
+              "estrato": "comun",
+              "tamano": 10000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "nombre": "Ihuatzio",
+          "celda": 652,
+          "condicion": "sujeto",
+          "sujeto_a": 1,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 4,
+              "identidad": "purepecha",
+              "estrato": "comun",
+              "tamano": 10000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ],
+      "jugable": true
+    },
+    {
+      "id": 2,
+      "nombre": "Colima",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 2,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 2,
+          "nombre": "Señor de Colima",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 4,
+          "nombre": "Colima",
+          "celda": 686,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 6,
+              "identidad": "nahua",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 5,
+              "identidad": "nahua",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "nombre": "Tecomán",
+          "celda": 726,
+          "condicion": "sujeto",
+          "sujeto_a": 4,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 7,
+              "identidad": "nahua",
+              "estrato": "comun",
+              "tamano": 3000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "nombre": "Señoríos de Jalisco",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 3,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 3,
+          "nombre": "Señor de Tonallan",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 6,
+          "nombre": "Tonallan",
+          "celda": 488,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 9,
+              "identidad": "nahua",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 8,
+              "identidad": "nahua",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "nombre": "Tlaquepaque",
+          "celda": 528,
+          "condicion": "sujeto",
+          "sujeto_a": 6,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 10,
+              "identidad": "nahua",
+              "estrato": "comun",
+              "tamano": 3000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "nombre": "Señoríos de Nayarit",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 4,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 4,
+          "nombre": "Señor de Xalisco",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 8,
+          "nombre": "Xalisco",
+          "celda": 404,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 12,
+              "identidad": "cora",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 11,
+              "identidad": "cora",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,182 @@
+{
+  "_provisional": true,
+  "_nota": "Contenido de JUGUETE para la campaña 1418-1607 (V5, Tipos de facción y niveles de detalle; hito 4). Facciones, fechas, tipos, posiciones y cifras son provisionales y por verificar: el inventario con fuentes es T6. Las celdas siguen la geografía a grandes rasgos sobre el mapa provisional de 40 × 30 (oeste a la izquierda, norte arriba).",
+  "facciones": [
+    {
+      "id": 20,
+      "nombre": "Tlaxcala",
+      "tipo": "confederacion",
+      "estado": "activa",
+      "gobernante": 12,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 12,
+          "nombre": "Señor de Tlaxcala",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 21,
+          "nombre": "Tlaxcala",
+          "celda": 585,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 33,
+              "identidad": "tlaxcalteca",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 32,
+              "identidad": "tlaxcalteca",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "nombre": "Ocotelulco",
+          "celda": 625,
+          "condicion": "sujeto",
+          "sujeto_a": 21,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 34,
+              "identidad": "tlaxcalteca",
+              "estrato": "comun",
+              "tamano": 3000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 23,
+          "nombre": "Tizatlán",
+          "celda": 586,
+          "condicion": "sujeto",
+          "sujeto_a": 21,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 35,
+              "identidad": "tlaxcalteca",
+              "estrato": "comun",
+              "tamano": 3000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "nombre": "Huexotzinco",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 13,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 13,
+          "nombre": "Señor de Huexotzinco",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 24,
+          "nombre": "Huexotzinco",
+          "celda": 664,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 37,
+              "identidad": "nahua",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 36,
+              "identidad": "nahua",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "nombre": "Cholula",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 14,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 14,
+          "nombre": "Señor de Cholula",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 25,
+          "nombre": "Cholula",
+          "celda": 705,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 39,
+              "identidad": "nahua",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 38,
+              "identidad": "nahua",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

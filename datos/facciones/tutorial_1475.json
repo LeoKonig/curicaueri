@@ -1,0 +1,166 @@
+{
+  "_nota": "El reino purépecha del tutorial 1475-1530, el mismo que Reglas.Escenario.estadoInicial1475 (una prueba lo comprueba). Cifras de relleno; los grupos de los personajes son ilustrativos, por verificar.",
+  "facciones": [
+    {
+      "id": 1,
+      "nombre": "Reino purépecha",
+      "tipo": "reino_centralizado",
+      "estado": "activa",
+      "jugable": true,
+      "gobernante": 1,
+      "tasas": {
+        "tributo": 3,
+        "impuesto": 3
+      },
+      "presupuesto": {
+        "ejercito": 30,
+        "administracion": 25,
+        "obras": 30,
+        "diplomacia": 15,
+        "culto": 0
+      },
+      "tesoro": "1000",
+      "prestigio": "20",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 1,
+          "nombre": "Zuangua",
+          "admin": 3,
+          "mando": 2,
+          "edad": 40
+        },
+        {
+          "id": 2,
+          "nombre": "Tangáxoan",
+          "admin": 4,
+          "mando": 3,
+          "edad": 28,
+          "grupo": "nobleza_guerrera"
+        },
+        {
+          "id": 3,
+          "nombre": "Gobernador Inepto",
+          "admin": 1,
+          "mando": 2,
+          "edad": 45,
+          "grupo": "nobleza_guerrera"
+        },
+        {
+          "id": 4,
+          "nombre": "Gobernador Capaz",
+          "admin": 3,
+          "mando": 2,
+          "edad": 38,
+          "grupo": "administradores"
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 1,
+          "nombre": "Tzintzuntzan",
+          "celda": 63,
+          "condicion": "cabecera",
+          "gobernador": 2,
+          "distancia": "0",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 1,
+              "identidad": "purepecha",
+              "estrato": "nobleza",
+              "tamano": 3000,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 2,
+              "identidad": "purepecha",
+              "estrato": "comun",
+              "tamano": 27000,
+              "lealtad": "70",
+              "agravio": "20"
+            },
+            {
+              "id": 7,
+              "identidad": "purepecha",
+              "estrato": "sacerdote",
+              "tamano": 400,
+              "lealtad": "85"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "nombre": "Zacapu",
+          "celda": 33,
+          "condicion": "sujeto",
+          "sujeto_a": 1,
+          "gobernador": 3,
+          "distancia": "2",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 3,
+              "identidad": "purepecha",
+              "estrato": "comun",
+              "tamano": 8400,
+              "lealtad": "55",
+              "agravio": "40"
+            },
+            {
+              "id": 4,
+              "identidad": "hnahnu",
+              "estrato": "comun",
+              "tamano": 3600,
+              "lealtad": "45",
+              "agravio": "45"
+            },
+            {
+              "id": 8,
+              "identidad": "purepecha",
+              "estrato": "sacerdote",
+              "tamano": 60,
+              "lealtad": "70"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "nombre": "Uruapan",
+          "celda": 101,
+          "condicion": "sujeto",
+          "sujeto_a": 1,
+          "gobernador": 4,
+          "distancia": "1",
+          "lealtad": "75",
+          "pops": [
+            {
+              "id": 5,
+              "identidad": "purepecha",
+              "estrato": "comun",
+              "tamano": 15300,
+              "lealtad": "70",
+              "agravio": "15"
+            },
+            {
+              "id": 6,
+              "identidad": "nahua",
+              "estrato": "comun",
+              "tamano": 2700,
+              "lealtad": "50",
+              "agravio": "20"
+            },
+            {
+              "id": 9,
+              "identidad": "purepecha",
+              "estrato": "sacerdote",
+              "tamano": 100,
+              "lealtad": "75"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

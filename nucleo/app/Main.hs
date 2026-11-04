@@ -54,7 +54,7 @@ import Network.Socket
 import System.Environment (getArgs)
 import System.IO
 import System.Directory (createDirectoryIfMissing, doesFileExist)
-import System.FilePath ((</>), (<.>))
+import System.FilePath ((</>), (<.>), takeDirectory)
 import Data.Char (isAlphaNum)
 import qualified Data.Aeson.Types as A
 import Motor.Guardado (guardar, cargar)
@@ -69,7 +69,7 @@ import Motor.Protocolo
 import Motor.Vista (Vista, Interes (..))
 import qualified Data.Set as Set
 
-import Motor.Calendario (esInicioDePeriodo)
+import Motor.Calendario (CalendarioVisible, Fecha, esInicioDePeriodo)
 import qualified Data.Map.Strict as Map
 import Data.Foldable (toList)
 import Data.Maybe (fromMaybe, isJust)
@@ -85,7 +85,7 @@ import Agente
 import Reglas.Comando
 import Reglas.Constantes (constantesDefault)
 import Reglas.Escenario
-import Reglas.Estado (Purepecha, ppAltepetl, ppPops, jugableDe)
+import Reglas.Estado (Purepecha, ppAltepetl, ppFacciones, ppPops, jugableDe)
 import Reglas.Facciones (conAgentesNulos)
 import Reglas.Edificios (cargarEdificios, conConocimientos, edificiosVacios, idsEdificios)
 import Reglas.Produccion (bienesDe, cargarCosechas, catalogoBienes, validarBienesDelTerritorio)
@@ -126,6 +126,7 @@ data Partida = Partida
   , pDecisionesEnviadas :: [Int]              -- ^ decisiones que el cliente ya conoce
   , pCronicaEnviada :: Int                    -- ^ entradas de la crónica que el cliente ya conoce
   , pFinEnviado :: Bool                       -- ^ si el cliente ya sabe que la partida terminó
+  , pCalendario :: (CalendarioVisible, Fecha)  -- ^ el calendario visible y la fecha del tick 0 del escenario
   }
 
 main :: IO ()
@@ -135,10 +136,6 @@ main = do
                      (_ : v : _) -> v
                      _           -> d
       puerto = opcion "--puerto" "4646"
-      -- --mapa 60x45 da unos 2 700 hexágonos (prueba de rendimiento del hito 2)
-      (ancho, alto) = case break (== 'x') (opcion "--mapa" "") of
-                        (a, _ : b) | [(x, "")] <- reads a, [(y, "")] <- reads b -> (x, y)
-                        _ -> (hexAncho datosMapa1475, hexAlto datosMapa1475)
       carpeta = opcion "--partidas" "partidas"
       -- --velocidades 3000,1500,1000,500,150: milisegundos por día, para
       -- calibrar jugando sin recompilar.
@@ -150,7 +147,27 @@ main = do
   -- El registro lleva acentos: sin esto, con una configuración regional que no
   -- sea UTF-8, el núcleo se cae al escribir su primera línea.
   hSetEncoding stderr utf8
-  mapaHex <- either (fail . show) pure (proveedorHexagonal datosMapa1475 { hexAncho = ancho, hexAlto = alto })
+  -- --escenario escenarios/campana_1418.json: el escenario y sus facciones
+  -- (sección 17). Sin él, el tutorial 1475-1530 escrito en el código, que es
+  -- el mismo que escenarios/tutorial_1475.json (una prueba lo comprueba).
+  (esc, eEscenario) <- case opcion "--escenario" "" of
+    "" -> pure (escenarioTutorial, estadoInicial1475)
+    ruta -> do
+      v <- leerJson "escenario" ruta
+      e <- validado (leerEscenario (T.pack ruta) v)
+      archivos <- forM (escFacciones e) $ \f -> do
+        let r = takeDirectory ruta </> f
+        (,) (T.pack r) <$> leerJson "facciones" r
+      est <- validado (cargarEscenario e archivos)
+      let facs = ppFacciones (persistenteJuego (estadoPersistente est))
+      registro ("escenario " <> escNombre e <> ": " <> T.pack (show (Map.size facs)) <> " facciones, "
+                <> T.pack (show (Map.size (ppAltepetl (persistenteJuego (estadoPersistente est))))) <> " altépetl")
+      pure (e, est)
+  -- --mapa 60x45 da unos 2 700 hexágonos (prueba de rendimiento del hito 2)
+  let (ancho, alto) = case break (== 'x') (opcion "--mapa" "") of
+                        (a, _ : b) | [(x, "")] <- reads a, [(y, "")] <- reads b -> (x, y)
+                        _ -> (hexAncho (escMapa esc), hexAlto (escMapa esc))
+  mapaHex <- either (fail . show) pure (proveedorHexagonal (escMapa esc) { hexAncho = ancho, hexAlto = alto })
   createDirectoryIfMissing True carpeta
   grupos <- case opcion "--grupos" "" of
     "" -> pure gruposVacios
@@ -206,13 +223,14 @@ main = do
       grafoR = grafoDe mapaR
   let comandos = catalogoComandosConMonedas (idsEdificios edificios)
                    (Map.keys (Map.unions (map dtMateriales (Map.elems terrenos)))) designables
-      juego = RJ.juegoDatos constantesDefault (RJ.DatosReglas grupos edificios terrenos economia cosechas)
+      juego = RJ.juegoDatosEn (escVisible esc) (escInicio esc) constantesDefault (RJ.DatosReglas grupos edificios terrenos economia cosechas)
       -- --escala 7500x20: altépetl y pops de prueba para medir el costo a la
       -- escala del mapa completo (solo para la prueba de rendimiento del núcleo).
       (escN, escK) = case break (== 'x') (opcion "--escala" "") of
                        (a, _ : b) | [(x, "")] <- reads a, [(y, "")] <- reads b -> (x, y)
                        _ -> (0, 0)
-      eSinGrupos = escalar (ancho * alto) escN escK (reubicar ancho alto estadoInicial1475)
+      eSinGrupos = escalar (ancho * alto) escN escK
+                     (reubicar (hexAncho (escMapa esc), hexAlto (escMapa esc)) ancho alto eEscenario)
   eConGrupos <- conConocimientos edificios <$> validado (conGrupos (T.pack (opcion "--grupos" "")) grupos eSinGrupos)
   -- El derivado del estado inicial (qué celdas trabaja cada altépetl), para
   -- que la primera veintena ya produzca. Es el mismo que daría cargar la
@@ -227,13 +245,17 @@ main = do
   mregistro <- case opcion "--registro-agente" "" of
     "" -> pure Nothing
     r  -> Just <$> openFile r WriteMode
-  guion <- case opcion "--guion" "" of
+  -- --guion reemplaza el guion que declara el escenario.
+  let rutaGuion = case (opcion "--guion" "", escGuion esc, opcion "--escenario" "") of
+        ("", Just g, rEsc) -> takeDirectory rEsc </> g
+        (r, _, _)          -> r
+  guion0 <- case rutaGuion of
     "" -> pure guionVacio
     ruta -> do
       bs <- BL.readFile ruta
       case A.eitherDecode bs of
         Left err -> fail ("guion ilegible (" <> ruta <> "): " <> err)
-        Right v -> case cargarGuion (vocabularioDe (lenguajeDe juego)) (T.pack ruta) inicio1475 v of
+        Right v -> case cargarGuion (vocabularioDe (lenguajeDe juego)) (T.pack ruta) (escInicio esc) v of
           Validacion [] (Just g) -> do
             registro ("guion " <> T.pack ruta <> ": " <> T.pack (show (length (guFases g))) <> " fases, "
                       <> T.pack (show (length (guSituaciones g))) <> " situaciones")
@@ -248,7 +270,14 @@ main = do
       case A.eitherDecode bs of
         Left err -> fail ("ejes ilegibles (" <> ruta <> "): " <> err)
         Right v -> validado (cargarEjes (T.pack ruta) v)
-  ejes <- validado (ejesActivos "escenario 1475" ejesTodos ejesActivos1475)
+  -- La partida termina en la fecha del escenario o antes, si el guion
+  -- declara una anterior (el guion de prueba del fin termina el día 11).
+  let guion = case escFin esc of
+        Nothing -> guion0
+        Just f  -> let tf = fromIntegral (tickDeFecha (escInicio esc) f)
+                       fg = fromMaybe (FinGuion Nothing []) (guFin guion0)
+                   in guion0 { guFin = Just fg { fgTick = Just (maybe tf (min tf) (fgTick fg)) } }
+  ejes <- validado (ejesActivos ("escenario " <> escId esc) ejesTodos (escEjes esc))
   validado (validarRequisitos "catálogo de comandos" ejesTodos [ (dcTipo d, dcRequiere d) | d <- comandos ])
   unless (null ejes) $ registro ("ejes activos: " <> T.intercalate ", " (map ejId ejes))
   -- Un agente nulo por cada facción que no dirige la persona.
@@ -258,7 +287,7 @@ main = do
   forM_ agente $ \_ -> registro ("agente externo para la facción " <> T.pack (opcion "--agente-faccion" "1"))
   ref <- newIORef Partida
     { pEstado = e0, pSiguiente = 0, pPendientes = [], pRespuestas = [], pDecisionesEnviadas = []
-    , pCronicaEnviada = 0, pFinEnviado = False
+    , pCronicaEnviada = 0, pFinEnviado = False, pCalendario = (escVisible esc, escInicio esc)
     , pVelocidad = velocidadNormal, pPausado = True
     , pVista = proyeccionCon juegoN sinDetalle e0, pInteres = sinDetalle }
   if "--sin-cliente" `elem` args
@@ -318,6 +347,12 @@ abrir puerto = do
   listen sock 1
   pure sock
 
+-- | Lee un archivo JSON o termina con un mensaje que dice cuál.
+leerJson :: String -> FilePath -> IO A.Value
+leerJson que ruta = do
+  bs <- BL.readFile ruta
+  either (\err -> fail (que <> " ilegible (" <> ruta <> "): " <> err)) pure (A.eitherDecode bs)
+
 registro :: T.Text -> IO ()
 registro = TIO.hPutStrLn stderr . ("[núcleo] " <>)
 
@@ -343,7 +378,7 @@ sinDetalle :: Interes
 sinDetalle = Detalle Set.empty
 
 relojDePartida :: Partida -> Reloj
-relojDePartida p = relojDe visible1475 inicio1475 (comunCalendario (persistenteComun (estadoPersistente (pEstado p))))
+relojDePartida p = relojDe (fst (pCalendario p)) (snd (pCalendario p)) (comunCalendario (persistenteComun (estadoPersistente (pEstado p))))
                      (pVelocidad p) (pPausado p) (Tick (max 0 (pSiguiente p - 1)))
 
 -- | Un tick de la partida: si empieza un periodo, primero el turno del agente
@@ -540,7 +575,7 @@ sesion conf juego mapaR ref conn = do
       let com = persistenteComun (estadoPersistente (pEstado p))
           todas = toList (comunCronica com)
           nuevas = drop (pCronicaEnviada p) todas
-          paraCliente = map (entradaCliente visible1475 inicio1475)
+          paraCliente = map (uncurry entradaCliente (pCalendario p))
           avisarFin = isJust (comunFin com) && not (pFinEnviado p)
           p' = p { pCronicaEnviada = length todas
                  , pFinEnviado = pFinEnviado p || isJust (comunFin com)

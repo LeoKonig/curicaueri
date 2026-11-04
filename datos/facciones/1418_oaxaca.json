@@ -1,0 +1,274 @@
+{
+  "_provisional": true,
+  "_nota": "Contenido de JUGUETE para la campaña 1418-1607 (V5, Tipos de facción y niveles de detalle; hito 4). Facciones, fechas, tipos, posiciones y cifras son provisionales y por verificar: el inventario con fuentes es T6. Las celdas siguen la geografía a grandes rasgos sobre el mapa provisional de 40 × 30 (oeste a la izquierda, norte arriba).",
+  "facciones": [
+    {
+      "id": 30,
+      "nombre": "Tututepec",
+      "tipo": "reino_dinastico",
+      "estado": "activa",
+      "gobernante": 18,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 18,
+          "nombre": "Señor de Tututepec",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 31,
+          "nombre": "Tututepec",
+          "celda": 1024,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 49,
+              "identidad": "mixteco",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 48,
+              "identidad": "mixteco",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 32,
+          "nombre": "Juquila",
+          "celda": 1025,
+          "condicion": "sujeto",
+          "sujeto_a": 31,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 50,
+              "identidad": "mixteco",
+              "estrato": "comun",
+              "tamano": 3000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "nombre": "Tilantongo",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 19,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 19,
+          "nombre": "Señor de Tilantongo",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 33,
+          "nombre": "Tilantongo",
+          "celda": 905,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 52,
+              "identidad": "mixteco",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 51,
+              "identidad": "mixteco",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "nombre": "Yanhuitlán",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 20,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 20,
+          "nombre": "Señor de Yanhuitlán",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 34,
+          "nombre": "Yanhuitlán",
+          "celda": 866,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 54,
+              "identidad": "mixteco",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 53,
+              "identidad": "mixteco",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "nombre": "Zaachila",
+      "tipo": "reino_dinastico",
+      "estado": "activa",
+      "gobernante": 21,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 21,
+          "nombre": "Señor de Zaachila",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 35,
+          "nombre": "Zaachila",
+          "celda": 947,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 56,
+              "identidad": "zapoteco",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 55,
+              "identidad": "zapoteco",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 36,
+          "nombre": "Mitla",
+          "celda": 948,
+          "condicion": "sujeto",
+          "sujeto_a": 35,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 57,
+              "identidad": "zapoteco",
+              "estrato": "comun",
+              "tamano": 3000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "nombre": "Tehuantepec",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 22,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 22,
+          "nombre": "Señor de Tehuantepec",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 37,
+          "nombre": "Tehuantepec",
+          "celda": 1031,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 59,
+              "identidad": "zapoteco",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 58,
+              "identidad": "zapoteco",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

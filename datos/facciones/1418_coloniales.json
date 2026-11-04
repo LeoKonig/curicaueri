@@ -1,0 +1,320 @@
+{
+  "_provisional": true,
+  "_nota": "Contenido de JUGUETE para la campaña 1418-1607 (V5, Tipos de facción y niveles de detalle; hito 4). Facciones, fechas, tipos, posiciones y cifras son provisionales y por verificar: el inventario con fuentes es T6. Las celdas siguen la geografía a grandes rasgos sobre el mapa provisional de 40 × 30 (oeste a la izquierda, norte arriba).",
+  "facciones": [
+    {
+      "id": 70,
+      "nombre": "Expedición castellana",
+      "tipo": "colonial",
+      "estado": "potencial",
+      "gobernante": 36,
+      "tesoro": "300",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 36,
+          "nombre": "Capitán de Villa Rica de la Vera Cruz",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 54,
+          "nombre": "Villa Rica de la Vera Cruz",
+          "celda": 550,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 89,
+              "identidad": "castellano",
+              "estrato": "comun",
+              "tamano": 500,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ],
+      "desde": "1519-04-22",
+      "hasta": "1535-11-15",
+      "absorbente": 71
+    },
+    {
+      "id": 71,
+      "nombre": "Corona novohispana",
+      "tipo": "colonial",
+      "estado": "potencial",
+      "gobernante": 37,
+      "tesoro": "2000",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 37,
+          "nombre": "Virrey en Puebla de los Ángeles",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 55,
+          "nombre": "Puebla de los Ángeles",
+          "celda": 704,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 90,
+              "identidad": "castellano",
+              "estrato": "comun",
+              "tamano": 1000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ],
+      "desde": "1535-11-14"
+    },
+    {
+      "id": 72,
+      "nombre": "Audiencia",
+      "tipo": "colonial",
+      "estado": "potencial",
+      "gobernante": 38,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 38,
+          "nombre": "Presidente en Antequera",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 56,
+          "nombre": "Antequera",
+          "celda": 907,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 91,
+              "identidad": "castellano",
+              "estrato": "comun",
+              "tamano": 500,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ],
+      "desde": "1528-12-06"
+    },
+    {
+      "id": 73,
+      "nombre": "Encomenderos",
+      "tipo": "colonial",
+      "estado": "potencial",
+      "gobernante": 39,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 39,
+          "nombre": "Encomendero de Villa de Colima",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 57,
+          "nombre": "Villa de Colima",
+          "celda": 687,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 92,
+              "identidad": "castellano",
+              "estrato": "comun",
+              "tamano": 300,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ],
+      "desde": "1522-06-01"
+    },
+    {
+      "id": 74,
+      "nombre": "Franciscanos",
+      "tipo": "orden_religiosa",
+      "estado": "potencial",
+      "gobernante": 40,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 40,
+          "nombre": "Custodio en Convento de Huejotzingo",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 58,
+          "nombre": "Convento de Huejotzingo",
+          "celda": 624,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 93,
+              "identidad": "castellano",
+              "estrato": "comun",
+              "tamano": 100,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ],
+      "desde": "1524-05-13"
+    },
+    {
+      "id": 75,
+      "nombre": "Dominicos",
+      "tipo": "orden_religiosa",
+      "estado": "potencial",
+      "gobernante": 41,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 41,
+          "nombre": "Vicario en Convento de Yanhuitlán",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 59,
+          "nombre": "Convento de Yanhuitlán",
+          "celda": 826,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 94,
+              "identidad": "castellano",
+              "estrato": "comun",
+              "tamano": 100,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ],
+      "desde": "1526-06-23"
+    },
+    {
+      "id": 76,
+      "nombre": "Agustinos",
+      "tipo": "orden_religiosa",
+      "estado": "potencial",
+      "gobernante": 42,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 42,
+          "nombre": "Prior en Convento de Yuririapúndaro",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 60,
+          "nombre": "Convento de Yuririapúndaro",
+          "celda": 493,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 95,
+              "identidad": "castellano",
+              "estrato": "comun",
+              "tamano": 100,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ],
+      "desde": "1533-06-07"
+    },
+    {
+      "id": 77,
+      "nombre": "Jesuitas",
+      "tipo": "orden_religiosa",
+      "estado": "potencial",
+      "gobernante": 43,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 43,
+          "nombre": "Rector en Colegio de Pátzcuaro",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 61,
+          "nombre": "Colegio de Pátzcuaro",
+          "celda": 691,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 96,
+              "identidad": "castellano",
+              "estrato": "comun",
+              "tamano": 100,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ],
+      "desde": "1572-09-28"
+    }
+  ]
+}

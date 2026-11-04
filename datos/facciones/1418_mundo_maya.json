@@ -1,0 +1,370 @@
+{
+  "_provisional": true,
+  "_nota": "Contenido de JUGUETE para la campaña 1418-1607 (V5, Tipos de facción y niveles de detalle; hito 4). Facciones, fechas, tipos, posiciones y cifras son provisionales y por verificar: el inventario con fuentes es T6. Las celdas siguen la geografía a grandes rasgos sobre el mapa provisional de 40 × 30 (oeste a la izquierda, norte arriba).",
+  "facciones": [
+    {
+      "id": 40,
+      "nombre": "Mayapán",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 23,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 23,
+          "nombre": "Señor de Mayapán",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 38,
+          "nombre": "Mayapán",
+          "celda": 596,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 61,
+              "identidad": "maya",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 60,
+              "identidad": "maya",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 39,
+          "nombre": "Uxmal",
+          "celda": 635,
+          "condicion": "sujeto",
+          "sujeto_a": 38,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 62,
+              "identidad": "maya",
+              "estrato": "comun",
+              "tamano": 3000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ],
+      "hasta": "1450-01-02",
+      "absorbente": 41
+    },
+    {
+      "id": 41,
+      "nombre": "Maní",
+      "tipo": "senorio",
+      "estado": "potencial",
+      "gobernante": 24,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 24,
+          "nombre": "Señor de Maní",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 40,
+          "nombre": "Maní",
+          "celda": 636,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 64,
+              "identidad": "maya",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 63,
+              "identidad": "maya",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ],
+      "desde": "1450-01-01"
+    },
+    {
+      "id": 42,
+      "nombre": "Sotuta",
+      "tipo": "senorio",
+      "estado": "potencial",
+      "gobernante": 25,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 25,
+          "nombre": "Señor de Sotuta",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 41,
+          "nombre": "Sotuta",
+          "celda": 597,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 66,
+              "identidad": "maya",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 65,
+              "identidad": "maya",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ],
+      "desde": "1450-01-01"
+    },
+    {
+      "id": 43,
+      "nombre": "K'iche'",
+      "tipo": "reino_dinastico",
+      "estado": "activa",
+      "gobernante": 26,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 26,
+          "nombre": "Señor de Q'umarkaj",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 42,
+          "nombre": "Q'umarkaj",
+          "celda": 1114,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 68,
+              "identidad": "quiche",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 67,
+              "identidad": "quiche",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 43,
+          "nombre": "Xelajú",
+          "celda": 1113,
+          "condicion": "sujeto",
+          "sujeto_a": 42,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 69,
+              "identidad": "quiche",
+              "estrato": "comun",
+              "tamano": 3000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "nombre": "Kaqchikel",
+      "tipo": "reino_dinastico",
+      "estado": "activa",
+      "gobernante": 27,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 27,
+          "nombre": "Señor de Iximché",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 44,
+          "nombre": "Iximché",
+          "celda": 1155,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 71,
+              "identidad": "kaqchikel",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 70,
+              "identidad": "kaqchikel",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "nombre": "Tz'utujil",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 28,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 28,
+          "nombre": "Señor de Chiya'",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 45,
+          "nombre": "Chiya'",
+          "celda": 1195,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 73,
+              "identidad": "tzutujil",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 72,
+              "identidad": "tzutujil",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "nombre": "Chiapa",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 29,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 29,
+          "nombre": "Señor de Chiapa",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 46,
+          "nombre": "Chiapa",
+          "celda": 992,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 75,
+              "identidad": "chiapaneca",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 74,
+              "identidad": "chiapaneca",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
