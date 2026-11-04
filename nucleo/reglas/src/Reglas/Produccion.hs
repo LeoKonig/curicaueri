@@ -24,6 +24,9 @@
 module Reglas.Produccion
   ( bienesDe
   , catalogoBienes
+  , magCosecha
+  , cosechaEn
+  , azarCosecha
   , validarBienesDelTerritorio
   , lecturasMoneda
   , Cosecha (..)
@@ -48,6 +51,7 @@ import Data.Aeson (Value)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Types as A
 import Data.List (foldl', sortBy)
+import Data.IntSet (IntSet)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import qualified Data.IntMap.Strict as IntMap
@@ -59,6 +63,7 @@ import Motor.Base
 import Motor.Estado
 import Motor.Magnitudes
 import Motor.Mapa (Mapa (..), Celda (..), Terreno)
+import Motor.Azar (uniforme)
 import Motor.Calendario (CalendarioInterno (..), CalendarioVisible, Fecha, InfoPeriodo (..), diaDelAnioDe, diaDelAnioVisible, infoPeriodo)
 import Motor.Carga (CategoriaError (..), ErrorCarga (..), Validacion, falla)
 import Motor.Moneda (Bien (..), Economia (..), magExistencias, magMerma, magProduccion, mermaEn, rangoMerma)
@@ -103,11 +108,31 @@ rangoBien = RangoMag (fi 0) (fi 1000000000)
 -- (CLAUDE.md, *Bienes como magnitudes de la facción*). La merma tiene dos
 -- escritores: la producción escribe su base (la del catálogo de bienes) y la
 -- construcción los modificadores de las trojes.
+--
+-- Las existencias tienen dos escritores: la producción las suma cada periodo
+-- y un efecto del guion las gasta ('Reglas.Propios', @consumir_bien@). La
+-- cosecha del año ('magCosecha') también tiene dos: la producción escribe su
+-- base (1) y el azar del año ('azarCosecha') su modificador.
 catalogoBienes :: [Text] -> Map Magnitud DefMagnitud
 catalogoBienes bs = Map.fromList $
-  [ (m, DefMagnitud n rangoBien ("m." <> n) Nothing False)
-  | b <- bs, m@(Magnitud n) <- [magExistencias b, magProduccion b] ]
+  [ (magProduccion b, DefMagnitud n rangoBien ("m." <> n) Nothing False) | b <- bs, let Magnitud n = magProduccion b ]
+  ++ [ (magExistencias b, DefMagnitud n rangoBien ("m." <> n) Nothing True) | b <- bs, let Magnitud n = magExistencias b ]
   ++ [ (m, DefMagnitud n rangoMerma ("m." <> n) Nothing True) | b <- bs, let m@(Magnitud n) = magMerma b ]
+  ++ [ (m, DefMagnitud n rangoCosecha ("m." <> n) Nothing True) | b <- bs, let m@(Magnitud n) = magCosecha b ]
+
+-- | La cosecha del año de un bien con ventana, por facción: el factor sobre
+-- la cosecha normal. La base es 1 y el azar del año ('azarCosecha') pone un
+-- modificador con su fuente, así que el desglose dice cuánto fue el azar.
+magCosecha :: Text -> Magnitud
+magCosecha b = Magnitud ("bien." <> b <> ".cosecha")
+
+rangoCosecha :: RangoMag
+rangoCosecha = RangoMag (fi 0) (fi 10)
+
+-- | El factor de cosecha efectivo del bien para la facción; 1 si nada lo ha
+-- escrito (un guardado anterior, o un escenario sin azar).
+cosechaEn :: IntSet -> Tick -> Almacen -> EntRef -> Text -> Fijo
+cosechaEn vig t alm ent b = maybe uno (valorEn vig t rangoCosecha) (Map.lookup (ent, magCosecha b) alm)
 
 -- ---------------------------------------------------------------------------
 -- Cosecha por estación
@@ -300,7 +325,7 @@ produccion c ec temporadas bienes = Sistema
   { sisNombre   = NombreSistema "produccion"
   , sisCadencia = Periodo
   , sisLee      = Set.singleton magProduccionAlt
-  , sisEscribe  = Set.fromList (concat [ [magExistencias b, magProduccion b, magMerma b] | b <- bienes ])
+  , sisEscribe  = Set.fromList (concat [ [magExistencias b, magProduccion b, magMerma b, magCosecha b] | b <- bienes ])
   , sisEjecutar = \_ est ->
       if null bienes then (est, []) else
       let p     = persistenteJuego (estadoPersistente est)
@@ -324,8 +349,11 @@ produccion c ec temporadas bienes = Sistema
           cosecha = Map.map (\co -> factorCosecha cal temporadas co t) (csVentanas temporadas)
           enPeriodo b q = maybe q (q .*.) (Map.lookup b cosecha)
           guardado f b alm = maybe (Fijo 0) almacenBase (Map.lookup (entFac f, magExistencias b) alm)
-          escribir f alm0 (b, q0) =
-            let q = enPeriodo b q0
+          escribir f alm00 (b, q0) =
+            let ventana = Map.member b (csVentanas temporadas)
+                -- La base del factor de cosecha del año, de un bien con ventana.
+                alm0 = if ventana then fijarBase (entFac f) (magCosecha b) uno alm00 else alm00
+                q = enPeriodo b q0 .*. (if ventana then cosechaEn vig t alm0 (entFac f) b else uno)
                 -- La base de la merma, del catálogo; la efectiva, con las trojes.
                 (alm, m) = case Map.lookup b (ecoBienes ec) of
                   Nothing -> (alm0, Fijo 0)
@@ -340,3 +368,40 @@ produccion c ec temporadas bienes = Sistema
                         (comunMagnitudes com) (activas p)
       in (est { estadoPersistente = (estadoPersistente est) { persistenteComun = com { comunMagnitudes = alm' } } }, [])
   }
+
+-- | El azar de la cosecha (V5, *Decisiones recurrentes*, Mala cosecha): al
+-- empezar cada año, cada facción activa sortea su factor, parejo entre
+-- 'cCosechaMinima' y 'cCosechaMaxima', con @rng σ "cosecha" año@. El factor es
+-- uno por facción y año, el mismo para todos los bienes con ventana de
+-- cosecha, y se pone como un modificador de @bien.<id>.cosecha@ con fuente
+-- «azar/cosecha» que dura el año: la producción lo lee al cosechar y el
+-- desglose dice cuánto fue el azar. Las facciones van por id, así que con la
+-- misma semilla salen los mismos años. Sin bienes con ventana no hace nada.
+azarCosecha :: Constantes -> Cosechas -> Sistema Purepecha
+azarCosecha c temporadas = Sistema
+  { sisNombre   = NombreSistema "cosecha"
+  , sisCadencia = Anual
+  , sisLee      = Set.empty
+  , sisEscribe  = Set.fromList (map magCosecha conVentana)
+  , sisEjecutar = \g0 est ->
+      if null conVentana then (est, []) else
+      let p   = persistenteJuego (estadoPersistente est)
+          com = persistenteComun (estadoPersistente est)
+          cal = comunCalendario com
+          Tick t = estadoTick est
+          dias = ciDiasPorPeriodo cal * ciPeriodosPorAnio cal + ciDiasFuera cal
+          sortear (g, alm) fa =
+            let (u, g') = uniforme g
+                factor = cCosechaMinima c .+. (cCosechaMaxima c .-. cCosechaMinima c) .*. u
+                nuevo b = Modificador
+                  { modId = 0, modMagnitud = magCosecha b, modEntidad = entFac (facId fa)
+                  , modAporte = Aporte (Fijo 0) (factor .-. uno)
+                  , modFuente = Fuente "azar" "cosecha"
+                  , modInicio = Just (Tick t), modFin = Just (Tick (t + fromIntegral dias))
+                  , modCondicion = Nothing, modAlcance = AlcancePropia
+                  , modDetalle = [("sorteo", u)] }
+            in (g', foldl' (\a b -> fst (agregarModificador (nuevo b) a)) alm conVentana)
+          (_, alm') = foldl' sortear (g0, comunMagnitudes com) (activas p)
+      in (est { estadoPersistente = (estadoPersistente est) { persistenteComun = com { comunMagnitudes = alm' } } }, [])
+  }
+  where conVentana = Map.keys (csVentanas temporadas)

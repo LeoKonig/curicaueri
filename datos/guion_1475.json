@@ -2202,6 +2202,96 @@
       ]
     },
     {
+      "id": "mala_cosecha",
+      "tipo": "tierra",
+      "_fuente": {
+        "origen": "V5, Decisiones recurrentes: Mala cosecha (abrir las trojes, comprar a un vecino o no hacer nada); hito_0/datos/eventos.json",
+        "certeza": "decisión de juego, sin fuente histórica; las cantidades son de relleno"
+      },
+      "peso": "6",
+      "enfriamiento": 730,
+      "plazo": 40,
+      "fases": [],
+      "condicion": {
+        "tipo": "todas",
+        "de": [
+          {
+            "tipo": "menor",
+            "entidad": {
+              "clase": "faccion",
+              "id": 1
+            },
+            "magnitud": "bien.maiz.cosecha",
+            "valor": "0.75"
+          },
+          {
+            "tipo": "mayor",
+            "entidad": {
+              "clase": "faccion",
+              "id": 1
+            },
+            "magnitud": "bien.maiz.produccion",
+            "valor": "0"
+          }
+        ]
+      },
+      "opciones": [
+        {
+          "id": "no_hacer_nada",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "8"
+            }
+          ]
+        },
+        {
+          "id": "abrir_las_trojes",
+          "efectos": [
+            {
+              "tipo": "consumir_bien",
+              "faccion": 1,
+              "bien": "maiz",
+              "cantidad": "1000"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "-4"
+            }
+          ]
+        },
+        {
+          "id": "comprar_a_un_vecino",
+          "efectos": [
+            {
+              "tipo": "gastar_valor",
+              "faccion": 1,
+              "valor": "150"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "-3"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "obsidiana_de_zinapecuaro",
       "tipo": "comercio",
       "_fuente": {

@@ -652,6 +652,14 @@ Q'_t = Q_t \cdot \frac{P \cdot |\{k < L : \text{día}(t + k) \in [d_0, d_1]\}|}{
 
 con P los periodos por año. La suma de un año es la de la producción pareja salvo el redondeo (ley de la sección 19). El factor es uno por bien y periodo, igual para todas las facciones: cuesta L lecturas de fecha por periodo, no por altépetl. La merma de cada bien es la magnitud `bien.<id>.merma` de la facción (base del catálogo, modificadores de las trojes), leída con `Motor.Moneda.mermaEn` tanto por la producción como por el paso monetario.
 
+**El azar de la cosecha** (`Reglas.Produccion.azarCosecha`, T17). Un bien con ventana de cosecha tiene, por facción, la magnitud `bien.<id>.cosecha`: su base es 1 (la escribe la producción) y su valor efectivo f es el factor del año. Al empezar cada año (cadencia anual) el sistema `cosecha` sortea, por facción activa en orden de id, \(u \sim U[0,1)\) con `rng σ "cosecha" t` (t, el primer día del año) y pone el modificador de porcentaje \(f - 1\), con \(f = f_{\min} + (f_{\max} - f_{\min})\,u\), fuente `azar/cosecha`, detalle `sorteo = u` y fin el año siguiente. La producción multiplica lo que entra en el periodo por f (`cosechaEn`; 1 si nada lo escribió, así que un guardado anterior carga igual):
+
+```math
+Q''_t = Q'_t \cdot f
+```
+
+**Consumir bienes y gastar valor** (`Reglas.Propios`, T17). `consumir_bien` (facción, bien, cantidad) resta la cantidad de `bien.<id>.existencias` y emite `bien_consumido`; se rechaza si la cantidad no es positiva, la facción no está activa, el bien no existe o las existencias no alcanzan. `gastar_valor` (facción, valor) resta del tesoro \(\text{enCuenta}(v)\), el valor pasado a la cuenta de la facción al tipo del día, y emite `valor_gastado`; se rechaza si el tesoro no alcanza. Las existencias tienen así dos escritores declarados (la producción y `consumir_bien`).
+
 **Producción: tierra y brazos, el factor escaso manda.** Cada celda c tiene un rendimiento y(c) cuando se trabaja completa y necesita ℓ(c) trabajadores para ello; las dos son magnitudes, así que el terreno, las terrazas, la erosión y la estación las mueven. Los trabajadores van primero a las mejores celdas: se ordenan las celdas asignadas K(a) por κ(c)·y(c)/ℓ(c) descendente, con empates por id, y se llenan en ese orden.
 
 ```math
@@ -1568,6 +1576,8 @@ Las reglas del diseño, escritas como propiedades. En un lenguaje puro, "la mism
 | Merma de lo nominal | Con una moneda de merma μ, lo nominal tras k periodos sin flujos es n · (1 − μ)^k (con el mismo redondeo); con μ = 0 la partida es idéntica a la de antes de la merma |
 | Existencias acotadas | Con producción constante Q y merma μ > 0, las existencias se acercan a Q / μ y nunca la superan si empiezan por debajo |
 | Cosecha conservada | Con ventana de cosecha, lo producido en un año es lo de la producción pareja, salvo una diezmilésima de redondeo; sin ventana, la producción no cambia |
+| Cosecha con azar | Lo producido en un año es lo de la producción pareja por el factor del año, salvo el redondeo; el factor está entre \(f_{\min}\) y \(f_{\max}\), es el mismo con la misma semilla y su desglose nombra el azar |
+| Consumo exacto | `consumir_bien` resta exactamente lo pedido; con menos existencias, o `gastar_valor` con menos tesoro, se rechaza sin cambiar el estado |
 | Nombramiento sin trinquete | Mientras dura un cargo, su aporte al poder del grupo es constante; al terminar el cargo, es 0 y sus modificadores emiten `modificador_terminado` (sección 14d) |
 | Facciones con rastro | Toda aparición emite `faccion_aparece` y toda desaparición `faccion_desaparece`; lo que tenía la facción llega a un destino declarado o se pierde por declaración; los ids no se reutilizan (sección 14b) |
 | Insumos en especie | Un insumo nunca se paga con valor; sin insumo ni sustituto, la actividad se rechaza sin cambiar el estado; la penalización es proporcional a la fracción que falta (sección 14h) |

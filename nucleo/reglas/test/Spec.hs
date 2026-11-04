@@ -41,7 +41,7 @@ import Reglas.Produccion
 import Reglas.Sistemas (hacienda)
 import Reglas.Fusion (fusionarPops, clavePop)
 import Motor.Terrenos (DefTerreno (..), cargarTerrenos, conCostoDeTerreno)
-import Motor.Moneda (Bien (..), Economia (..), ParamsMoneda (..), cargarEconomia, economiaVacia, aValor, precioEn, mermaEn,
+import Motor.Moneda (Bien (..), Economia (..), ParamsMoneda (..), cargarEconomia, economiaVacia, aValor, enCuenta, precioEn, mermaEn,
                      magExistencias, magProduccion, magInflacion, magNivelPrecios, magPrecioMoneda, magMerma)
 import Motor.Calendario (diaDelAnioVisible, esInicioDePeriodo)
 import Motor.Azar (Rng (..))
@@ -941,6 +941,7 @@ main = do
   pruebasMoneda terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo) dorMoneda
 
   pruebasCosecha terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
+  pruebasMalaCosecha terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
 
   describe "reglas: tablas de casos del hito 0a (prototipo HTML)" $ do
     tablas <- runIO (fmap (>>= parseEither parseTablas)
@@ -1467,8 +1468,10 @@ pruebasCosecha terrenos eco eds = describe "reglas: cosecha por estación y troj
       drCon vs = Reglas.Juego.datosVacios { Reglas.Juego.drTerrenos = terrenos, Reglas.Juego.drEdificios = eds
                                           , Reglas.Juego.drEconomia = eco, Reglas.Juego.drCosechas = vs }
       jCon vs = Reglas.Juego.juegoDatos constantesDefault (drCon vs)
-      j    = jCon ventanas
-      jPar = jCon Map.empty
+      -- La ley de T16 es sobre la estación sola: sin el azar del año (T17).
+      sinAzar jj = jj { juegoSistemas = filter ((/= NombreSistema "cosecha") . sisNombre) (juegoSistemas jj) }
+      j    = sinAzar (jCon ventanas)
+      jPar = sinAzar (jCon Map.empty)
       conDerivado jj e = e { estadoDerivado = derivar jj (entGrafo ent) (estadoTick e) (estadoPersistente e) }
       e0   = conDerivado j (conConocimientos eds estadoInicial1475)
       correr jj desde hasta e = foldl' (\st t -> fst (paso jj ent (Semilla 1) (Tick t) [] st)) e [desde .. hasta]
@@ -1547,6 +1550,127 @@ pruebasCosecha terrenos eco eds = describe "reglas: cosecha por estación y troj
     alm (seguir cargado) `shouldBe` alm (seguir mitad)
 
   it "los sistemas con cosechas, bienes y troje pasan validarOrdenSistemas salvo las dos lecturas del precio" $
+    length (validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j)) `shouldBe` 2 * Set.size (lecturasMoneda eco)
+
+-- ---------------------------------------------------------------------------
+-- Mala cosecha y abrir las trojes (T17)
+-- ---------------------------------------------------------------------------
+
+-- | T17: el azar anual de la cosecha, el consumo de bienes y el gasto en valor.
+pruebasMalaCosecha :: Map.Map Terreno DefTerreno -> Economia -> Edificios -> Spec
+pruebasMalaCosecha terrenos eco eds = describe "reglas: mala cosecha y abrir las trojes (T17)" $ do
+  ventanas <- runIO $ do
+    v <- A.eitherDecodeFileStrict "../../datos/terrenos.json"
+    case v of
+      Left e -> fail e
+      Right jv -> case cargarCosechas "datos/terrenos.json" (bienesDe terrenos) jv of
+        Validacion [] (Just cs) -> pure cs
+        Validacion errs _ -> fail (show (map errMensaje errs))
+  let mapa = conCostoDeTerreno terrenos (either (error . show) id (proveedorHexagonal datosMapa1475))
+      ent  = (entornoSimple mapa) { entEconomia = eco }
+      dr   = Reglas.Juego.datosVacios { Reglas.Juego.drTerrenos = terrenos, Reglas.Juego.drEdificios = eds
+                                      , Reglas.Juego.drEconomia = eco, Reglas.Juego.drCosechas = ventanas }
+      j    = Reglas.Juego.juegoDatos constantesDefault dr
+      sinAzar = j { juegoSistemas = filter ((/= NombreSistema "cosecha") . sisNombre) (juegoSistemas j) }
+      conDerivado jj e = e { estadoDerivado = derivar jj (entGrafo ent) (estadoTick e) (estadoPersistente e) }
+      e0   = conDerivado j (conConocimientos eds estadoInicial1475)
+      correr jj sigma desde hasta e = foldl' (\st t -> fst (paso jj ent (Semilla sigma) (Tick t) [] st)) e [desde .. hasta]
+      alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
+      mods st = maybe [] almacenMods (Map.lookup (entFac f1, magCosecha "maiz") (alm st))
+      existencias st = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, magExistencias "maiz") (alm st))
+      tesoro st = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, Magnitud "tesoro") (alm st))
+      vig st = derivadoVigentes (estadoDerivado st)
+      factor st = cosechaEn (vig st) (estadoTick st) (alm st) (entFac f1) "maiz"
+      motivo r = either Just (const Nothing) r
+      efecto n args st = case Map.lookup n (juegoEfectos j) of
+        Nothing -> Left "no existe el efecto"
+        Just ef -> epAplicar ef args st
+      -- Un día de después de la cosecha del primer año (la ventana acaba el 30 de noviembre).
+      despues = correr j 1 0 400 e0
+
+  it "el azar del año: la misma semilla da el mismo factor; otra semilla, otro" $ do
+    let f s = factor (correr j s 0 20 e0)
+    f 1 `shouldBe` f 1
+    f 1 `shouldSatisfy` (/= f 2)
+
+  it "el factor está entre el mínimo y el máximo, y el promedio de muchas semillas es cercano a 1" $ do
+    let fs = [ factor (correr j s 0 0 e0) | s <- [1 .. 200] ]
+    all (\x -> x >= cCosechaMinima constantesDefault && x <= cCosechaMaxima constantesDefault) fs `shouldBe` True
+    let Fijo m = foldl' (.+.) (Fijo 0) fs ./. fi 200
+    abs (m - 10000) `shouldSatisfy` (< 700)
+
+  it "el desglose lo dice: la base es 1 y el azar es un modificador con su fuente y su sorteo" $ do
+    let e = correr j 1 0 20 e0
+    map modFuente (mods e) `shouldBe` [Fuente "azar" "cosecha"]
+    [ s | m <- mods e, (n, s) <- modDetalle m, n == "sorteo" ] `shouldSatisfy` (\ss -> length ss == 1)
+    fmap almacenBase (Map.lookup (entFac f1, magCosecha "maiz") (alm e)) `shouldBe` Just (fi 1)
+
+  it "el año siguiente sortea de nuevo y el modificador viejo se va" $ do
+    let e = correr j 1 0 400 e0
+    length (mods e) `shouldBe` 1
+    [ modInicio m | m <- mods e ] `shouldSatisfy` (/= [Just (Tick 0)])
+
+  it "ley: lo cosechado en el año es la cosecha normal por el factor del año" $ do
+    let cal = comunCalendario (persistenteComun (estadoPersistente estadoInicial1475))
+        -- Lo producido de maíz, sumado en cada inicio de periodo del primer año.
+        anio jj = foldl' (.+.) (Fijo 0)
+                    [ maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, magProduccion "maiz") (alm st))
+                    | (st, t) <- zip (scanl (\st' t' -> fst (paso jj ent (Semilla 1) (Tick t') [] st')) e0 [0 .. 364]) [1 :: Int ..]
+                    , esInicioDePeriodo cal (Tick (fromIntegral t - 1)) ]
+        Fijo normal = anio sinAzar
+        Fijo obtenido = anio j
+        Fijo esperado = Fijo normal .*. factor (correr j 1 0 0 e0)
+    normal `shouldSatisfy` (> 0)
+    abs (obtenido - esperado) `shouldSatisfy` (< 40)
+
+  it "consumir_bien resta exactamente lo pedido y deja el hecho; con menos de lo pedido se rechaza sin daño" $ do
+    existencias despues `shouldSatisfy` (> Fijo 0)
+    let q = existencias despues .*. Fijo 4000
+        args n = A.object ["faccion" A..= (1 :: Int), "bien" A..= ("maiz" :: Text), "cantidad" A..= n]
+    case efecto "consumir_bien" (args q) despues of
+      Left m -> expectationFailure (T.unpack m)
+      Right (e', hs) -> do
+        existencias e' `shouldBe` existencias despues .-. q
+        map hechoTipo hs `shouldBe` ["bien_consumido"]
+    let demasiado = args (existencias despues .+. Fijo 1)
+    motivo (efecto "consumir_bien" demasiado despues) `shouldSatisfy` maybe False (T.isInfixOf "no alcanzan")
+    motivo (efecto "consumir_bien" (args (Fijo 0)) despues) `shouldSatisfy` maybe False (T.isInfixOf "positiva")
+    motivo (efecto "consumir_bien" (A.object ["faccion" A..= (1 :: Int), "bien" A..= ("oro" :: Text), "cantidad" A..= q]) despues) `shouldSatisfy` maybe False (T.isInfixOf "no existe el bien")
+
+  it "gastar_valor resta el costo pasado a la cuenta de la facción al tipo del día; sin tesoro se rechaza" $ do
+    let v = Fijo 1000000
+        args n = A.object ["faccion" A..= (1 :: Int), "valor" A..= n]
+        costo = enCuenta eco (estadoTick despues) despues (entFac f1) v
+    case efecto "gastar_valor" (args v) despues of
+      Left m -> expectationFailure (T.unpack m)
+      Right (e', _) -> tesoro e' `shouldBe` tesoro despues .-. costo
+    motivo (efecto "gastar_valor" (args (tesoro despues .*. fi 1000)) despues) `shouldSatisfy` maybe False (T.isInfixOf "no alcanza el tesoro")
+
+  it "la condición de «Mala cosecha» del guion se cumple en la ventana de un año malo y solo en ella" $ do
+    guion <- either fail pure =<< A.eitherDecodeFileStrict "../../datos/guion_1475.json"
+    let le = lenguajeDe j
+        Validacion errs mg = cargarGuion (vocabularioDe le) "datos/guion_1475.json" inicio1475 guion
+        Just g = mg
+        cond = siCondicion (head [ x | x <- guSituaciones g, siId x == "mala_cosecha" ])
+        cumple st = evaluarEn le st cond
+        cosechando st = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, magProduccion "maiz") (alm st)) > Fijo 0
+        -- Si la condición se cumple en cada día de la primera cosecha en que la
+        -- producción de la veintena es positiva.
+        dias sigma = [ cumple st | st <- scanl (\st' t -> fst (paso j ent (Semilla sigma) (Tick t) [] st')) e0 [0 .. 400], cosechando st ]
+        malo sigma = factor (correr j sigma 0 0 e0) < Fijo 7500
+    errs `shouldBe` []
+    forM_ [1 .. 12] $ \sigma -> do
+      let ds = dias sigma
+      ds `shouldSatisfy` (not . null)
+      ds `shouldBe` map (const (malo sigma)) ds
+    map malo [1 .. 12] `shouldSatisfy` (\bs -> or bs && not (and bs))
+
+  it "guardar a mitad del año y cargar: la partida sigue igual" $ do
+    let mitad = correr j 1 0 120 e0
+        cargado = either (error . show) id (cargar j mapa (guardar mitad))
+    alm (correr j 1 121 400 cargado) `shouldBe` alm (correr j 1 121 400 mitad)
+
+  it "los sistemas con el azar de la cosecha pasan validarOrdenSistemas salvo las dos lecturas del precio" $
     length (validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j)) `shouldBe` 2 * Set.size (lecturasMoneda eco)
 
 -- ---------------------------------------------------------------------------

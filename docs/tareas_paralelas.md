@@ -44,7 +44,7 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 | Ronda | Tarea | Área (archivos principales) | Depende de | Hito |
 | --- | --- | --- | --- | --- |
 | 5 | T16 Cosecha por estación y merma con troje (hecha en `claude/cosecha-estacion`) | `motor`: `Moneda`; `reglas`: `Produccion`, `Constantes`; `datos/terrenos.json`, `datos/edificios.json` | merma | 3 |
-| 5 | T17 Mala cosecha y abrir las trojes | `reglas`: `Produccion`, efectos propios; `datos/guion_1475.json` | T16, T5, T14 | 3 / 10 |
+| 5 | T17 Mala cosecha y abrir las trojes (hecha en `claude/mala-cosecha`) | `reglas`: `Produccion`, efectos propios; `datos/guion_1475.json` | T16, T5, T14 | 3 / 10 |
 
 **Ronda 6: coerción, diplomacia e IA sencilla** (hito 7 de V5). Todas esperan a T13 y T14: sin varias facciones con altépetl y sin los efectos de transferir un altépetl y absorber una facción, la guerra no tiene sobre qué correr. Se adelanta al hito 6 (demografía) porque es lo que da decisiones al jugador sin eventos escritos; si se confirma el cambio de orden, se anota en la tabla de *Hitos* de V5. T18 y T21 pueden correr en paralelo; T19 espera a T18; T20 y T22 a T19 y T21; T23 cierra el hito.
 
