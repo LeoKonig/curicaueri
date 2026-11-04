@@ -575,7 +575,19 @@ que no crece y llega a 0 a más tardar en t_cambio + d. La magnitud vuelve a su 
 \text{eleg}(t) = \{\, s \mid (F_s = \varnothing \vee f_{\varphi(t)} \in F_s) \wedge c_s(S_t) \wedge t - \text{último}(s) \ge e_s \,\}
 ```
 
-**Escritores.** Los efectos `sumar_mag` y `fijar_mag` de una opción escriben la base de la magnitud que nombran (el tesoro, la legitimidad, el agravio de un pop, la producción de un altépetl, el poder o la lealtad de un grupo…). Se aplican al resolverse la decisión (en el paso de respuestas, o en el del director si vence el plazo), así que el guion es un escritor declarado de cada magnitud que toca, además de su sistema: el sistema lee la base que dejó la decisión. Un efecto que debiera durar un tiempo y luego desaparecer necesita el modificador temporal con fuente (hito 4, `tareas_paralelas.md`, T14); mientras no exista, los efectos del guion son permanentes.
+**Escritores.** Los efectos `sumar_mag` y `fijar_mag` de una opción escriben la base de la magnitud que nombran (el tesoro, la legitimidad, el agravio de un pop, la producción de un altépetl, el poder o la lealtad de un grupo…). Se aplican al resolverse la decisión (en el paso de respuestas, o en el del director si vence el plazo), así que el guion es un escritor declarado de cada magnitud que toca, además de su sistema: el sistema lee la base que dejó la decisión. Lo que debe durar un tiempo y luego desaparecer va como `modificador` (valor o porcentaje durante d días), con fuente `situacion` y referencia `<situación>.<opción>`; expira en el paso de vencimiento como cualquier otro, con su hecho `modificador_terminado`, y no escribe la base.
+
+**Condiciones nuevas.** El lenguaje cerrado gana dos formas:
+
+- `ocurrio(h, d)`: un hecho de tipo h entró en la crónica, alguna vez (sin d) o en los últimos d días. Lee un índice O = tipo ↦ último día, que `pasoCronica` mantiene al añadir entradas y que la carga rehace desde la crónica (no se guarda). Ley: O = índice(crónica) en todo estado, también después de guardar y cargar. Evaluarla cuesta O(log |tipos|), no O(|crónica|). Al cargar, h tiene que estar en la tabla `cronica` del guion: un hecho que no está en ella nunca entra en la crónica.
+
+```math
+\text{ocurrio}(h, d)(S_t) \iff h \in \text{dom}(O) \wedge (d = \bot \vee t - O(h) \le d)
+```
+
+- Una condición propia del juego, por nombre (`soberano`, `faccion_activa`, `personaje_vivo`). El motor no sabe qué leen: las evalúa el juego sobre el estado persistente, para que sirvan también en los modificadores condicionales (sección 4, derivado reproducible).
+
+**Condiciones y efectos propios.** La sección 1 dibujaba `efectosPropios :: Map NombreEfecto (EfectoJSON -> Either ErrorCarga (Efecto s))`, compilados a funciones al cargar. Así el guion dependería del tipo del estado del juego, y el guion vive en el `Entorno`, que no lo tiene, y se carga antes que el juego. Se defuncionaliza, como la continuación de una decisión: el juego registra, por nombre, un validador y una función (`Motor.Propios`); el guion guarda el nombre y el objeto ya validado; el intérprete llama a la función del juego. Un efecto propio que se rechaza (el altépetl ya es de esa facción, la facción no está activa) hace fallar la opción entera: la respuesta vuelve con el motivo y el estado no cambia (rechazo sin daño), aunque otros efectos de la opción vinieran antes. Si el rechazo es de la opción por omisión al vencer el plazo, la decisión queda pendiente sin plazo: la primera opción de una situación no debería poder fallar.
 
 **Director.** Sea Δ = t − t_último los días desde la última situación, con D el espaciado. La probabilidad diaria de presentar una es
 
