@@ -74,6 +74,7 @@ estadoInicial1475 =
         , comunDirector   = directorInicial
         , comunMonedas    = Map.empty
         , comunFin        = Nothing
+        , comunOcurridos  = Map.empty
         }
       per  = Persistente com p
   in Estado (Tick 0) per (Origen (Tick 0) per) (Derivado IntSet.empty derivadoPurepechaVacio)

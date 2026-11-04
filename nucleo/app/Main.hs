@@ -74,6 +74,7 @@ import qualified Data.Map.Strict as Map
 import Data.Foldable (toList)
 import Data.Maybe (fromMaybe, isJust)
 import Motor.Guion
+import Motor.Propios (vocabularioDe)
 import Motor.Moneda (Bien (..), Economia (..), cargarEconomia, economiaVacia)
 import Motor.Cronica (terminada)
 import Motor.Director (metricas, cumpleVariedad, Metricas (..))
@@ -232,7 +233,7 @@ main = do
       bs <- BL.readFile ruta
       case A.eitherDecode bs of
         Left err -> fail ("guion ilegible (" <> ruta <> "): " <> err)
-        Right v -> case cargarGuion (T.pack ruta) inicio1475 v of
+        Right v -> case cargarGuion (vocabularioDe (lenguajeDe juego)) (T.pack ruta) inicio1475 v of
           Validacion [] (Just g) -> do
             registro ("guion " <> T.pack ruta <> ": " <> T.pack (show (length (guFases g))) <> " fases, "
                       <> T.pack (show (length (guSituaciones g))) <> " situaciones")

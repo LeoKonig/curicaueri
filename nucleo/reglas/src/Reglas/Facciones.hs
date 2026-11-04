@@ -24,7 +24,10 @@
 module Reglas.Facciones
   ( facciones
   , activarFaccion
+  , activarFaccionPor
   , eliminarFaccion
+  , eliminarFaccionPor
+  , pasarAltepetl
   , agenteNulo
   , conAgentesNulos
   ) where
@@ -75,10 +78,15 @@ facciones gs ec = Sistema
       in (est2, hs2)
   }
 
--- | Activa una facción potencial. Si no tiene tesoro en el almacén, empieza
--- en cero (el escenario puede declararle el suyo).
+-- | Activa una facción potencial porque llegó su fecha.
 activarFaccion :: Tick -> Faccion -> Estado Purepecha -> (Estado Purepecha, [Hecho])
-activarFaccion t f est =
+activarFaccion = activarFaccionPor "fecha"
+
+-- | Activa una facción potencial, con la razón que dice el hecho («fecha»,
+-- o «evento» si la activó un efecto del guion). Si no tiene tesoro en el
+-- almacén, empieza en cero (el escenario puede declararle el suyo).
+activarFaccionPor :: Text -> Tick -> Faccion -> Estado Purepecha -> (Estado Purepecha, [Hecho])
+activarFaccionPor razon t f est =
   let per = estadoPersistente est
       p   = persistenteJuego per
       com = persistenteComun per
@@ -87,16 +95,24 @@ activarFaccion t f est =
             else Map.insert clave (AlmacenMag (Fijo 0) []) (comunMagnitudes com)
       p'  = p { ppFacciones = Map.insert (facId f) f { facEstado = Activa } (ppFacciones p) }
   in ( est { estadoPersistente = per { persistenteJuego = p', persistenteComun = com { comunMagnitudes = alm } } }
-     , [Hecho "faccion_aparece" t [entFac (facId f)] (Map.fromList [("razon", "fecha"), ("tipo", facTipo f)])] )
+     , [Hecho "faccion_aparece" t [entFac (facId f)] (Map.fromList [("razon", razon), ("tipo", facTipo f)])] )
 
 -- | Elimina una facción activa y transfiere lo que tenía. Devuelve el hecho
 -- @faccion_desaparece@ con lo transferido y lo perdido, y los
 -- @modificador_terminado@ de los nombramientos que cambian de manos.
 eliminarFaccion :: Grupos -> Economia -> Tick -> FaccionId -> Estado Purepecha -> (Estado Purepecha, [Hecho])
-eliminarFaccion gs ec t fid est0 = case Map.lookup fid (ppFacciones (juegoDe est0)) of
+eliminarFaccion gs ec = eliminarFaccionPor gs ec "fecha" Nothing
+
+-- | Elimina una facción activa con la razón que dice el hecho. Con un
+-- absorbente, todo lo que tenía pasa a él, sea cual sea su 'Transferencia'
+-- declarada (un evento que dice «Tzintzuntzan absorbe a Pátzcuaro»); sin él,
+-- vale la declarada.
+eliminarFaccionPor :: Grupos -> Economia -> Text -> Maybe FaccionId -> Tick -> FaccionId -> Estado Purepecha
+                   -> (Estado Purepecha, [Hecho])
+eliminarFaccionPor gs ec razon absorbente t fid est0 = case Map.lookup fid (ppFacciones (juegoDe est0)) of
   Nothing -> (est0, [])
   Just f ->
-    let tr = facTransferencia f
+    let tr = maybe (facTransferencia f) (\a -> Transferencia (AlAbsorbente a) (AlAbsorbente a) (AlAbsorbente a)) absorbente
         activaDestino = \d -> case d of
           AlAbsorbente a | a /= fid, Just fa <- Map.lookup a (ppFacciones (juegoDe est0)), facEstado fa == Activa -> Just a
           _ -> Nothing
@@ -124,7 +140,7 @@ eliminarFaccion gs ec t fid est0 = case Map.lookup fid (ppFacciones (juegoDe est
         estF = conJuego (\p -> p { ppFacciones = Map.adjust (\x -> x { facEstado = Eliminada }) fid (ppFacciones p) }) estA
         pierdeTes = case dTesoro of { Nothing -> tesoro; Just _ -> Fijo 0 }
         hecho = Hecho "faccion_desaparece" t [entFac fid] $ Map.fromList $
-          [ ("razon", "fecha"), ("tipo", facTipo f)
+          [ ("razon", razon), ("tipo", facTipo f)
           , ("tesoro_transferido", mostrar (case dTesoro of { Just _ -> tesoro; Nothing -> Fijo 0 }))
           , ("tesoro_perdido", mostrar pierdeTes)
           , ("altepetl_transferidos", num (case dAlt of { Just _ -> length suyosA; Nothing -> 0 }))
