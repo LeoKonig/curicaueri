@@ -37,6 +37,9 @@ module Motor.Moneda
     -- * Magnitudes
   , magExistencias
   , magProduccion
+  , magMerma
+  , rangoMerma
+  , mermaEn
   , magPrecioMoneda
   , magNivelPrecios
   , magInflacion
@@ -103,9 +106,23 @@ economiaVacia = Economia Map.empty paramsMonedaPorOmision
 -- Magnitudes
 -- ---------------------------------------------------------------------------
 
-magExistencias, magProduccion :: Text -> Magnitud
+magExistencias, magProduccion, magMerma :: Text -> Magnitud
 magExistencias b = Magnitud ("bien." <> b <> ".existencias")
 magProduccion b = Magnitud ("bien." <> b <> ".produccion")
+-- | La merma efectiva del bien para la entidad, si el juego la lleva como
+-- magnitud (para que una troje pueda bajarla con un modificador).
+magMerma b = Magnitud ("bien." <> b <> ".merma")
+
+-- | De 0 a menos de 1: nunca se pierde todo en un periodo.
+rangoMerma :: RangoMag
+rangoMerma = RangoMag (Fijo 0) (Fijo 9999)
+
+-- | La merma del bien para la entidad: el valor efectivo de
+-- @bien.<id>.merma@ si la entidad la tiene (base y modificadores), o la del
+-- catálogo ('bnMerma') si no. La usan el paso monetario, para lo nominal, y
+-- el juego, para las existencias: así las dos mermas son siempre la misma.
+mermaEn :: IntSet -> Tick -> Almacen -> EntRef -> Bien -> Fijo
+mermaEn vig t alm ent b = maybe (bnMerma b) (valorEn vig t rangoMerma) (Map.lookup (ent, magMerma (bnId b)) alm)
 
 -- | Las tres que escribe este módulo, y solo este módulo.
 magPrecioMoneda, magNivelPrecios, magInflacion :: Magnitud
@@ -239,7 +256,7 @@ pasoMoneda ec t e
             em' = em { emHistorial = take (n + 1) ((t, p) : emHistorial em) }
             alm1 = escribirPrecio ent p alm
             alm2 = maybe alm1 (\i -> fijarBase ent magInflacion i alm1) (inflacionDe cal em')
-            alm3 = mermarNominales (ecoParams ec) ent (bnMerma b) alm2
+            alm3 = mermarNominales (ecoParams ec) ent (mermaEn (derivadoVigentes (estadoDerivado e)) t alm ent b) alm2
         in (Map.insert ent em' ms, alm3)
 
 -- | Lo nominal de la entidad pierde la fracción @m@: n · (1 − m). Con

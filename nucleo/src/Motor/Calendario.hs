@@ -27,6 +27,8 @@ module Motor.Calendario
   , desdeDiaJulianoGregoriano
   , fechaDelTick
   , fechaVisible
+  , diaDelAnioVisible
+  , diaDelAnioDe
   ) where
 
 import Data.Aeson (FromJSON (..), ToJSON (..), object, withObject, (.:), (.=))
@@ -152,6 +154,24 @@ desdeDiaJulianoGregoriano jd =
 -- | Fecha juliana de un tick, dada la fecha juliana del tick 0.
 fechaDelTick :: Fecha -> Tick -> Fecha
 fechaDelTick inicio (Tick t) = desdeDiaJuliano (diaJuliano inicio + fromIntegral t)
+
+-- | El día del año (1 a 365) de un mes y un día, en un año de 365 días: el
+-- 29 de febrero cuenta como el 28. Es la escala de las estaciones (V5,
+-- *Temporada de guerra y guerra ritual*): no depende del calendario interno,
+-- que se desfasa, ni de si el año visible es bisiesto. Nothing si la fecha no
+-- existe.
+diaDelAnioDe :: Int -> Int -> Maybe Int
+diaDelAnioDe m d
+  | m < 1 || m > 12 || d < 1 || d > diasMes m + (if m == 2 then 1 else 0) = Nothing
+  | otherwise = Just (sum (map diasMes [1 .. m - 1]) + min d (diasMes m))
+  where diasMes k = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31] !! (k - 1)
+
+-- | El día del año de la fecha visible de un tick (1 a 365, ver
+-- 'diaDelAnioDe'): de él salen las estaciones.
+diaDelAnioVisible :: CalendarioVisible -> Fecha -> Tick -> Int
+diaDelAnioVisible cal inicio t =
+  let (f, _) = fechaVisible cal inicio t
+  in maybe 1 id (diaDelAnioDe (fMes f) (fDia f))
 
 -- | La fecha visible de un tick y el nombre de su calendario. La fecha de
 -- inicio se da en el calendario que rige ese día.
