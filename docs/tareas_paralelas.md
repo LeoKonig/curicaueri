@@ -27,7 +27,7 @@ Prompts listos para pegar en distintas IA (Claude Code, otros asistentes con acc
 
 T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan, el segundo se rebasa sobre `main`.
 
-**Estado al 1 de noviembre de 2026.** Hechas: T1, T3, T4, T8 y T9. T2 (núcleo: PR #34) y T7 (cliente: PR #35) están en revisión; el contenido del cierre de 1607 está en `datos/cierre_1607.json`. T10 (moneda en el juego real) está en revisión en `claude/moneda-reglas`. Pendientes del hito 3: T11, y camino, terrazas, roturación y mercado parcial (sin prompt todavía). T5 queda como el guion del **tutorial** 1475–1530. T6 se reemplaza por el inventario de 1418 (abajo).
+**Estado al 1 de noviembre de 2026.** Hechas: T1, T3, T4, T8 y T9. T2 (núcleo: PR #34) y T7 (cliente: PR #35) están en revisión; el contenido del cierre de 1607 está en `datos/cierre_1607.json`. T10 (moneda en el juego real) está en revisión en `claude/moneda-reglas`, y la merma de los bienes encima, en `claude/merma-bienes`. Pendientes del hito 3: T11, y camino, terrazas, roturación y mercado parcial (sin prompt todavía). T5 queda como el guion del **tutorial** 1475–1530. T6 se reemplaza por el inventario de 1418 (abajo).
 
 **Ronda 4: la campaña 1418–1607** (V5, *Alcance* y la tabla nueva de *Hitos*). T12, T14, T15 y T6 tocan áreas distintas y pueden correr en paralelo; T13 espera a T12.
 
@@ -38,6 +38,13 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 | 4 | T14 Condiciones y efectos nuevos | `motor`: `Magnitudes`, `Guion`, `Efectos` | — | 4 |
 | 4 | T15 Herramienta de mapa | `herramientas/mapa/` (Python) | — | 5 |
 | 4 | T6 Inventario histórico de 1418 | `docs/fuentes/` (sin código) | — | 10 |
+
+**Ronda 5: la economía de la escasez** (después de T10 y de la merma de los bienes, rama `claude/merma-bienes`). La merma acota las existencias; lo que sigue es que la escasez tenga estación y que la troje sirva para algo. T16 no depende de la ronda 4; T17 espera a T16, a T5 y a T14.
+
+| Ronda | Tarea | Área (archivos principales) | Depende de | Hito |
+| --- | --- | --- | --- | --- |
+| 5 | T16 Cosecha por estación y merma con troje | `motor`: `Moneda`; `reglas`: `Produccion`, `Constantes`; `datos/terrenos.json`, `datos/edificios.json` | merma | 3 |
+| 5 | T17 Mala cosecha y abrir las trojes | `reglas`: `Produccion`, efectos propios; `datos/guion_1475.json` | T16, T5, T14 | 3 / 10 |
 
 ---
 
@@ -443,4 +450,70 @@ repositorio; el mapa entero se genera.
 
 Criterio: el núcleo carga el mapa de prueba con validarMapa sin errores, y la misma celda
 tiene el mismo id en el mapa de prueba y en el entero. Rama: claude/herramienta-mapa.
+```
+
+## T16. Cosecha por estación y merma con troje (motor y reglas, después de la merma)
+
+```
+Tarea: que el maíz se coseche en su estación y no parejo todo el año, y que la troje baje
+la merma del maíz guardado. Con la merma ya hecha, esto da la escasez antes de la cosecha:
+el precio del maíz sube cuando el almacén se vacía y cae cuando entra la cosecha.
+
+Lee: V5 *Temporada de guerra y guerra ritual* (la estación sale del día del año SOLAR de la
+fecha visible, no de la veintena: el año interno de 365 días se desfasa), *La moneda
+designada y la inflación* (la merma), *La tierra y la gente* y *Las obras* (la troje);
+documento funcional, secciones 12 y 14g y la tabla de leyes de la sección 19.
+
+Haz:
+1. La estación como derivado de la fecha visible, con las dos ventanas de V5 en
+   constantes (INICIO_TEMPORADA_AGRICOLA, INICIO_TEMPORADA_GUERRA), marcadas como
+   provisionales. Es la primera pieza que la usa; la guerra la leerá después.
+2. En datos/terrenos.json, un campo opcional por bien del rendimiento con la ventana de
+   cosecha en días del año solar. Por omisión, todo el año (lo de hoy no cambia). La
+   producción de la ventana reparte el rendimiento anual entre las veintenas que caen en
+   ella: lo cosechado en un año es lo mismo que hoy.
+3. La merma pasa de dato fijo a magnitud de la facción, `bien.<id>.merma`: su base es la
+   del archivo de bienes (la escribe la producción) y la troje le aporta un porcentaje
+   negativo con su fórmula de rendimiento decreciente, con fuente, para que el desglose
+   la explique. El motor lee la merma efectiva si la magnitud existe y bnMerma si no
+   (pasoMoneda la usa para el tesoro): una función en Motor.Moneda, sin importar reglas.
+4. Decide y documenta qué cuenta como «producción» en el precio (disponible =
+   existencias + producción · horizonte): con cosecha por estación, la producción fuera
+   de la ventana es 0. Mide en una partida de 10 años cuánto oscila el precio del maíz
+   con cada opción y elige la que dé una subida antes de la cosecha sin dispararse.
+
+Pruebas: ley de conservación anual (la cosecha por estación suma lo mismo en el año que
+la producción pareja); sin ventana, la partida es idéntica; el precio del maíz es más alto
+la veintena antes de la cosecha que la siguiente; una troje baja la merma efectiva y el
+desglose nombra la troje; guardar a mitad de la estación y cargar sigue igual. Mide con
+--escala 7500x20. Rama: claude/cosecha-estacion. Las fechas de la cosecha en Michoacán
+llevan «por verificar».
+```
+
+## T17. Mala cosecha y abrir las trojes (después de T16, T5 y T14)
+
+```
+Tarea: la decisión recurrente «Mala cosecha» de V5 sobre el juego real, y el primer
+consumo de bienes: abrir las trojes resta maíz de las existencias.
+
+Lee: V5 *Decisiones recurrentes* (Mala cosecha: abrir las trojes, comprar a un vecino o
+no hacer nada) y *Actos modulares*; documento funcional, secciones 11, 11b y 12;
+el guion del tutorial de T5.
+
+Haz:
+1. La cosecha de cada año lleva un factor del azar determinista, rng σ "cosecha" año,
+   por facción, con su rango en constantes (provisional). Un año malo baja la cosecha y
+   el desglose lo dice.
+2. Un efecto propio del juego (efectosPropios, T14) que consume un bien de las
+   existencias de la facción, con rechazo sin daño si no alcanza. Es el primer consumo
+   de bienes: actualiza el pendiente (1) de V5, *La moneda designada y la inflación*.
+3. La situación «Mala cosecha» en datos/guion_1475.json, con su condición sobre
+   bien.maiz.produccion y sus tres opciones: abrir las trojes (consume maíz y baja el
+   agravio), comprar a un vecino (tesoro, al tipo del día con enCuenta) o no hacer nada
+   (agravio). Si una opción necesita algo que no existe (la mortalidad es del hito 6),
+   no lo inventes: anótalo en el PR.
+
+Pruebas: con la misma semilla, los mismos años malos; abrir las trojes baja las
+existencias exactamente lo consumido; con las trojes vacías, la opción se rechaza sin
+daño; el arnés del 0a (T11) cuenta la decisión. Rama: claude/mala-cosecha.
 ```
