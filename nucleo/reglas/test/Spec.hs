@@ -936,6 +936,7 @@ main = do
 
   pruebasFacciones gruposArchivo
   pruebasPropios gruposArchivo
+  pruebasEscenarios
 
   pruebasMoneda terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo) dorMoneda
 
@@ -1645,4 +1646,73 @@ pruebasPropios gruposArchivo = describe "reglas: condiciones y efectos propios d
     case epAplicar ep (A.object ["altepetl" A..= (12 :: Int), "faccion" A..= (3 :: Int)]) base of
       Left m -> m `shouldSatisfy` ("no está activa" `T.isInfixOf`)
       Right (e, _) -> igualSinDecision e base `shouldBe` True
+
+-- ---------------------------------------------------------------------------
+-- Escenarios como datos (T13)
+-- ---------------------------------------------------------------------------
+
+-- | Lee un escenario y sus archivos de facciones desde el disco, como la
+-- cáscara.
+leerEscenarioDe :: FilePath -> IO (Escenario, Validacion (Estado Purepecha))
+leerEscenarioDe ruta = do
+  let leer r = either error id . A.eitherDecode <$> BL.readFile r
+      dir = reverse (dropWhile (/= '/') (reverse ruta))
+  v <- leer ruta
+  case leerEscenario (T.pack ruta) v of
+    Validacion [] (Just esc) -> do
+      fs <- mapM (\f -> (,) (T.pack (dir ++ f)) <$> leer (dir ++ f)) (escFacciones esc)
+      pure (esc, cargarEscenario esc fs)
+    Validacion errs _ -> error (show (map errMensaje errs))
+
+pruebasEscenarios :: Spec
+pruebasEscenarios = describe "reglas: escenarios como datos (T13)" $ do
+  (tut, vTut) <- runIO (leerEscenarioDe "../../escenarios/tutorial_1475.json")
+  (camp, vCamp) <- runIO (leerEscenarioDe "../../escenarios/campana_1418.json")
+  let estado (Validacion [] (Just e)) = e
+      estado (Validacion errs _) = error (show (map errMensaje errs))
+      jue st = persistenteJuego (estadoPersistente st)
+
+  it "escenarios/tutorial_1475.json da exactamente el estado del tutorial escrito en el código" $ do
+    valErrores vTut `shouldBe` []
+    guardar (estado vTut) `shouldBe` guardar estadoInicial1475
+    (escInicio tut, escFin tut, escDesfase tut, escVisible tut, escEjes tut)
+      `shouldBe` (escInicio escenarioTutorial, escFin escenarioTutorial, escDesfase escenarioTutorial, escVisible escenarioTutorial, escEjes escenarioTutorial)
+    let m = escMapa tut; m0 = escMapa escenarioTutorial
+    (hexAncho m, hexAlto m, hexRadioKm m, hexSemilla m) `shouldBe` (hexAncho m0, hexAlto m0, hexRadioKm m0, hexSemilla m0)
+
+  it "la campaña de 1418 carga: decenas de facciones de juguete, una sola jugable, todas con su cabecera" $ do
+    valErrores vCamp `shouldBe` []
+    let fs = Map.elems (ppFacciones (jue (estado vCamp)))
+    length fs `shouldSatisfy` (>= 30)
+    [ facNombre f | f <- fs, facJugable f ] `shouldBe` ["Reino purépecha"]
+    and [ any (\a -> altCondicion a == Cabecera (facId f)) (Map.elems (ppAltepetl (jue (estado vCamp)))) | f <- fs ] `shouldBe` True
+
+  it "la campaña corre a través de una desaparición, y guardar y cargar a mitad sigue igual" $ do
+    let mapa = either (error . show) id (proveedorHexagonal (escMapa camp))
+        ent  = entornoSimple mapa
+        j    = Reglas.Juego.juegoDatosEn (escVisible camp) (escInicio camp) constantesDefault Reglas.Juego.datosVacios
+        conDerivado e = e { estadoDerivado = derivar j (entGrafo ent) (estadoTick e) (estadoPersistente e) }
+        correr desde hasta e = foldl' (\st t -> fst (paso j ent (Semilla 1) (Tick t) [] st)) e [desde .. hasta]
+        e0 = conDerivado (estado vCamp)
+        azca = FaccionId 10
+        tenochtitlan = FaccionId 11
+        -- Azcapotzalco desaparece el 31 de diciembre de 1428 (tick 4017) y
+        -- Tenochtitlan lo absorbe.
+        mitad = correr 0 2000 e0
+        cargado = either (error . show) id (cargar j mapa (guardar mitad))
+        fin st = correr 2001 4100 st
+    facEstado (ppFacciones (jue (fin mitad)) Map.! azca) `shouldBe` Eliminada
+    [ altFaccion a | a <- Map.elems (ppAltepetl (jue (fin mitad))), altNombre a == "Azcapotzalco" ] `shouldBe` [tenochtitlan]
+    guardar (fin cargado) `shouldBe` guardar (fin mitad)
+
+  it "acumula todos los errores de un archivo de facciones" $ do
+    let malo = case A.decode "{\"facciones\": [ {\"id\": 1, \"nombre\": \"A\", \"tipo\": \"senorio\", \"jugable\": true, \"gobernante\": 9, \"personajes\": [{\"id\": 1, \"nombre\": \"p\", \"admin\": 1, \"mando\": 1, \"edad\": 30}], \"altepetl\": [ {\"id\": 1, \"nombre\": \"x\", \"celda\": 9999, \"condicion\": \"cabecera\", \"pops\": [{\"id\": 1, \"identidad\": \"i\", \"estrato\": \"comun\", \"tamano\": 10}]}, {\"id\": 1, \"nombre\": \"y\", \"celda\": 1, \"condicion\": \"sujeto\", \"sujeto_a\": 77, \"pops\": []} ]}, {\"id\": 2, \"nombre\": \"B\", \"tipo\": \"senorio\", \"estado\": \"potencial\", \"hasta\": \"1480-01-01\", \"absorbente\": 3, \"gobernante\": 1, \"altepetl\": [ {\"id\": 2, \"nombre\": \"z\", \"celda\": 2, \"condicion\": \"cabecera\", \"pops\": [{\"id\": 2, \"identidad\": \"i\", \"estrato\": \"comun\", \"tamano\": 10}]} ]} ]}" of
+          Just v -> v
+          Nothing -> error "JSON"
+        errs = valErrores (cargarEscenario escenarioTutorial [("malo.json", malo)])
+    -- Id de altépetl repetido; gobernante 9 que no existe; celda fuera del
+    -- mapa; un sujeto que apunta a un altépetl que no existe; un altépetl
+    -- sin pops; el gobernante de la 2 no es suyo; la potencial sin «desde»;
+    -- su absorbente no existe.
+    length errs `shouldBe` 8
 

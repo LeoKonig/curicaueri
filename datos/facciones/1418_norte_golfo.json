@@ -1,0 +1,182 @@
+{
+  "_provisional": true,
+  "_nota": "Contenido de JUGUETE para la campaña 1418-1607 (V5, Tipos de facción y niveles de detalle; hito 4). Facciones, fechas, tipos, posiciones y cifras son provisionales y por verificar: el inventario con fuentes es T6. Las celdas siguen la geografía a grandes rasgos sobre el mapa provisional de 40 × 30 (oeste a la izquierda, norte arriba).",
+  "facciones": [
+    {
+      "id": 25,
+      "nombre": "Metztitlán",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 15,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 15,
+          "nombre": "Señor de Metztitlán",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 26,
+          "nombre": "Metztitlán",
+          "celda": 422,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 41,
+              "identidad": "otomi",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 40,
+              "identidad": "otomi",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "nombre": "Señoríos huastecos",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 16,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 16,
+          "nombre": "Señor de Tamuín",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 27,
+          "nombre": "Tamuín",
+          "celda": 264,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 43,
+              "identidad": "huasteco",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 42,
+              "identidad": "huasteco",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 28,
+          "nombre": "Tanquián",
+          "celda": 305,
+          "condicion": "sujeto",
+          "sujeto_a": 27,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 44,
+              "identidad": "huasteco",
+              "estrato": "comun",
+              "tamano": 3000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "nombre": "Cempoala",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 17,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 17,
+          "nombre": "Señor de Cempoala",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 29,
+          "nombre": "Cempoala",
+          "celda": 549,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 46,
+              "identidad": "totonaco",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 45,
+              "identidad": "totonaco",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 30,
+          "nombre": "Quiahuiztlan",
+          "celda": 509,
+          "condicion": "sujeto",
+          "sujeto_a": 29,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 47,
+              "identidad": "totonaco",
+              "estrato": "comun",
+              "tamano": 3000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "_provisional": true,
+  "_nota": "La campaña 1418-1607 con contenido de juguete (hito 4). Las fechas de los guiones cuentan desde «inicio». Contenido de JUGUETE para la campaña 1418-1607 (V5, Tipos de facción y niveles de detalle; hito 4). Facciones, fechas, tipos, posiciones y cifras son provisionales y por verificar: el inventario con fuentes es T6. Las celdas siguen la geografía a grandes rasgos sobre el mapa provisional de 40 × 30 (oeste a la izquierda, norte arriba).",
+  "id": "campana_1418",
+  "nombre": "Campaña 1418-1607",
+  "inicio": "1418-01-01",
+  "fin": "1607-12-31",
+  "desfase_calendario": 0,
+  "ultimo_dia_juliano": "1583-10-04",
+  "mapa": {
+    "ancho": 40,
+    "alto": 30,
+    "radio_km": "40",
+    "semilla": 1418
+  },
+  "facciones": [
+    "../datos/facciones/1418_occidente.json",
+    "../datos/facciones/1418_valle_de_mexico.json",
+    "../datos/facciones/1418_puebla_tlaxcala.json",
+    "../datos/facciones/1418_norte_golfo.json",
+    "../datos/facciones/1418_oaxaca.json",
+    "../datos/facciones/1418_mundo_maya.json",
+    "../datos/facciones/1418_gran_chichimeca.json",
+    "../datos/facciones/1418_coloniales.json"
+  ],
+  "guion": "../datos/cierre_1607.json"
+}

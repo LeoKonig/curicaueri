@@ -34,7 +34,7 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 | Ronda | Tarea | Área (archivos principales) | Depende de | Hito |
 | --- | --- | --- | --- | --- |
 | 4 | T12 Varias facciones en las reglas (hecha en `claude/varias-facciones`; falta fusionar) | `reglas`: `Estado`, `Juego`, `Sistemas`, `Comando`, `Facciones` | — | 4 |
-| 4 | T13 Escenarios como datos y campaña 1418 de juguete | `escenarios/`, `datos/facciones/`, `reglas`: `Escenario`; `app` | T12 | 4 |
+| 4 | T13 Escenarios como datos y campaña 1418 de juguete (hecha en `claude/escenarios-datos`) | `escenarios/`, `datos/facciones/`, `reglas`: `Escenario`; `app` | T12 | 4 |
 | 4 | T14 Condiciones y efectos nuevos (hecha en `claude/condiciones-efectos`) | `motor`: `Magnitudes`, `Guion`, `Efectos`, `Propios`; `reglas`: `Propios` | — | 4 |
 | 4 | T15 Herramienta de mapa | `herramientas/mapa/` (Python) | — | 5 |
 | 4 | T6 Inventario histórico de 1418 | `docs/fuentes/` (sin código) | — | 10 |

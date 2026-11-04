@@ -35,6 +35,7 @@ import Reglas.Propios (condicionesPropias, efectosPropios)
 -- El calendario visible y la fecha de inicio son del escenario; cuando los
 -- escenarios sean datos (T13), vendrán con él.
 import Reglas.Escenario (visible1475, inicio1475)
+import Motor.Calendario (CalendarioVisible, Fecha)
 
 catalogoMag :: Map.Map Magnitud DefMagnitud
 catalogoMag = Map.fromList
@@ -306,9 +307,14 @@ juegoCon c gs = juegoDatos c datosVacios { drGrupos = gs }
 -- sistema lee lo que escribe otro posterior. La fusión de pops va al final:
 -- cada pop recibe su agravio de la veintena antes de juntarse.
 juegoDatos :: Constantes -> DatosReglas -> Juego Purepecha Comando
-juegoDatos c dr = let bienes = bienesDe (drTerrenos dr) in Juego
+juegoDatos = juegoDatosEn visible1475 inicio1475
+
+-- | El juego con sus datos de reglas en el calendario de un escenario: la
+-- cosecha por estación sabe en qué día del año cae cada tick.
+juegoDatosEn :: CalendarioVisible -> Fecha -> Constantes -> DatosReglas -> Juego Purepecha Comando
+juegoDatosEn visible inicio c dr = let bienes = bienesDe (drTerrenos dr) in Juego
   { juegoSistemas    = [ facciones (drGrupos dr) (drEconomia dr), construccion c (drEconomia dr) (drEdificios dr)
-                       , produccion c (drEconomia dr) (Cosechas (drCosechas dr) visible1475 inicio1475) bienes, hacienda c (drEconomia dr), evolucionAgravio c, fusion c ]
+                       , produccion c (drEconomia dr) (Cosechas (drCosechas dr) visible inicio) bienes, hacienda c (drEconomia dr), evolucionAgravio c, fusion c ]
   , juegoAplicarCmd  = aplicarComando c dr
   , juegoDerivar     = \g _ p -> derivarPurepecha c dr g (persistenteJuego p)
   , juegoProyectar   = proyectar

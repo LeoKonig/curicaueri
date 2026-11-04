@@ -1,0 +1,301 @@
+{
+  "_provisional": true,
+  "_nota": "Contenido de JUGUETE para la campaña 1418-1607 (V5, Tipos de facción y niveles de detalle; hito 4). Facciones, fechas, tipos, posiciones y cifras son provisionales y por verificar: el inventario con fuentes es T6. Las celdas siguen la geografía a grandes rasgos sobre el mapa provisional de 40 × 30 (oeste a la izquierda, norte arriba).",
+  "facciones": [
+    {
+      "id": 50,
+      "nombre": "Guachichiles",
+      "tipo": "banda_nomada",
+      "estado": "activa",
+      "gobernante": 30,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 30,
+          "nombre": "Señor de Real de guachichiles",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 47,
+          "nombre": "Real de guachichiles",
+          "celda": 174,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 77,
+              "identidad": "guachichil",
+              "estrato": "nobleza",
+              "tamano": 200,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 76,
+              "identidad": "guachichil",
+              "estrato": "comun",
+              "tamano": 2000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "nombre": "Zacatecos",
+      "tipo": "banda_nomada",
+      "estado": "activa",
+      "gobernante": 31,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 31,
+          "nombre": "Señor de Ranchería zacateca",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 48,
+          "nombre": "Ranchería zacateca",
+          "celda": 210,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 79,
+              "identidad": "zacateco",
+              "estrato": "nobleza",
+              "tamano": 200,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 78,
+              "identidad": "zacateco",
+              "estrato": "comun",
+              "tamano": 2000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "nombre": "Guamares",
+      "tipo": "banda_nomada",
+      "estado": "activa",
+      "gobernante": 32,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 32,
+          "nombre": "Señor de Ranchería guamar",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 49,
+          "nombre": "Ranchería guamar",
+          "celda": 336,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 81,
+              "identidad": "guamar",
+              "estrato": "nobleza",
+              "tamano": 200,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 80,
+              "identidad": "guamar",
+              "estrato": "comun",
+              "tamano": 2000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "nombre": "Pames",
+      "tipo": "banda_nomada",
+      "estado": "activa",
+      "gobernante": 33,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 33,
+          "nombre": "Señor de Ranchería pame",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 50,
+          "nombre": "Ranchería pame",
+          "celda": 300,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 83,
+              "identidad": "pame",
+              "estrato": "nobleza",
+              "tamano": 200,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 82,
+              "identidad": "pame",
+              "estrato": "comun",
+              "tamano": 2000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "nombre": "Cazcanes",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 34,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 34,
+          "nombre": "Señor de Nochistlán",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 51,
+          "nombre": "Nochistlán",
+          "celda": 329,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 85,
+              "identidad": "cazcan",
+              "estrato": "nobleza",
+              "tamano": 400,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 84,
+              "identidad": "cazcan",
+              "estrato": "comun",
+              "tamano": 4000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 52,
+          "nombre": "Teocaltiche",
+          "celda": 290,
+          "condicion": "sujeto",
+          "sujeto_a": 51,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 86,
+              "identidad": "cazcan",
+              "estrato": "comun",
+              "tamano": 2000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "nombre": "Tepehuanes",
+      "tipo": "banda_nomada",
+      "estado": "activa",
+      "gobernante": 35,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 35,
+          "nombre": "Señor de Ranchería tepehuana",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 53,
+          "nombre": "Ranchería tepehuana",
+          "celda": 86,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 88,
+              "identidad": "tepehuan",
+              "estrato": "nobleza",
+              "tamano": 200,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 87,
+              "identidad": "tepehuan",
+              "estrato": "comun",
+              "tamano": 2000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

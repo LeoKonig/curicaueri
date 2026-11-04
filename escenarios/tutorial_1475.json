@@ -1,0 +1,19 @@
+{
+  "_nota": "El tutorial 1475-1530 (V5, Alcance). Las fechas de los guiones cuentan desde «inicio». El mapa es el provisional de 14 × 10 hasta el atlas.",
+  "id": "tutorial_1475",
+  "nombre": "Tutorial 1475-1530",
+  "inicio": "1475-01-01",
+  "fin": "1530-02-14",
+  "desfase_calendario": 0,
+  "ultimo_dia_juliano": "1583-10-04",
+  "mapa": {
+    "ancho": 14,
+    "alto": 10,
+    "radio_km": "20",
+    "semilla": 1475
+  },
+  "facciones": [
+    "../datos/facciones/tutorial_1475.json"
+  ],
+  "guion": "../datos/guion_1475.json"
+}

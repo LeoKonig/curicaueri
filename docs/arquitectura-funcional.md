@@ -1506,6 +1506,14 @@ cargarEscenario :: Mapa -> Escenario -> Either ErrorCarga Estado
 
 Un sistema fuera de `sistemasActivos` se sustituye por la identidad. No hay otra forma de recortar: el "sin `if prototipo`" de V5 es este tipo.
 
+**Cómo quedó (T13).** El escenario es un archivo de `escenarios/` y `Reglas.Escenario` lo carga en dos pasos: `leerEscenario` lee sus fechas (inicio y fin), el desfase del calendario de veintenas, el último día juliano, el mapa provisional, los ejes activos, el guion y la lista de archivos de facciones; `cargarEscenario` lee esos archivos y construye el estado inicial, con todos los errores acumulados. Diferencias con el boceto de arriba:
+
+- **Las facciones van en archivos aparte** (`datos/facciones/`), con sus personajes y sus altépetl con sus pops: el mismo formato sirve al tutorial y a la campaña, y una facción de juguete se reemplaza por la del inventario (T6) sin tocar el escenario. Las fechas de aparición y desaparición se escriben como fechas y se guardan como ticks desde el inicio.
+- **Sin `sistemasActivos` todavía.** Las fases del guion ya encienden y apagan sistemas (sección 11b); ningún escenario necesita otra cosa, y lo que no se usa no entra.
+- **La jugable** es una sola facción marcada `"jugable": true`, activa al empezar.
+- **El fin.** La partida termina en la fecha del escenario, o antes si su guion declara una anterior.
+- **El tutorial existe dos veces**, en `escenarios/tutorial_1475.json` y en `Reglas.Escenario.estadoInicial1475`, que usan las pruebas y la cáscara sin `--escenario`. Ley: los dos dan el mismo estado (se compara el guardado), así que no pueden separarse.
+
 ## 18. Carga de datos, mods y versiones
 
 Cargar es una función pura de los archivos al estado, que falla con todos los errores juntos en lugar del primero:

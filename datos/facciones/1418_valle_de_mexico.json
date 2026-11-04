@@ -1,0 +1,433 @@
+{
+  "_provisional": true,
+  "_nota": "Contenido de JUGUETE para la campaña 1418-1607 (V5, Tipos de facción y niveles de detalle; hito 4). Facciones, fechas, tipos, posiciones y cifras son provisionales y por verificar: el inventario con fuentes es T6. Las celdas siguen la geografía a grandes rasgos sobre el mapa provisional de 40 × 30 (oeste a la izquierda, norte arriba).",
+  "facciones": [
+    {
+      "id": 10,
+      "nombre": "Azcapotzalco",
+      "tipo": "imperio_hegemonico",
+      "estado": "activa",
+      "gobernante": 5,
+      "tesoro": "1500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 5,
+          "nombre": "Tlatoani de Azcapotzalco",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 9,
+          "nombre": "Azcapotzalco",
+          "celda": 579,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 14,
+              "identidad": "tepaneca",
+              "estrato": "nobleza",
+              "tamano": 1500,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 13,
+              "identidad": "tepaneca",
+              "estrato": "comun",
+              "tamano": 15000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "nombre": "Coyoacán",
+          "celda": 619,
+          "condicion": "sujeto",
+          "sujeto_a": 9,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 15,
+              "identidad": "tepaneca",
+              "estrato": "comun",
+              "tamano": 7500,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "nombre": "Tlalnepantla",
+          "celda": 539,
+          "condicion": "sujeto",
+          "sujeto_a": 9,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 16,
+              "identidad": "tepaneca",
+              "estrato": "comun",
+              "tamano": 7500,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ],
+      "hasta": "1428-12-31",
+      "absorbente": 11
+    },
+    {
+      "id": 11,
+      "nombre": "Tenochtitlan",
+      "tipo": "imperio_hegemonico",
+      "estado": "activa",
+      "gobernante": 6,
+      "tesoro": "1200",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 6,
+          "nombre": "Tlatoani de Tenochtitlan",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 12,
+          "nombre": "Tenochtitlan",
+          "celda": 620,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 18,
+              "identidad": "mexica",
+              "estrato": "nobleza",
+              "tamano": 2000,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 17,
+              "identidad": "mexica",
+              "estrato": "comun",
+              "tamano": 20000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "nombre": "Iztapalapa",
+          "celda": 660,
+          "condicion": "sujeto",
+          "sujeto_a": 12,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 19,
+              "identidad": "mexica",
+              "estrato": "comun",
+              "tamano": 10000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ],
+      "hasta": "1521-08-13",
+      "absorbente": 70
+    },
+    {
+      "id": 12,
+      "nombre": "Tlatelolco",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 7,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 7,
+          "nombre": "Tlatoani de Tlatelolco",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 14,
+          "nombre": "Tlatelolco",
+          "celda": 580,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 21,
+              "identidad": "mexica",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 20,
+              "identidad": "mexica",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ],
+      "hasta": "1473-12-31",
+      "absorbente": 11
+    },
+    {
+      "id": 13,
+      "nombre": "Tetzcoco",
+      "tipo": "imperio_hegemonico",
+      "estado": "activa",
+      "gobernante": 8,
+      "tesoro": "1000",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 8,
+          "nombre": "Tlatoani de Tetzcoco",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 15,
+          "nombre": "Tetzcoco",
+          "celda": 582,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 23,
+              "identidad": "acolhua",
+              "estrato": "nobleza",
+              "tamano": 1500,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 22,
+              "identidad": "acolhua",
+              "estrato": "comun",
+              "tamano": 15000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 16,
+          "nombre": "Huexotla",
+          "celda": 622,
+          "condicion": "sujeto",
+          "sujeto_a": 15,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 24,
+              "identidad": "acolhua",
+              "estrato": "comun",
+              "tamano": 7500,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "nombre": "Tlacopan",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 9,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 9,
+          "nombre": "Tlatoani de Tlacopan",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 17,
+          "nombre": "Tlacopan",
+          "celda": 618,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 26,
+              "identidad": "tepaneca",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 25,
+              "identidad": "tepaneca",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "nombre": "Chalco",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 10,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 10,
+          "nombre": "Señor de Chalco",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 18,
+          "nombre": "Chalco",
+          "celda": 701,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 28,
+              "identidad": "chalca",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 27,
+              "identidad": "chalca",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        },
+        {
+          "id": 19,
+          "nombre": "Amecameca",
+          "celda": 742,
+          "condicion": "sujeto",
+          "sujeto_a": 18,
+          "distancia": "1",
+          "lealtad": "60",
+          "pops": [
+            {
+              "id": 29,
+              "identidad": "chalca",
+              "estrato": "comun",
+              "tamano": 3000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ],
+      "hasta": "1465-12-31",
+      "absorbente": 11
+    },
+    {
+      "id": 16,
+      "nombre": "Xochimilco",
+      "tipo": "senorio",
+      "estado": "activa",
+      "gobernante": 11,
+      "tesoro": "500",
+      "prestigio": "10",
+      "legitimidad": "50",
+      "personajes": [
+        {
+          "id": 11,
+          "nombre": "Señor de Xochimilco",
+          "admin": 2,
+          "mando": 2,
+          "edad": 40
+        }
+      ],
+      "altepetl": [
+        {
+          "id": 20,
+          "nombre": "Xochimilco",
+          "celda": 700,
+          "condicion": "cabecera",
+          "lealtad": "80",
+          "pops": [
+            {
+              "id": 31,
+              "identidad": "xochimilca",
+              "estrato": "nobleza",
+              "tamano": 600,
+              "lealtad": "80",
+              "agravio": "10"
+            },
+            {
+              "id": 30,
+              "identidad": "xochimilca",
+              "estrato": "comun",
+              "tamano": 6000,
+              "lealtad": "65",
+              "agravio": "20"
+            }
+          ]
+        }
+      ],
+      "hasta": "1430-12-31",
+      "absorbente": 11
+    }
+  ]
+}
