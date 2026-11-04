@@ -56,6 +56,8 @@ data Constantes = Constantes
     -- El azar de la cosecha (V5, *Decisiones recurrentes*, Mala cosecha). PROVISIONALES.
   , cCosechaMinima         :: Fijo   -- COSECHA_MINIMA: el peor año, como factor sobre la cosecha normal
   , cCosechaMaxima         :: Fijo   -- COSECHA_MAXIMA: el mejor año
+    -- Subsistencia (V5, *Medidas reales y cifras de referencia*). PROVISIONAL.
+  , cRacionMaiz            :: Fijo   -- RACION_MAIZ: toneladas de maíz que come una persona en un año
   } deriving (Eq, Show)
 
 constantesDefault :: Constantes
@@ -110,4 +112,9 @@ constantesDefault = Constantes
     -- por debajo de 0,75 (uno de cada cuatro) es «mala cosecha». Provisional.
   , cCosechaMinima         = Fijo 5000       -- 0,5
   , cCosechaMaxima         = Fijo 15000      -- 1,5
+    -- 2 000 kcal por día, 0,8 de ellas del maíz, a 3 650 kcal por kg: 0,44 kg
+    -- por día, unos 0,164 t por año; por encima de los 120,5 kg del consumo
+    -- moderno (FAOSTAT 2014), como cabe en una dieta menos variada. Por
+    -- verificar: la parte de la energía que venía del maíz (V5).
+  , cRacionMaiz            = Fijo 1640       -- 0,164 t por persona y año
   }

@@ -2257,7 +2257,7 @@
               "tipo": "consumir_bien",
               "faccion": 1,
               "bien": "maiz",
-              "cantidad": "1000"
+              "cantidad": "3000"
             },
             {
               "tipo": "sumar_mag",

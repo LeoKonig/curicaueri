@@ -745,6 +745,23 @@ main = hspec $ do
       Map.keys (Map.unions (map dtRendimiento (Map.elems t)))
         `shouldBe` ["cobre", "maiz", "mantas", "obsidiana", "pescado", "sal"]
       all (\d -> Map.null (dtRendimiento d) || dtTrabajadores d > Fijo 0) (Map.elems t) `shouldBe` True
+    it "rendimiento por trabajador y año (medidas reales): la celda rinde trabajadores · r / periodos por año" $ do
+      let terr extra = A.object ([ "id" A..= ("llano" :: Text), "capacidad" A..= ("1" :: Text), "erosion" A..= ("0" :: Text)
+                                 , "trabajadores" A..= ("600" :: Text) ] ++ extra)
+          porTrab = [ "rendimiento_por_trabajador" A..= A.object ["maiz" A..= ("1" :: Text), "mantas" A..= ("1.5" :: Text)] ]
+          doc periodos ts = A.object ([ "terrenos" A..= ts ] ++ [ "periodos_por_anio" A..= (p :: Int) | Just p <- [periodos] ])
+          Just t = valValor (cargarTerrenos "x.json" (doc (Just 18) [terr porTrab]))
+      fmap dtRendimiento (Map.lookup (Terreno "llano") t)
+        `shouldBe` Just (Map.fromList [("maiz", Fijo 333333), ("mantas", Fijo 500000)])
+      -- lo de un año entero: 18 periodos de 33,3333 t son 599,9994 t, la tonelada de más o de menos del redondeo
+      fmap (\d -> sum [ unFijo (dtRendimiento d Map.! "maiz") | _ <- [1 .. 18 :: Int] ]) (Map.lookup (Terreno "llano") t)
+        `shouldBe` Just (5999994 :: Int64)
+      map errRuta (valErrores (cargarTerrenos "x.json" (doc Nothing [terr porTrab]))) `shouldBe` ["periodos_por_anio"]
+      map errRuta (valErrores (cargarTerrenos "x.json" (doc (Just 18) [terr (porTrab ++ ["rendimiento" A..= A.object ["maiz" A..= ("1" :: Text)]])])))
+        `shouldBe` ["terrenos.llano.rendimiento_por_trabajador"]
+      map errRuta (valErrores (cargarTerrenos "x.json" (doc (Just 18)
+        [terr [ "rendimiento_por_trabajador" A..= A.object ["maiz" A..= ("-1" :: Text)] ]])))
+        `shouldBe` ["terrenos.llano.rendimiento_por_trabajador.maiz"]
     it "materiales: por omisión ninguno; la sierra da piedra y el bosque madera; se rechazan negativos y sin trabajadores" $ do
       let Just t = valValor tablaReal
           malo = A.object [ "terrenos" A..=

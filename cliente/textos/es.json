@@ -162,7 +162,7 @@
   "situacion.mala_cosecha.no_hacer_nada": "No hacer nada",
   "situacion.mala_cosecha.no_hacer_nada.costo": "Agravio +8 de los macehuales de Tzintzuntzan",
   "situacion.mala_cosecha.abrir_las_trojes": "Abrir las trojes",
-  "situacion.mala_cosecha.abrir_las_trojes.costo": "Maíz −1 000 de las existencias · agravio −4 de los macehuales de Tzintzuntzan",
+  "situacion.mala_cosecha.abrir_las_trojes.costo": "Maíz −3 000 t de las existencias · agravio −4 de los macehuales de Tzintzuntzan",
   "situacion.mala_cosecha.comprar_a_un_vecino": "Comprar a un vecino",
   "situacion.mala_cosecha.comprar_a_un_vecino.costo": "Tesoro −150 (al tipo del día) · agravio −3 de los macehuales de Tzintzuntzan",
   "situacion.obsidiana_de_zinapecuaro": "La obsidiana de Zinapécuaro",
