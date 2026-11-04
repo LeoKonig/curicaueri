@@ -660,6 +660,32 @@ Q''_t = Q'_t \cdot f
 
 **Consumir bienes y gastar valor** (`Reglas.Propios`, T17). `consumir_bien` (facción, bien, cantidad) resta la cantidad de `bien.<id>.existencias` y emite `bien_consumido`; se rechaza si la cantidad no es positiva, la facción no está activa, el bien no existe o las existencias no alcanzan. `gastar_valor` (facción, valor) resta del tesoro \(\text{enCuenta}(v)\), el valor pasado a la cuenta de la facción al tipo del día, y emite `valor_gastado`; se rechaza si el tesoro no alcanza. Las existencias tienen así dos escritores declarados (la producción y `consumir_bien`).
 
+**Subsistencia y cobertura** (V5, *Comer antes de tributar*; T25). Para el altépetl a de la facción f, con el maíz como alimento:
+
+- **Al cosechar** (sistema de producción, cada periodo con cosecha): de lo que entra, q_a, la cuota τ_f va a las trojes de la facción y el resto a lo cosechado del año agrícola del altépetl, H_a:
+
+```math
+\text{existencias}_f \mathrel{+}= \tau_f\, q_a, \qquad H_a \mathrel{+}= (1 - \tau_f)\, q_a, \qquad \tau_f = \tau(\text{tasa de tributo}_f)
+```
+
+- **Al cerrar la ventana de cosecha** (sistema de subsistencia, paso 7, una vez por año): con R_a la reserva local, D_a lo repartido de las trojes desde la cosecha anterior, r la ración diaria y N_p el tamaño de cada pop del altépetl,
+
+```math
+\text{necesidad}_a = r \cdot 365 \cdot \sum_{p \in a} N_p, \qquad
+\text{disponible}_a = H_a + R_a + D_a, \qquad
+c_a = \min\!\Big(1,\ \frac{\text{disponible}_a}{\text{necesidad}_a}\Big)
+```
+
+```math
+R'_a = \min\big(\text{necesidad}_a,\ \max(0,\ \text{disponible}_a - \text{necesidad}_a)\big), \qquad H'_a = 0, \qquad D'_a = 0
+```
+
+  La reserva pierde cada periodo la merma del maíz, como las existencias. c_a es la magnitud `altepetl.cobertura`: su base la escribe la subsistencia y el desglose separa lo cosechado, la reserva y lo repartido. Lo que excede el tope de la reserva se pierde (se pudre o se intercambia fuera del modelo) y se anota en el hecho del año, para que la ley de conservación cierre.
+- **Durante el año**, el agravio de cada pop de a recibe por veintena el aporte con fuente «hambre» A_hambre · (1 − c_a) / P (P, periodos por año), y la hacienda multiplica el ingreso de cada pop de a por c_a. `repartir_bien` (facción, altépetl, bien, cantidad x) resta x de las existencias de la facción (rechazo sin daño si no alcanzan). Antes de cerrar la ventana, x se suma a D_a y entra en la cuenta del año; después, la cobertura sube en el acto, c_a ← min(1, c_a + x / necesidad_a), y lo que pasa de 1 va a la reserva.
+- **Sin datos de producción** (sin `--terrenos`), no hay subsistencia: c_a = 1 y todo sigue como antes.
+
+**Unidades** (V5, *Medidas reales y cifras de referencia*; T24). Los bienes a granel se cuentan en kg; las celdas de cultivo, en ha. La tabla de terrenos da, por terreno, la superficie cultivable por celda (ha), el rendimiento (kg/ha por año) y la superficie que trabaja un campesino (ha); de ahí salen y(c) y ℓ(c) de la fórmula de producción, sin cambiarla: y(c) = ha_c · kg/ha / P y ℓ(c) = ha_c / ha_por_trabajador.
+
 **Producción: tierra y brazos, el factor escaso manda.** Cada celda c tiene un rendimiento y(c) cuando se trabaja completa y necesita ℓ(c) trabajadores para ello; las dos son magnitudes, así que el terreno, las terrazas, la erosión y la estación las mueven. Los trabajadores van primero a las mejores celdas: se ordenan las celdas asignadas K(a) por κ(c)·y(c)/ℓ(c) descendente, con empates por id, y se llenan en ese orden.
 
 ```math
@@ -1577,6 +1603,10 @@ Las reglas del diseño, escritas como propiedades. En un lenguaje puro, "la mism
 | Existencias acotadas | Con producción constante Q y merma μ > 0, las existencias se acercan a Q / μ y nunca la superan si empiezan por debajo |
 | Cosecha conservada | Con ventana de cosecha, lo producido en un año es lo de la producción pareja, salvo una diezmilésima de redondeo; sin ventana, la producción no cambia |
 | Cosecha con azar | Lo producido en un año es lo de la producción pareja por el factor del año, salvo el redondeo; el factor está entre \(f_{\min}\) y \(f_{\max}\), es el mismo con la misma semilla y su desglose nombra el azar |
+| Masa conservada | En el año de cada altépetl, lo cosechado es igual a lo tributado más lo comido más el cambio de la reserva más lo perdido por merma y por el tope, salvo el redondeo |
+| Cobertura neutra | Con cobertura 1 en todos los altépetl, el agravio y la hacienda son los de antes de la subsistencia; sin datos de producción, la partida es idéntica |
+| Cobertura monótona | Más cosecha, más reserva o más reparto nunca bajan la cobertura de un altépetl |
+| Rango de los bienes | Con las cifras de referencia a la escala del juego completo, ninguna magnitud en kg satura `Fijo` |
 | Consumo exacto | `consumir_bien` resta exactamente lo pedido; con menos existencias, o `gastar_valor` con menos tesoro, se rechaza sin cambiar el estado |
 | Nombramiento sin trinquete | Mientras dura un cargo, su aporte al poder del grupo es constante; al terminar el cargo, es 0 y sus modificadores emiten `modificador_terminado` (sección 14d) |
 | Facciones con rastro | Toda aparición emite `faccion_aparece` y toda desaparición `faccion_desaparece`; lo que tenía la facción llega a un destino declarado o se pierde por declaración; los ids no se reutilizan (sección 14b) |

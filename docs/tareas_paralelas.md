@@ -57,6 +57,13 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 | 6 | T22 IA sencilla: planificador, ejecutor y personalidades | `reglas`: agente; `datos/personalidades/`; `app` | T19, T21 | 7 |
 | 6 | T23 Rebeliones, incursiones, saqueo, requisa y guerra ritual | `reglas`: `Sistemas`, `Comando`; `datos/facciones/` | T20, T22 | 7 |
 
+**Ronda 7: comer antes de tributar** (V5, *Comer antes de tributar* y *Medidas reales y cifras de referencia*). Hasta T17 la población no come: el maíz va todo a la facción, el tributo no mira la cosecha y un año malo solo pesa por un agravio fijo. T24 pasa los datos a medidas reales con cifras de fuentes; T25, sobre ellas, hace que la gente coma antes de tributar. T24 no depende de la ronda 6 y puede ir en paralelo con ella; T25 espera a T24 y a T17. La demografía (hito 6) leerá la cobertura de T25.
+
+| Ronda | Tarea | Área (archivos principales) | Depende de | Hito |
+| --- | --- | --- | --- | --- |
+| 7 | T24 Medidas reales y cifras de referencia | `datos/terrenos.json`, `datos/bienes_1475.json`, `datos/facciones/tutorial_1475.json`; `reglas`: `Produccion`, `Constantes`; `motor`: `Moneda` (rangos); `cliente/` (unidades) | T17 | 3 |
+| 7 | T25 Subsistencia: cobertura, reserva y tributo en especie | `reglas`: `Produccion`, `Sistemas`, `Propios`, `Constantes`, sistema nuevo de subsistencia; `datos/guion_1475.json` | T24, T17 | 3 |
+
 ---
 
 ## Contexto común (pegar antes de cada tarea)
@@ -547,7 +554,10 @@ Haz:
    `ejercito.<id>.calidad` con su escritor declarado. Es estado almacenado.
 2. `reclutar_ejercito {altepetl, tropas}` usa `retirar_trabajadores` con motivo leva:
    baja la producción del altépetl (más en temporada agrícola, con la estación de T16) y
-   da agravio si la leva es alta. Si el formato del comando cambia, actualiza el dorado
+   da agravio si la leva es alta. La leva se acota por la fracción de hombres adultos de
+   cada pop (dato, por verificar): con el reino entero, 40 000 guerreros en Taximaroa son
+   posibles; con la cuenca sola, no (V5, *Medidas reales y cifras de referencia*).
+   Si el formato del comando cambia, actualiza el dorado
    y explica la compatibilidad. `licenciar_ejercito` no está en el catálogo: si hace
    falta para devolver a la gente, pregunta antes de añadirlo.
 3. `mover_ejercito {ejercito, destino}`: ruta de menor costo por el grafo (Motor.Mapa),
@@ -716,4 +726,80 @@ Pruebas: con legitimidad baja hay más rebeliones (misma semilla, ley de monoton
 rebelión triunfante y su sometimiento conservan lo transferido (ley de T12); la guerra
 ritual nunca cambia de dueño un altépetl. Al terminar, repite la medición de T22 y
 actualiza la fila del hito 7 en V5. Rama: claude/coercion-menor.
+```
+
+## T24. Medidas reales y cifras de referencia (datos y reglas, hito 3; después de T17)
+
+```
+Tarea: que los números del juego sean medidas reales del sistema internacional, con
+cifras de partida tomadas de fuentes, en vez de unidades abstractas.
+
+Lee: V5 *Medidas reales y cifras de referencia* (las tablas de ración, rendimiento y
+demografía, con sus fuentes y lo que está por verificar) y *Comer antes de tributar*;
+documento funcional, secciones 12 (Unidades), 15 (rango y desbordamiento de Fijo) y 19.
+
+Haz:
+1. Bienes a granel en kg (maíz, pescado seco, sal, obsidiana, cobre), mantas en piezas,
+   madera y piedra en m³ o t (elige y anótalo). datos/bienes_1475.json: valor por kg,
+   referencia y merma en esas unidades. Sube el rango de los bienes (hoy 10⁹) y comprueba
+   al cargar que nada satura Fijo a la escala del juego completo.
+2. datos/terrenos.json: por terreno, superficie cultivable por celda en ha (con el área
+   de la celda del mapa: di cómo la calculas desde radio_km), rendimiento en kg/ha por
+   año y ha que trabaja un campesino. La fórmula de producción no cambia: y(c) y ℓ(c)
+   salen de esos datos (documento funcional, sección 12). Carga con todos los errores
+   acumulados; los datos viejos con la clave de antes se rechazan con un mensaje claro.
+3. La ración diaria por persona (0,45 kg de maíz, relleno con fuente) como constante
+   con nombre. Todavía no se consume: la usa T25. Anota cada cifra con su fuente o con
+   «por verificar» en el «_nota» del archivo de datos que la lleva.
+4. datos/facciones/tutorial_1475.json: comprueba los pops contra las estimaciones de V5
+   (Tzintzuntzan 25 000–35 000; la cuenca, hasta unas 80 000) y anota la fuente. No
+   inventes el resto del reino: deja escrito en el PR qué haría falta para que la leva de
+   Taximaroa sea posible (pops agregados del resto del reino o el inventario de T6).
+5. El cliente muestra las unidades: kg, y t a partir de 1 000 kg (textos de las
+   magnitudes, sin lógica de simulación en el cliente).
+
+Pruebas: en un año medio, sin azar, el tutorial cosecha entre 1,1 y 1,6 veces lo que
+necesita su gente (la prueba de coherencia de V5; si no, se corrigen los datos); la ley
+de cosecha conservada de T16 y la de T17 siguen pasando; la ley de rango de los bienes;
+el precio del maíz sigue estable con la merma (ajusta la referencia en kg). Repite las
+métricas del director y anota las cifras. Mide con --escala 7500x20.
+Rama: claude/medidas-reales.
+```
+
+## T25. Subsistencia: cobertura, reserva y tributo en especie (reglas, hito 3; después de T24 y T17)
+
+```
+Tarea: que la gente coma antes de tributar. La cosecha de cada altépetl alimenta primero
+a su gente; el tributo en especie va a las trojes de la facción; un año malo da hambre,
+y el hambre da agravio y baja el tributo.
+
+Lee: V5 *Comer antes de tributar* (orden, efectos por hito, por qué el hambre no baja la
+producción) y la fila de «Mala cosecha» en *Decisiones recurrentes*; documento funcional,
+sección 12 (Subsistencia y cobertura, con las fórmulas) y las leyes de la sección 19
+(masa conservada, cobertura neutra, cobertura monótona).
+
+Haz:
+1. Al cosechar, la producción reparte el maíz de cada altépetl: la cuota τ de su facción
+   a `bien.maiz.existencias` y el resto a lo cosechado del año del altépetl (magnitud
+   nueva, valor por defecto 0). τ sale de la tasa de tributo (relleno: 5 % por punto,
+   como constante). `bien.maiz.produccion` sigue siendo el total, para el precio.
+2. Sistema de subsistencia (paso 7): al cerrarse la ventana de cosecha, la cobertura del
+   año de cada altépetl (`altepetl.cobertura`, base 1 por defecto), la reserva local con
+   su tope de un año y la merma del maíz, y el hecho `hambre` bajo el umbral. Un solo
+   escritor por magnitud; declara lo que lee y escribe.
+3. El aporte «hambre» al agravio de cada pop del altépetl, proporcional a 1 − c, con su
+   fuente en el desglose; la hacienda multiplica el ingreso de cada pop por c.
+4. Efecto propio `repartir_bien` (facción, altépetl, bien, cantidad), con rechazo sin
+   daño. «Mala cosecha» en el guion: «abrir las trojes» reparte maíz a los altépetl con
+   hambre en vez de consumirlo; «no hacer nada» ya no lleva agravio fijo, porque el hambre
+   lo da la cobertura. Revisa los textos y que cada opción tenga costo visible.
+5. Sin datos de producción, cobertura 1 y la partida idéntica a la de antes.
+
+Pruebas: las tres leyes de la sección 19; con la misma semilla, el mismo hambre; dos años
+malos seguidos dan más hambre que uno (la reserva se agota); repartir sube la cobertura
+exactamente lo que dice la fórmula; guardar a mitad del año agrícola y cargar sigue
+igual; el arnés del 0a (T11), si existe, cuenta la decisión. Juega el tutorial por el
+protocolo con varias políticas y anota cuántos años de hambre salen. Mide con
+--escala 7500x20: un cálculo por altépetl y año. La mortalidad y la migración por hambre
+son del hito 6: no las adelantes. Rama: claude/subsistencia.
 ```
