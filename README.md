@@ -92,14 +92,14 @@ Los pasos, desde una terminal:
 2. Arranca el núcleo con el escenario de 1475. La primera vez compila todo y tarda varios minutos. Déjalo corriendo:
    ```sh
    nix run . -- --puerto 4646 \
-     --guion datos/guion_1475.json \
+     --escenario escenarios/tutorial_1475.json \
      --ejes datos/ejes.json \
      --grupos datos/grupos.json \
      --edificios datos/edificios.json \
      --terrenos datos/terrenos.json \
      --bienes datos/bienes_1475.json
    ```
-   Los archivos de `datos/` se leen desde la carpeta donde ejecutas el comando, así que ejecútalo desde la raíz del proyecto.
+   Los archivos de `datos/` se leen desde la carpeta donde ejecutas el comando, así que ejecútalo desde la raíz del proyecto. El escenario trae su guion (`datos/guion_1475.json`); `--guion` lo reemplaza. Para la campaña de 1418 a 1607 (contenido de juguete), usa `--escenario escenarios/campana_1418.json`, que termina con el cierre de 1607.
 3. En otra terminal, desde la misma carpeta, abre el cliente. Usa el Godot del entorno de Nix:
    ```sh
    nix develop .#cliente --command sh -c '"$GODOT" --path cliente'
@@ -126,7 +126,7 @@ Si prefieres un entorno con todo (compilar, pruebas, Godot y Python), usa `nix d
 Notas:
 - **Antes de `nix develop` o `nix run`**, cualquier archivo nuevo debe estar en git (`git add`): Nix solo ve los archivos que git conoce.
 - **Godot con ventana:** el Godot de nixpkgs necesita los controladores gráficos del sistema. Fuera de NixOS suele fallar con `OpenGL ES 3.0`, `VK_KHR_surface` o `Unable to create DisplayServer`; en ese caso usa Godot 4.3 o posterior instalado en el sistema (`godot --path cliente`) o la variante con [nixGL](https://github.com/nix-community/nixGL) del paso 3.
-- El cierre de 1607 (`datos/cierre_1607.json`) no se carga con estos comandos: es un guion de datos que todavía no está conectado a la campaña. Hasta que T13 lo integre, el guion de 1475 no termina en 1607.
+- El cierre de 1607 (`datos/cierre_1607.json`) es el guion de la campaña de 1418: lo carga `escenarios/campana_1418.json`.
 
 ## Pruebas
 
@@ -194,6 +194,23 @@ Los nombres JSON están escritos a mano en `nucleo/src/Motor/Protocolo.hs` (mens
 | Núcleo → cliente | `decision` | Una situación del guion espera respuesta: su tipo, la pregunta (opciones o cantidad) y el plazo. Se reenvían todas tras cada instantánea |
 | Núcleo → cliente | `decision_cerrada` | La decisión ya no espera respuesta: se respondió o venció el plazo |
 | Núcleo → cliente | `error` | Un comando o una consulta rechazados (con su secuencia), o un mensaje inválido |
+
+## Escenarios
+
+Un escenario es un archivo de `escenarios/` con sus fechas, su calendario, el mapa provisional, su guion y la lista de archivos de facciones de `datos/facciones/`. Cada facción declara su tipo, si empieza activa o aparece en una fecha (`"estado": "potencial"`, `"desde"`), si desaparece (`"hasta"`) y a quién pasa lo suyo (`"absorbente"`), su gobernante, sus personajes y sus altépetl con sus pops. El diseño está en la sección 17 del documento funcional.
+
+| Archivo | Qué es |
+| --- | --- |
+| `escenarios/tutorial_1475.json` | El tutorial 1475–1530, con el reino purépecha de `datos/facciones/tutorial_1475.json`. Da exactamente el mismo estado que el tutorial escrito en el código, que la cáscara usa sin `--escenario` (una prueba lo comprueba) |
+| `escenarios/campana_1418.json` | La campaña 1418–1607 con **contenido de juguete** (`datos/facciones/1418_*.json`, marcados `_provisional`): 43 facciones de todas las regiones de V5, de uno a tres altépetl cada una, sobre un mapa provisional de 40 × 30. Unas desaparecen absorbidas (Azcapotzalco en 1428, Tenochtitlan en 1521) y otras aparecen (Maní y Sotuta en 1450, la expedición castellana en 1519, las órdenes religiosas). El inventario con fuentes es T6 |
+
+Al cargar se informan todos los errores juntos: ids repetidos, gobernantes y sujetos que no existen, cabeceras que faltan, celdas fuera del mapa, fechas fuera del escenario, absorbentes que no estarán activos. La campaña corre de punta a punta:
+
+```sh
+nucleo --sin-cliente --escenario escenarios/campana_1418.json --ticks 69500
+```
+
+Llega al 31 de diciembre de 1607 (tick 69396) y se detiene; sin datos tarda unos 8 s (0,1 ms por día) y con todos los de `datos/`, unos 35 s.
 
 ## Actos modulares
 
