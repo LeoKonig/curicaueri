@@ -302,7 +302,7 @@ juegoCon c gs = juegoDatos c datosVacios { drGrupos = gs }
 juegoDatos :: Constantes -> DatosReglas -> Juego Purepecha Comando
 juegoDatos c dr = let bienes = bienesDe (drTerrenos dr) in Juego
   { juegoSistemas    = [ facciones (drGrupos dr) (drEconomia dr), construccion c (drEconomia dr) (drEdificios dr)
-                       , produccion c bienes, hacienda c (drEconomia dr), evolucionAgravio c, fusion c ]
+                       , produccion c (drEconomia dr) bienes, hacienda c (drEconomia dr), evolucionAgravio c, fusion c ]
   , juegoAplicarCmd  = aplicarComando c dr
   , juegoDerivar     = \g _ p -> derivarPurepecha c dr g (persistenteJuego p)
   , juegoProyectar   = proyectar

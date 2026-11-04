@@ -1383,11 +1383,34 @@ pruebasMoneda terrenos eco eds dorado = describe "reglas: moneda en el juego rea
     precio despues `shouldSatisfy` (< precio conMantas)
     cien despues `shouldSatisfy` (< cien conMantas)
 
-  it "con los bienes cargados y sin moneda designada, la partida es la misma que sin ellos" $ do
+  it "con los bienes cargados y sin moneda designada, solo cambian las existencias, por la merma" $ do
     let jSin  = Reglas.Juego.juegoDatos constantesDefault dr { Reglas.Juego.drEconomia = economiaVacia }
         entSin = entornoSimple mapa
         sinEco = foldl' (\st t -> fst (paso jSin entSin (Semilla 1) (Tick t) [] st)) e0 [0 .. 420]
-    alm (correrDias 365 420 anio) `shouldBe` alm sinEco
+        conEco = correrDias 365 420 anio
+        esExistencias (Magnitud n) = "bien." `T.isPrefixOf` n && ".existencias" `T.isSuffixOf` n
+        sinExist st = Map.filterWithKey (\(_, m) _ -> not (esExistencias m)) (alm st)
+        exist b st = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, magExistencias b) (alm st))
+    sinExist conEco `shouldBe` sinExist sinEco
+    forM_ (bienesDe terrenos) $ \b ->
+      exist b conEco `shouldSatisfy` (if bnMerma (ecoBienes eco Map.! b) > Fijo 0 then (< exist b sinEco) else (== exist b sinEco))
+
+  it "merma: con producción constante, las existencias se acercan a producción / merma" $ do
+    let largo = correrDias 0 (365 * 30) e0
+        m = bnMerma (ecoBienes eco Map.! "maiz")
+        q = base (magProduccion "maiz") largo
+        tope = q ./. m
+        e = base (magExistencias "maiz") largo
+    q `shouldSatisfy` (> Fijo 0)
+    e `shouldSatisfy` (<= tope .+. fi 1)
+    e `shouldSatisfy` (>= tope .-. (tope ./. fi 100))
+
+  it "merma: la inflación de las mantas se apaga a medida que sus existencias se estabilizan" $ do
+    let inflacionEn n = base magInflacion (correrDias 365 n conMantas)
+        pronto = inflacionEn (365 * 3)
+        tarde  = inflacionEn (365 * 30)
+    pronto `shouldSatisfy` (> Fijo 0)
+    tarde `shouldSatisfy` (< pronto)
 
   it "guardar y cargar con moneda designada: la moneda, su historial y la partida siguen igual" $ do
     let mitad = correrDias 365 400 conMantas

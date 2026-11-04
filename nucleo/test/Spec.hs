@@ -1709,7 +1709,7 @@ genBien = do
   q <- Fijo <$> choose (0, 10000)
   r <- Fijo <$> choose (1, 50000000)
   e <- Fijo <$> choose (0, 10000)
-  pure (Bien "g" v q r e True)
+  pure (Bien "g" v q r e True (Fijo 0))
 
 -- ---------------------------------------------------------------------------
 -- Crónica y fin de partida
@@ -1893,6 +1893,32 @@ monedaPruebas = do
           eOro = jugarConMoneda "oro" (2 * 365)
       valorReal ePlata `shouldSatisfy` (< fi 900)
       cerca 10 (valorReal eOro) (1000 * 10000) `shouldBe` True
+
+  describe "moneda: merma (lo guardado de un bien perecedero se pierde)" $ do
+    let conMerma m = economiaJuguete { ecoBienes = Map.adjust (\b -> b { bnMerma = m }) "maiz" (ecoBienes economiaJuguete) }
+        jugar ec moneda n =
+          foldl' (\e t -> fst (paso jugueteMoneda (entorno mapaPrueba guionVacio ec) (Semilla 1) (Tick t)
+                                 [ Sellado (Tick 0) (FaccionId 1) 1 (DesignarMonedaJ (Just moneda)) | t == 0 ] e))
+                 estadoMoneda [0 .. n - 1]
+        tesoro = magDe (Magnitud "tesoro")
+        cal = comunCalendario (persistenteComun (estadoPersistente estadoMoneda))
+        periodos n = length [ () | t <- [0 .. n - 1], esInicioDePeriodo cal (Tick t) ]
+        recienDesignado = either (error . T.unpack) fst (designarMoneda economiaJuguete faccionJ (Just "maiz") (Tick 0) estadoMoneda)
+    it "sin merma en el archivo, el bien no se estropea; la merma va de 0 a menos de 1" $ do
+      map bnMerma (Map.elems (ecoBienes economiaJuguete)) `shouldBe` replicate 4 (Fijo 0)
+      let malo = A.object [ "bienes" A..= [ A.object [ "id" A..= ("maiz" :: Text), "valor" A..= ("1" :: Text)
+                                                     , "calidad_monetaria" A..= ("0.5" :: Text), "referencia" A..= ("10" :: Text)
+                                                     , "elasticidad" A..= ("0.5" :: Text), "merma" A..= ("1" :: Text) ] ] ]
+      map errRuta (valErrores (cargarEconomia "malo.json" malo)) `shouldBe` ["bienes.maiz.merma"]
+    it "un tesoro guardado en maíz con merma 0,05 pierde el 5 % cada veintena" $ do
+      let n = 365
+          t0 = maybe (Fijo 0) id (tesoro recienDesignado)
+          esperado = iterate (.*. (uno .-. Fijo 500)) t0 !! periodos n
+      periodos n `shouldSatisfy` (> 10)
+      tesoro (jugar (conMerma (Fijo 500)) "maiz" n) `shouldBe` Just esperado
+    it "una moneda sin merma no toca el tesoro: la misma partida que antes de la merma" $ do
+      tesoro (jugar (conMerma (Fijo 500)) "oro" 365) `shouldBe` tesoro (jugarConMoneda "oro" 365)
+      guardar (jugar (conMerma (Fijo 0)) "maiz" 365) `shouldBe` guardar (jugarConMoneda "maiz" 365)
 
   describe "moneda: inflación" $ do
     let dosAnios = 2 * 365
