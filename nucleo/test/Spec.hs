@@ -1894,6 +1894,13 @@ monedaPruebas = do
       valorReal ePlata `shouldSatisfy` (< fi 900)
       cerca 10 (valorReal eOro) (1000 * 10000) `shouldBe` True
 
+  describe "calendario: el día del año de la fecha visible (las estaciones)" $ do
+    it "en un año de 365 días; el 29 de febrero cuenta como el 28; las fechas que no existen no tienen día" $ do
+      map (uncurry diaDelAnioDe) [(1, 1), (2, 28), (2, 29), (3, 1), (12, 31)] `shouldBe` map Just [1, 59, 59, 60, 365]
+      map (uncurry diaDelAnioDe) [(2, 30), (13, 1), (4, 31), (1, 0)] `shouldBe` replicate 4 Nothing
+    it "del tick: el 1 de enero de 1475 es el día 1, el 1 de febrero el 32 y el año siguiente vuelve a empezar" $
+      map (diaDelAnioVisible SoloJuliano (Fecha 1475 1 1) . Tick) [0, 31, 364, 365] `shouldBe` [1, 32, 365, 1]
+
   describe "moneda: merma (lo guardado de un bien perecedero se pierde)" $ do
     let conMerma m = economiaJuguete { ecoBienes = Map.adjust (\b -> b { bnMerma = m }) "maiz" (ecoBienes economiaJuguete) }
         jugar ec moneda n =
@@ -1916,6 +1923,22 @@ monedaPruebas = do
           esperado = iterate (.*. (uno .-. Fijo 500)) t0 !! periodos n
       periodos n `shouldSatisfy` (> 10)
       tesoro (jugar (conMerma (Fijo 500)) "maiz" n) `shouldBe` Just esperado
+    it "si la entidad lleva la merma como magnitud, manda esa (base y modificadores), no la del catálogo" $ do
+      let conMag = let p = estadoPersistente estadoMoneda; com = persistenteComun p
+                       mag = AlmacenMag (Fijo 500) [Modificador 9 (magMerma "maiz") faccionJ (Aporte (Fijo 0) (Fijo (-5000)))
+                                                   (Fuente "prueba" "troje") Nothing Nothing Nothing AlcancePropia []]
+                   in estadoMoneda { estadoPersistente = p { persistenteComun = com { comunMagnitudes =
+                        Map.insert (faccionJ, magMerma "maiz") mag (comunMagnitudes com) } } }
+          bien = (ecoBienes (conMerma (Fijo 500)) Map.! "maiz")
+          alm0 = comunMagnitudes (persistenteComun (estadoPersistente conMag))
+          n = 365
+          jugarDesde e0 = foldl' (\e t -> fst (paso jugueteMoneda (entorno mapaPrueba guionVacio (conMerma (Fijo 500))) (Semilla 1) (Tick t)
+                                     [ Sellado (Tick 0) (FaccionId 1) 1 (DesignarMonedaJ (Just "maiz")) | t == 0 ] e)) e0 [0 .. n - 1]
+          t0 = maybe (Fijo 0) id (tesoro (either (error . T.unpack) fst (designarMoneda economiaJuguete faccionJ (Just "maiz") (Tick 0) conMag)))
+      mermaEn mempty (Tick 0) alm0 faccionJ bien `shouldBe` Fijo 250
+      mermaEn mempty (Tick 0) Map.empty faccionJ bien `shouldBe` Fijo 500
+      tesoro (jugarDesde conMag) `shouldBe` Just (iterate (.*. (uno .-. Fijo 250)) t0 !! periodos n)
+
     it "una moneda sin merma no toca el tesoro: la misma partida que antes de la merma" $ do
       tesoro (jugar (conMerma (Fijo 500)) "oro" 365) `shouldBe` tesoro (jugarConMoneda "oro" 365)
       guardar (jugar (conMerma (Fijo 0)) "maiz" 365) `shouldBe` guardar (jugarConMoneda "maiz" 365)

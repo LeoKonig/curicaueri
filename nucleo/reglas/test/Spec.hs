@@ -39,8 +39,9 @@ import Reglas.Produccion
 import Reglas.Sistemas (hacienda)
 import Reglas.Fusion (fusionarPops, clavePop)
 import Motor.Terrenos (DefTerreno (..), cargarTerrenos, conCostoDeTerreno)
-import Motor.Moneda (Bien (..), Economia (..), ParamsMoneda (..), cargarEconomia, economiaVacia, aValor,
-                     magExistencias, magProduccion, magInflacion, magNivelPrecios, magPrecioMoneda)
+import Motor.Moneda (Bien (..), Economia (..), ParamsMoneda (..), cargarEconomia, economiaVacia, aValor, precioEn, mermaEn,
+                     magExistencias, magProduccion, magInflacion, magNivelPrecios, magPrecioMoneda, magMerma)
+import Motor.Calendario (diaDelAnioVisible, esInicioDePeriodo)
 import Motor.Azar (Rng (..))
 import Motor.Sistema (Sistema (..), NombreSistema (..))
 import Test.QuickCheck
@@ -51,13 +52,15 @@ import qualified Data.ByteString.Lazy as BL
 mapaVacio :: Mapa
 mapaVacio = Mapa mempty mempty (Fijo 10000)
 
--- | @datos/edificios.json@ cargado, o la lista de errores.
-leerEdificios :: IO (Either [Text] Edificios)
-leerEdificios = do
+-- | @datos/edificios.json@ cargado, o la lista de errores. Sus modificadores
+-- pueden apuntar a magnitudes de los bienes del territorio (la troje y la
+-- merma del maíz), como en la cáscara.
+leerEdificios :: Map.Map Terreno DefTerreno -> IO (Either [Text] Edificios)
+leerEdificios terrenos = do
   v <- A.eitherDecodeFileStrict "../../datos/edificios.json"
   pure $ case v of
     Left err -> Left [T.pack err]
-    Right j  -> case cargarEdificios "datos/edificios.json" catalogoMag j of
+    Right j  -> case cargarEdificios "datos/edificios.json" (Map.union catalogoMag (catalogoBienes (bienesDe terrenos))) j of
       Validacion [] (Just e) -> Right e
       Validacion errs _      -> Left (map errMensaje errs)
 
@@ -116,8 +119,8 @@ main = do
  dorConstruir <- BL.readFile "../../pruebas_compartidas/protocolo/comando_construir_edificio.json"
  dorTributo   <- BL.readFile "../../pruebas_compartidas/protocolo/comando_pedir_tributo_obra.json"
  dorMoneda    <- BL.readFile "../../pruebas_compartidas/protocolo/comando_designar_moneda.json"
- edificiosArchivo <- leerEdificios
  terrenosArchivo  <- leerTerrenos
+ edificiosArchivo <- leerEdificios terrenosArchivo
  bienesArchivo    <- leerBienes
  hspec $ do
   describe "reglas: autoridad (V5, el prototipo no cambia)" $ do
@@ -933,6 +936,8 @@ main = do
 
   pruebasMoneda terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo) dorMoneda
 
+  pruebasCosecha terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
+
   describe "reglas: tablas de casos del hito 0a (prototipo HTML)" $ do
     tablas <- runIO (fmap (>>= parseEither parseTablas)
                           (A.eitherDecodeFileStrict "test/tablas_hito0.json"))
@@ -1383,12 +1388,12 @@ pruebasMoneda terrenos eco eds dorado = describe "reglas: moneda en el juego rea
     precio despues `shouldSatisfy` (< precio conMantas)
     cien despues `shouldSatisfy` (< cien conMantas)
 
-  it "con los bienes cargados y sin moneda designada, solo cambian las existencias, por la merma" $ do
+  it "con los bienes cargados y sin moneda designada, solo cambian las existencias y aparece la merma" $ do
     let jSin  = Reglas.Juego.juegoDatos constantesDefault dr { Reglas.Juego.drEconomia = economiaVacia }
         entSin = entornoSimple mapa
         sinEco = foldl' (\st t -> fst (paso jSin entSin (Semilla 1) (Tick t) [] st)) e0 [0 .. 420]
         conEco = correrDias 365 420 anio
-        esExistencias (Magnitud n) = "bien." `T.isPrefixOf` n && ".existencias" `T.isSuffixOf` n
+        esExistencias (Magnitud n) = "bien." `T.isPrefixOf` n && (".existencias" `T.isSuffixOf` n || ".merma" `T.isSuffixOf` n)
         sinExist st = Map.filterWithKey (\(_, m) _ -> not (esExistencias m)) (alm st)
         exist b st = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, magExistencias b) (alm st))
     sinExist conEco `shouldBe` sinExist sinEco
@@ -1442,3 +1447,100 @@ pruebasMoneda terrenos eco eds dorado = describe "reglas: moneda en el juego rea
     baseFaccion f2 magTesoro ini `shouldSatisfy` (/= baseFaccion f2 magTesoro ini0)
     baseFaccion f2 magTesoro fin `shouldBe` Fijo 0
     cerca 10 (baseFaccion f1 magTesoro fin) (baseFaccion f1 magTesoro ini .+. valorF2)
+
+-- | T16: la cosecha por estación y la troje que baja la merma del maíz.
+pruebasCosecha :: Map.Map Terreno DefTerreno -> Economia -> Edificios -> Spec
+pruebasCosecha terrenos eco eds = describe "reglas: cosecha por estación y troje (T16, hito 3)" $ do
+  ventanas <- runIO $ do
+    v <- A.eitherDecodeFileStrict "../../datos/terrenos.json"
+    case v of
+      Left e -> fail e
+      Right j -> case cargarCosechas "datos/terrenos.json" (bienesDe terrenos) j of
+        Validacion [] (Just cs) -> pure cs
+        Validacion errs _ -> fail (show (map errMensaje errs))
+  let mapa = conCostoDeTerreno terrenos (either (error . show) id (proveedorHexagonal datosMapa1475))
+      ent  = (entornoSimple mapa) { entEconomia = eco }
+      drCon vs = Reglas.Juego.datosVacios { Reglas.Juego.drTerrenos = terrenos, Reglas.Juego.drEdificios = eds
+                                          , Reglas.Juego.drEconomia = eco, Reglas.Juego.drCosechas = vs }
+      jCon vs = Reglas.Juego.juegoDatos constantesDefault (drCon vs)
+      j    = jCon ventanas
+      jPar = jCon Map.empty
+      conDerivado jj e = e { estadoDerivado = derivar jj (entGrafo ent) (estadoTick e) (estadoPersistente e) }
+      e0   = conDerivado j (conConocimientos eds estadoInicial1475)
+      correr jj desde hasta e = foldl' (\st t -> fst (paso jj ent (Semilla 1) (Tick t) [] st)) e [desde .. hasta]
+      alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
+      base m st = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, m) (alm st))
+      cal = comunCalendario (persistenteComun (estadoPersistente estadoInicial1475))
+      inicios desde hasta = [ t | t <- [desde .. hasta], esInicioDePeriodo cal (Tick t) ]
+      -- Lo producido de maíz en cada inicio de periodo de [desde, hasta].
+      cosechado jj desde hasta = snd (foldl' (\(st, xs) t -> let st' = fst (paso jj ent (Semilla 1) (Tick t) [] st)
+                                                           in (st', if esInicioDePeriodo cal (Tick t) then xs ++ [(t, base (magProduccion "maiz") st')] else xs))
+                                            (if desde == 0 then e0 else correr jj 0 (desde - 1) e0, []) [desde .. hasta])
+      suma = foldl' (.+.) (Fijo 0) . map snd
+      maiz = ecoBienes eco Map.! "maiz"
+      precioMaiz st = precioEn (ecoParams eco) (derivadoVigentes (estadoDerivado st)) (estadoTick st) (alm st) (entFac f1) maiz
+      ventanaMaiz = ventanas Map.! "maiz"
+
+  it "datos/terrenos.json: el maíz se cosecha del 15 de octubre al 30 de noviembre; los demás, todo el año" $ do
+    ventanas `shouldBe` Map.fromList [("maiz", Cosecha 288 334)]
+    diasVentana ventanaMaiz `shouldBe` 47
+    diasVentana (Cosecha 350 10) `shouldBe` 26
+    map (enVentana (Cosecha 350 10)) [349, 350, 365, 1, 10, 11] `shouldBe` [False, True, True, True, True, False]
+
+  it "una ventana con un bien que el territorio no produce o una fecha mala es un error, con su ruta" $ do
+    let malo = A.object [ "cosechas" A..= A.object
+                 [ "cacao" A..= A.object [ "desde" A..= ("10-15" :: Text), "hasta" A..= ("11-30" :: Text) ]
+                 , "maiz"  A..= A.object [ "desde" A..= ("13-01" :: Text), "hasta" A..= ("11-31" :: Text) ] ] ]
+    map errRuta (valErrores (cargarCosechas "x.json" (bienesDe terrenos) malo))
+      `shouldBe` ["cosechas.cacao", "cosechas.maiz.desde", "cosechas.maiz.hasta"]
+    valValor (cargarCosechas "x.json" [] (A.object [])) `shouldBe` Just Map.empty
+
+  it "ley: en un año se cosecha lo mismo que con la producción pareja (salvo el redondeo)" $ do
+    let parejo = suma (cosechado jPar 0 364)
+        porEstacion = suma (cosechado j 0 364)
+        Fijo dif = parejo .-. porEstacion
+        Fijo tol = parejo ./. fi 10000   -- una diezmilésima: el truncamiento del factor en punto fijo
+    parejo `shouldSatisfy` (> Fijo 0)
+    length (inicios 0 364) `shouldBe` 18
+    abs dif `shouldSatisfy` (<= tol)
+
+  it "fuera de la ventana no entra maíz; dentro entra más que en una veintena pareja" $ do
+    let porPeriodo = cosechado j 0 364
+        parejo = snd (head (cosechado jPar 0 0))
+        dia t = diaDelAnioVisible visible1475 inicio1475 (Tick t)
+        tocaVentana t = any (\k -> enVentana ventanaMaiz (dia (t + k))) [0 .. 24]
+    [ q | (t, q) <- porPeriodo, not (tocaVentana t) ] `shouldSatisfy` all (== Fijo 0)
+    [ q | (t, q) <- porPeriodo, tocaVentana t ] `shouldSatisfy` (\qs -> not (null qs) && maximum qs > parejo)
+    -- Los otros bienes siguen parejos.
+    base (magProduccion "pescado") (correr j 0 100 e0) `shouldBe` base (magProduccion "pescado") (correr jPar 0 100 e0)
+
+  it "el maíz es más caro la veintena antes de la cosecha que la siguiente" $ do
+    let anio = cosechado j 365 729
+        dia t = diaDelAnioVisible visible1475 inicio1475 (Tick t)
+        primera = head [ t | (t, q) <- anio, q > Fijo 0 ]
+        antes = last [ t | (t, _) <- anio, t < primera ]
+        enDia t = correr j 0 t e0
+    dia primera `shouldSatisfy` (\d -> d >= 268 && d <= 334)
+    precioMaiz (enDia antes) `shouldSatisfy` (> precioMaiz (enDia primera))
+
+  it "la troje baja la merma efectiva del maíz, y el desglose nombra la troje" $ do
+    let (conObra, _, rs) = aplicarCola j [Sellado (Tick 0) f1 0 (ConstruirEdificio "troje" (AltId 2) 300)] e0
+        hecha = correr j 0 800 conObra
+        x = alm hecha Map.! (entFac f1, magMerma "maiz")
+        efectiva = mermaEn (derivadoVigentes (estadoDerivado hecha)) (estadoTick hecha) (alm hecha) (entFac f1) maiz
+    rs `shouldBe` []
+    altEdificios (ppAltepetl (persistenteJuego (estadoPersistente hecha)) Map.! AltId 2) `shouldBe` ["troje"]
+    almacenBase x `shouldBe` bnMerma maiz
+    efectiva `shouldSatisfy` (< bnMerma maiz)
+    efectiva `shouldSatisfy` (> Fijo 0)
+    [ modFuente m | m <- almacenMods x ] `shouldBe` [fuenteEdificio "troje" (AltId 2)]
+
+  it "guardar a mitad de la cosecha y cargar: la partida sigue igual" $ do
+    let primera = head [ t | (t, q) <- cosechado j 0 364, q > Fijo 0 ]
+        mitad = correr j 0 (primera + 25) e0
+        cargado = either (error . show) id (cargar j mapa (guardar mitad))
+        seguir = correr j (primera + 26) (primera + 120)
+    alm (seguir cargado) `shouldBe` alm (seguir mitad)
+
+  it "los sistemas con cosechas, bienes y troje pasan validarOrdenSistemas salvo las dos lecturas del precio" $
+    length (validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j)) `shouldBe` 2 * Set.size (lecturasMoneda eco)

@@ -87,7 +87,7 @@ import Reglas.Escenario
 import Reglas.Estado (Purepecha, ppAltepetl, ppPops, jugableDe)
 import Reglas.Facciones (conAgentesNulos)
 import Reglas.Edificios (cargarEdificios, conConocimientos, edificiosVacios, idsEdificios)
-import Reglas.Produccion (bienesDe, validarBienesDelTerritorio)
+import Reglas.Produccion (bienesDe, cargarCosechas, catalogoBienes, validarBienesDelTerritorio)
 import Motor.Terrenos (DefTerreno (..), cargarTerrenos, conCostoDeTerreno, validarTerrenosDelMapa)
 import Motor.Recorrido (grafoDe)
 import Reglas.Grupos (cargarGrupos, conGrupos, gruposVacios, grIds)
@@ -159,16 +159,8 @@ main = do
         Left err -> fail ("grupos ilegibles (" <> ruta <> "): " <> err)
         Right v -> validado (cargarGrupos (T.pack ruta) v)
   unless (null (grIds grupos)) $ registro ("grupos de poder: " <> T.intercalate ", " (grIds grupos))
-  edificios <- case opcion "--edificios" "" of
-    "" -> pure edificiosVacios
-    ruta -> do
-      bs <- BL.readFile ruta
-      case A.eitherDecode bs of
-        Left err -> fail ("edificios ilegibles (" <> ruta <> "): " <> err)
-        Right v -> validado (cargarEdificios (T.pack ruta) RJ.catalogoMag v)
-  unless (null (idsEdificios edificios)) $ registro ("edificios: " <> T.intercalate ", " (idsEdificios edificios))
-  terrenos <- case opcion "--terrenos" "" of
-    "" -> pure Map.empty
+  (terrenos, cosechas) <- case opcion "--terrenos" "" of
+    "" -> pure (Map.empty, Map.empty)
     ruta -> do
       bs <- BL.readFile ruta
       case A.eitherDecode bs of
@@ -176,8 +168,20 @@ main = do
         Right v -> do
           t <- validado (cargarTerrenos (T.pack ruta) v)
           validado (validarTerrenosDelMapa (T.pack ruta) t mapaHex)
-          pure t
+          cs <- validado (cargarCosechas (T.pack ruta) (bienesDe t) v)
+          pure (t, cs)
   unless (Map.null terrenos) $ registro ("bienes del territorio: " <> T.intercalate ", " (bienesDe terrenos))
+  unless (Map.null cosechas) $ registro ("con cosecha por estación: " <> T.intercalate ", " (Map.keys cosechas))
+  -- Los edificios van después de los terrenos: sus modificadores pueden
+  -- apuntar a magnitudes de los bienes (la troje baja la merma del maíz).
+  edificios <- case opcion "--edificios" "" of
+    "" -> pure edificiosVacios
+    ruta -> do
+      bs <- BL.readFile ruta
+      case A.eitherDecode bs of
+        Left err -> fail ("edificios ilegibles (" <> ruta <> "): " <> err)
+        Right v -> validado (cargarEdificios (T.pack ruta) (Map.union RJ.catalogoMag (catalogoBienes (bienesDe terrenos))) v)
+  unless (null (idsEdificios edificios)) $ registro ("edificios: " <> T.intercalate ", " (idsEdificios edificios))
   -- --bienes datos/bienes_1475.json: qué bienes tienen precio y cuáles puede
   -- designar una facción como moneda (V5, *La moneda designada y la
   -- inflación*). Sin ella, nadie designa moneda y todo se cuenta en valor.
@@ -201,7 +205,7 @@ main = do
       grafoR = grafoDe mapaR
   let comandos = catalogoComandosConMonedas (idsEdificios edificios)
                    (Map.keys (Map.unions (map dtMateriales (Map.elems terrenos)))) designables
-      juego = RJ.juegoDatos constantesDefault (RJ.DatosReglas grupos edificios terrenos economia)
+      juego = RJ.juegoDatos constantesDefault (RJ.DatosReglas grupos edificios terrenos economia cosechas)
       -- --escala 7500x20: altépetl y pops de prueba para medir el costo a la
       -- escala del mapa completo (solo para la prueba de rendimiento del núcleo).
       (escN, escK) = case break (== 'x') (opcion "--escala" "") of

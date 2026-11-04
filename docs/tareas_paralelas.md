@@ -43,8 +43,19 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 
 | Ronda | Tarea | Área (archivos principales) | Depende de | Hito |
 | --- | --- | --- | --- | --- |
-| 5 | T16 Cosecha por estación y merma con troje | `motor`: `Moneda`; `reglas`: `Produccion`, `Constantes`; `datos/terrenos.json`, `datos/edificios.json` | merma | 3 |
+| 5 | T16 Cosecha por estación y merma con troje (hecha en `claude/cosecha-estacion`) | `motor`: `Moneda`; `reglas`: `Produccion`, `Constantes`; `datos/terrenos.json`, `datos/edificios.json` | merma | 3 |
 | 5 | T17 Mala cosecha y abrir las trojes | `reglas`: `Produccion`, efectos propios; `datos/guion_1475.json` | T16, T5, T14 | 3 / 10 |
+
+**Ronda 6: coerción, diplomacia e IA sencilla** (hito 7 de V5). Todas esperan a T13 y T14: sin varias facciones con altépetl y sin los efectos de transferir un altépetl y absorber una facción, la guerra no tiene sobre qué correr. Se adelanta al hito 6 (demografía) porque es lo que da decisiones al jugador sin eventos escritos; si se confirma el cambio de orden, se anota en la tabla de *Hitos* de V5. T18 y T21 pueden correr en paralelo; T19 espera a T18; T20 y T22 a T19 y T21; T23 cierra el hito.
+
+| Ronda | Tarea | Área (archivos principales) | Depende de | Hito |
+| --- | --- | --- | --- | --- |
+| 6 | T18 Ejércitos, leva y movimiento | `reglas`: `Estado`, `Comando`, `Sistemas`, `Produccion` | T13, T14 | 7 |
+| 6 | T19 Guerra: casus belli, combate, tregua y paz | `reglas`: `Formulas`, `Comando`, `Sistemas`, `Constantes` | T18 | 7 |
+| 6 | T20 Abasto, deserción, motín y asedio | `reglas`: `Sistemas`, `Constantes`; `cliente/` (ruta en rojo) | T19 | 7 |
+| 6 | T21 Vínculos entre facciones y propuestas | `reglas`: `Estado`, `Comando`; `motor`: decisiones pendientes | T13, T14 | 7 |
+| 6 | T22 IA sencilla: planificador, ejecutor y personalidades | `reglas`: agente; `datos/personalidades/`; `app` | T19, T21 | 7 |
+| 6 | T23 Rebeliones, incursiones, saqueo, requisa y guerra ritual | `reglas`: `Sistemas`, `Comando`; `datos/facciones/` | T20, T22 | 7 |
 
 ---
 
@@ -516,4 +527,193 @@ Haz:
 Pruebas: con la misma semilla, los mismos años malos; abrir las trojes baja las
 existencias exactamente lo consumido; con las trojes vacías, la opción se rechaza sin
 daño; el arnés del 0a (T11) cuenta la decisión. Rama: claude/mala-cosecha.
+```
+
+## T18. Ejércitos, leva y movimiento (reglas, hito 7; después de T13 y T14)
+
+```
+Tarea: que los ejércitos existan. Hoy `ReclutarEjercito` se rechaza con "no_implementado"
+y la partida de ejército del presupuesto (`pbEjercito`) se gasta sin comprar nada.
+
+Lee: V5 *Incursiones, saqueo, requisa y leva* (una sola mecánica para retirar gente:
+`retirar_trabajadores`), *Combate estratégico* (movimiento con el costo del grafo) y
+*Temporada de guerra y guerra ritual*; documento funcional, secciones 8, 12 y 13b
+(el ejército guarda cuántos guerreros vienen de cada asentamiento de origen).
+Reglas.Produccion ya implementa el retiro para la cuadrilla de obra.
+
+Haz:
+1. Entidad Ejercito en Reglas.Estado: id, facción, celda, tropas por origen, moral,
+   calidad, general (personaje opcional). Magnitudes `ejercito.<id>.moral` y
+   `ejercito.<id>.calidad` con su escritor declarado. Es estado almacenado.
+2. `reclutar_ejercito {altepetl, tropas}` usa `retirar_trabajadores` con motivo leva:
+   baja la producción del altépetl (más en temporada agrícola, con la estación de T16) y
+   da agravio si la leva es alta. Si el formato del comando cambia, actualiza el dorado
+   y explica la compatibilidad. `licenciar_ejercito` no está en el catálogo: si hace
+   falta para devolver a la gente, pregunta antes de añadirlo.
+3. `mover_ejercito {ejercito, destino}`: ruta de menor costo por el grafo (Motor.Mapa),
+   avance diario en el paso 2 según el costo de cada conexión. Ruta y llegada en días
+   de marcha, nunca en celdas.
+4. El mantenimiento sale de la partida de ejército del paso 5; la consulta de predicción
+   muestra cuánto cuesta y cuánto baja la producción antes de confirmar.
+5. Campaña fuera de temporada: los modificadores de V5 (producción, agravio, +25 % del
+   costo de mantenimiento), con fuente "campaña en temporada de siembra".
+
+Pruebas: la población se conserva al reclutar (lo retirado vuelve al licenciar); un
+ejército llega al destino en los días que da el grafo (ley contra Dijkstra por fuerza
+bruta en mapas pequeños); guardar a mitad de una marcha y cargar sigue igual. Mide con
+--escala 7500x20 y cientos de ejércitos. Rama: claude/ejercitos.
+```
+
+## T19. Guerra: casus belli, combate, tregua y paz (reglas, después de T18)
+
+```
+Tarea: declarar la guerra, combatir de forma automática y hacer la paz.
+
+Lee: V5 *Combate estratégico*, *Temporada de guerra y guerra ritual* y la fila de
+«Guerra con casus belli y treguas» en las palancas; documento funcional, sección 13
+(la fórmula `resolver_combate` y sus dos leyes) y 14b (transferir un altépetl, T14).
+
+Haz:
+1. `resolver_combate` como fórmula con nombre en Reglas.Formulas, exactamente con la
+   forma del documento funcional (fuerza efectiva, q, ruido con u de
+   `rng σ "combate" tick`, bajas con TASA_BAJAS y persecución). Constantes provisionales.
+2. Casus belli válidos como derivado de la veintena (no se guardan): tributo impagado,
+   alianza rota, guerra ritual. La guerra ritual queda para T23; aquí solo el tipo.
+3. `declarar_guerra {faccion, casus_belli | null}`: sin casus belli cuesta prestigio y
+   relación con todas las facciones (modificadores con fuente). Rechazo sin daño con
+   tregua vigente.
+4. Dos ejércitos enemigos en la misma celda combaten en el paso 2. Las muertes bajan el
+   pop de origen por los ajustes pendientes (un solo escritor de `pop.tamano`).
+5. `asaltar {ejercito, altepetl}`: combate contra la guarnición con la fortificación
+   como porcentaje del defensor; al ganar, la ocupación. La transferencia del altépetl
+   ocurre al firmar la paz con el efecto de T14, no al ocuparlo.
+6. `proponer_paz` crea la tregua de 10 veintenas (V5). La propuesta y la respuesta son
+   de T21: si T21 no está, la paz se acepta sola y lo anotas en el PR.
+7. Hechos `guerra_declarada`, `batalla`, `paz_firmada` en la tabla de la crónica.
+
+Pruebas: las dos leyes de la sección 13 (monotonía y simetría con el mismo u) con
+QuickCheck; una guerra sin casus belli baja el prestigio y el desglose lo dice; con
+tregua, declarar se rechaza sin cambiar el estado. Rama: claude/guerra.
+```
+
+## T20. Abasto, deserción, motín y asedio (reglas, después de T19)
+
+```
+Tarea: que un ejército se deshaga sin comida, sin paga o sin moral, y que las plazas se
+tomen por hambre.
+
+Lee: V5 *La coerción como cadena* completa; documento funcional, sección 13b completa.
+
+Haz:
+1. `ejercito.<id>.abasto` (reserva, escritor único: el sistema de abasto, cada día en
+   el paso 2 tras el movimiento) y `ejercito.<id>.flujo_abasto` (magnitud con aportes
+   con fuente: troje, fortaleza, camino, distancia en días, tamaño, temporada).
+2. Ruta al troje propio más cercano y su condición «abierta» por el control de cada
+   celda, evaluada cada día. Estado derivado (abastecido, forrajeo, hambre, disuelto),
+   nunca guardado.
+3. Forrajeo, hambre, deserción y disolución con la regla de los desertores: cerca de
+   casa vuelven (lealtad «campaña fallida»), lejos se asientan (misma operación que
+   `reubicar_pops`; si no existe todavía, se detiene y pregunta).
+4. Motín tras VEINTENAS_PARA_MOTIN sin paga; hecho `motin`.
+5. `asediar {ejercito, altepetl}`: corta el abasto de la plaza; la guarnición pierde moral
+   y `reservas_asedio`; rendición en 0. Hambre en la plaza, `asedio_levantado` si el
+   sitiador se disuelve. El relevo y `HacerSalida` siguen reservados.
+6. Cliente: la ruta de abasto en rojo cuando está cortada (sin lógica de juego).
+
+Pruebas: la población total se conserva salvo los muertos en combate y por hambre (ley);
+el forrajeo nunca sube la reserva por encima de UMBRAL_FORRAJEO; una fortaleza alarga
+un asedio y el desglose lo explica. Mide con --escala. Rama: claude/abasto-asedio.
+```
+
+## T21. Vínculos entre facciones y propuestas (reglas, hito 7; después de T13 y T14)
+
+```
+Tarea: tregua, alianza y tributo entre facciones como vínculos, y la respuesta a una
+propuesta como decisión pendiente.
+
+Lee: V5 *Vínculos y concesiones* (los tres planos y la tabla de vínculos);
+documento funcional, secciones 10 (decisiones pendientes) y 14c. En el catálogo,
+`ResponderPropuesta` puede adelantarse al hito 4 para paz y alianza.
+
+Haz:
+1. Vínculo como dato almacenado: partes, tipo (tregua, alianza, tributo), desde, hasta
+   opcional y fuente. Tipos declarados en datos, con exclusiones.
+2. `proponer_alianza`, `romper_alianza`, `exigir_tributo` y `responder_propuesta`. Para
+   el jugador, una propuesta recibida es una decisión pendiente con plazo; la IA
+   responde con el comando.
+3. `costo_ruptura` como fórmula con nombre, creciente con la antigüedad del vínculo.
+   Romper una alianza o no pagar un tributo da el casus belli correspondiente (T19).
+4. El tributo entre facciones mueve tesoro o bienes en su periodicidad, reutilizando el
+   tributo en especie entre altépetl con retraso y costo de transporte.
+5. Cada vínculo activo suma a `faccion.carga_administrativa` si la magnitud existe; si
+   no, anótalo como pendiente.
+`EnviarRegalos`, `EnviarEmbajada` y las concesiones quedan fuera: no inventes su forma.
+
+Pruebas: romper un vínculo viejo cuesta más que uno nuevo; una propuesta pendiente
+sobrevive a guardar y cargar; un tributo pactado se paga en su fecha y el desglose del
+tesoro lo nombra; un rechazo no cambia el estado. Rama: claude/vinculos.
+```
+
+## T22. IA sencilla: planificador, ejecutor y personalidades (después de T19 y T21)
+
+```
+Tarea: reemplazar el agente nulo de cada facción no jugable por las cuatro reglas de V5.
+
+Lee: V5 *La IA mínima* completa (dos niveles, el cerebro como módulo, la personalidad
+es un dato, la excepción de la Triple Alianza contra el reino) y *Temporada de guerra*
+(IA_FACTOR_TEMPORADA); documento funcional, sección 14 (planificar, ejecutar, la forma
+simple de la corrutina).
+
+Haz:
+1. `agenteIA :: Personalidad -> Agente ...` en reglas, con las cuatro reglas en el
+   planificador (cada veintena, `rng` "plan" facción veintena) y el ejecutor (cada
+   tick, `rng` "ejec" facción tick). Nunca muta el estado: devuelve plan y comandos,
+   que se validan igual que los del jugador.
+2. datos/personalidades/ con el esquema de V5 validado al cargar (un valor fuera de rango
+   falla con todos los errores acumulados); una personalidad por tipo de facción de
+   juguete, marcada "_provisional": true. Cada facción declara la suya.
+3. El plan vigente es estado almacenado y visible en modo de depuración con su motivo
+   legible («ataca a X porque su poder relativo es 1,4»); los cambios de plan pueden
+   ir a la crónica según la tabla de T2.
+4. La Triple Alianza contra el reino usa la fórmula de invasión de la sección 13
+   (revisada solo en temporada de guerra), no la regla 1.
+5. El arnés (T11 si existe; si no, `--sin-cliente --metricas`) informa por década:
+   guerras, alianzas, tributos, facciones activas y la mayor proporción del mapa en
+   manos de una facción.
+
+Criterio del hito 7 a medir aquí: en una campaña de 1418 a 1607 sin jugador hay guerras,
+alianzas y tributos en cada región, ninguna facción se queda con todo el mapa, y cada
+ataque se explica por poder relativo u oportunismo. Si no se cumple, el informe lo dice:
+no ajustes las reglas para que pase sin decirlo. Rama: claude/ia-sencilla.
+```
+
+## T23. Rebeliones, incursiones, saqueo, requisa y guerra ritual (cierra el hito 7)
+
+```
+Tarea: las formas de coerción que no son la guerra abierta entre facciones sedentarias.
+
+Lee: V5 *Incursiones, saqueo, requisa y leva*, *Temporada de guerra y guerra ritual*,
+*La coerción como cadena* (ocupación y la frontera chichimeca) y *Condición del
+altépetl*; documento funcional, sección 13 (probabilidad de rebelión, guerra ritual como
+restricción del combate) y la parte de condición del altépetl (rebelión triunfante y
+sometimiento).
+
+Haz:
+1. Rebelión: probabilidad por veintena con la fórmula de la sección 13; una rebelión
+   triunfante activa una facción desde la plantilla `senorio_independiente` (id nuevo,
+   nunca reutilizado) y el sometimiento la absorbe (efectos de T14).
+2. `saquear` y `requisar` sobre un altépetl ocupado, con los costos de la tabla de V5;
+   la requisa usa `retirar_trabajadores` con motivo requisa.
+3. Incursiones de las facciones de tipo bandas nómadas: sin abasto ni trojes, golpean
+   primero a la población dispersa; las fortalezas reducen su éxito en su radio.
+4. Guerra ritual: casus belli solo en temporada de guerra entre las parejas de
+   `guerra_ritual_entre` (dato), combate con bajas reducidas y prisioneros, sin cambio
+   de territorio, enfriamiento de 36 veintenas por pareja.
+5. Los prisioneros se cuentan; su destino ritual es del hito 8 (`DarDestinoPrisioneros`):
+   no lo adelantes.
+
+Pruebas: con legitimidad baja hay más rebeliones (misma semilla, ley de monotonía); una
+rebelión triunfante y su sometimiento conservan lo transferido (ley de T12); la guerra
+ritual nunca cambia de dueño un altépetl. Al terminar, repite la medición de T22 y
+actualiza la fila del hito 7 en V5. Rama: claude/coercion-menor.
 ```

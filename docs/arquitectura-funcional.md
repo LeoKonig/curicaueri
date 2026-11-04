@@ -630,6 +630,14 @@ con φ = `FRACCION_TRABAJADORA` y R_a los trabajadores retirados por leva o trab
 
 con g el gradiente de catolicismo, ℓ la lealtad y A el agravio, y siempre que ninguno tenga modificadores propios ni magnitudes distintas. k conserva su id; N_k ← N_k + N_p, y el gradiente, la lealtad y la base de cada magnitud quedan como la media ponderada x ← ⌊(x_k N_k + x_p N_p) / (N_k + N_p)⌋. Las magnitudes de p salen del almacén y el sistema emite `pops_fusionados` con el pop que queda y los absorbidos. El agravio tiene así dos escritores declarados: su sistema de veintena y la fusión. Leyes: el tamaño total de cada clave se conserva; las sumas ponderadas Σ N·x bajan menos de una unidad por persona de cada pop que absorbe; ningún pop de `FUSION_TAMANO` o más desaparece, ni ninguno con modificadores propios; con `FUSION_TAMANO` = 0, o sin dos pops pequeños compatibles, el estado no cambia.
 
+**Cosecha por estación** (`Reglas.Produccion`, T16). Un bien con ventana de cosecha [d₀, d₁] (días del año visible, 1 a 365, con el 29 de febrero como el 28; si d₀ > d₁, cruza el fin de año) no entra parejo. En el periodo que empieza en t, de largo L (20 días; el último del año lleva también los 5 nemontemi, así que los periodos cubren todos los días):
+
+```math
+Q'_t = Q_t \cdot \frac{P \cdot |\{k < L : \text{día}(t + k) \in [d_0, d_1]\}|}{|[d_0, d_1]|}
+```
+
+con P los periodos por año. La suma de un año es la de la producción pareja salvo el redondeo (ley de la sección 19). El factor es uno por bien y periodo, igual para todas las facciones: cuesta L lecturas de fecha por periodo, no por altépetl. La merma de cada bien es la magnitud `bien.<id>.merma` de la facción (base del catálogo, modificadores de las trojes), leída con `Motor.Moneda.mermaEn` tanto por la producción como por el paso monetario.
+
 **Producción: tierra y brazos, el factor escaso manda.** Cada celda c tiene un rendimiento y(c) cuando se trabaja completa y necesita ℓ(c) trabajadores para ello; las dos son magnitudes, así que el terreno, las terrazas, la erosión y la estación las mueven. Los trabajadores van primero a las mejores celdas: se ordenan las celdas asignadas K(a) por κ(c)·y(c)/ℓ(c) descendente, con empates por id, y se llenan en ese orden.
 
 ```math
@@ -1537,6 +1545,7 @@ Las reglas del diseño, escritas como propiedades. En un lenguaje puro, "la mism
 | Valor conservado al cambiar de cuenta | Designar, cambiar o retirar la moneda no cambia el valor real de las magnitudes nominales, salvo el redondeo (sección 14g) |
 | Merma de lo nominal | Con una moneda de merma μ, lo nominal tras k periodos sin flujos es n · (1 − μ)^k (con el mismo redondeo); con μ = 0 la partida es idéntica a la de antes de la merma |
 | Existencias acotadas | Con producción constante Q y merma μ > 0, las existencias se acercan a Q / μ y nunca la superan si empiezan por debajo |
+| Cosecha conservada | Con ventana de cosecha, lo producido en un año es lo de la producción pareja, salvo una diezmilésima de redondeo; sin ventana, la producción no cambia |
 | Nombramiento sin trinquete | Mientras dura un cargo, su aporte al poder del grupo es constante; al terminar el cargo, es 0 y sus modificadores emiten `modificador_terminado` (sección 14d) |
 | Facciones con rastro | Toda aparición emite `faccion_aparece` y toda desaparición `faccion_desaparece`; lo que tenía la facción llega a un destino declarado o se pierde por declaración; los ids no se reutilizan (sección 14b) |
 | Insumos en especie | Un insumo nunca se paga con valor; sin insumo ni sustituto, la actividad se rechaza sin cambiar el estado; la penalización es proporcional a la fracción que falta (sección 14h) |

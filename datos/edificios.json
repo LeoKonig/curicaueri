@@ -139,6 +139,12 @@
           "magnitud": "reservas_asedio",
           "sumar": "3",
           "formula": "lineal"
+        },
+        {
+          "entidad": "faccion",
+          "magnitud": "bien.maiz.merma",
+          "porcentaje": "-30",
+          "formula": "logaritmica"
         }
       ],
       "al_terminar": [
