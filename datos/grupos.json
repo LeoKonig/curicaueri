@@ -1,5 +1,5 @@
 {
-  "_nota": "Grupos de poder (V5, Política interna: grupos, consejo y reformas). No son facciones: comparten la bolsa de la suya. Las bases por tipo de facción son las ilustrativas de V5 y TODOS LOS NÚMEROS SON DE RELLENO hasta calibrarlos jugando. Los pretendientes de cada cargo también son de relleno (por verificar con la Relación de Michoacán): para el gobierno de un altépetl se eligió la tensión de V5 entre nombrar por linaje (nobleza guerrera) o por habilidad (administradores).",
+  "_nota": "Grupos de poder (V5, Política interna: grupos, consejo y reformas). No son facciones: comparten la bolsa de la suya. Las bases por tipo de facción son las ilustrativas de V5 (las de los tipos que no son el reino centralizado, de juguete para la campaña de 1418, sin fuente) y TODOS LOS NÚMEROS SON DE RELLENO hasta calibrarlos jugando. Los pretendientes de cada cargo también son de relleno (por verificar con la Relación de Michoacán): para el gobierno de un altépetl se eligió la tensión de V5 entre nombrar por linaje (nobleza guerrera) o por habilidad (administradores).",
   "version": 1,
   "grupos": ["nobleza_guerrera", "administradores", "sacerdocio", "mercaderes"],
   "bases": {
@@ -8,6 +8,48 @@
       "administradores":  {"poder": "40", "lealtad": "50"},
       "sacerdocio":       {"poder": "50", "lealtad": "60"},
       "mercaderes":       {"poder": "30", "lealtad": "50"}
+    },
+    "imperio_hegemonico": {
+      "nobleza_guerrera": {"poder": "65", "lealtad": "70"},
+      "administradores":  {"poder": "45", "lealtad": "55"},
+      "sacerdocio":       {"poder": "55", "lealtad": "60"},
+      "mercaderes":       {"poder": "45", "lealtad": "55"}
+    },
+    "senorio": {
+      "nobleza_guerrera": {"poder": "55", "lealtad": "65"},
+      "administradores":  {"poder": "30", "lealtad": "50"},
+      "sacerdocio":       {"poder": "45", "lealtad": "60"},
+      "mercaderes":       {"poder": "30", "lealtad": "50"}
+    },
+    "confederacion": {
+      "nobleza_guerrera": {"poder": "55", "lealtad": "65"},
+      "administradores":  {"poder": "35", "lealtad": "50"},
+      "sacerdocio":       {"poder": "45", "lealtad": "60"},
+      "mercaderes":       {"poder": "35", "lealtad": "50"}
+    },
+    "reino_dinastico": {
+      "nobleza_guerrera": {"poder": "60", "lealtad": "70"},
+      "administradores":  {"poder": "35", "lealtad": "50"},
+      "sacerdocio":       {"poder": "50", "lealtad": "60"},
+      "mercaderes":       {"poder": "35", "lealtad": "50"}
+    },
+    "banda_nomada": {
+      "nobleza_guerrera": {"poder": "70", "lealtad": "70"},
+      "administradores":  {"poder": "10", "lealtad": "50"},
+      "sacerdocio":       {"poder": "40", "lealtad": "60"},
+      "mercaderes":       {"poder": "10", "lealtad": "50"}
+    },
+    "colonial": {
+      "nobleza_guerrera": {"poder": "50", "lealtad": "60"},
+      "administradores":  {"poder": "60", "lealtad": "60"},
+      "sacerdocio":       {"poder": "40", "lealtad": "50"},
+      "mercaderes":       {"poder": "50", "lealtad": "60"}
+    },
+    "orden_religiosa": {
+      "nobleza_guerrera": {"poder": "20", "lealtad": "50"},
+      "administradores":  {"poder": "40", "lealtad": "60"},
+      "sacerdocio":       {"poder": "80", "lealtad": "80"},
+      "mercaderes":       {"poder": "20", "lealtad": "50"}
     }
   },
   "cargos": {
