@@ -271,8 +271,14 @@ instance (ToJSON (PlanDe s)) => ToJSON (Comun s) where
     , "monedas"    .= monedasAJson (comunMonedas c)
     , "fin"        .= comunFin c
     ]
+-- | El índice de la crónica no se guarda: se rehace al cargar. Con firma
+-- propia porque 'PlanDe' es una familia de tipos y, sin ella, GHC 9.8 no
+-- sabe a qué 's' se refiere la actualización del registro.
+conIndice :: Comun s -> Comun s
+conIndice c = c { comunOcurridos = indiceCronica (comunCronica c) }
+
 instance (FromJSON (PlanDe s)) => FromJSON (Comun s) where
-  parseJSON = withObject "Comun" $ \o -> fmap (\c -> c { comunOcurridos = indiceCronica (comunCronica c) }) $
+  parseJSON = withObject "Comun" $ \o -> fmap conIndice $
     Comun
       <$> (o .: "magnitudes" >>= almacenDeJson)
       <*> o .: "decisiones"

@@ -1573,6 +1573,7 @@ pruebasPropios gruposArchivo = describe "reglas: condiciones y efectos propios d
       alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
       -- Dos facciones (la 2 copia la 1, con los altépetl 11 a 13) y una
       -- tercera potencial.
+      f3Pot :: Estado Purepecha -> Estado Purepecha
       f3Pot st = let per = estadoPersistente st; p = persistenteJuego per
                      fa = (ppFacciones p Map.! f1) { facId = f3, facEstado = Potencial, facJugable = False, facNombre = "Futura" }
                  in st { estadoPersistente = per { persistenteJuego = p { ppFacciones = Map.insert f3 fa (ppFacciones p) } } }
@@ -1580,6 +1581,7 @@ pruebasPropios gruposArchivo = describe "reglas: condiciones y efectos propios d
       Validacion errs mg = cargarGuion (vocabularioDe le) "propios.json" inicio1475 guionPropios
       Just g = mg
       cond = siCondicion (head (guSituaciones g))
+      conDecision :: Estado Purepecha -> Estado Purepecha
       conDecision st = let per = estadoPersistente st; c = persistenteComun per
                            dp = DecisionPendiente 1 (PreguntaOpcion "opcion" ["nada", "tomar_zacapu", "tomar_la_cabecera", "senorio", "absorber", "activar"])
                                   (Reanudacion "frontera" "" 0 Map.empty)
@@ -1596,7 +1598,8 @@ pruebasPropios gruposArchivo = describe "reglas: condiciones y efectos propios d
 
   it "las condiciones leen el estado: soberano, facción activa y personaje vivo" $ do
     evaluarEn le base cond `shouldBe` True
-    let muerto = let per = estadoPersistente base; p = persistenteJuego per
+    let muerto :: Estado Purepecha
+        muerto = let per = estadoPersistente base; p = persistenteJuego per
                  in base { estadoPersistente = per { persistenteJuego = p { ppPersonajes = Map.adjust (\pe -> pe { perVivo = False }) (PerId 1) (ppPersonajes p) } } }
     evaluarEn le muerto cond `shouldBe` False
 

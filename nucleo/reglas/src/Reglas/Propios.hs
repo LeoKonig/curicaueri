@@ -125,4 +125,5 @@ efectosPropios gs ec = Map.fromList
         | Just a <- absorbente, a == f || not (activa e a) -> Left ("el absorbente " <> nombreFac a <> " no es otra facción activa")
         | otherwise -> Right (eliminarFaccionPor gs ec "evento" absorbente (estadoTick e) f e)
 
+    conJuego :: (Purepecha -> Purepecha) -> Estado Purepecha -> Estado Purepecha
     conJuego g e = let per = estadoPersistente e in e { estadoPersistente = per { persistenteJuego = g (persistenteJuego per) } }
