@@ -61,7 +61,7 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 
 | Ronda | Tarea | Área (archivos principales) | Depende de | Hito |
 | --- | --- | --- | --- | --- |
-| 7 | T24 Medidas reales y cifras de referencia | `datos/terrenos.json`, `datos/bienes_1475.json`, `datos/facciones/tutorial_1475.json`; `reglas`: `Produccion`, `Constantes`; `motor`: `Moneda` (rangos); `cliente/` (unidades) | T17 | 3 |
+| 7 | T24 Medidas reales y cifras de referencia (hecha en `claude/medidas-reales`) | `datos/terrenos.json`, `datos/bienes_1475.json`, `datos/facciones/tutorial_1475.json`; `reglas`: `Produccion`, `Constantes`; `motor`: `Moneda` (rangos); `cliente/` (unidades) | T17 | 3 |
 | 7 | T25 Subsistencia: cobertura, reserva y tributo en especie | `reglas`: `Produccion`, `Sistemas`, `Propios`, `Constantes`, sistema nuevo de subsistencia; `datos/guion_1475.json` | T24, T17 | 3 |
 
 ---
@@ -739,7 +739,8 @@ demografía, con sus fuentes y lo que está por verificar) y *Comer antes de tri
 documento funcional, secciones 12 (Unidades), 15 (rango y desbordamiento de Fijo) y 19.
 
 Haz:
-1. Bienes a granel en kg (maíz, pescado seco, sal, obsidiana, cobre), mantas en piezas,
+1. Bienes a granel en toneladas (maíz, pescado seco, sal, obsidiana, cobre; el kg se redondearía
+   a cero con cuatro decimales), mantas en piezas,
    madera y piedra en m³ o t (elige y anótalo). datos/bienes_1475.json: valor por kg,
    referencia y merma en esas unidades. Sube el rango de los bienes (hoy 10⁹) y comprueba
    al cargar que nada satura Fijo a la escala del juego completo.
