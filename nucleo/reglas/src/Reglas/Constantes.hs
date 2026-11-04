@@ -53,6 +53,9 @@ data Constantes = Constantes
   , cFusionGradiente       :: Fijo   -- FUSION_GRADIENTE: diferencia máxima de gradiente de catolicismo
   , cFusionLealtad         :: Fijo   -- FUSION_LEALTAD: diferencia máxima de lealtad, en puntos
   , cFusionAgravio         :: Fijo   -- FUSION_AGRAVIO: diferencia máxima de agravio, en puntos
+    -- El azar de la cosecha (V5, *Decisiones recurrentes*, Mala cosecha). PROVISIONALES.
+  , cCosechaMinima         :: Fijo   -- COSECHA_MINIMA: el peor año, como factor sobre la cosecha normal
+  , cCosechaMaxima         :: Fijo   -- COSECHA_MAXIMA: el mejor año
   } deriving (Eq, Show)
 
 constantesDefault :: Constantes
@@ -102,4 +105,9 @@ constantesDefault = Constantes
   , cFusionGradiente       = Fijo 500        -- 0,05, provisional
   , cFusionLealtad         = fi 10
   , cFusionAgravio         = fi 10
+    -- Un año de cosecha va de la mitad a una vez y media de lo normal, sorteado
+    -- parejo: el promedio es 1 y, a la larga, la producción no cambia. Un año
+    -- por debajo de 0,75 (uno de cada cuatro) es «mala cosecha». Provisional.
+  , cCosechaMinima         = Fijo 5000       -- 0,5
+  , cCosechaMaxima         = Fijo 15000      -- 1,5
   }

@@ -314,6 +314,7 @@ juegoDatos = juegoDatosEn visible1475 inicio1475
 juegoDatosEn :: CalendarioVisible -> Fecha -> Constantes -> DatosReglas -> Juego Purepecha Comando
 juegoDatosEn visible inicio c dr = let bienes = bienesDe (drTerrenos dr) in Juego
   { juegoSistemas    = [ facciones (drGrupos dr) (drEconomia dr), construccion c (drEconomia dr) (drEdificios dr)
+                       , azarCosecha c (Cosechas (drCosechas dr) visible inicio)
                        , produccion c (drEconomia dr) (Cosechas (drCosechas dr) visible inicio) bienes, hacienda c (drEconomia dr), evolucionAgravio c, fusion c ]
   , juegoAplicarCmd  = aplicarComando c dr
   , juegoDerivar     = \g _ p -> derivarPurepecha c dr g (persistenteJuego p)
