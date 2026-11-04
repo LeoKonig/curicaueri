@@ -22,6 +22,10 @@
 -- cuentan en la moneda: al designar, cambiar o retirar la moneda se convierten
 -- al tipo del día, sin ganar ni perder valor real. Después la inflación sí les
 -- quita valor: un tesoro guardado en una moneda que abunda vale cada vez menos.
+--
+-- Un bien perecedero tiene merma (@merma@, por periodo): el juego la aplica a
+-- sus existencias, y este módulo a las magnitudes nominales de quien lo tiene
+-- por moneda. Un tesoro guardado en maíz se pudre con el maíz; guardar cuesta.
 module Motor.Moneda
   ( -- * Bienes y parámetros
     Bien (..)
@@ -74,6 +78,7 @@ data Bien = Bien
   , bnReferencia  :: Fijo   -- ^ disponibilidad con la que la escasez vale 1
   , bnElasticidad :: Fijo   -- ^ de 0 (precio fijo) a 1 (proporcional a la escasez)
   , bnDesignable  :: Bool   -- ^ si puede designarse como moneda
+  , bnMerma       :: Fijo   -- ^ fracción de lo guardado que se pierde cada periodo, de 0 (no se estropea) a menos de 1
   } deriving (Eq, Show)
 
 data ParamsMoneda = ParamsMoneda
@@ -211,9 +216,12 @@ designarMoneda ec ent destino t e =
                                (Map.fromList [("moneda", b), ("anterior", maybe "" id actual)])])
 
 -- | Al empezar cada periodo, anota el precio de cada moneda designada y
--- actualiza precio, nivel de precios e inflación. Fuera de ese día, nada.
--- Va después de los sistemas (que mueven existencias y producción) y antes
--- del derivado.
+-- actualiza precio, nivel de precios e inflación; si la moneda tiene merma,
+-- lo nominal de la entidad (el tesoro) pierde esa fracción, como lo guardado
+-- del bien: n · (1 − merma). Fuera de ese día, nada. Va después de los
+-- sistemas (que mueven existencias y producción) y antes del derivado, así
+-- que la merma alcanza lo que hay al cerrar el periodo, con lo que entró en
+-- él.
 pasoMoneda :: Economia -> Tick -> Estado s -> Estado s
 pasoMoneda ec t e
   | Map.null monedas || not (esInicioDePeriodo cal t) = e
@@ -231,7 +239,16 @@ pasoMoneda ec t e
             em' = em { emHistorial = take (n + 1) ((t, p) : emHistorial em) }
             alm1 = escribirPrecio ent p alm
             alm2 = maybe alm1 (\i -> fijarBase ent magInflacion i alm1) (inflacionDe cal em')
-        in (Map.insert ent em' ms, alm2)
+            alm3 = mermarNominales (ecoParams ec) ent (bnMerma b) alm2
+        in (Map.insert ent em' ms, alm3)
+
+-- | Lo nominal de la entidad pierde la fracción @m@: n · (1 − m). Con
+-- merma 0 no cambia nada.
+mermarNominales :: ParamsMoneda -> EntRef -> Fijo -> Almacen -> Almacen
+mermarNominales pm ent m alm
+  | m <= Fijo 0 = alm
+  | otherwise = foldl' (\a mg -> Map.adjust (\x -> x { almacenBase = almacenBase x .*. (uno .-. m) }) (ent, mg) a)
+                       alm (pmNominales pm)
 
 escribirPrecio :: EntRef -> Fijo -> Almacen -> Almacen
 escribirPrecio ent p = fijarBase ent magNivelPrecios (uno ./. p) . fijarBase ent magPrecioMoneda p
@@ -250,7 +267,9 @@ conComun e f = let p = estadoPersistente e
 -- | Carga los bienes desde JSON y acumula todos los errores:
 --
 -- > {"horizonte": "6", "magnitudes_nominales": ["tesoro"], "bienes": [{"id": "plata", "valor": "2", "calidad_monetaria": "0.95",
--- >                                 "referencia": "2000", "elasticidad": "0.15", "designable": true}]}
+-- >                                 "referencia": "2000", "elasticidad": "0.15", "designable": true, "merma": "0"}]}
+--
+-- Sin @merma@, el bien no se estropea.
 cargarEconomia :: Text -> Value -> Validacion Economia
 cargarEconomia archivo v = case A.parseEither leer v of
   Left err -> falla (ErrorCarga ErrorEstructura archivo "" (T.pack err))
@@ -273,14 +292,18 @@ cargarEconomia archivo v = case A.parseEither leer v of
       Bien <$> o A..: "id" <*> o A..: "valor" <*> o A..: "calidad_monetaria"
            <*> o A..: "referencia" <*> o A..: "elasticidad"
            <*> (maybe False id <$> o A..:? "designable")
+           <*> (maybe (Fijo 0) id <$> o A..:? "merma")
     validar b =
       let ruta c = "bienes." <> bnId b <> "." <> c
           rango c lo hi x = if x >= lo && x <= hi then pure ()
                             else falla (ErrorCarga ErrorRango archivo (ruta c) "fuera de [0, 1]")
           positivo c x = if x > Fijo 0 then pure ()
                          else falla (ErrorCarga ErrorRango archivo (ruta c) "debe ser mayor que 0")
-      in (\_ _ _ _ -> b)
-           <$> positivo "valor" (bnValor b)
+          mermaOk = if bnMerma b >= Fijo 0 && bnMerma b < uno then pure ()
+                    else falla (ErrorCarga ErrorRango archivo (ruta "merma") "la merma va de 0 a menos de 1")
+      in (\_ _ _ _ _ -> b)
+           <$> mermaOk
+           <*> positivo "valor" (bnValor b)
            <*> rango "calidad_monetaria" (Fijo 0) uno (bnCalidad b)
            <*> positivo "referencia" (bnReferencia b)
            <*> rango "elasticidad" (Fijo 0) uno (bnElasticidad b)
