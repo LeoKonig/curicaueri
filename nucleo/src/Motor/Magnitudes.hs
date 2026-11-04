@@ -8,7 +8,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import Motor.Base
-import Data.Aeson (withText)
+import Data.Aeson (Value, withText)
 import qualified Data.Aeson as A
 
 -- | Un modificador aporta (sumando, porcentaje).
@@ -40,6 +40,9 @@ data Condicion
   | Todas [Condicion]
   | Alguna [Condicion]
   | No Condicion
+  | Ocurrio Text (Maybe Int)         -- ^ un hecho de ese tipo está en la crónica; con días, en los últimos d días
+  | Propia Text Value                -- ^ una condición que aporta el juego (soberano, facción activa…):
+                                     --   su nombre y sus argumentos, ya validados al cargar
   deriving (Eq, Show)
 
 data Alcance = AlcancePropia | AlcanceRuta | AlcanceCeldas
@@ -104,11 +107,33 @@ data DefMagnitud = DefMagnitud
 valorEn :: IntSet -> Tick -> RangoMag -> AlmacenMag -> Fijo
 valorEn vig t r x = valorEfectivo r (almacenBase x) (filter (cuentaEn vig t) (almacenMods x))
 
--- | Evalúa una condición sobre el almacén. Los valores que lee son efectivos,
--- con los modificadores condicionales que digan @vig@. Una magnitud que no
--- existe vale 0; si falta en el catálogo, no se acota.
-evaluarCondicion :: Map Magnitud DefMagnitud -> IntSet -> Tick -> Almacen -> Condicion -> Bool
-evaluarCondicion cat vig t alm = go
+-- | Lo que lee una condición: el almacén en el día @lcTick@, con los
+-- modificadores condicionales de @lcVigentes@; el último día en que cada tipo
+-- de hecho entró en la crónica; y las condiciones propias del juego, ya
+-- cerradas sobre el estado que leen. El motor no sabe qué es un soberano ni
+-- un personaje: solo pregunta por nombre.
+data LecturaCond = LecturaCond
+  { lcCatalogo  :: Map Magnitud DefMagnitud
+  , lcVigentes  :: IntSet
+  , lcTick      :: Tick
+  , lcAlmacen   :: Almacen
+  , lcOcurridos :: Map Text Tick          -- ^ tipo de hecho → último día en que entró en la crónica
+  , lcPropia    :: Text -> Value -> Bool  -- ^ una condición propia del juego; falsa si el juego no la conoce
+  }
+
+-- | Una lectura sin crónica ni condiciones propias, para quien solo mira
+-- magnitudes.
+lecturaSimple :: Map Magnitud DefMagnitud -> IntSet -> Tick -> Almacen -> LecturaCond
+lecturaSimple cat vig t alm = LecturaCond cat vig t alm Map.empty (\_ _ -> False)
+
+-- | Evalúa una condición. Los valores que lee son efectivos, con los
+-- modificadores condicionales de 'lcVigentes'. Una magnitud que no existe
+-- vale 0; si falta en el catálogo, no se acota. @ocurrio@ mira el último día
+-- en que su hecho entró en la crónica: sin días, basta con que haya entrado
+-- alguna vez; con @d@ días, tiene que haber entrado en los últimos @d@ (de
+-- t − d a t). Cuesta lo mismo con una crónica de diez entradas que de diez mil.
+evaluarCondicion :: LecturaCond -> Condicion -> Bool
+evaluarCondicion (LecturaCond cat vig t alm ocurridos propia) = go
   where
     sinRango = RangoMag (Fijo minBound) (Fijo maxBound)
     valor r m = case Map.lookup (r, m) alm of
@@ -122,6 +147,10 @@ evaluarCondicion cat vig t alm = go
       Todas cs    -> all go cs
       Alguna cs   -> any go cs
       No c'       -> not (go c')
+      Ocurrio h d -> case Map.lookup h ocurridos of
+        Nothing      -> False
+        Just (Tick u) -> let Tick tt = t in maybe True (\n -> tt - u <= fromIntegral n) d
+      Propia n v  -> propia n v
 
 -- | Id para un modificador nuevo: uno más que el mayor del almacén. Es
 -- determinista porque solo depende del almacén.

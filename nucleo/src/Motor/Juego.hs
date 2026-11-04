@@ -19,6 +19,7 @@ import Motor.Cronica (pasoCronica, pasoFin, terminada)
 import Motor.Moneda (pasoMoneda)
 import Motor.Sistema
 import Motor.Magnitudes
+import Motor.Propios
 import Motor.Vista (EntidadJuego)
 import Data.IntSet (IntSet)
 import qualified Data.IntSet as IntSet
@@ -55,7 +56,15 @@ data Juego s c = Juego
     --   juego. 'Nothing' es «no lo sé»: se proyecta todo.
   , juegoAgentes     :: Map FaccionId (Agente s c)
   , juegoCatalogoMag :: Map Magnitud DefMagnitud
+  , juegoCondiciones :: Map Text (CondicionPropia s)
+    -- ^ condiciones propias del guion (soberano, facción activa…), por nombre
+  , juegoEfectos     :: Map Text (EfectoPropio s)
+    -- ^ efectos propios del guion (transferir un altépetl, activar una facción…), por nombre
   }
+
+-- | Lo que el director necesita del juego: catálogo, condiciones y efectos.
+lenguajeDe :: Juego s c -> Lenguaje s
+lenguajeDe j = Lenguaje (juegoCatalogoMag j) (juegoCondiciones j) (juegoEfectos j)
 
 paso :: Juego s c -> Entorno -> Semilla -> Tick -> [Sellado c] -> Estado s -> (Estado s, [Hecho])
 paso j ent sigma t cmds s = let (s', hs, _) = pasoDetallado j ent sigma t cmds s in (s', hs)
@@ -90,18 +99,19 @@ pasoCompleto j ent sigma t cmdsJugador respuestas s00
     grafo = entGrafo ent
     -- Durante el paso, y al terminar, el estado está en el tick t: estadoTick
     -- es el último tick procesado. Antes nadie lo avanzaba y se quedaba en 0.
-    (sF, hsF)     = pasoFases (juegoCatalogoMag j) guion t s00 { estadoTick = t }
+    le            = lenguajeDe j
+    (sF, hsF)     = pasoFases le guion t s00 { estadoTick = t }
     (s0, hs0)     = pasoExpirar t sF
     (cmdsIA, s0') = pasoAgentes j sigma t s0
     (s1a, hs1, rechazos) = aplicarColaDetallada j (cmdsJugador ++ cmdsIA) s0'
     (s1, hsR, rechazosR) = foldl responder (s1a, [], []) respuestas
-    responder (e, hs, rs) r = case responderDecision guion (reDecision r) (reValor r) e of
+    responder (e, hs, rs) r = case responderDecision le guion (reDecision r) (reValor r) e of
       Right (e', hs') -> (e', hs ++ hs', rs)
       Left m          -> (e, hs, rs ++ [(r, Rechazo m)])
     (s2, hs2)     = correr sigma t (juegoSistemas j) s1
     (s3, hsV)     = pasoDerivar j grafo t (pasoMoneda (entEconomia ent) t s2)
-    (sFinal, hsD) = pasoDirector (juegoCatalogoMag j) guion (rng sigma "director" t) t s3
-    (sFin, hsFin)  = pasoFin (juegoCatalogoMag j) guion t sFinal
+    (sFinal, hsD) = pasoDirector le guion (rng sigma "director" t) t s3
+    (sFin, hsFin)  = pasoFin le guion t sFinal
     -- La crónica se escribe al final, con todos los hechos del tick (incluido
     -- el fin de la partida, si lo hubo).
     sCronica      = pasoCronica guion hechos sFin
@@ -183,7 +193,7 @@ aplicarColaDetallada j cmds s0 = foldl' aplicarUno (s0, [], []) (sortBy cmp cmds
 -- | El derivado completo: primero el del juego, luego qué modificadores
 -- condicionales están vigentes.
 derivar :: Juego s c -> Grafo -> Tick -> Persistente s -> Derivado s
-derivar j g t p = Derivado (vigentesEn (juegoCatalogoMag j) t p) (juegoDerivar j g t p)
+derivar j g t p = Derivado (vigentesEn (lenguajeDe j) t p) (juegoDerivar j g t p)
 
 -- | Los ids de los modificadores condicionales cuya condición se cumple en t.
 -- Las condiciones leen valores efectivos SIN los modificadores condicionales
@@ -192,14 +202,14 @@ derivar j g t p = Derivado (vigentesEn (juegoCatalogoMag j) t p) (juegoDerivar j
 -- el resultado dependería del orden de evaluación o de un punto fijo. Así el
 -- cálculo es una función pura de (t, persistente), que es lo que exige la ley
 -- del derivado reproducible (documento funcional, sección 4).
-vigentesEn :: Map Magnitud DefMagnitud -> Tick -> Persistente s -> IntSet
-vigentesEn cat t p = IntSet.fromList
+vigentesEn :: Lenguaje s -> Tick -> Persistente s -> IntSet
+vigentesEn le t p = IntSet.fromList
   [ modId m
   | x <- Map.elems alm
   , m <- almacenMods x
   , Just c <- [modCondicion m]
   , activoEn t m
-  , evaluarCondicion cat IntSet.empty t alm c ]
+  , evaluarCondicion (lecturaDe le IntSet.empty t p) c ]
   where alm = comunMagnitudes (persistenteComun p)
 
 -- | Al empezar el tick, los modificadores cuyo fin llegó se quitan del

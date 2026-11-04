@@ -18,7 +18,6 @@ module Motor.Cronica
   , pasoFin
   ) where
 
-import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (isJust)
 import Data.Sequence ((><))
@@ -29,7 +28,7 @@ import Motor.Director (evaluar)
 import Motor.Estado
 import Motor.Guion
 import Motor.Hechos
-import Motor.Magnitudes
+import Motor.Propios (Lenguaje)
 
 conComun :: (Comun s -> Comun s) -> Estado s -> Estado s
 conComun f e =
@@ -46,7 +45,8 @@ terminada = isJust . comunFin . persistenteComun . estadoPersistente
 pasoCronica :: Guion -> [Hecho] -> Estado s -> Estado s
 pasoCronica g hs e
   | null nuevas = e
-  | otherwise = conComun (\c -> c { comunCronica = comunCronica c >< Seq.fromList nuevas }) e
+  | otherwise = conComun (\c -> c { comunCronica = comunCronica c >< Seq.fromList nuevas
+                                  , comunOcurridos = Map.unionWith max (indiceCronica nuevas) (comunOcurridos c) }) e
   where
     nuevas =
       [ EntradaCronica (hechoTick h) (hechoTipo h) (hechoEntidades h) clave (hechoParams h)
@@ -56,7 +56,7 @@ pasoCronica g hs e
 -- termina. Una condición de derrota gana a la fecha si las dos se cumplen el
 -- mismo día, y entre las derrotas gana la primera. Una partida ya terminada no
 -- vuelve a terminar.
-pasoFin :: Map Magnitud DefMagnitud -> Guion -> Tick -> Estado s -> (Estado s, [Hecho])
+pasoFin :: Lenguaje s -> Guion -> Tick -> Estado s -> (Estado s, [Hecho])
 pasoFin cat g t@(Tick tt) e = case guFin g of
   Just f | not (terminada e), Just r <- razon f ->
     ( conComun (\c -> c { comunFin = Just (FinPartida t r) }) e

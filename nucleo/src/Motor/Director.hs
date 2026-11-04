@@ -30,7 +30,7 @@ import Motor.Efectos
 import Motor.Estado
 import Motor.Guion
 import Motor.Hechos
-import Motor.Magnitudes
+import Motor.Propios
 
 -- ---------------------------------------------------------------------------
 -- Estado del director dentro del estado
@@ -54,11 +54,10 @@ intensidad fuente e = Map.findWithDefault uno fuente (edIntensidades (director e
 -- Condiciones
 -- ---------------------------------------------------------------------------
 
--- | La condición, evaluada con los modificadores vigentes del derivado actual.
-evaluar :: Map Magnitud DefMagnitud -> Estado s -> Condicion -> Bool
-evaluar cat e =
-  evaluarCondicion cat (derivadoVigentes (estadoDerivado e)) (estadoTick e)
-                   (comunMagnitudes (persistenteComun (estadoPersistente e)))
+-- | La condición, evaluada con los modificadores vigentes del derivado
+-- actual, la crónica y las condiciones propias del juego.
+evaluar :: Lenguaje s -> Estado s -> Condicion -> Bool
+evaluar = evaluarEn
 
 -- ---------------------------------------------------------------------------
 -- Fases
@@ -73,7 +72,7 @@ evaluar cat e =
 -- Una fuente de presión que la nueva fase apaga deja de correr; lo que ya
 -- aportó vive en modificadores que expiran solos, así que su magnitud vuelve
 -- a la base sin saltos.
-pasoFases :: Map Magnitud DefMagnitud -> Guion -> Tick -> Estado s -> (Estado s, [Hecho])
+pasoFases :: Lenguaje s -> Guion -> Tick -> Estado s -> (Estado s, [Hecho])
 pasoFases cat g t@(Tick tt) e
   | null fases = (e, [])
   | otherwise =
@@ -101,19 +100,19 @@ faseEnCurso g e = case drop (edFase (director e)) (guFases g) of
 
 -- | Paso 17. Primero aplica la opción por omisión a las decisiones cuyo plazo
 -- venció; después decide si presenta una situación nueva y cuál.
-pasoDirector :: Map Magnitud DefMagnitud -> Guion -> Rng -> Tick -> Estado s -> (Estado s, [Hecho])
+pasoDirector :: Lenguaje s -> Guion -> Rng -> Tick -> Estado s -> (Estado s, [Hecho])
 pasoDirector cat g rng0 t e0 =
-  let (e1, hs1) = vencerPlazos g t e0
+  let (e1, hs1) = vencerPlazos cat g t e0
       (e2, hs2) = presentar cat g rng0 t e1
   in (e2, hs1 ++ hs2)
 
-vencerPlazos :: Guion -> Tick -> Estado s -> (Estado s, [Hecho])
-vencerPlazos g t e0 = foldl vencer (e0, []) vencidas
+vencerPlazos :: Lenguaje s -> Guion -> Tick -> Estado s -> (Estado s, [Hecho])
+vencerPlazos le g t e0 = foldl vencer (e0, []) vencidas
   where
     vencidas = [ i | (i, limite) <- Map.toAscList (edPlazos (director e0)), limite <= t ]
     vencer (e, hs) i =
       let pendiente = Map.lookup i (comunDecisiones (persistenteComun (estadoPersistente e)))
-          resolver respuesta = case responderDecision g i respuesta e of
+          resolver respuesta = case responderDecision le g i respuesta e of
             Right (e', hs') -> (e', hs ++ hs' ++ [Hecho "plazo_vencido" t [] (Map.fromList [("decision", tshow i), ("opcion", respuesta)])])
             Left _ -> (quitarPlazo i e, hs)
       in case pendiente of
@@ -126,7 +125,7 @@ vencerPlazos g t e0 = foldl vencer (e0, []) vencidas
 quitarPlazo :: Int -> Estado s -> Estado s
 quitarPlazo i e = let d = director e in conDirector d { edPlazos = Map.delete i (edPlazos d) } e
 
-presentar :: Map Magnitud DefMagnitud -> Guion -> Rng -> Tick -> Estado s -> (Estado s, [Hecho])
+presentar :: Lenguaje s -> Guion -> Rng -> Tick -> Estado s -> (Estado s, [Hecho])
 presentar cat g rng0 t@(Tick tt) e
   | null (guSituaciones g) = (e, [])
   | diasDesde < fromIntegral (pdEspaciado p) = (e, [])
@@ -185,8 +184,8 @@ presentar cat g rng0 t@(Tick tt) e
 -- opción, o dar la cantidad que pide un efecto de esa opción. La opción se
 -- ejecuta con el intérprete de efectos; si vuelve a preguntar algo, queda
 -- otra decisión pendiente.
-responderDecision :: Guion -> Int -> Text -> Estado s -> Either Rechazo' (Estado s, [Hecho])
-responderDecision g i respuesta e = do
+responderDecision :: Lenguaje s -> Guion -> Int -> Text -> Estado s -> Either Rechazo' (Estado s, [Hecho])
+responderDecision le g i respuesta e = do
   dp <- maybe (Left "decisión no encontrada") Right
           (Map.lookup i (comunDecisiones (persistenteComun (estadoPersistente e))))
   let rn = dpReanudacion dp
@@ -198,11 +197,11 @@ responderDecision g i respuesta e = do
       | respuesta `notElem` opciones -> Left ("opción inválida: " <> respuesta)
       | otherwise -> do
           prog <- maybe (Left "opción sin programa") Right (lookup respuesta (siOpciones s))
-          pure (interpretar (siId s) respuesta prog 0 Map.empty e0)
+          pure (interpretar (leEfectos le) (siId s) respuesta prog 0 Map.empty e0)
     PreguntaCantidad _ lo hi -> case reads (T.unpack respuesta) of
       [(n, "")] | n >= lo && n <= hi -> do
         prog <- maybe (Left "opción sin programa") Right (lookup (rnOpcion rn) (siOpciones s))
-        pure (reanudar (CEntero n) dp prog e0)
+        pure (reanudar (leEfectos le) (CEntero n) dp prog e0)
       _ -> Left ("cantidad fuera de rango (" <> tshow lo <> " a " <> tshow hi <> ")")
   let resuelta = Hecho "situacion_resuelta" (estadoTick e) []
                    (Map.fromList [("situacion", siId s), ("decision", tshow i), ("respuesta", respuesta)])
