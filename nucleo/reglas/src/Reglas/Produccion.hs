@@ -196,8 +196,17 @@ totalProduccion = foldl' (.+.) (Fijo 0) . Map.elems
 -- altépetl de la misma, así que lo que un sujeto entrega a su cabecera no
 -- sale de la bolsa común. Se moverá cuando haya existencias por altépetl o
 -- tributo entre facciones.
-produccion :: Constantes -> [Text] -> Sistema Purepecha
-produccion c bienes = Sistema
+--
+-- Lo guardado se estropea: antes de sumar lo producido, las existencias de un
+-- bien con merma (@datos/bienes_<escenario>.json@) pierden esa fracción,
+--
+-- > existencias' = existencias · (1 − merma) + producción
+--
+-- así que, con producción constante, se acercan a producción / merma en vez
+-- de crecer sin fin, y el precio de la moneda se estabiliza.
+-- Sin economía, o con merma 0, todo sigue como antes.
+produccion :: Constantes -> Economia -> [Text] -> Sistema Purepecha
+produccion c ec bienes = Sistema
   { sisNombre   = NombreSistema "produccion"
   , sisCadencia = Periodo
   , sisLee      = Set.singleton magProduccionAlt
@@ -218,8 +227,14 @@ produccion c bienes = Sistema
                      , let f = facDeAlt p alt, Just fa <- [Map.lookup f (ppFacciones p)], facEstado fa == Activa ]
           total f = Map.unionsWith (.+.) (Map.fromList [ (b, Fijo 0) | b <- bienes ]
                                           : [Map.findWithDefault Map.empty f porFac])
-          escribir f alm (b, q) =
-            sumarBase (entFac f) (magExistencias b) q (fijarBase (entFac f) (magProduccion b) q alm)
+          merma b = maybe (Fijo 0) bnMerma (Map.lookup b (ecoBienes ec))
+          guardado f b alm = maybe (Fijo 0) almacenBase (Map.lookup (entFac f, magExistencias b) alm)
+          escribir f alm (b, q)
+            | merma b <= Fijo 0 =
+                sumarBase (entFac f) (magExistencias b) q (fijarBase (entFac f) (magProduccion b) q alm)
+            | otherwise =
+                fijarBase (entFac f) (magExistencias b) (guardado f b alm .*. (uno .-. merma b) .+. q)
+                  (fijarBase (entFac f) (magProduccion b) q alm)
           alm' = foldl' (\a fa -> foldl' (escribir (facId fa)) a
                                           (Map.toList (Map.filterWithKey (\b _ -> b `elem` bienes) (total (facId fa)))))
                         (comunMagnitudes com) (activas p)
