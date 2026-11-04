@@ -77,6 +77,7 @@ import Motor.Estado
 import Motor.Hechos
 import Motor.Juego (Rechazo (..), hechoModificadorTerminado)
 import Motor.Magnitudes
+import Motor.Moneda (Economia, enCuenta)
 import Motor.Recorrido (Etiqueta (..), Cupo (..), Grafo, grafoMapa, primera, propagar, propagarGrafo)
 import Motor.Sistema
 import Reglas.Base
@@ -84,7 +85,7 @@ import Reglas.Constantes
 import Reglas.Estado
 import Reglas.Formulas (gastoPunto)
 import Reglas.Grupos (agregarVarios)
-import Reglas.Produccion (produccionCeldas, trabajadoresDe)
+import Reglas.Produccion (lecturasMoneda, produccionCeldas, trabajadoresDe)
 
 -- ---------------------------------------------------------------------------
 -- Datos
@@ -529,11 +530,13 @@ trabajadoresPara falta = go falta 0
                                `div` (fromIntegral yv * fromIntegral escala) :: Integer
                     in acc + fromIntegral need
 
--- | Empieza una obra: valida, cobra el costo en valor del tesoro y deja la
--- obra en curso con su cuadrilla. Un rechazo no cambia el estado.
-iniciarObra :: Constantes -> Edificios -> FaccionId -> Text -> AltId -> Int -> Estado Purepecha
+-- | Empieza una obra: valida, cobra el costo del tesoro y deja la obra en
+-- curso con su cuadrilla. El costo está en valor y se cobra al tipo del día
+-- ('enCuenta'): en la moneda de la facción, si designó una. Un rechazo no
+-- cambia el estado.
+iniciarObra :: Constantes -> Economia -> Edificios -> FaccionId -> Text -> AltId -> Int -> Estado Purepecha
             -> Either Rechazo (Estado Purepecha, [Hecho])
-iniciarObra c eds fac eid alt cuadrilla est = do
+iniciarObra c eco eds fac eid alt cuadrilla est = do
   d <- maybe (Left (Rechazo ("edificio desconocido: " <> eid))) Right (Map.lookup eid (edDefs eds))
   a <- maybe (Left (Rechazo "el altépetl no existe")) Right (Map.lookup alt (ppAltepetl jue))
   if altFaccion a /= fac then Left (Rechazo (altNombre a <> " no es de tu facción")) else Right ()
@@ -563,18 +566,25 @@ iniciarObra c eds fac eid alt cuadrilla est = do
                      <> ", mínimo " <> mostrarFijo dmin))
     _ -> Right ()
   let tesoro = baseFaccion fac magTesoro est
-  if tesoro < deCostoValor d
-    then Left (Rechazo ("no alcanza el tesoro: " <> eid <> " cuesta " <> mostrarFijo (deCostoValor d)
+      costo  = enCuenta eco (estadoTick est) est (entFac fac) (deCostoValor d)
+  if tesoro < costo
+    then Left (Rechazo ("no alcanza el tesoro: " <> eid <> " cuesta " <> mostrarFijo costo <> unidadDe fac est
                         <> " y hay " <> mostrarFijo tesoro))
     else Right ()
   let obra = Obra eid 0 (deVeintenas d) (if conCuadrilla d then cuadrilla else 0) (Fijo 0) Map.empty Map.empty []
       jue' = jue { ppAltepetl = Map.insert alt a { altObra = Just obra } (ppAltepetl jue) }
-      alm' = sumarBase (entFac fac) magTesoro (negarF (deCostoValor d)) (comunMagnitudes com)
+      alm' = sumarBase (entFac fac) magTesoro (negarF costo) (comunMagnitudes com)
   pure (est { estadoPersistente = p { persistenteJuego = jue', persistenteComun = com { comunMagnitudes = alm' } } }, [])
   where
     p   = estadoPersistente est
     jue = persistenteJuego p
     com = persistenteComun p
+
+-- | « mantas» si la facción designó las mantas como moneda; nada si cuenta
+-- en valor. Para que un rechazo diga en qué está el costo.
+unidadDe :: FaccionId -> Estado Purepecha -> Text
+unidadDe fac est = maybe "" ((" " <>) . emMoneda)
+  (Map.lookup (entFac fac) (comunMonedas (persistenteComun (estadoPersistente est))))
 
 -- | El sistema de construcción (paso 10, cada veintena). Primero avanza las
 -- obras en orden de altépetl: recibe el tributo en especie que llega y cobra
@@ -584,11 +594,14 @@ iniciarObra c eds fac eid alt cuadrilla est = do
 -- cada altépetl que tiene alguno. Es el único que añade o cambia
 -- modificadores de edificio y el único que escribe la base de lo que sumen
 -- los efectos al terminar (el prestigio).
-construccion :: Constantes -> Edificios -> Sistema Purepecha
-construccion c eds = Sistema
+construccion :: Constantes -> Economia -> Edificios -> Sistema Purepecha
+construccion c eco eds = Sistema
   { sisNombre   = NombreSistema "construccion"
   , sisCadencia = Periodo
-  , sisLee      = Set.empty
+    -- El precio de la moneda, para el transporte: corre antes que la
+    -- producción, así que cobra al de la veintena anterior, el que ve el
+    -- jugador (validarOrdenSistemas lo avisa, y una prueba lo fija).
+  , sisLee      = lecturasMoneda eco
   , sisEscribe  = Set.fromList (magTesoro : map (magTacito . cnId) (edConocimientos eds)
                                 ++ [ dmeMagnitud m | d <- Map.elems (edDefs eds), m <- deMods d ]
                                 ++ [ m | d <- Map.elems (edDefs eds), SumarBase _ m _ <- deAlTerminar d ])
@@ -604,16 +617,16 @@ construccion c eds = Sistema
           enObra = [ (altId a, o) | a <- Map.elems (ppAltepetl jue), Just o <- [altObra a] ]
           paso (e, hs0, rs) (alt, o) =
             let f = facDeAlt jue alt
-                (e', hs', r') = avanzar c eds (Map.findWithDefault False f umbrales) f
+                (e', hs', r') = avanzar c eco eds (Map.findWithDefault False f umbrales) f
                                         (e, hs0, Map.findWithDefault (Fijo 0) f rs) (alt, o)
             in (e', hs', Map.insert f r' rs)
           (est1, hs, _) = foldl' paso (est, [], partidas) enObra
       in (recalcularBeneficios eds est1, hs)
   }
 
-avanzar :: Constantes -> Edificios -> Bool -> FaccionId -> (Estado Purepecha, [Hecho], Fijo) -> (AltId, Obra)
+avanzar :: Constantes -> Economia -> Edificios -> Bool -> FaccionId -> (Estado Purepecha, [Hecho], Fijo) -> (AltId, Obra)
         -> (Estado Purepecha, [Hecho], Fijo)
-avanzar c eds umbral fac (est, hs, restante) (alt, o) = case Map.lookup (obEdificio o) (edDefs eds) of
+avanzar c eco eds umbral fac (est, hs, restante) (alt, o) = case Map.lookup (obEdificio o) (edDefs eds) of
   -- Un edificio que desapareció de los datos (un guardado con otro archivo):
   -- la obra se termina sin efectos, para no quedar colgada.
   Nothing -> (conObra Nothing [] est, hs, restante)
@@ -628,13 +641,15 @@ avanzar c eds umbral fac (est, hs, restante) (alt, o) = case Map.lookup (obEdifi
             eta = max (Fijo 1) (productividad est fac d)
             -- 1. Llegan las entregas de tributo cuyo día llegó, si el tesoro
             --    paga su transporte; si no, esperan a la veintena siguiente.
+            --    El costo se anotó en valor al enviar y se cobra al tipo del
+            --    día de la llegada ('enCuenta').
             llegar (e, acop, quedan) en
               | enLlega en > t = (e, acop, quedan ++ [en])
-              | baseFaccion fac magTesoro e < enCosto en = (e, acop, quedan ++ [en])
+              | baseFaccion fac magTesoro e < transporte e en = (e, acop, quedan ++ [en])
               | otherwise =
                   let m = Map.findWithDefault (Fijo 0) (enMaterial en) (deMateriales d)
                       ya = Map.findWithDefault (Fijo 0) (enMaterial en) acop
-                  in (pagar (enCosto en) e, Map.insert (enMaterial en) (min m (ya .+. enCantidad en)) acop, quedan)
+                  in (pagar (transporte e en) e, Map.insert (enMaterial en) (min m (ya .+. enCantidad en)) acop, quedan)
             (est1, acopio1, enCamino1) = foldl' llegar (est, obAcopio o, []) (obEnCamino o)
             enCaminoDe g ec = foldl' (.+.) (Fijo 0) [ enCantidad en | en <- ec, enMaterial en == g ]
             faltaDe g acop ec = Map.findWithDefault (Fijo 0) g (deMateriales d)
@@ -678,6 +693,7 @@ avanzar c eds umbral fac (est, hs, restante) (alt, o) = case Map.lookup (obEdifi
              then terminarSi d o' restante est1
              else terminarSi d o' { obAvance = obAvance o + 1, obTrabajo = trabajo' } restante' est1
   where
+    transporte e en = enCuenta eco (estadoTick e) e (entFac fac) (enCosto en)
     pagar costo e = let p = estadoPersistente e; com = persistenteComun p
                     in e { estadoPersistente = p { persistenteComun = com { comunMagnitudes =
                              sumarBase (entFac fac) magTesoro (negarF costo) (comunMagnitudes com) } } }

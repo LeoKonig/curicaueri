@@ -15,6 +15,7 @@ import Motor.Estado
 import Motor.Hechos
 import Motor.Juego
 import Motor.Magnitudes
+import Motor.Moneda (Economia (..), economiaVacia, designarMoneda, magPrecioMoneda, magNivelPrecios, magInflacion)
 import Motor.Vista
 
 import Reglas.Base
@@ -61,10 +62,13 @@ data DatosReglas = DatosReglas
   { drGrupos    :: Grupos
   , drEdificios :: Edificios
   , drTerrenos  :: Map.Map Terreno DefTerreno   -- ^ lo que rinde cada terreno; vacía, nada se produce
+  , drEconomia  :: Economia                     -- ^ los bienes que pueden ser moneda (@datos/bienes_1475.json@);
+                                                --   vacía, nadie designa moneda y todo se cuenta en valor.
+                                                --   Es la misma que lleva el 'Motor.Guion.Entorno' para 'pasoMoneda'.
   }
 
 datosVacios :: DatosReglas
-datosVacios = DatosReglas gruposVacios edificiosVacios Map.empty
+datosVacios = DatosReglas gruposVacios edificiosVacios Map.empty economiaVacia
 
 -- | Aplica un comando de la facción que lo sella (@sellFaccion@). Un comando
 -- de una facción que no existe o no está activa se rechaza; los que nombran
@@ -114,8 +118,14 @@ aplicarComando c dr est sell = do
       case altGobernador a of
         Nothing -> Left (Rechazo (altNombre a <> " no tiene gobernador"))
         Just _  -> Right (quitarNombramiento gs (sellTick sell) alt est)
-    ConstruirEdificio e alt n -> iniciarObra c (drEdificios dr) fid e alt n est
+    ConstruirEdificio e alt n -> iniciarObra c (drEconomia dr) (drEdificios dr) fid e alt n est
     PedirTributoObra alt g f n -> pedirTributo c (drEdificios dr) fid alt g f n est
+    -- Designar, cambiar o retirar la moneda (V5, *La moneda designada y la
+    -- inflación*): el motor convierte el tesoro al tipo del día y rechaza sin
+    -- tocar el estado un bien que no existe, que no es designable o que ya es
+    -- la moneda, y retirar cuando no hay ninguna.
+    DesignarMoneda mb -> either (Left . Rechazo) Right
+                           (designarMoneda (drEconomia dr) (entFac fid) mb (sellTick sell) est)
   where
     gs = drGrupos dr
     p  = persistenteJuego (estadoPersistente est)
@@ -247,11 +257,15 @@ proyectarPop pop = EntidadJuego (entRefPop (popId pop)) (Just (entRefAlt (popAlt
   , ("lealtad",   VFijo   (popLealtad pop))
   ])
 
+-- | La facción, con su moneda: el bien en que se cuenta el tesoro, o nulo si
+-- se cuenta en unidades de valor.
 proyectarFaccion :: Estado Purepecha -> FaccionId -> EntidadJuego
 proyectarFaccion est f = EntidadJuego (entFac f) Nothing (Map.fromList
   [ ("tesoro",      VFijo (baseFaccion f magTesoro est))
   , ("prestigio",   VFijo (baseFaccion f magPrestigio est))
   , ("legitimidad", VFijo (baseFaccion f magLegitimidad est))
+  , ("moneda",      maybe VNulo (VTexto . emMoneda)
+                      (Map.lookup (entFac f) (comunMonedas (persistenteComun (estadoPersistente est)))))
   ])
 
 textoFijo :: Fijo -> Text
@@ -287,8 +301,8 @@ juegoCon c gs = juegoDatos c datosVacios { drGrupos = gs }
 -- cada pop recibe su agravio de la veintena antes de juntarse.
 juegoDatos :: Constantes -> DatosReglas -> Juego Purepecha Comando
 juegoDatos c dr = let bienes = bienesDe (drTerrenos dr) in Juego
-  { juegoSistemas    = [ facciones (drGrupos dr), construccion c (drEdificios dr), produccion c bienes
-                       , hacienda c, evolucionAgravio c, fusion c ]
+  { juegoSistemas    = [ facciones (drGrupos dr) (drEconomia dr), construccion c (drEconomia dr) (drEdificios dr)
+                       , produccion c bienes, hacienda c (drEconomia dr), evolucionAgravio c, fusion c ]
   , juegoAplicarCmd  = aplicarComando c dr
   , juegoDerivar     = \g _ p -> derivarPurepecha c dr g (persistenteJuego p)
   , juegoProyectar   = proyectar
@@ -296,5 +310,17 @@ juegoDatos c dr = let bienes = bienesDe (drTerrenos dr) in Juego
   , juegoSucias      = sucias
   , juegoAgentes     = Map.empty
   , juegoCatalogoMag = Map.unions [ catalogoMag, catalogoGrupos (drGrupos dr), catalogoBienes bienes
-                                  , catalogoConocimientos (drEdificios dr) ]
+                                  , catalogoConocimientos (drEdificios dr), catalogoMoneda (drEconomia dr) ]
   }
+
+-- | Las tres magnitudes que escribe 'Motor.Moneda.pasoMoneda' en la facción
+-- que designó moneda, para que el cliente las muestre con su clave. Sin
+-- bienes en la economía nadie las tiene y no se declaran.
+catalogoMoneda :: Economia -> Map.Map Magnitud DefMagnitud
+catalogoMoneda ec
+  | Map.null (ecoBienes ec) = Map.empty
+  | otherwise = Map.fromList
+      [ (m, DefMagnitud n r ("m." <> n) Nothing False)
+      | (m@(Magnitud n), r) <- [ (magPrecioMoneda, positivo), (magNivelPrecios, positivo)
+                               , (magInflacion, RangoMag (fi (-1000000)) (fi 1000000)) ] ]
+  where positivo = RangoMag (Fijo 0) (fi 1000000000)

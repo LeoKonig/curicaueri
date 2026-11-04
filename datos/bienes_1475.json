@@ -1,0 +1,14 @@
+{
+  "_nota": "Catálogo de bienes del escenario de 1475 (V5, La moneda designada y la inflación, decisión 3; documento funcional, sección 14g). TODOS LOS PARÁMETROS SON DE RELLENO: se fijan con fuentes y se calibran en el hito 11. Son los seis bienes que produce el territorio (datos/terrenos.json); la carga falla si alguno no lo es. En 1475 la economía es tributaria y ninguna moneda viene designada: designar es una palanca opcional del jugador (comando designar_moneda). Designables: las mantas, como medio de pago del tributo y del mercado, y el cobre, por las hachas-moneda del Occidente de México; ambas por verificar con fuentes antes de fijar sus parámetros. El cacao entra si las fuentes confirman su circulación en Michoacán. Precio de un bien: valor · calidad_monetaria · (referencia / disponible) ^ elasticidad, con disponible = existencias + producción por veintena · horizonte. Mientras nada consuma bienes, las existencias solo crecen y cualquier moneda designada se abarata año con año: el tesoro guardado en ella pierde valor. El tesoro (magnitudes_nominales) se cuenta en la moneda; los ingresos y los costos se calculan en valor y pasan a la moneda al tipo del día.",
+  "_provisional": true,
+  "horizonte": "6",
+  "magnitudes_nominales": ["tesoro"],
+  "bienes": [
+    {"id": "maiz",      "valor": "0.1",  "calidad_monetaria": "0.2", "referencia": "20000", "elasticidad": "0.8", "designable": false},
+    {"id": "pescado",   "valor": "0.15", "calidad_monetaria": "0.1", "referencia": "10000", "elasticidad": "0.8", "designable": false},
+    {"id": "sal",       "valor": "0.5",  "calidad_monetaria": "0.5", "referencia": "2000",  "elasticidad": "0.4", "designable": false},
+    {"id": "obsidiana", "valor": "0.8",  "calidad_monetaria": "0.4", "referencia": "1500",  "elasticidad": "0.4", "designable": false},
+    {"id": "mantas",    "valor": "1",    "calidad_monetaria": "0.6", "referencia": "2000",  "elasticidad": "0.5", "designable": true},
+    {"id": "cobre",     "valor": "5",    "calidad_monetaria": "0.8", "referencia": "300",   "elasticidad": "0.3", "designable": true}
+  ]
+}

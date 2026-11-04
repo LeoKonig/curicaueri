@@ -41,20 +41,24 @@ import Motor.Estado
 import Motor.Hechos
 import Motor.Juego
 import Motor.Magnitudes
+import Motor.Moneda (Economia, aValor, enCuenta)
 import Motor.Sistema
 import Reglas.Base
 import Reglas.Comando (Comando)
 import Reglas.Estado
 import Reglas.Grupos
+import Reglas.Produccion (lecturasMoneda)
 
 -- | El sistema de facciones (paso 13, cada veintena). Escribe el tesoro (al
 -- transferirlo) y los modificadores de los nombramientos de los altépetl que
 -- cambian de facción (en los grupos de la facción nueva).
-facciones :: Grupos -> Sistema Purepecha
-facciones gs = Sistema
+facciones :: Grupos -> Economia -> Sistema Purepecha
+facciones gs ec = Sistema
   { sisNombre   = NombreSistema "facciones"
   , sisCadencia = Periodo
-  , sisLee      = Set.empty
+    -- El precio de las monedas, para el traspaso de tesoro: el de la
+    -- veintena anterior, porque corre antes que la producción.
+  , sisLee      = lecturasMoneda ec
   , sisEscribe  = Set.singleton magTesoro
   , sisEjecutar = \_ est ->
       let t  = estadoTick est
@@ -67,7 +71,7 @@ facciones gs = Sistema
           -- Primero las que aparecen: una absorbente que nace el mismo día
           -- que otra desaparece ya puede recibirla.
           (est1, hs1) = foldl' (\(e, hs) f -> let (e', h) = activarFaccion t f e in (e', hs ++ h)) (est, []) nace
-          (est2, hs2) = foldl' (\(e, hs) f -> let (e', h) = eliminarFaccion gs t (facId f) e in (e', hs ++ h)) (est1, hs1) muere
+          (est2, hs2) = foldl' (\(e, hs) f -> let (e', h) = eliminarFaccion gs ec t (facId f) e in (e', hs ++ h)) (est1, hs1) muere
       in (est2, hs2)
   }
 
@@ -88,8 +92,8 @@ activarFaccion t f est =
 -- | Elimina una facción activa y transfiere lo que tenía. Devuelve el hecho
 -- @faccion_desaparece@ con lo transferido y lo perdido, y los
 -- @modificador_terminado@ de los nombramientos que cambian de manos.
-eliminarFaccion :: Grupos -> Tick -> FaccionId -> Estado Purepecha -> (Estado Purepecha, [Hecho])
-eliminarFaccion gs t fid est0 = case Map.lookup fid (ppFacciones (juegoDe est0)) of
+eliminarFaccion :: Grupos -> Economia -> Tick -> FaccionId -> Estado Purepecha -> (Estado Purepecha, [Hecho])
+eliminarFaccion gs ec t fid est0 = case Map.lookup fid (ppFacciones (juegoDe est0)) of
   Nothing -> (est0, [])
   Just f ->
     let tr = facTransferencia f
@@ -102,8 +106,8 @@ eliminarFaccion gs t fid est0 = case Map.lookup fid (ppFacciones (juegoDe est0))
         -- 1. El tesoro.
         tesoro = baseFaccion fid magTesoro est0
         estT = case dTesoro of
-          Just a  -> moverTesoro fid a tesoro est0
-          Nothing -> moverTesoro fid fid (Fijo 0) (poner (entFac fid, magTesoro) (Fijo 0) est0)
+          Just a  -> moverTesoro ec fid a tesoro est0
+          Nothing -> moverTesoro ec fid fid (Fijo 0) (poner (entFac fid, magTesoro) (Fijo 0) est0)
         -- 2. Los personajes: pasan al absorbente antes que los altépetl, para
         --    que sus nombramientos se rehagan en los grupos de la facción nueva.
         suyosP = [ perId pe | pe <- Map.elems (ppPersonajes (juegoDe estT)), perFaccion pe == fid ]
@@ -150,11 +154,16 @@ poner (e, m) v est =
   in est { estadoPersistente = per { persistenteComun = com { comunMagnitudes = fijarBase e m v (comunMagnitudes com) } } }
 
 -- | Mueve @x@ del tesoro de @de@ al de @a@: el de @de@ queda en cero y el de
--- @a@ sube x, dentro del rango del tesoro.
-moverTesoro :: FaccionId -> FaccionId -> Fijo -> Estado Purepecha -> Estado Purepecha
-moverTesoro de a x est =
-  let est1 = poner (entFac de, magTesoro) (Fijo 0) est
-      nuevo = rangoFijo (minMag rangoTesoro) (maxMag rangoTesoro) (baseFaccion a magTesoro est1 .+. x)
+-- @a@ sube lo que vale x, dentro del rango del tesoro. @x@ está en la cuenta
+-- de @de@ (su moneda, o valor); entra en la de @a@ al tipo del día: se pasa a
+-- valor ('aValor') y de valor a la cuenta de @a@ ('enCuenta'). Sin monedas,
+-- sube x.
+moverTesoro :: Economia -> FaccionId -> FaccionId -> Fijo -> Estado Purepecha -> Estado Purepecha
+moverTesoro ec de a x est =
+  let t = estadoTick est
+      enA = enCuenta ec t est (entFac a) (aValor ec t est (entFac de) x)
+      est1 = poner (entFac de, magTesoro) (Fijo 0) est
+      nuevo = rangoFijo (minMag rangoTesoro) (maxMag rangoTesoro) (baseFaccion a magTesoro est1 .+. enA)
   in if de == a then est1 else poner (entFac a, magTesoro) nuevo est1
 
 -- | Pasa un altépetl a la facción @a@. Su gobernador se quita de los grupos
