@@ -284,7 +284,7 @@ cargarEscenario esc archivos = do
     validaciones fs =
       let facs = map snd fs
           porId = Map.fromList [ (fdId f, f) | f <- facs ]
-          repetidos xs = [ head g | g <- group (sort xs), length g > 1 ]
+          repetidos xs = [ x | (x : _ : _) <- group (sort xs) ]
           todosAlt = [ a | f <- facs, a <- fdAltepetl f ]
           altFac = Map.fromList [ (adId a, fdId f) | f <- facs, a <- fdAltepetl f ]
           enRango t = t >= 0 && maybe True (t <=) finTick
