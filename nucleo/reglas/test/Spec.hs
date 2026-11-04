@@ -9,7 +9,7 @@ import qualified Data.Text as T
 import Test.Hspec
 
 import Motor.Base
-import Motor.Carga (validarOrdenSistemas, Validacion (..), ErrorCarga (..))
+import Motor.Carga (validarOrdenSistemas, AvisoOrden (..), Validacion (..), ErrorCarga (..))
 import Motor.Autoridad
 import Motor.Protocolo (DeclComando (..), DeclParametro (..), TipoParametro (..))
 import qualified Data.Aeson as A
@@ -36,9 +36,13 @@ import Reglas.Grupos
 import Reglas.Edificios
 import Reglas.Facciones
 import Reglas.Produccion
+import Reglas.Sistemas (hacienda)
 import Reglas.Fusion (fusionarPops, clavePop)
 import Motor.Terrenos (DefTerreno (..), cargarTerrenos, conCostoDeTerreno)
-import Motor.Moneda (magExistencias, magProduccion)
+import Motor.Moneda (Bien (..), Economia (..), ParamsMoneda (..), cargarEconomia, economiaVacia, aValor,
+                     magExistencias, magProduccion, magInflacion, magNivelPrecios, magPrecioMoneda)
+import Motor.Azar (Rng (..))
+import Motor.Sistema (Sistema (..), NombreSistema (..))
 import Test.QuickCheck
 import Motor.Guardado (guardar, cargar)
 import Motor.Hechos (Hecho (..))
@@ -65,6 +69,16 @@ leerTerrenos = do
     Left err -> fail err
     Right j  -> case cargarTerrenos "datos/terrenos.json" j of
       Validacion [] (Just t) -> pure t
+      Validacion errs _      -> fail (show (map errMensaje errs))
+
+-- | @datos/bienes_1475.json@ cargado.
+leerBienes :: IO Economia
+leerBienes = do
+  v <- A.eitherDecodeFileStrict "../../datos/bienes_1475.json"
+  case v of
+    Left err -> fail err
+    Right j  -> case cargarEconomia "datos/bienes_1475.json" j of
+      Validacion [] (Just e) -> pure e
       Validacion errs _      -> fail (show (map errMensaje errs))
 
 -- | Celdas de prueba: hasta tres bienes con rendimientos y trabajadores
@@ -101,8 +115,10 @@ main = do
  dorDestituir <- BL.readFile "../../pruebas_compartidas/protocolo/comando_destituir_gobernador.json"
  dorConstruir <- BL.readFile "../../pruebas_compartidas/protocolo/comando_construir_edificio.json"
  dorTributo   <- BL.readFile "../../pruebas_compartidas/protocolo/comando_pedir_tributo_obra.json"
+ dorMoneda    <- BL.readFile "../../pruebas_compartidas/protocolo/comando_designar_moneda.json"
  edificiosArchivo <- leerEdificios
  terrenosArchivo  <- leerTerrenos
+ bienesArchivo    <- leerBienes
  hspec $ do
   describe "reglas: autoridad (V5, el prototipo no cambia)" $ do
     it "todos los comandos del prototipo usan el requisito por omisión" $
@@ -915,6 +931,8 @@ main = do
 
   pruebasFacciones gruposArchivo
 
+  pruebasMoneda terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo) dorMoneda
+
   describe "reglas: tablas de casos del hito 0a (prototipo HTML)" $ do
     tablas <- runIO (fmap (>>= parseEither parseTablas)
                           (A.eitherDecodeFileStrict "test/tablas_hito0.json"))
@@ -1190,7 +1208,7 @@ pruebasFacciones gruposArchivo = describe "reglas: varias facciones (T12, hito 4
 
     it "absorber conserva el tesoro, la población y los nombramientos" $ do
       let ini = cambiar f2 (\fa -> fa { facTransferencia = absorbe f1 }) base2
-          (fin, hs) = eliminarFaccion gs (Tick 40) f2 ini
+          (fin, hs) = eliminarFaccion gs economiaVacia (Tick 40) f2 ini
           h = hecho "faccion_desaparece" hs
           poblacion st = sum (map popTamano (Map.elems (ppPops (jue st))))
       sumaTes fin `shouldBe` sumaTes ini
@@ -1210,7 +1228,7 @@ pruebasFacciones gruposArchivo = describe "reglas: varias facciones (T12, hito 4
       param "personajes_transferidos" h `shouldBe` "4"
 
     it "lo que se pierde por declaración se anota y nada más se pierde" $ do
-      let (fin, hs) = eliminarFaccion gs (Tick 40) f2 base2
+      let (fin, hs) = eliminarFaccion gs economiaVacia (Tick 40) f2 base2
           h = hecho "faccion_desaparece" hs
       param "tesoro_perdido" h `shouldBe` T.pack (show (let Fijo x = tesoro f2 base2 in x))
       sumaTes fin `shouldBe` sumaTes base2 .-. tesoro f2 base2
@@ -1223,7 +1241,7 @@ pruebasFacciones gruposArchivo = describe "reglas: varias facciones (T12, hito 4
 
     it "con el absorbente inactivo, todo se pierde y el hecho lo dice" $ do
       let ini = cambiar f1 (\fa -> fa { facEstado = Eliminada }) (cambiar f2 (\fa -> fa { facTransferencia = absorbe f1 }) base2)
-          (fin, hs) = eliminarFaccion gs (Tick 40) f2 ini
+          (fin, hs) = eliminarFaccion gs economiaVacia (Tick 40) f2 ini
           h = hecho "faccion_desaparece" hs
       param "destino_inactivo" h `shouldSatisfy` (not . T.null)
       param "altepetl_transferidos" h `shouldBe` "0"
@@ -1247,7 +1265,7 @@ pruebasFacciones gruposArchivo = describe "reglas: varias facciones (T12, hito 4
       tesoro (FaccionId 3) antes `shouldBe` tesoro (FaccionId 3) conF3
 
     it "los ids no se reutilizan: la eliminada sigue en el mapa" $ do
-      let (fin, _) = eliminarFaccion gs (Tick 40) f2 base2
+      let (fin, _) = eliminarFaccion gs economiaVacia (Tick 40) f2 base2
       Map.keys (ppFacciones (jue fin)) `shouldBe` [f1, f2]
 
   describe "agentes nulos y facción jugable" $ do
@@ -1269,3 +1287,135 @@ pruebasFacciones gruposArchivo = describe "reglas: varias facciones (T12, hito 4
 
     it "con agentes nulos, cambiar cuál facción es la jugable no cambia la traza" $ do
       sinFlag (traza (jugable f1 dos)) `shouldBe` sinFlag (traza (jugable f2 dos))
+
+-- | T10: la moneda designada en el juego real (V5, *La moneda designada y la
+-- inflación*; documento funcional, sección 14g).
+pruebasMoneda :: Map.Map Terreno DefTerreno -> Economia -> Edificios -> BL.ByteString -> Spec
+pruebasMoneda terrenos eco eds dorado = describe "reglas: moneda en el juego real (T10, hito 3)" $ do
+  let mapa = conCostoDeTerreno terrenos (either (error . show) id (proveedorHexagonal datosMapa1475))
+      ent  = (entornoSimple mapa) { entEconomia = eco }
+      dr   = Reglas.Juego.datosVacios { Reglas.Juego.drTerrenos = terrenos, Reglas.Juego.drEdificios = eds
+                                      , Reglas.Juego.drEconomia = eco }
+      j    = Reglas.Juego.juegoDatos constantesDefault dr
+      conDerivado e = e { estadoDerivado = derivar j (entGrafo ent) (estadoTick e) (estadoPersistente e) }
+      e0   = conDerivado (conConocimientos eds estadoInicial1475)
+      correrDias desde hasta e = foldl' (\st t -> fst (paso j ent (Semilla 1) (Tick t) [] st)) e [desde .. hasta]
+      alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
+      monedas st = comunMonedas (persistenteComun (estadoPersistente st))
+      base m st = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, m) (alm st))
+      tesoro = base magTesoro
+      precio = base magPrecioMoneda
+      valorReal st = aValor eco (estadoTick st) st (entFac f1) (tesoro st)
+      cmd c st = aplicarCola j [Sellado (estadoTick st) f1 0 c] st
+      designar b st = let (s1, _, _) = cmd (DesignarMoneda b) st in s1
+      cerca tol a b = abs (let Fijo x = a .-. b in x) `shouldSatisfy` (<= tol)
+      -- Un año de producción: las mantas ya tienen existencias y precio.
+      anio = correrDias 0 364 e0
+      conMantas = designar (Just "mantas") anio
+      conTesoro x st = let p = estadoPersistente st; com = persistenteComun p
+                       in st { estadoPersistente = p { persistenteComun = com { comunMagnitudes =
+                                 fijarBase (entFac f1) magTesoro x (comunMagnitudes com) } } }
+
+  it "datos/bienes_1475.json: los seis bienes del territorio; mantas y cobre designables; el tesoro es nominal" $ do
+    Map.keys (ecoBienes eco) `shouldBe` bienesDe terrenos
+    [ bnId b | b <- Map.elems (ecoBienes eco), bnDesignable b ] `shouldBe` ["cobre", "mantas"]
+    pmNominales (ecoParams eco) `shouldBe` [magTesoro]
+    valErrores (validarBienesDelTerritorio "datos/bienes_1475.json" terrenos eco) `shouldBe` []
+
+  it "un bien que el territorio no produce es un error de carga, con su ruta" $ do
+    let manta = (ecoBienes eco Map.! "mantas") { bnId = "manta" }
+        mala  = eco { ecoBienes = Map.insert "manta" manta (ecoBienes eco) }
+    map errRuta (valErrores (validarBienesDelTerritorio "x.json" terrenos mala)) `shouldBe` ["bienes.manta"]
+    valErrores (validarBienesDelTerritorio "x.json" Map.empty mala) `shouldBe` []
+
+  it "el comando coincide con su archivo dorado; null retira, y el catálogo ofrece los designables" $ do
+    A.decode dorado `shouldBe` Just (A.toJSON (DesignarMoneda (Just "mantas")))
+    A.decode dorado `shouldBe` Just (DesignarMoneda (Just "mantas"))
+    A.decode "{\"tipo\":\"designar_moneda\",\"bien\":null}" `shouldBe` Just (DesignarMoneda Nothing)
+    A.decode "{\"tipo\":\"designar_moneda\"}" `shouldBe` Just (DesignarMoneda Nothing)
+    [ dpTipo p | d <- catalogoComandosConMonedas [] [] ["cobre", "mantas"], dcTipo d == "designar_moneda", p <- dcParametros d ]
+      `shouldBe` [POpcion ["cobre", "mantas"]]
+
+  it "designar y retirar la moneda conserva el valor del tesoro" $ do
+    let v0 = tesoro anio
+        sinMoneda = designar Nothing conMantas
+    precio conMantas `shouldSatisfy` (\p -> p > Fijo 0 && p /= uno)
+    tesoro conMantas `shouldSatisfy` (/= v0)
+    cerca 10 (valorReal conMantas) v0
+    fmap emMoneda (Map.lookup (entFac f1) (monedas conMantas)) `shouldBe` Just "mantas"
+    Map.lookup "moneda" (ejCampos (Reglas.Juego.proyectarFaccion conMantas f1)) `shouldBe` Just (VTexto "mantas")
+    cerca 10 (tesoro sinMoneda) v0
+    Map.lookup (entFac f1) (monedas sinMoneda) `shouldBe` Nothing
+    Map.lookup "moneda" (ejCampos (Reglas.Juego.proyectarFaccion sinMoneda f1)) `shouldBe` Just VNulo
+
+  it "un bien no designable, inexistente o que ya es la moneda, y retirar sin moneda, se rechazan sin daño" $ do
+    forM_ [ (anio, Just "maiz"), (anio, Just "oro"), (anio, Nothing), (conMantas, Just "mantas") ] $ \(st, b) -> do
+      let (s1, _, rs) = cmd (DesignarMoneda b) st
+      length rs `shouldBe` 1
+      (alm s1, monedas s1) `shouldBe` (alm st, monedas st)
+
+  it "la hacienda calcula en valor y abona en la moneda al tipo del día" $ do
+    let h = sisEjecutar (hacienda constantesDefault eco) (Rng 1)
+        dValor  = tesoro (fst (h anio)) .-. tesoro anio
+        dMoneda = tesoro (fst (h conMantas)) .-. tesoro conMantas
+    dValor `shouldSatisfy` (> Fijo 0)
+    dMoneda `shouldSatisfy` (/= dValor)
+    cerca 10 (dMoneda .*. precio conMantas) dValor
+    -- Sin economía, la hacienda no cambia.
+    tesoro (fst (sisEjecutar (hacienda constantesDefault economiaVacia) (Rng 1) anio)) `shouldBe` tesoro (fst (h anio))
+
+  it "una obra cobra su costo en valor al tipo del día; sin tesoro, el rechazo dice en qué moneda" $ do
+    let (s1, _, rs) = cmd (ConstruirEdificio "troje" (AltId 2) 100) conMantas
+    rs `shouldBe` []
+    cerca 10 ((tesoro conMantas .-. tesoro s1) .*. precio conMantas) (fi 300)
+    let (s2, _, rs2) = cmd (ConstruirEdificio "troje" (AltId 2) 100) (conTesoro (Fijo 0) conMantas)
+    case rs2 of
+      [Rechazo m] -> m `shouldSatisfy` T.isInfixOf " mantas y hay 0"
+      _           -> expectationFailure "se esperaba un rechazo"
+    alm s2 `shouldBe` alm (conTesoro (Fijo 0) conMantas)
+
+  it "con existencias crecientes de la moneda, la inflación es positiva y el tesoro guardado pierde valor" $ do
+    let despues = correrDias 365 (365 * 2 + 40) conMantas
+        cien st = aValor eco (estadoTick st) st (entFac f1) (fi 100)
+    base (magExistencias "mantas") despues `shouldSatisfy` (> base (magExistencias "mantas") conMantas)
+    base magInflacion despues `shouldSatisfy` (> Fijo 0)
+    base magNivelPrecios despues `shouldSatisfy` (> base magNivelPrecios conMantas)
+    precio despues `shouldSatisfy` (< precio conMantas)
+    cien despues `shouldSatisfy` (< cien conMantas)
+
+  it "con los bienes cargados y sin moneda designada, la partida es la misma que sin ellos" $ do
+    let jSin  = Reglas.Juego.juegoDatos constantesDefault dr { Reglas.Juego.drEconomia = economiaVacia }
+        entSin = entornoSimple mapa
+        sinEco = foldl' (\st t -> fst (paso jSin entSin (Semilla 1) (Tick t) [] st)) e0 [0 .. 420]
+    alm (correrDias 365 420 anio) `shouldBe` alm sinEco
+
+  it "guardar y cargar con moneda designada: la moneda, su historial y la partida siguen igual" $ do
+    let mitad = correrDias 365 400 conMantas
+        cargado = either (error . show) id (cargar j mapa (guardar mitad))
+        seguir = correrDias 401 460
+    monedas cargado `shouldBe` monedas mitad
+    alm (seguir cargado) `shouldBe` alm (seguir mitad)
+
+  it "el orden de los sistemas: solo construcción y facciones cobran al precio de la veintena anterior" $
+    validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j)
+      `shouldBe` [ LecturaDeTicAnterior (NombreSistema a) (NombreSistema "produccion") m
+                 | a <- ["facciones", "construccion"], m <- Set.toList (lecturasMoneda eco) ]
+
+  it "una facción absorbida con otra moneda entrega lo que vale su tesoro" $ do
+    let f2 = FaccionId 2
+        dos = conCopia anio
+        absorbe = Transferencia (AlAbsorbente f1) (AlAbsorbente f1) (AlAbsorbente f1)
+        cambiar st = let per = estadoPersistente st; p = persistenteJuego per
+                     in st { estadoPersistente = per { persistenteJuego =
+                               p { ppFacciones = Map.adjust (\fa -> fa { facTransferencia = absorbe }) f2 (ppFacciones p) } } }
+        conExist st = let per = estadoPersistente st; com = persistenteComun per
+                      in st { estadoPersistente = per { persistenteComun = com { comunMagnitudes =
+                                fijarBase (entFac f2) (magExistencias "mantas") (fi 500) (comunMagnitudes com) } } }
+        ini0 = cambiar (conExist dos)
+        (ini, _, rs) = aplicarCola j [Sellado (Tick 364) f2 0 (DesignarMoneda (Just "mantas"))] ini0
+        valorF2 = aValor eco (Tick 364) ini (entFac f2) (baseFaccion f2 magTesoro ini)
+        (fin, _) = eliminarFaccion gruposVacios eco (Tick 364) f2 ini
+    rs `shouldBe` []
+    baseFaccion f2 magTesoro ini `shouldSatisfy` (/= baseFaccion f2 magTesoro ini0)
+    baseFaccion f2 magTesoro fin `shouldBe` Fijo 0
+    cerca 10 (baseFaccion f1 magTesoro fin) (baseFaccion f1 magTesoro ini .+. valorF2)

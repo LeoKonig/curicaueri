@@ -1252,6 +1252,17 @@ así que designar, cambiar y retirar la moneda conservan el valor real n · p, s
 
 **Designar.** `designarMoneda` rechaza un bien inexistente, uno no designable o la moneda vigente, y retirar sin moneda. Al aceptar, reinicia el historial (h = [], de modo que π no mezcla dos monedas), escribe p_m y P en el acto y emite `moneda_designada` o `moneda_retirada`. Lo llama el `aplicarCmd` de cada juego.
 
+**En `reglas`.** La economía del escenario (`datos/bienes_1475.json`, opción `--bienes`) viaja dos veces: en el `Entorno`, para `pasoMoneda`, y en `DatosReglas` (`drEconomia`), para los comandos y los sistemas; es el mismo valor. `validarBienesDelTerritorio` exige que cada bien de la economía lo produzca algún terreno. Los escritores del tesoro pasan por la cuenta así:
+
+| Escritor | Qué calcula en valor | Cómo entra al tesoro |
+| --- | --- | --- |
+| Hacienda (paso 6) | El neto de la veintena: ingreso menos gasto | `enCuenta` con el precio del mismo tick, después de la producción |
+| `construir_edificio` | El costo de la obra | `enCuenta` al empezar; el rechazo nombra la moneda |
+| Construcción (paso 10) | El transporte del tributo en especie, anotado al enviar | `enCuenta` el día que llega, al precio de la veintena anterior: corre antes que la producción |
+| Facciones (paso 13) | Lo que vale el tesoro de la absorbida (`aValor`) | `enCuenta` de la absorbente, también al precio de la veintena anterior |
+
+Los tres sistemas declaran en `sisLee` las existencias y la producción de los bienes designables (`lecturasMoneda`), de las que sale el precio; `validarOrdenSistemas` avisa de las dos lecturas de la veintena anterior y una prueba las fija. Los efectos del guion que sumen al tesoro todavía no pasan por la cuenta: hoy ninguno lo hace, y el primero que lo haga (el guion del tutorial) tendrá que resolverlo en el motor.
+
 Dos diferencias con la propuesta que dio origen a esta sección. La conservación en el pago resta los bienes entregados y no además el tesoro. Y la inflación no puede "calcularse al leer" sin datos del pasado: se lee del historial persistente, que es lo mínimo necesario para que una partida cargada vea la misma inflación.
 
 ## 14h. Costo en valor e insumos

@@ -9,11 +9,13 @@ import qualified Data.Set as Set
 import Motor.Base
 import Motor.Estado
 import Motor.Magnitudes
+import Motor.Moneda (Economia, enCuenta)
 import Motor.Sistema
 import Reglas.Base
 import Reglas.Constantes
 import Reglas.Estado
 import Reglas.Formulas
+import Reglas.Produccion (lecturasMoneda)
 
 -- | ¿Es capital el altépetl del poblador? Una capital no está sujeta a otro.
 capitalDe :: Purepecha -> Pop -> Bool
@@ -45,11 +47,16 @@ factoresProduccion est =
 -- (`expenseLines`). Es el único sistema que escribe la base del tesoro (el
 -- comando de construir cobra al empezar), así que el orden de sus sumas no
 -- importa.
-hacienda :: Constantes -> Sistema Purepecha
-hacienda c = Sistema
+--
+-- El neto se calcula en unidades de valor y entra al tesoro al tipo del día
+-- ('enCuenta'): en la moneda de la facción, si designó una (V5, *La moneda
+-- designada y la inflación*, decisión 1). Así la inflación no toca los flujos
+-- y solo erosiona lo guardado. Sin moneda, el neto entra igual que antes.
+hacienda :: Constantes -> Economia -> Sistema Purepecha
+hacienda c ec = Sistema
   { sisNombre   = NombreSistema "hacienda"
   , sisCadencia = Periodo
-  , sisLee      = Set.singleton magProduccionAlt
+  , sisLee      = Set.insert magProduccionAlt (lecturasMoneda ec)
   , sisEscribe  = Set.singleton magTesoro
   , sisEjecutar = \_ est ->
       let p      = persistenteJuego (estadoPersistente est)
@@ -76,7 +83,10 @@ hacienda c = Sistema
           ajustar n x = x { almacenBase =
                               rangoFijo (minMag rangoTesoro) (maxMag rangoTesoro)
                                         (almacenBase x .+. n) }
-          alm'   = foldl' (\a f -> Map.adjust (ajustar (neto f)) (entFac (facId f), magTesoro) a)
+          -- El tipo de cambio se lee del estado de entrada: el precio de la
+          -- moneda no depende del tesoro, así que el orden no importa.
+          enMoneda f = enCuenta ec (estadoTick est) est (entFac (facId f)) (neto f)
+          alm'   = foldl' (\a f -> Map.adjust (ajustar (enMoneda f)) (entFac (facId f), magTesoro) a)
                           (comunMagnitudes com) (activas p)
           com'   = com { comunMagnitudes = alm' }
           est'   = est { estadoPersistente = (estadoPersistente est)

@@ -22,12 +22,12 @@ Prompts listos para pegar en distintas IA (Claude Code, otros asistentes con acc
 | 2 | T7 Cliente: crónica y pantalla de fin | `cliente/` | T2 | 3 / 6 |
 | 2 | T8 Obras: yácata, fortaleza, troje | `reglas`: `Comando`, `Sistemas` | T4 | 3 |
 | 2 | T9 Producción de bienes por territorio | `reglas`: `Sistemas`, `Escenario` | T3 | 3 |
-| 3 | T10 Moneda en el juego real | `reglas`: `Comando`, `Sistemas` | T9 | 3 |
+| 3 | T10 Moneda en el juego real (hecha en `claude/moneda-reglas`) | `reglas`: `Comando`, `Sistemas` | T9 | 3 |
 | 3 | T11 Arnés del 0a sobre el juego real | `app` (`--sin-cliente`), `docs/` | T5 | 0 |
 
 T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan, el segundo se rebasa sobre `main`.
 
-**Estado al 1 de noviembre de 2026.** Hechas: T1, T3, T4, T8 y T9. T2 (núcleo: PR #34) y T7 (cliente: PR #35) están en revisión; el contenido del cierre de 1607 está en `datos/cierre_1607.json`. Pendientes del hito 3: T10, T11, y camino, terrazas, roturación y mercado parcial (sin prompt todavía). T5 queda como el guion del **tutorial** 1475–1530. T6 se reemplaza por el inventario de 1418 (abajo).
+**Estado al 1 de noviembre de 2026.** Hechas: T1, T3, T4, T8 y T9. T2 (núcleo: PR #34) y T7 (cliente: PR #35) están en revisión; el contenido del cierre de 1607 está en `datos/cierre_1607.json`. T10 (moneda en el juego real) está en revisión en `claude/moneda-reglas`. Pendientes del hito 3: T11, y camino, terrazas, roturación y mercado parcial (sin prompt todavía). T5 queda como el guion del **tutorial** 1475–1530. T6 se reemplaza por el inventario de 1418 (abajo).
 
 **Ronda 4: la campaña 1418–1607** (V5, *Alcance* y la tabla nueva de *Hitos*). T12, T14, T15 y T6 tocan áreas distintas y pueden correr en paralelo; T13 espera a T12.
 

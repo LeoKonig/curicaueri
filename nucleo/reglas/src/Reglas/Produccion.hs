@@ -24,6 +24,8 @@
 module Reglas.Produccion
   ( bienesDe
   , catalogoBienes
+  , validarBienesDelTerritorio
+  , lecturasMoneda
   , derivarCeldas
   , derivarTerritorio
   , celdaTrabajo
@@ -42,12 +44,14 @@ import qualified Data.Map.Strict as Map
 import qualified Data.IntMap.Strict as IntMap
 import qualified Data.Set as Set
 import Data.Text (Text)
+import qualified Data.Text as T
 
 import Motor.Base
 import Motor.Estado
 import Motor.Magnitudes
 import Motor.Mapa (Mapa (..), Celda (..), Terreno)
-import Motor.Moneda (magExistencias, magProduccion)
+import Motor.Carga (CategoriaError (..), ErrorCarga (..), Validacion, falla)
+import Motor.Moneda (Bien (..), Economia (..), magExistencias, magProduccion)
 import Motor.Recorrido (Grafo, asignarCeldas, grafoDe)
 import Motor.Sistema
 import Motor.Terrenos (DefTerreno (..), MaterialTerreno (..))
@@ -59,6 +63,28 @@ import Reglas.Estado
 -- rendimiento de algún terreno, en orden alfabético.
 bienesDe :: Map Terreno DefTerreno -> [Text]
 bienesDe t = Map.keys (Map.unions (map dtRendimiento (Map.elems t)))
+
+-- | Cada bien de la economía (@datos/bienes_<escenario>.json@) tiene que ser
+-- uno que produzca el territorio: el precio se lee de sus existencias y su
+-- producción, y un bien con otro nombre («manta») tendría siempre cero y un
+-- precio fijo sin que nadie lo note. Acumula un error por bien. Sin tabla de
+-- terrenos no hay producción y no se comprueba nada.
+validarBienesDelTerritorio :: Text -> Map Terreno DefTerreno -> Economia -> Validacion ()
+validarBienesDelTerritorio archivo tabla ec
+  | Map.null tabla = pure ()
+  | otherwise = () <$ traverse falta [ b | b <- Map.keys (ecoBienes ec), b `notElem` producidos ]
+  where
+    producidos = bienesDe tabla
+    falta b = falla (ErrorCarga ErrorReferencia archivo ("bienes." <> b)
+                       ("el territorio no produce «" <> b <> "»; produce " <> T.intercalate ", " producidos))
+
+-- | Lo que lee quien convierte entre valor y moneda ('Motor.Moneda.enCuenta',
+-- 'Motor.Moneda.aValor'): las existencias y la producción de los bienes que
+-- pueden ser moneda, de las que sale su precio. Va en el 'sisLee' de cada
+-- sistema que escribe el tesoro.
+lecturasMoneda :: Economia -> Set.Set Magnitud
+lecturasMoneda ec = Set.fromList
+  [ m | b <- Map.elems (ecoBienes ec), bnDesignable b, m <- [magExistencias (bnId b), magProduccion (bnId b)] ]
 
 rangoBien :: RangoMag
 rangoBien = RangoMag (fi 0) (fi 1000000000)

@@ -74,7 +74,7 @@ import qualified Data.Map.Strict as Map
 import Data.Foldable (toList)
 import Data.Maybe (fromMaybe, isJust)
 import Motor.Guion
-import Motor.Moneda (economiaVacia)
+import Motor.Moneda (Bien (..), Economia (..), cargarEconomia, economiaVacia)
 import Motor.Cronica (terminada)
 import Motor.Director (metricas, cumpleVariedad, Metricas (..))
 import Motor.Carga (Validacion (..), ErrorCarga (..))
@@ -87,7 +87,7 @@ import Reglas.Escenario
 import Reglas.Estado (Purepecha, ppAltepetl, ppPops, jugableDe)
 import Reglas.Facciones (conAgentesNulos)
 import Reglas.Edificios (cargarEdificios, conConocimientos, edificiosVacios, idsEdificios)
-import Reglas.Produccion (bienesDe)
+import Reglas.Produccion (bienesDe, validarBienesDelTerritorio)
 import Motor.Terrenos (DefTerreno (..), cargarTerrenos, conCostoDeTerreno, validarTerrenosDelMapa)
 import Motor.Recorrido (grafoDe)
 import Reglas.Grupos (cargarGrupos, conGrupos, gruposVacios, grIds)
@@ -178,15 +178,30 @@ main = do
           validado (validarTerrenosDelMapa (T.pack ruta) t mapaHex)
           pure t
   unless (Map.null terrenos) $ registro ("bienes del territorio: " <> T.intercalate ", " (bienesDe terrenos))
+  -- --bienes datos/bienes_1475.json: qué bienes tienen precio y cuáles puede
+  -- designar una facción como moneda (V5, *La moneda designada y la
+  -- inflación*). Sin ella, nadie designa moneda y todo se cuenta en valor.
+  economia <- case opcion "--bienes" "" of
+    "" -> pure economiaVacia
+    ruta -> do
+      bs <- BL.readFile ruta
+      case A.eitherDecode bs of
+        Left err -> fail ("bienes ilegibles (" <> ruta <> "): " <> err)
+        Right v -> do
+          ec <- validado (cargarEconomia (T.pack ruta) v)
+          validado (validarBienesDelTerritorio (T.pack ruta) terrenos ec)
+          pure ec
+  let designables = [ bnId b | b <- Map.elems (ecoBienes economia), bnDesignable b ]
+  unless (null designables) $ registro ("pueden ser moneda: " <> T.intercalate ", " designables)
   -- Con la tabla de terrenos, cada conexión cuesta su longitud por el terreno
   -- medio de sus dos celdas (V5, *Costo del grafo*); sin ella, su longitud.
   -- El grafo compacto se construye una vez y lo comparten el estado inicial
   -- y el entorno de toda la partida.
   let mapaR  = if Map.null terrenos then mapaHex else conCostoDeTerreno terrenos mapaHex
       grafoR = grafoDe mapaR
-  let comandos = catalogoComandosConMateriales (idsEdificios edificios)
-                   (Map.keys (Map.unions (map dtMateriales (Map.elems terrenos))))
-      juego = RJ.juegoDatos constantesDefault (RJ.DatosReglas grupos edificios terrenos)
+  let comandos = catalogoComandosConMonedas (idsEdificios edificios)
+                   (Map.keys (Map.unions (map dtMateriales (Map.elems terrenos)))) designables
+      juego = RJ.juegoDatos constantesDefault (RJ.DatosReglas grupos edificios terrenos economia)
       -- --escala 7500x20: altépetl y pops de prueba para medir el costo a la
       -- escala del mapa completo (solo para la prueba de rendimiento del núcleo).
       (escN, escK) = case break (== 'x') (opcion "--escala" "") of
@@ -234,7 +249,7 @@ main = do
   -- Un agente nulo por cada facción que no dirige la persona.
   let juegoN = conAgentesNulos (persistenteJuego (estadoPersistente e0)) juego
   let faccionAgente = FaccionId (read (opcion "--agente-faccion" "1"))
-      conf = Config ancho alto carpeta vels (fmap (\a -> (faccionAgente, a, mregistro)) agente) (Entorno mapaR guion economiaVacia grafoR) ejes comandos
+      conf = Config ancho alto carpeta vels (fmap (\a -> (faccionAgente, a, mregistro)) agente) (Entorno mapaR guion economia grafoR) ejes comandos
   forM_ agente $ \_ -> registro ("agente externo para la facción " <> T.pack (opcion "--agente-faccion" "1"))
   ref <- newIORef Partida
     { pEstado = e0, pSiguiente = 0, pPendientes = [], pRespuestas = [], pDecisionesEnviadas = []

@@ -6,6 +6,7 @@ module Reglas.Comando
   , catalogoComandos
   , catalogoComandosCon
   , catalogoComandosConMateriales
+  , catalogoComandosConMonedas
   ) where
 
 import Data.Aeson (FromJSON (..), ToJSON (..), object, withObject, (.:), (.:?), (.!=), (.=))
@@ -27,6 +28,7 @@ data Comando
   | DestituirGobernador AltId
   | ConstruirEdificio Text AltId Int  -- ^ el edificio (id de @datos/edificios.json@), el altépetl y la cuadrilla (0 si no lleva)
   | PedirTributoObra AltId Text AltId Int  -- ^ la obra (su altépetl), el material, quien lo envía y cuántos trabajadores pone
+  | DesignarMoneda (Maybe Text)  -- ^ el bien que pasa a ser la moneda (id de @datos/bienes_1475.json@), o Nothing para retirarla
   deriving (Eq, Show)
 
 partes :: [(Text, PartePresupuesto)]
@@ -55,6 +57,8 @@ instance FromJSON Comando where
                                                     <*> o .:? "cuadrilla" .!= 0
       "pedir_tributo_obra"     -> PedirTributoObra <$> (AltId <$> o .: "altepetl") <*> o .: "material"
                                                    <*> (AltId <$> o .: "fuente") <*> o .: "cuadrilla"
+      -- "bien": null (o sin "bien") retira la moneda.
+      "designar_moneda"        -> DesignarMoneda <$> o .:? "bien"
       _                        -> fail ("comando desconocido: " <> T.unpack t)
 
 instance ToJSON Comando where
@@ -71,6 +75,8 @@ instance ToJSON Comando where
       object ["tipo" .= ("construir_edificio" :: Text), "edificio" .= e, "altepetl" .= a, "cuadrilla" .= n]
     PedirTributoObra (AltId a) g (AltId f) n ->
       object ["tipo" .= ("pedir_tributo_obra" :: Text), "altepetl" .= a, "material" .= g, "fuente" .= f, "cuadrilla" .= n]
+    DesignarMoneda b ->
+      object ["tipo" .= ("designar_moneda" :: Text), "bien" .= b]
 
 -- | El catálogo sin edificios cargados: @construir_edificio@ se declara con
 -- una lista de opciones vacía.
@@ -84,7 +90,13 @@ catalogoComandosCon :: [Text] -> [DeclComando]
 catalogoComandosCon edificios = catalogoComandosConMateriales edificios []
 
 catalogoComandosConMateriales :: [Text] -> [Text] -> [DeclComando]
-catalogoComandosConMateriales edificios materiales =
+catalogoComandosConMateriales edificios materiales = catalogoComandosConMonedas edificios materiales []
+
+-- | Con los bienes designables como moneda, que también son datos. El
+-- formulario genérico solo envía una de sus opciones: retirar la moneda
+-- (@"bien": null@) por ahora solo lo mandan los agentes y las pruebas.
+catalogoComandosConMonedas :: [Text] -> [Text] -> [Text] -> [DeclComando]
+catalogoComandosConMonedas edificios materiales monedas =
   [ DeclComando "fijar_tasa_tributo" "c.fijar_tasa_tributo" [DeclParametro "valor" (PEntero 1 5)] True requisitoPorOmision
   , DeclComando "fijar_impuesto_interno" "c.fijar_impuesto_interno" [DeclParametro "valor" (PEntero 1 5)] True requisitoPorOmision
   , DeclComando "asignar_presupuesto" "c.asignar_presupuesto"
@@ -102,4 +114,6 @@ catalogoComandosConMateriales edificios materiales =
   , DeclComando "pedir_tributo_obra" "c.pedir_tributo_obra"
       [ DeclParametro "altepetl" (PEntero 1 1000000), DeclParametro "material" (POpcion materiales)
       , DeclParametro "fuente" (PEntero 1 1000000), DeclParametro "cuadrilla" (PEntero 1 100000) ] True requisitoPorOmision
+  , DeclComando "designar_moneda" "c.designar_moneda"
+      [ DeclParametro "bien" (POpcion monedas) ] True requisitoPorOmision
   ]
