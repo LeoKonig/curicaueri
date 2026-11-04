@@ -52,26 +52,49 @@ data MaterialTerreno = MaterialTerreno
 -- trabajadores o rendimientos negativos, un terreno que rinde algo sin
 -- declarar cuántos trabajadores lo trabajan, y materiales con rendimiento
 -- negativo o sin trabajadores.
+--
+-- El rendimiento se da por celda y periodo (@rendimiento@) o por trabajador y
+-- año (@rendimiento_por_trabajador@, con @periodos_por_anio@ en la raíz): en
+-- toneladas para los bienes a granel y en piezas para las mantas. Con el
+-- segundo, el rendimiento de la celda es ℓ · r / periodos por año.
 cargarTerrenos :: Text -> Value -> Validacion (Map Terreno DefTerreno)
 cargarTerrenos archivo v = case A.parseEither leer v of
   Left err -> falla (ErrorCarga ErrorEstructura archivo "" (T.pack err))
-  Right ts ->
-    let ids = [ i | ((i, _, _, _, _, _), _, _) <- ts ]
+  Right (periodos, ts) ->
+    let ids = [ i | ((i, _, _, _, _, _), _, _, _) <- ts ]
         repetidos = traverse (\i -> if length (filter (== i) ids) > 1
                                       then falla (ErrorCarga ErrorEsquema archivo ("terrenos." <> i) "terreno repetido")
                                       else pure ()) (nub ids)
-    in repetidos *> (Map.fromList . map (\t -> (dtTerreno t, t)) <$> traverse validar ts)
+    in repetidos *> (Map.fromList . map (\t -> (dtTerreno t, t)) <$> traverse (validar periodos) ts)
   where
-    leer = A.withObject "terrenos" $ \o -> o A..: "terrenos" >>= mapM terreno
+    leer = A.withObject "terrenos" $ \o -> do
+      periodos <- o A..:? "periodos_por_anio"
+      ts <- o A..: "terrenos" >>= mapM terreno
+      pure (periodos :: Maybe Int, ts)
     terreno = A.withObject "terreno" $ \o -> do
       base <- (,,,,,) <$> o A..: "id" <*> o A..: "capacidad" <*> o A..:? "recursos" A..!= [] <*> o A..: "erosion"
                       <*> o A..:? "trabajadores" A..!= Fijo 0 <*> o A..:? "rendimiento" A..!= Map.empty
       mats <- o A..:? "materiales" A..!= Map.empty >>= traverse (A.withObject "material" (\m ->
                 MaterialTerreno <$> m A..: "rendimiento" <*> m A..: "trabajadores"))
       mu <- o A..:? "costo_movimiento" A..!= uno
-      pure (base, mats, mu)
-    validar ((i, cap, recs, ero, trab, rend), mats, mu) =
+      rpt <- o A..:? "rendimiento_por_trabajador" A..!= Map.empty
+      pure (base, mats, mu, rpt)
+    validar periodos ((i, cap, recs, ero, trab, rend0), mats, mu, rpt) =
       let ruta = "terrenos." <> i
+          -- Medidas reales (V5, *Medidas reales*): el rendimiento puede darse como lo que
+          -- produce un trabajador en un año, en las unidades del bien (t, piezas), y el
+          -- terreno lo convierte al de una celda por periodo: ℓ · r / periodos por año.
+          rend = if Map.null rpt then rend0
+                 else Map.map (\r -> (trab .*. r) ./. desdeEntero (maybe 1 id periodos)) rpt
+          porTrabajadorOk
+            | Map.null rpt = pure ()
+            | not (Map.null rend0) = falla (ErrorCarga ErrorEsquema archivo (ruta <> ".rendimiento_por_trabajador")
+                                              "un terreno lleva «rendimiento» o «rendimiento_por_trabajador», no los dos")
+            | maybe True (<= 0) periodos = falla (ErrorCarga ErrorEsquema archivo "periodos_por_anio"
+                                                    "el rendimiento por trabajador necesita «periodos_por_anio» mayor que 0")
+            | otherwise = () <$ traverse (\(b, r) -> if r >= Fijo 0 then pure ()
+                                                    else falla (ErrorCarga ErrorRango archivo (ruta <> ".rendimiento_por_trabajador." <> b)
+                                                                  "el rendimiento no puede ser negativo")) (Map.toList rpt)
           capOk = if cap >= Fijo 0 then pure ()
                   else falla (ErrorCarga ErrorRango archivo (ruta <> ".capacidad") "la capacidad no puede ser negativa")
           eroOk = if ero >= Fijo 0 then pure ()
@@ -83,7 +106,7 @@ cargarTerrenos archivo v = case A.parseEither leer v of
           rendOk = traverse (\(b, y) -> if y >= Fijo 0 then pure ()
                                         else falla (ErrorCarga ErrorRango archivo (ruta <> ".rendimiento." <> b)
                                                       "el rendimiento no puede ser negativo"))
-                            (Map.toList rend)
+                            (Map.toList rend0)
           rindeOk = if Map.null rend || trab > Fijo 0 then pure ()
                     else falla (ErrorCarga ErrorEsquema archivo (ruta <> ".trabajadores")
                                   "un terreno que rinde algo necesita trabajadores mayores que 0")
@@ -98,7 +121,7 @@ cargarTerrenos archivo v = case A.parseEither leer v of
           muOk = if mu > Fijo 0 then pure ()
                  else falla (ErrorCarga ErrorRango archivo (ruta <> ".costo_movimiento") "el costo de movimiento debe ser mayor que 0")
       in DefTerreno (Terreno i) cap (map Recurso recs) ero trab rend mats mu
-           <$ capOk <* eroOk <* recsOk <* trabOk <* rendOk <* rindeOk <* matsOk <* muOk
+           <$ capOk <* eroOk <* recsOk <* trabOk <* rendOk <* rindeOk <* matsOk <* muOk <* porTrabajadorOk
 
 -- | El costo de cada conexión según el terreno de sus dos celdas (V5, *Costo
 -- del grafo*; documento funcional, sección 8):

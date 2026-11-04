@@ -1665,6 +1665,25 @@ pruebasMalaCosecha terrenos eco eds = describe "reglas: mala cosecha y abrir las
       ds `shouldBe` map (const (malo sigma)) ds
     map malo [1 .. 12] `shouldSatisfy` (\bs -> or bs && not (and bs))
 
+  it "medidas reales: terrenos.json cuenta los periodos como el calendario, y el reino entero cabe en el rango de los bienes" $ do
+    v <- either fail pure =<< A.eitherDecodeFileStrict "../../datos/terrenos.json"
+    parseEither (withObject "t" (.: "periodos_por_anio")) v `shouldBe` (Right 18 :: Either String Int)
+    cTicksPorAnio constantesDefault `shouldBe` fi 18
+    -- 1,5 millones de personas, la estimación alta del reino (V5), comen cada año menos que el máximo de las existencias.
+    let reino = fi 1500000 .*. cRacionMaiz constantesDefault
+        rango = maybe (Fijo 0) (maxMag . dmRango) (Map.lookup (magExistencias "maiz") (catalogoBienes ["maiz"]))
+    reino `shouldSatisfy` (< rango)
+
+  it "coherencia con las cifras de referencia: en un año medio el tutorial cosecha de 1,1 a 1,6 veces lo que come su gente" $ do
+    let personas = fi (sum [ popTamano p | p <- Map.elems (ppPops (persistenteJuego (estadoPersistente estadoInicial1475))) ])
+        necesidad = personas .*. cRacionMaiz constantesDefault
+        cosecha = foldl' (.+.) (Fijo 0)
+                    [ maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, magProduccion "maiz") (alm st))
+                    | (st, t) <- zip (scanl (\st' t' -> fst (paso sinAzar ent (Semilla 1) (Tick t') [] st')) e0 [0 .. 364]) [1 :: Int ..]
+                    , esInicioDePeriodo (comunCalendario (persistenteComun (estadoPersistente estadoInicial1475))) (Tick (fromIntegral t - 1)) ]
+    cosecha `shouldSatisfy` (>= necesidad .*. Fijo 11000)
+    cosecha `shouldSatisfy` (<= necesidad .*. Fijo 16000)
+
   it "guardar a mitad del año y cargar: la partida sigue igual" $ do
     let mitad = correr j 1 0 120 e0
         cargado = either (error . show) id (cargar j mapa (guardar mitad))
