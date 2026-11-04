@@ -26,6 +26,12 @@ module Reglas.Produccion
   , catalogoBienes
   , validarBienesDelTerritorio
   , lecturasMoneda
+  , Cosecha (..)
+  , Cosechas (..)
+  , cargarCosechas
+  , enVentana
+  , diasVentana
+  , factorCosecha
   , derivarCeldas
   , derivarTerritorio
   , celdaTrabajo
@@ -38,6 +44,9 @@ module Reglas.Produccion
   , produccion
   ) where
 
+import Data.Aeson (Value)
+import qualified Data.Aeson as A
+import qualified Data.Aeson.Types as A
 import Data.List (foldl', sortBy)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -50,8 +59,9 @@ import Motor.Base
 import Motor.Estado
 import Motor.Magnitudes
 import Motor.Mapa (Mapa (..), Celda (..), Terreno)
+import Motor.Calendario (CalendarioInterno (..), CalendarioVisible, Fecha, InfoPeriodo (..), diaDelAnioDe, diaDelAnioVisible, infoPeriodo)
 import Motor.Carga (CategoriaError (..), ErrorCarga (..), Validacion, falla)
-import Motor.Moneda (Bien (..), Economia (..), magExistencias, magProduccion)
+import Motor.Moneda (Bien (..), Economia (..), magExistencias, magMerma, magProduccion, mermaEn, rangoMerma)
 import Motor.Recorrido (Grafo, asignarCeldas, grafoDe)
 import Motor.Sistema
 import Motor.Terrenos (DefTerreno (..), MaterialTerreno (..))
@@ -89,12 +99,86 @@ lecturasMoneda ec = Set.fromList
 rangoBien :: RangoMag
 rangoBien = RangoMag (fi 0) (fi 1000000000)
 
--- | Existencias y producción de cada bien, magnitudes de la facción
--- (CLAUDE.md, *Bienes como magnitudes de la facción*).
+-- | Existencias, producción y merma de cada bien, magnitudes de la facción
+-- (CLAUDE.md, *Bienes como magnitudes de la facción*). La merma tiene dos
+-- escritores: la producción escribe su base (la del catálogo de bienes) y la
+-- construcción los modificadores de las trojes.
 catalogoBienes :: [Text] -> Map Magnitud DefMagnitud
-catalogoBienes bs = Map.fromList
+catalogoBienes bs = Map.fromList $
   [ (m, DefMagnitud n rangoBien ("m." <> n) Nothing False)
   | b <- bs, m@(Magnitud n) <- [magExistencias b, magProduccion b] ]
+  ++ [ (m, DefMagnitud n rangoMerma ("m." <> n) Nothing True) | b <- bs, let m@(Magnitud n) = magMerma b ]
+
+-- ---------------------------------------------------------------------------
+-- Cosecha por estación
+-- ---------------------------------------------------------------------------
+
+-- | La ventana de cosecha de un bien, en días del año visible (1 a 365,
+-- 'diaDelAnioDe'), los dos incluidos. Si @desde@ es mayor que @hasta@, la
+-- ventana cruza el fin de año.
+data Cosecha = Cosecha { coDesde :: Int, coHasta :: Int }
+  deriving (Eq, Show)
+
+enVentana :: Cosecha -> Int -> Bool
+enVentana (Cosecha a b) d
+  | a <= b    = a <= d && d <= b
+  | otherwise = d >= a || d <= b
+
+diasVentana :: Cosecha -> Int
+diasVentana (Cosecha a b)
+  | a <= b    = b - a + 1
+  | otherwise = 365 - a + 1 + b
+
+-- | Las ventanas de cosecha y cómo se lee la fecha visible de un tick (V5,
+-- *Temporada de guerra y guerra ritual*: la estación sale del día del año de
+-- la fecha visible, no de la veintena, porque el año interno se desfasa).
+-- Un bien sin ventana se produce parejo todo el año, como antes.
+data Cosechas = Cosechas
+  { csVentanas :: Map Text Cosecha
+  , csVisible  :: CalendarioVisible
+  , csInicio   :: Fecha               -- ^ fecha visible del tick 0
+  }
+
+-- | Qué parte de la cosecha del año entra en el periodo que empieza en @t@,
+-- como factor sobre la producción de una veintena pareja:
+--
+-- > periodos por año · días del periodo dentro de la ventana / días de la ventana
+--
+-- El periodo va de @t@ al inicio del siguiente (el último del año lleva
+-- también los días fuera de periodo), así que los periodos cubren todos los
+-- días y en un año se cosecha lo de los periodos del año: lo mismo que con
+-- la producción pareja, salvo el redondeo.
+factorCosecha :: CalendarioInterno -> Cosechas -> Cosecha -> Tick -> Fijo
+factorCosecha cal cs co (Tick t) =
+  let ip = infoPeriodo cal (Tick t)
+      largo = ciDiasPorPeriodo cal + (if ipPeriodo ip == ciPeriodosPorAnio cal then ciDiasFuera cal else 0)
+      dentro = length [ () | k <- [0 .. largo - 1]
+                           , enVentana co (diaDelAnioVisible (csVisible cs) (csInicio cs) (Tick (t + fromIntegral k))) ]
+  in desdeEntero (ciPeriodosPorAnio cal * dentro) ./. desdeEntero (diasVentana co)
+
+-- | Las ventanas de cosecha de @datos/terrenos.json@ (la clave @cosechas@,
+-- opcional), con fechas «MM-DD» del calendario visible:
+--
+-- > "cosechas": {"maiz": {"desde": "10-15", "hasta": "11-30"}}
+--
+-- Cada bien tiene que ser uno del territorio. Acumula todos los errores.
+cargarCosechas :: Text -> [Text] -> Value -> Validacion (Map Text Cosecha)
+cargarCosechas archivo producidos v = case A.parseEither leer v of
+  Left e   -> falla (ErrorCarga ErrorEstructura archivo "cosechas" (T.pack e))
+  Right vs -> Map.fromList <$> traverse validar (Map.toList vs)
+  where
+    leer = A.withObject "terrenos" $ \o -> do
+      m <- o A..:? "cosechas" A..!= (Map.empty :: Map Text Value)
+      traverse (A.withObject "cosecha" (\c -> (,) <$> c A..: "desde" <*> c A..: "hasta")) m
+    validar (b, (d, h)) =
+      let ruta c = "cosechas." <> b <> "." <> c
+          bienOk = if b `elem` producidos then pure ()
+                   else falla (ErrorCarga ErrorReferencia archivo ("cosechas." <> b)
+                                 ("el territorio no produce «" <> b <> "»"))
+      in (\_ x y -> (b, Cosecha x y)) <$> bienOk <*> fecha (ruta "desde") d <*> fecha (ruta "hasta") h
+    fecha ruta t = case map (reads . T.unpack) (T.splitOn "-" t) of
+      [[(m, "")], [(d, "")]] | Just n <- diaDelAnioDe m d -> pure n
+      _ -> falla (ErrorCarga ErrorRango archivo ruta ("fecha «" <> t <> "»: se espera MM-DD"))
 
 -- | Una celda que se puede trabajar, con lo que pide y lo que da.
 celdaTrabajo :: Int -> DefTerreno -> Maybe CeldaTrabajo
@@ -203,14 +287,20 @@ totalProduccion = foldl' (.+.) (Fijo 0) . Map.elems
 -- > existencias' = existencias · (1 − merma) + producción
 --
 -- así que, con producción constante, se acercan a producción / merma en vez
--- de crecer sin fin, y el precio de la moneda se estabiliza.
+-- de crecer sin fin, y el precio de la moneda se estabiliza. La merma es la
+-- efectiva de @bien.<id>.merma@ ('mermaEn'): la base la escribe este sistema
+-- con la del catálogo, y las trojes la bajan con sus modificadores.
 -- Sin economía, o con merma 0, todo sigue como antes.
-produccion :: Constantes -> Economia -> [Text] -> Sistema Purepecha
-produccion c ec bienes = Sistema
+--
+-- Un bien con ventana de cosecha ('Cosechas') no se produce parejo: cada
+-- periodo entra 'factorCosecha' veces lo de una veintena pareja, y fuera de
+-- la ventana nada. Lo cosechado en el año es lo mismo.
+produccion :: Constantes -> Economia -> Cosechas -> [Text] -> Sistema Purepecha
+produccion c ec temporadas bienes = Sistema
   { sisNombre   = NombreSistema "produccion"
   , sisCadencia = Periodo
   , sisLee      = Set.singleton magProduccionAlt
-  , sisEscribe  = Set.fromList (concat [ [magExistencias b, magProduccion b] | b <- bienes ])
+  , sisEscribe  = Set.fromList (concat [ [magExistencias b, magProduccion b, magMerma b] | b <- bienes ])
   , sisEjecutar = \_ est ->
       if null bienes then (est, []) else
       let p     = persistenteJuego (estadoPersistente est)
@@ -227,14 +317,24 @@ produccion c ec bienes = Sistema
                      , let f = facDeAlt p alt, Just fa <- [Map.lookup f (ppFacciones p)], facEstado fa == Activa ]
           total f = Map.unionsWith (.+.) (Map.fromList [ (b, Fijo 0) | b <- bienes ]
                                           : [Map.findWithDefault Map.empty f porFac])
-          merma b = maybe (Fijo 0) bnMerma (Map.lookup b (ecoBienes ec))
+          t     = estadoTick est
+          cal   = comunCalendario com
+          -- El factor de cosecha de cada bien con ventana: el mismo para todas
+          -- las facciones, así que se calcula una vez por periodo.
+          cosecha = Map.map (\co -> factorCosecha cal temporadas co t) (csVentanas temporadas)
+          enPeriodo b q = maybe q (q .*.) (Map.lookup b cosecha)
           guardado f b alm = maybe (Fijo 0) almacenBase (Map.lookup (entFac f, magExistencias b) alm)
-          escribir f alm (b, q)
-            | merma b <= Fijo 0 =
-                sumarBase (entFac f) (magExistencias b) q (fijarBase (entFac f) (magProduccion b) q alm)
-            | otherwise =
-                fijarBase (entFac f) (magExistencias b) (guardado f b alm .*. (uno .-. merma b) .+. q)
-                  (fijarBase (entFac f) (magProduccion b) q alm)
+          escribir f alm0 (b, q0) =
+            let q = enPeriodo b q0
+                -- La base de la merma, del catálogo; la efectiva, con las trojes.
+                (alm, m) = case Map.lookup b (ecoBienes ec) of
+                  Nothing -> (alm0, Fijo 0)
+                  Just bien -> let a1 = fijarBase (entFac f) (magMerma b) (bnMerma bien) alm0
+                               in (a1, mermaEn vig t a1 (entFac f) bien)
+            in if m <= Fijo 0
+                 then sumarBase (entFac f) (magExistencias b) q (fijarBase (entFac f) (magProduccion b) q alm)
+                 else fijarBase (entFac f) (magExistencias b) (guardado f b alm .*. (uno .-. m) .+. q)
+                        (fijarBase (entFac f) (magProduccion b) q alm)
           alm' = foldl' (\a fa -> foldl' (escribir (facId fa)) a
                                           (Map.toList (Map.filterWithKey (\b _ -> b `elem` bienes) (total (facId fa)))))
                         (comunMagnitudes com) (activas p)
