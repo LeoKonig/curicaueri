@@ -201,17 +201,19 @@ Los actos de la partida son datos, no código: un **guion** en JSON con fases, s
 
 | Archivo | Qué es |
 | --- | --- |
-| `datos/guion_1475.json` | Guion **ilustrativo** del escenario: tres actos (1475, 1485, 1519) y siete situaciones que mueven el agravio de los pops. Muestra la forma; el contenido real sale del hito 0 |
+| `datos/guion_1475.json` | Guion del **tutorial** 1475–1530: cuatro actos (1475, 1485, 1519, 1523), 33 situaciones y el fin el 14 de febrero de 1530. Los sucesos históricos salen de `docs/propuestas_cronica.md` y las decisiones recurrentes, del prototipo del hito 0. Cada situación dice en `_fuente` de dónde sale y con qué certeza; sus textos visibles (título, texto, opciones y costo) están en `cliente/textos/es.json`. Los números son de relleno hasta calibrar |
 | `pruebas_compartidas/guion_integracion.json` | Una sola situación que sale el primer día, para la prueba del cliente |
 | `nucleo/test/guion_juguete.json` | El guion del juego de juguete, con el que se prueban fases, director y métricas |
 
 Para medir un guion sin cliente:
 
 ```sh
-nucleo --sin-cliente --ticks 18250 --guion datos/guion_1475.json --metricas
+nucleo --sin-cliente --ticks 20200 --guion datos/guion_1475.json --metricas
 ```
 
-Con el guion ilustrativo, en 50 años salen 85 situaciones. La parte máxima es 0,15, dentro del 25 %, y la novedad por década es `[2,2,2,2]`: cumple. El acto II, que dura de 1485 a 1519, escalona sus tipos con `"condicion": {"tipo": "desde_fecha", ...}` en 1495, 1505 y 1515, como el guion de juguete. Sin esas situaciones, la novedad de las décadas siguientes cae a 0 y el arnés lo detecta.
+Con el guion del tutorial, de 1475 al fin de 1530 salen 135 situaciones (unas 2,5 por año). La parte máxima es 0,23, dentro del 25 %, y la novedad por década es `[4,2,3,4]`: cumple. El acto II, que dura de 1485 a 1519, escalona sus tipos con ventanas de fechas (`desde_fecha` y `no desde_fecha`): obras y conquistas hasta 1500, señorío y milicia desde 1495, alianza, rebelión y sucesión desde 1505. Sin esa escalada, la novedad de las décadas siguientes cae y el arnés lo detecta.
+
+**Cambiar o revisar un suceso histórico** es editar su situación en el guion (condición, ventana, opciones y efectos) y sus textos en `cliente/textos/es.json`; el motor no se toca. Un suceso de la cadena histórica sale una sola vez (`"enfriamiento": 100000`) dentro de su ventana. Después de editar, `--metricas` dice si el guion sigue variado, y la prueba de protocolo del cliente comprueba que cada situación y cada opción tengan su texto.
 
 ## Licencia
 

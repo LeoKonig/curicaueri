@@ -575,6 +575,8 @@ que no crece y llega a 0 a más tardar en t_cambio + d. La magnitud vuelve a su 
 \text{eleg}(t) = \{\, s \mid (F_s = \varnothing \vee f_{\varphi(t)} \in F_s) \wedge c_s(S_t) \wedge t - \text{último}(s) \ge e_s \,\}
 ```
 
+**Escritores.** Los efectos `sumar_mag` y `fijar_mag` de una opción escriben la base de la magnitud que nombran (el tesoro, la legitimidad, el agravio de un pop, la producción de un altépetl, el poder o la lealtad de un grupo…). Se aplican al resolverse la decisión (en el paso de respuestas, o en el del director si vence el plazo), así que el guion es un escritor declarado de cada magnitud que toca, además de su sistema: el sistema lee la base que dejó la decisión. Un efecto que debiera durar un tiempo y luego desaparecer necesita el modificador temporal con fuente (hito 4, `tareas_paralelas.md`, T14); mientras no exista, los efectos del guion son permanentes.
+
 **Director.** Sea Δ = t − t_último los días desde la última situación, con D el espaciado. La probabilidad diaria de presentar una es
 
 ```math
