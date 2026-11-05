@@ -173,13 +173,14 @@ data Escenario = Escenario
   , escEjes      :: Maybe [Text]       -- ^ ejes de poder activos; sin lista, todos los de @datos/ejes.json@
   , escFacciones :: [FilePath]         -- ^ archivos de facciones, relativos al escenario
   , escGuion     :: Maybe FilePath     -- ^ el guion del escenario, relativo a él; @--guion@ lo reemplaza
+  , escMezcla    :: Fijo               -- ^ ε de la mezcla de terrenos del mapa provisional ('Motor.Mapa.conMezcla'); 0 por omisión (T36)
   }
 
 -- | El tutorial escrito en Haskell, como escenario: sus fechas, su
 -- calendario y su mapa. Sirve a la cáscara cuando no se le da @--escenario@.
 escenarioTutorial :: Escenario
 escenarioTutorial = Escenario "tutorial_1475" "Tutorial 1475-1530" inicio1475 (Just (Fecha 1530 2 14)) 0
-                              visible1475 datosMapa1475 ejesActivos1475 [] Nothing
+                              visible1475 datosMapa1475 ejesActivos1475 [] Nothing (Fijo 0)
 
 -- | Lee una fecha AAAA-MM-DD.
 leerFecha :: Text -> A.Parser Fecha
@@ -197,8 +198,12 @@ tickDeFecha inicio f = diaJuliano f - diaJuliano inicio
 leerEscenario :: Text -> Value -> Validacion Escenario
 leerEscenario archivo v = case A.parseEither leer v of
   Left err -> falla (ErrorCarga ErrorEstructura archivo "" (T.pack err))
-  Right e  -> pure e
+  Right e
+    | escMezcla e < Fijo 0 || escMezcla e > mezclaMaxima ->
+        falla (ErrorCarga ErrorRango archivo "mapa.mezcla" "la mezcla va de 0 a 0.5")
+    | otherwise -> pure e
   where
+    mezclaMaxima = Fijo 5000
     leer = withObject "escenario" $ \o -> do
       eid <- o .: "id"
       nombre <- o .:? "nombre" .!= eid
@@ -206,12 +211,13 @@ leerEscenario archivo v = case A.parseEither leer v of
       fin <- o .:? "fin" >>= traverse leerFecha
       desfase <- o .:? "desfase_calendario" .!= 0
       visible <- o .:? "ultimo_dia_juliano" >>= maybe (pure SoloJuliano) (fmap CambioAGregoriano . leerFecha)
-      mapa <- o .: "mapa" >>= withObject "mapa" (\m ->
-                DatosHex <$> m .: "ancho" <*> m .: "alto" <*> m .:? "radio_km" .!= fi 20 <*> m .:? "semilla" .!= (0 :: Word64))
+      (mapa, mezcla) <- o .: "mapa" >>= withObject "mapa" (\m ->
+                (,) <$> (DatosHex <$> m .: "ancho" <*> m .: "alto" <*> m .:? "radio_km" .!= fi 20 <*> m .:? "semilla" .!= (0 :: Word64))
+                    <*> m .:? "mezcla" .!= Fijo 0)
       ejes <- o .:? "ejes"
       facs <- o .: "facciones"
       guion <- o .:? "guion"
-      pure (Escenario eid nombre inicio fin desfase visible mapa ejes facs guion)
+      pure (Escenario eid nombre inicio fin desfase visible mapa ejes facs guion mezcla)
 
 -- Lo que se lee de un archivo de facciones, antes de validarlo.
 data FaccionD = FaccionD

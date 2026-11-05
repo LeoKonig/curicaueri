@@ -3,6 +3,8 @@ module Motor.Mapa where
 
 import Data.IntMap.Strict (IntMap)
 import qualified Data.IntMap.Strict as IntMap
+import Data.List (sortBy)
+import qualified Data.Map.Strict as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
@@ -22,7 +24,24 @@ data Celda = Celda
   , celdaTerreno   :: Terreno
   , celdaElevacion :: Fijo
   , celdaRecursos  :: Set Recurso
+  , celdaComposicion :: [(Terreno, Fijo)]
+    -- ^ los terrenos que forman la celda con su fracción, el dominante
+    -- primero (V5, *La celda como mezcla de terrenos*; T36). Vacía, que es el
+    -- valor por defecto, la celda es toda de 'celdaTerreno'. Solo cambia lo
+    -- que la celda da: el costo de cruzarla, el combate y el color siguen
+    -- siendo los del dominante.
   } deriving (Eq, Show)
+
+-- | La composición efectiva: la declarada o, sin ella, la celda entera de
+-- su terreno.
+composicionDe :: Celda -> [(Terreno, Fijo)]
+composicionDe c = case celdaComposicion c of
+  [] -> [(celdaTerreno c, uno)]
+  cs -> cs
+
+-- | Cuántos componentes puede tener una celda como mucho.
+maxComponentes :: Int
+maxComponentes = 4
 
 data Conexion = Conexion
   { connLongitud  :: Fijo
@@ -42,6 +61,7 @@ data ErrorMapa
   | EscalaInvalida
   | VecinosSinCelda CeldaId
   | CostoNegativo CeldaId CeldaId
+  | ComposicionInvalida CeldaId Text
   deriving (Eq, Show)
 
 validarMapa :: Mapa -> [ErrorMapa]
@@ -68,10 +88,58 @@ validarMapa m = concat
     , (b, con) <- vs
     , connCosto con < Fijo 0
     ]
+  , [ ComposicionInvalida (celdaId c) motivo
+    | c <- IntMap.elems celdas, Just motivo <- [composicionInvalida c] ]
   ]
   where
     celdas  = mapaCeldas m
     vecinos = mapaVecinos m
+
+-- | Ley «composición válida» (documento funcional, sección 19): de 1 a
+-- 'maxComponentes' componentes de terrenos distintos, fracciones positivas
+-- que suman 1 y el terreno de la celda como el de mayor fracción. Que cada
+-- terreno exista en la tabla lo comprueba 'Motor.Terrenos.validarTerrenosDelMapa'.
+composicionInvalida :: Celda -> Maybe Text
+composicionInvalida c = case celdaComposicion c of
+  [] -> Nothing
+  cs
+    | length cs > maxComponentes -> Just "más de cuatro componentes"
+    | Set.size (Set.fromList (map fst cs)) /= length cs -> Just "un terreno repetido"
+    | any ((<= Fijo 0) . snd) cs -> Just "una fracción no positiva"
+    | sum [ x | (_, Fijo x) <- cs ] /= escala -> Just "las fracciones no suman 1"
+    | Just s0 <- lookup (celdaTerreno c) cs, all ((<= s0) . snd) cs -> Nothing
+    | otherwise -> Just "el terreno de la celda no es el de mayor fracción"
+
+-- | La mezcla del mapa provisional (V5, *De dónde sale la mezcla*): cada celda
+-- toma, de cada terreno distinto al suyo que tienen sus vecinos, la fracción
+--
+-- > s_T = ε · (vecinos con T) / 6
+--
+-- y se queda con el resto. Con más de tres terrenos vecinos distintos se
+-- quedan los tres de mayor fracción, con empate por nombre, y lo de los demás
+-- vuelve al terreno propio. Como ε ≤ 1/2, el propio tiene al menos la mitad y
+-- sigue siendo el dominante. Con ε = 0 el mapa no cambia. Lee los terrenos
+-- del mapa de entrada, no los ya mezclados, así que el orden de las celdas no
+-- importa. Es O(celdas · vecinos) y se hace una vez, al cargar.
+conMezcla :: Fijo -> Mapa -> Mapa
+conMezcla eps m
+  | eps <= Fijo 0 = m
+  | otherwise = m { mapaCeldas = IntMap.mapWithKey mezclar (mapaCeldas m) }
+  where
+    terrenoDe i = celdaTerreno <$> IntMap.lookup i (mapaCeldas m)
+    mezclar i c =
+      let propio = celdaTerreno c
+          cuentas = Map.fromListWith (+)
+            [ (t, 1 :: Int) | (CeldaId v, _) <- IntMap.findWithDefault [] i (mapaVecinos m)
+            , Just t <- [terrenoDe v], t /= propio ]
+          Fijo e = eps
+          fraccion n = Fijo (fromIntegral ((fromIntegral e * fromIntegral n :: Integer) `div` 6))
+          ajenos = take (maxComponentes - 1)
+                     (sortBy (\(ta, a) (tb, b) -> compare (b, ta) (a, tb))
+                        [ (t, fraccion n) | (t, n) <- Map.toList cuentas, fraccion n > Fijo 0 ])
+          Fijo resto = foldr (\(_, x) a -> a .+. x) (Fijo 0) ajenos
+      in if null ajenos then c
+         else c { celdaComposicion = (propio, Fijo (escala - resto)) : ajenos }
 
 -- | Datos para generar un mapa hexagonal.
 data DatosHex = DatosHex
@@ -106,7 +174,7 @@ mkCelda ancho c r =
       terrenos = [Terreno "llano", Terreno "bosque"
                  , Terreno "sierra", Terreno "lago"]
       t = terrenos !! fromIntegral (h `mod` 4)
-  in Celda (CeldaId (r * ancho + c)) t (Fijo (fromIntegral (h `mod` 10000))) Set.empty
+  in Celda (CeldaId (r * ancho + c)) t (Fijo (fromIntegral (h `mod` 10000))) Set.empty []
 
 -- | Convención pointy-top, paridad de fila. Genera conexiones simétricas.
 -- Entre dos celdas vecinas hay un paso: la longitud es la escala del mapa

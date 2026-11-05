@@ -1,0 +1,408 @@
+{
+    "alto": 4,
+    "ancho": 5,
+    "celdas": [
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.9",
+                    "terreno": "bosque"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "sierra"
+                }
+            ],
+            "id": 0,
+            "terreno": "bosque"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.85",
+                    "terreno": "sierra"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "bosque"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "lago"
+                }
+            ],
+            "id": 1,
+            "terreno": "sierra"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.8",
+                    "terreno": "lago"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "llano"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "bosque"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "sierra"
+                }
+            ],
+            "id": 2,
+            "terreno": "lago"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.85",
+                    "terreno": "llano"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "lago"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "bosque"
+                }
+            ],
+            "id": 3,
+            "terreno": "llano"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.85",
+                    "terreno": "bosque"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "lago"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "llano"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "sierra"
+                }
+            ],
+            "id": 4,
+            "terreno": "bosque"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.8",
+                    "terreno": "sierra"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "bosque"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "lago"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "llano"
+                }
+            ],
+            "id": 5,
+            "terreno": "sierra"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.75",
+                    "terreno": "bosque"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "llano"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "sierra"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "lago"
+                }
+            ],
+            "id": 6,
+            "terreno": "bosque"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.75",
+                    "terreno": "llano"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "bosque"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "lago"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "sierra"
+                }
+            ],
+            "id": 7,
+            "terreno": "llano"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.75",
+                    "terreno": "lago"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "llano"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "sierra"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "bosque"
+                }
+            ],
+            "id": 8,
+            "terreno": "lago"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.85",
+                    "terreno": "sierra"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "lago"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "bosque"
+                }
+            ],
+            "id": 9,
+            "terreno": "sierra"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.85",
+                    "terreno": "lago"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "llano"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "sierra"
+                }
+            ],
+            "id": 10,
+            "terreno": "lago"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.75",
+                    "terreno": "llano"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "bosque"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "lago"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "sierra"
+                }
+            ],
+            "id": 11,
+            "terreno": "llano"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.75",
+                    "terreno": "bosque"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "llano"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "sierra"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "lago"
+                }
+            ],
+            "id": 12,
+            "terreno": "bosque"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.75",
+                    "terreno": "sierra"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "bosque"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "lago"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "llano"
+                }
+            ],
+            "id": 13,
+            "terreno": "sierra"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.8",
+                    "terreno": "lago"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "sierra"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "bosque"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "llano"
+                }
+            ],
+            "id": 14,
+            "terreno": "lago"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.9",
+                    "terreno": "llano"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "lago"
+                }
+            ],
+            "id": 15,
+            "terreno": "llano"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.8",
+                    "terreno": "lago"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "llano"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "bosque"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "sierra"
+                }
+            ],
+            "id": 16,
+            "terreno": "lago"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.85",
+                    "terreno": "sierra"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "bosque"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "lago"
+                }
+            ],
+            "id": 17,
+            "terreno": "sierra"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.8",
+                    "terreno": "bosque"
+                },
+                {
+                    "fraccion": "0.1",
+                    "terreno": "sierra"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "lago"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "llano"
+                }
+            ],
+            "id": 18,
+            "terreno": "bosque"
+        },
+        {
+            "composicion": [
+                {
+                    "fraccion": "0.9",
+                    "terreno": "llano"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "bosque"
+                },
+                {
+                    "fraccion": "0.05",
+                    "terreno": "lago"
+                }
+            ],
+            "id": 19,
+            "terreno": "llano"
+        }
+    ],
+    "proveedor": "hexagonal",
+    "tipo": "mapa"
+}

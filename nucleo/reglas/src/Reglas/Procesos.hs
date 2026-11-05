@@ -36,9 +36,11 @@ import Data.Aeson (Value)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Types as A
 import Data.IntSet (IntSet)
-import Data.List (foldl', sortBy)
+import Data.List (foldl', sortOn)
+import Data.Ord (Down (..))
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
 
@@ -131,24 +133,28 @@ dominioEn :: IntSet -> Tick -> Almacen -> FaccionId -> Text -> Fijo
 dominioEn vig t alm f k = min (v (magCodificado k)) (v (magTacito k))
   where v m = maybe (Fijo 0) (valorEn vig t rangoConocimiento) (Map.lookup (entFac f, m) alm)
 
--- | Las maneras de trabajar una celda para una facción: la del terreno (si
--- rinde algo) y cada proceso de celda de ese terreno que la facción domina,
--- con su rendimiento por periodo escalado por el dominio. @periodos@ son los
--- periodos del año.
-opcionesDeCelda :: Fijo -> (Text -> Fijo) -> [Proceso] -> Int -> Text -> Maybe CeldaTrabajo -> [CeldaTrabajo]
-opcionesDeCelda periodos dom procs cel terreno porTerreno =
+-- | Las maneras de trabajar un componente de una celda para una facción: la
+-- del terreno (si rinde algo) y cada proceso de celda de ese terreno que la
+-- facción domina, con su rendimiento por periodo escalado por el dominio.
+-- @periodos@ son los periodos del año y @s@ la fracción del componente (T36):
+-- el proceso pide s veces sus trabajadores y da s veces lo suyo.
+opcionesDeCelda :: Fijo -> (Text -> Fijo) -> [Proceso] -> Int -> Text -> Fijo -> Maybe CeldaTrabajo -> [CeldaTrabajo]
+opcionesDeCelda periodos dom procs cel terreno s porTerreno =
   maybe [] pure porTerreno ++
-  [ CeldaTrabajo cel (prTrabajadores pr)
-      (Map.map (\r -> prTrabajadores pr .*. r ./. periodos .*. (d ./. fi 100)) (prProductos pr))
-      (Just (prId pr))
+  [ CeldaTrabajo cel l
+      (Map.map (\r -> l .*. r ./. periodos .*. (d ./. fi 100)) (prProductos pr))
+      (Just (prId pr)) terreno
   | pr <- procs, prLugar pr == EnCelda, terreno `elem` prTerrenos pr
-  , let d = dom (prTecnologia pr), d >= prDominioMinimo pr, d > Fijo 0 ]
+  , let d = dom (prTecnologia pr), d >= prDominioMinimo pr, d > Fijo 0
+  , let l = if s == uno then prTrabajadores pr else s .*. prTrabajadores pr, l > Fijo 0 ]
 
 -- | El orden en que un altépetl trabaja sus celdas, con la manera de trabajar
 -- cada una. Primero la comida: las celdas por energía por trabajador (con su
 -- mejor manera para comer), mientras falte energía para el objetivo y queden
--- trabajadores. Después el valor: las demás por valor por trabajador. Los
--- empates van por id de celda; entre maneras de una celda, la que más da en
+-- trabajadores. Después el valor: las demás por valor por trabajador. Cada
+-- lista de @opciones@ es un componente de una celda (T36): lo que se ordena
+-- son los componentes, y los empates van por id de celda y luego por terreno
+-- del componente; entre maneras de un componente, la que más da en
 -- la medida del paso y, a igualdad, en la otra (la milpa da lo mismo que el
 -- terreno en maíz, pero también frijol).
 --
@@ -158,20 +164,28 @@ opcionesDeCelda periodos dom procs cel terreno porTerreno =
 elegirCeldas :: Map Text Fijo -> Map Text Fijo -> Fijo -> Int -> [[CeldaTrabajo]] -> [CeldaTrabajo]
 elegirCeldas energia valor objetivo w opciones =
   let por m ct = foldl' (.+.) (Fijo 0) [ y .*. Map.findWithDefault (Fijo 0) b m | (b, y) <- Map.toList (ctRendimiento ct) ]
-      porTrabajador m ct = por m ct ./. ctTrabajadores ct
+      -- Lo que da cada manera, calculado una sola vez: energía total, y
+      -- energía y valor por trabajador (V5 a escala: con la mezcla hay hasta
+      -- cuatro componentes por celda, y esto se recorre cada periodo).
+      anotar ct = let e = por energia ct
+                  in (ct, e, e ./. ctTrabajadores ct, por valor ct ./. ctTrabajadores ct)
+      anotadas = map (map anotar) opciones
       -- Entre maneras de una celda: la que más da por trabajador en la
       -- medida principal y, a igualdad, en la otra; si siguen iguales, la
       -- primera (la del terreno).
-      mejor m otra os = case os of
+      mejor clave os = case os of
         [] -> Nothing
-        (o : otras) -> Just (foldl' (\a x -> if (porTrabajador m x, porTrabajador otra x) > (porTrabajador m a, porTrabajador otra a) then x else a) o otras)
-      orden m = sortBy (\a b -> compare (porTrabajador m b, ctCelda a) (porTrabajador m a, ctCelda b))
-      comida = orden energia [ o | os <- opciones, Just o <- [mejor energia valor os], por energia o > Fijo 0 ]
+        (o : otras) -> Just (foldl' (\a x -> if clave x > clave a then x else a) o otras)
+      porEnergia (_, _, e, v) = (e, v)
+      porValor (_, _, e, v) = (v, e)
+      orden clave = sortOn (\o@(ct, _, _, _) -> (Down (fst (clave o)), ctCelda ct, ctTerreno ct))
+      comida = orden porEnergia [ o | os <- anotadas, Just o@(_, e, _, _) <- [mejor porEnergia os], e > Fijo 0 ]
       tomar _ _ [] = []
-      tomar e l (c : cs)
+      tomar e l ((c, ec, _, _) : cs)
         | e >= objetivo || l >= fi w = []
-        | otherwise = c : tomar (e .+. por energia c) (l .+. ctTrabajadores c) cs
+        | otherwise = c : tomar (e .+. ec) (l .+. ctTrabajadores c) cs
       primero = tomar (Fijo 0) (Fijo 0) comida
-      usadas = map ctCelda primero
-      resto = orden valor [ o | os <- opciones, Just o <- [mejor valor energia os], ctCelda o `notElem` usadas ]
+      usadas = Set.fromList [ (ctCelda o, ctTerreno o) | o <- primero ]
+      resto = [ ct | (ct, _, _, _) <- orden porValor [ o | os <- anotadas, Just o@(ct, _, _, _) <- [mejor porValor os]
+                                                       , not (Set.member (ctCelda ct, ctTerreno ct) usadas) ] ]
   in primero ++ resto

@@ -155,7 +155,9 @@ data MapaCliente = MapaCliente
   { mcProveedor :: Text
   , mcAncho     :: Int
   , mcAlto      :: Int
-  , mcCeldas    :: [(Int, Text)]        -- ^ id y terreno
+  , mcCeldas    :: [(Int, Text, [(Text, Fijo)])]
+    -- ^ id, terreno dominante y composición; la composición va vacía en las
+    -- celdas de un solo terreno, y entonces el mensaje no la lleva (T36)
   } deriving (Eq, Show)
 
 -- | El reloj de un tick: fecha visible desde la fecha del tick 0 y periodo
@@ -186,7 +188,8 @@ declMagnitudes cat =
 mapaCliente :: Int -> Int -> Mapa -> MapaCliente
 mapaCliente ancho alto m =
   MapaCliente "hexagonal" ancho alto
-    [ (i, t) | (i, c) <- IntMap.toList (mapaCeldas m), let Terreno t = celdaTerreno c ]
+    [ (i, t, [ (n, x) | (Terreno n, x) <- celdaComposicion c ])
+    | (i, c) <- IntMap.toList (mapaCeldas m), let Terreno t = celdaTerreno c ]
 
 -- ---------------------------------------------------------------------------
 -- Codificación
@@ -207,7 +210,10 @@ instance ToJSON MensajeNucleo where
     NMapa m -> object [ tipo "mapa"
                       , "proveedor" .= mcProveedor m
                       , "ancho" .= mcAncho m, "alto" .= mcAlto m
-                      , "celdas" .= [ object ["id" .= i, "terreno" .= t] | (i, t) <- mcCeldas m ] ]
+                      , "celdas" .= [ object (["id" .= i, "terreno" .= t]
+                                               ++ [ "composicion" .= [ object ["terreno" .= n, "fraccion" .= x] | (n, x) <- cs ]
+                                                  | not (null cs) ])
+                                    | (i, t, cs) <- mcCeldas m ] ]
     NInstantanea r v -> object [ tipo "instantanea"
                                , "reloj" .= r
                                , "entidades" .= map entidadJ (Map.elems (vEntidades v)) ]

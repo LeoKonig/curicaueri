@@ -1,5 +1,5 @@
 {
-  "_nota": "El tutorial 1475-1530 (V5, Alcance). Las fechas de los guiones cuentan desde «inicio». El mapa es el provisional de 14 × 10 hasta el atlas.",
+  "_nota": "El tutorial 1475-1530 (V5, Alcance). Las fechas de los guiones cuentan desde «inicio». El mapa es el provisional de 14 × 10 hasta el atlas. La mezcla de terrenos (0,3) es de relleno, por verificar (T36).",
   "id": "tutorial_1475",
   "nombre": "Tutorial 1475-1530",
   "inicio": "1475-01-01",
@@ -10,7 +10,8 @@
     "ancho": 14,
     "alto": 10,
     "radio_km": "20",
-    "semilla": 1475
+    "semilla": 1475,
+    "mezcla": "0.3"
   },
   "facciones": [
     "../datos/facciones/tutorial_1475.json"

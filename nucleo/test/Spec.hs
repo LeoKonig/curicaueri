@@ -559,6 +559,48 @@ main = hspec $ do
       let m = mapaPrueba { mapaVecinos = IntMap.adjust (map (\(b, con) -> (b, con { connCosto = Fijo (-1) }))) 0 (mapaVecinos mapaPrueba) }
       any (\e -> case e of CostoNegativo _ _ -> True; _ -> False) (validarMapa m) `shouldBe` True
 
+  describe "mezcla de terrenos (T36)" $ do
+    -- Un mapa más grande que el de prueba, para que haya bordes entre terrenos.
+    let grande = either (error . show) id (proveedorHexagonal (DatosHex 12 9 (Fijo 10000) 7))
+        mezclado e = conMezcla (Fijo e) grande
+    it "mezcla neutra: con ε = 0 el mapa no cambia" $
+      conMezcla (Fijo 0) grande `shouldBe` grande
+    it "sin composición, la celda es entera de su terreno" $
+      forM_ (IntMap.elems (mapaCeldas grande)) $ \c ->
+        composicionDe c `shouldBe` [(celdaTerreno c, uno)]
+    it "composición válida: con cualquier ε de 0 a 0,5 el generador la cumple" $
+      property $ forAll (choose (0, 5000)) $ \e ->
+        let m = mezclado e
+        in validarMapa m === [] .&&. all (\c -> composicionInvalida c == Nothing) (IntMap.elems (mapaCeldas m))
+    it "el dominante sigue siendo el terreno de la celda y tiene al menos 1 − ε" $
+      forM_ (IntMap.elems (mapaCeldas (mezclado 3000))) $ \c -> case celdaComposicion c of
+        [] -> pure ()
+        cs@((t0, s0) : _) -> do
+          t0 `shouldBe` celdaTerreno c
+          s0 `shouldSatisfy` (>= Fijo 7000)
+          length cs `shouldSatisfy` (<= maxComponentes)
+    it "la mezcla solo cambia la composición: terreno, vecinos y costos quedan igual" $ do
+      let m = mezclado 5000
+      mapaVecinos m `shouldBe` mapaVecinos grande
+      map celdaTerreno (IntMap.elems (mapaCeldas m)) `shouldBe` map celdaTerreno (IntMap.elems (mapaCeldas grande))
+      any (not . null . celdaComposicion) (IntMap.elems (mapaCeldas m)) `shouldBe` True
+    it "una celda sin vecinos de otro terreno no se mezcla" $
+      forM_ (IntMap.toList (mapaCeldas (mezclado 5000))) $ \(i, c) ->
+        let ajenos = [ () | (CeldaId v, _) <- IntMap.findWithDefault [] i (mapaVecinos grande)
+                          , Just cv <- [IntMap.lookup v (mapaCeldas grande)], celdaTerreno cv /= celdaTerreno c ]
+        in null (celdaComposicion c) `shouldBe` null ajenos
+    it "validarMapa rechaza composiciones inválidas" $ do
+      let c0 = (mapaCeldas mapaPrueba) IntMap.! 0
+          t = celdaTerreno c0
+          otro = if t == Terreno "llano" then Terreno "lago" else Terreno "llano"
+          con cs = mapaPrueba { mapaCeldas = IntMap.insert 0 c0 { celdaComposicion = cs } (mapaCeldas mapaPrueba) }
+          invalida cs = [ m | ComposicionInvalida _ m <- validarMapa (con cs) ]
+      invalida [(t, Fijo 6000), (otro, Fijo 4000)] `shouldBe` []
+      invalida [(t, Fijo 6000), (otro, Fijo 3000)] `shouldBe` ["las fracciones no suman 1"]
+      invalida [(t, Fijo 4000), (otro, Fijo 6000)] `shouldBe` ["el terreno de la celda no es el de mayor fracción"]
+      invalida [(t, Fijo 5000), (t, Fijo 5000)] `shouldBe` ["un terreno repetido"]
+      invalida [(t, uno), (otro, Fijo 0)] `shouldBe` ["una fracción no positiva"]
+
   describe "asignación de celdas" $ do
     -- mapaPrueba es hexagonal de 5 × 4 con 1,0 km por celda: dos celdas vecinas están a 1 km.
     let km n = Fijo (n * 10000)
@@ -1412,6 +1454,7 @@ main = hspec $ do
     it "catalogo"    $ dorado "protocolo/catalogo.json"
                          (A.toJSON (NCatalogo (CatalogoCliente (declMagnitudes catalogoToy) comandosJuguete [3000, 1500, 1000, 500, 150] (calendarioVeintenas 0) ejesJuguete)))
     it "mapa"        $ dorado "protocolo/mapa.json" (A.toJSON (NMapa (mapaCliente 5 4 mapaPrueba)))
+    it "mapa_mezcla" $ dorado "protocolo/mapa_mezcla.json" (A.toJSON (NMapa (mapaCliente 5 4 (conMezcla (Fijo 3000) mapaPrueba))))
     it "instantanea" $ dorado "protocolo/instantanea.json"
                          (A.toJSON (NInstantanea (relojJuguete s64) (proyeccion juguete s64)))
     it "cambios"     $ dorado "protocolo/cambios.json"

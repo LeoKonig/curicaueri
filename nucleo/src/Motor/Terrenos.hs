@@ -17,12 +17,13 @@ module Motor.Terrenos
 import Data.Aeson (Value)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Types as A
-import Data.List (nub, sort)
+import Data.List (nub)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.IntMap.Strict as IntMap
+import qualified Data.Set as Set
 
 import Motor.Base
 import Motor.Carga (CategoriaError (..), ErrorCarga (..), Validacion (..), falla)
@@ -140,7 +141,8 @@ conCostoDeTerreno tabla m = m { mapaVecinos = IntMap.mapWithKey conexiones (mapa
     conexiones a = map (\(b, k) -> (b, k { connCosto = connLongitud k .*. ((mu (CeldaId a) .+. mu b) ./. desdeEntero 2) }))
 
 -- | Todo terreno que el mapa usa tiene que estar en la tabla: se rechaza al
--- cargar, no en el tick 47. Un error por terreno, no por celda.
+-- cargar, no en el tick 47. Un error por terreno, no por celda. Cuentan
+-- también los terrenos de la composición de cada celda (T36).
 validarTerrenosDelMapa :: Text -> Map Terreno DefTerreno -> Mapa -> Validacion ()
 validarTerrenosDelMapa archivo tabla m =
   () <$ traverse (\t@(Terreno n) ->
@@ -149,4 +151,4 @@ validarTerrenosDelMapa archivo tabla m =
                        ("el mapa usa el terreno «" <> n <> "» y la tabla no lo declara")))
        usados
   where
-    usados = map Terreno (sort (nub [ n | c <- IntMap.elems (mapaCeldas m), let Terreno n = celdaTerreno c ]))
+    usados = Set.toAscList (Set.fromList [ t | c <- IntMap.elems (mapaCeldas m), t <- celdaTerreno c : map fst (celdaComposicion c) ])

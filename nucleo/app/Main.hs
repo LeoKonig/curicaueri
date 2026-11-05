@@ -63,6 +63,7 @@ import qualified Data.Aeson.Types as A
 import Motor.Guardado (guardar, cargar)
 
 import Motor.Base
+import qualified Data.IntMap.Strict as IntMap
 import Motor.Estado
 import Motor.Hechos (Hecho)
 import Motor.Juego
@@ -172,7 +173,14 @@ main = do
   let (ancho, alto) = case break (== 'x') (opcion "--mapa" "") of
                         (a, _ : b) | [(x, "")] <- reads a, [(y, "")] <- reads b -> (x, y)
                         _ -> (hexAncho (escMapa esc), hexAlto (escMapa esc))
-  mapaHex <- either (fail . show) pure (proveedorHexagonal (escMapa esc) { hexAncho = ancho, hexAlto = alto })
+  -- La mezcla de terrenos (T36) se calcula una vez, al cargar el mapa: no se
+  -- guarda, porque el guardado rehace el mapa desde el escenario.
+  mapaHex <- either (fail . show) (pure . conMezcla (escMezcla esc))
+               (proveedorHexagonal (escMapa esc) { hexAncho = ancho, hexAlto = alto })
+  unless (escMezcla esc == Fijo 0) $
+    registro ("mezcla de terrenos: "
+              <> T.pack (show (length [ () | c <- IntMap.elems (mapaCeldas mapaHex), not (null (celdaComposicion c)) ]))
+              <> " celdas mezcladas")
   createDirectoryIfMissing True carpeta
   grupos <- case opcion "--grupos" "" of
     "" -> pure gruposVacios

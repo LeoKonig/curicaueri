@@ -35,6 +35,16 @@ func _init() -> void:
 			espejo.recibir(m)
 	_comprobar("el catálogo trae magnitudes y comandos", espejo.magnitudes.size() > 0 and espejo.comandos.size() > 0)
 	_comprobar("el mapa trae ancho × alto celdas", espejo.mapa["celdas"].size() == int(espejo.mapa["ancho"]) * int(espejo.mapa["alto"]))
+	var Lienzo = preload("res://mapa/lienzo_mapa.gd")
+	var mezcla = leer.call("mapa_mezcla.json")
+	_comprobar("se lee mapa_mezcla.json", mezcla is Dictionary and mezcla.has("celdas"))
+	var pura: Dictionary = espejo.mapa["celdas"][0]
+	_comprobar("una celda sin mezcla no trae composición y se nombra por su terreno",
+		not pura.has("composicion") and Lienzo.texto_celda(pura) == Textos.de("terreno." + str(pura["terreno"])))
+	var mezclada: Dictionary = mezcla["celdas"][1]
+	var texto_mezcla: String = Lienzo.texto_celda(mezclada)
+	_comprobar("una celda mezclada dice de qué se forma: " + texto_mezcla.replace("\n", " / "),
+		mezclada.has("composicion") and texto_mezcla.contains("85 %") and texto_mezcla.contains(Textos.de("terreno.lago")))
 	_comprobar("el espejo tiene entidades tras instantánea y cambios", espejo.entidades.size() > 0)
 	# reloj.json es el tick 365: 1 de enero de 1476, primer día de la veintena 1.
 	var texto: String = BarraSuperior.texto_reloj(leer.call("reloj.json")["reloj"], espejo.calendario)

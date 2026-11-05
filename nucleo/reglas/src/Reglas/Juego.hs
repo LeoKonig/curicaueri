@@ -3,6 +3,7 @@ module Reglas.Juego where
 
 import qualified Data.Aeson as A
 import Data.List (foldl')
+import qualified Data.IntSet as IntSet
 import qualified Data.Map.Strict as Map
 import Data.Maybe (isJust)
 import qualified Data.Set as Set
@@ -265,7 +266,7 @@ proyectarAlt est res a =
                                                    | en <- obEnCamino o ]) (altObra a))
         , ("fieles",         VFijo fieles)
         , ("edificios", VLista (map VTexto (altEdificios a)))
-        , ("celdas_trabajadas", VEntero (length (Map.findWithDefault [] (altId a) (dpCeldas der))))
+        , ("celdas_trabajadas", VEntero (IntSet.size (IntSet.fromList (map ctCelda (Map.findWithDefault [] (altId a) (dpCeldas der))))))
         ])
 
 proyectarPop :: Pop -> EntidadJuego
