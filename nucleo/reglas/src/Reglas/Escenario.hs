@@ -33,7 +33,9 @@ import Reglas.Estado
 
 escenario1475 :: Purepecha
 escenario1475 = Purepecha
-  { ppAltepetl = Map.fromList
+  { ppObrasCelda = Map.empty
+  , ppTerrenos = Map.empty
+  , ppAltepetl = Map.fromList
       [ (AltId 1, Altepetl (AltId 1) "Tzintzuntzan"
                     (Just (PerId 2)) (fi 0) Nothing (fi 80) 63 Nothing [] f1 (Cabecera f1))
       , (AltId 2, Altepetl (AltId 2) "Zacapu"
@@ -363,6 +365,8 @@ cargarEscenario esc archivos = do
             , ppPops       = Map.fromList [ (PopId (qdId q), pop a q) | f <- facs, a <- fdAltepetl f, q <- adPops a ]
             , ppPersonajes = Map.fromList [ (PerId (pdId p), per f p) | f <- facs, p <- fdPersonajes f ]
             , ppFacciones  = Map.fromList [ (FaccionId (fdId f), fac f) | f <- facs ]
+            , ppObrasCelda = Map.empty
+            , ppTerrenos   = Map.empty
             }
           mags = Map.fromList $
             [ ((entRefPop (PopId (qdId q)), Magnitud "agravio"), AlmacenMag ag [])

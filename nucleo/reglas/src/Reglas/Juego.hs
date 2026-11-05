@@ -24,7 +24,7 @@ import Reglas.Comando
 import Reglas.Constantes
 import Reglas.Edificios
 import Reglas.Produccion
-import Motor.Mapa (Terreno)
+import Motor.Mapa (Mapa, Terreno)
 import Motor.Recorrido (Grafo, grafoMapa)
 import Motor.Terrenos (DefTerreno)
 import Reglas.Estado
@@ -68,6 +68,13 @@ catalogoMag = Map.fromList
     -- ('catalogoDieta').
   , (magCobertura,
      DefMagnitud "cobertura" rangoCobertura "m.cobertura" Nothing True)
+    -- Lo que dan las obras de celda a su celda (T38): solo las escribe la
+    -- construcción. El rendimiento lo lee la producción; la capacidad, la presión
+    -- del hito 6.
+  , (magRendimientoCelda,
+     DefMagnitud "celda.rendimiento" rangoRendimientoCelda "m.celda.rendimiento" Nothing False)
+  , (magCapacidadCelda,
+     DefMagnitud "celda.capacidad" rangoCapacidadCelda "m.celda.capacidad" Nothing False)
   ]
 
 -- | Los datos de reglas que vienen de archivos: grupos de poder y edificios.
@@ -82,10 +89,12 @@ data DatosReglas = DatosReglas
   , drCosechas  :: Map.Map Text Cosecha         -- ^ ventanas de cosecha por bien (@cosechas@ de @datos/terrenos.json@);
                                                 --   un bien sin ventana se produce parejo todo el año
   , drDieta     :: Maybe Dieta                  -- ^ los grupos de la dieta (@datos/dieta.json@); sin ella, la de T25
+  , drMapa      :: Maybe Mapa                   -- ^ el mapa de la partida, para las obras de celda (T38): saber qué terreno
+                                                --   tiene una celda y qué tan lejos está; sin él, no se construye en celdas
   }
 
 datosVacios :: DatosReglas
-datosVacios = DatosReglas gruposVacios edificiosVacios Map.empty economiaVacia Map.empty Nothing
+datosVacios = DatosReglas gruposVacios edificiosVacios Map.empty economiaVacia Map.empty Nothing Nothing
 
 -- | La dieta del juego: la del archivo o, sin él, la de T25.
 dietaDe :: Constantes -> DatosReglas -> Dieta
@@ -139,7 +148,8 @@ aplicarComando c dr est sell = do
       case altGobernador a of
         Nothing -> Left (Rechazo (altNombre a <> " no tiene gobernador"))
         Just _  -> Right (quitarNombramiento gs (sellTick sell) alt est)
-    ConstruirEdificio e alt n -> iniciarObra c (drEconomia dr) (drEdificios dr) fid e alt n est
+    ConstruirEdificio e alt n -> iniciarObra c (drEconomia dr) (drEdificios dr) (drMapa dr) fid e alt Nothing n est
+    ConstruirEnCelda e alt n k -> iniciarObra c (drEconomia dr) (drEdificios dr) (drMapa dr) fid e alt (Just k) n est
     PedirTributoObra alt g f n -> pedirTributo c (drEdificios dr) fid alt g f n est
     -- Designar, cambiar o retirar la moneda (V5, *La moneda designada y la
     -- inflación*): el motor convierte el tesoro al tipo del día y rechaza sin
@@ -316,7 +326,14 @@ derivarPurepecha c dr gr per =
       valor | Map.null (ecoBienes ec) = Map.fromList [ (b, uno) | b <- bienesConProcesos (drTerrenos dr) procs ]
             | otherwise = Map.map bnValor (ecoBienes ec)
       cp = ConProcesos procs energia valor (dtNecesidad dieta) (dominioBase alm)
-      (celdas, mats) = derivarTerritorioCon (if null procs then Nothing else Just cp) c (drTerrenos dr) (grafoMapa gr) gr p
+      -- Las terrazas suben el rendimiento de su celda (T38): la producción lo lee
+      -- de la magnitud de la celda, solo donde hay obras.
+      mejora cel
+        | Map.member cel (ppObrasCelda p) =
+            maybe uno (\x -> valorEfectivo rangoRendimientoCelda (almacenBase x) (almacenMods x))
+                  (Map.lookup (EntRef "celda" cel, magRendimientoCelda) alm)
+        | otherwise = uno
+      (celdas, mats) = derivarTerritorioMej mejora (if null procs then Nothing else Just cp) c (drTerrenos dr) (grafoMapa gr) gr p
       (loc, cen) = derivarFieles c (drEdificios dr) gr p
   in DerivadoPurepecha celdas mats loc cen (derivarDistancias c gr p)
 
@@ -342,7 +359,7 @@ juegoDatos = juegoDatosEn visible1475 inicio1475
 -- cosecha por estación sabe en qué día del año cae cada tick.
 juegoDatosEn :: CalendarioVisible -> Fecha -> Constantes -> DatosReglas -> Juego Purepecha Comando
 juegoDatosEn visible inicio c dr = let bienes = bienesConProcesos (drTerrenos dr) (procesosDe (drEdificios dr)); dieta = dietaDe c dr in Juego
-  { juegoSistemas    = [ facciones (drGrupos dr) (drEconomia dr), construccion c (drEconomia dr) (drEdificios dr)
+  { juegoSistemas    = [ facciones (drGrupos dr) (drEconomia dr), construccion c (drEconomia dr) (drEdificios dr) (drMapa dr)
                        , azarCosecha c (Cosechas (drCosechas dr) visible inicio)
                        , produccion c (drEconomia dr) dieta (procesosDe (drEdificios dr)) (Cosechas (drCosechas dr) visible inicio) bienes
                        , subsistencia c (drEconomia dr) dieta (Cosechas (drCosechas dr) visible inicio)

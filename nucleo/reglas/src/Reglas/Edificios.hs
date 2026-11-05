@@ -26,6 +26,7 @@ module Reglas.Edificios
   , DefEdificio (..)
   , DefModEdificio (..)
   , EntidadEdificio (..)
+  , Ambito (..)
   , EfectoTerminar (..)
   , Formula (..)
   , Nivel (..)
@@ -60,12 +61,20 @@ module Reglas.Edificios
   , pedirTributo
   , iniciarObra
   , construccion
+  , magRendimientoCelda
+  , magCapacidadCelda
+  , rangoRendimientoCelda
+  , rangoCapacidadCelda
+  , convertirComposicion
+  , mapaConTerrenos
+  , terrenosDeEdificios
+  , validarTerrenosDeEdificios
   ) where
 
 import Data.Aeson (Value)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Types as A
-import Data.List (foldl', nub)
+import Data.List (foldl', nub, sortBy)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import qualified Data.IntMap.Strict as IntMap
@@ -79,6 +88,7 @@ import Motor.Estado
 import Motor.Hechos
 import Motor.Juego (Rechazo (..), hechoModificadorTerminado)
 import Motor.Magnitudes
+import Motor.Mapa (Celda (..), Mapa (..), Terreno (..))
 import Motor.Moneda (Economia, enCuenta)
 import Motor.Recorrido (Etiqueta (..), Cupo (..), Grafo, grafoMapa, primera, propagar, propagarGrafo)
 import Motor.Sistema
@@ -87,7 +97,7 @@ import Reglas.Constantes
 import Reglas.Estado
 import Reglas.Formulas (gastoPunto)
 import Reglas.Grupos (agregarVarios)
-import Reglas.Produccion (lecturasMoneda, produccionCeldas, trabajadoresDe)
+import Reglas.Produccion (composicionEn, lecturasMoneda, produccionCeldas, trabajadoresDe)
 import Reglas.Procesos (Proceso (..), leerProceso, validarProceso, magCodificado, magTacito, rangoConocimiento)
 
 -- ---------------------------------------------------------------------------
@@ -96,7 +106,13 @@ import Reglas.Procesos (Proceso (..), leerProceso, validarProceso, magCodificado
 
 -- | A quién llega un modificador o un efecto: al altépetl donde se levanta la
 -- obra o a la facción que la paga.
-data EntidadEdificio = AlAltepetl | AlaFaccion
+data EntidadEdificio = AlAltepetl | AlaFaccion | ALaCelda
+  deriving (Eq, Show)
+
+-- | Dónde se levanta un edificio (V5, *Dónde se construye: ciudad o casilla*):
+-- en un altépetl, o en una celda dentro del radio de producción de uno propio
+-- (las terrazas y la roturación, T38). Por omisión, el altépetl.
+data Ambito = EnAsentamiento | EnLaCelda
   deriving (Eq, Show)
 
 -- | Cómo crece el beneficio con las copias (sección 14i). @a@ es el aporte
@@ -118,7 +134,9 @@ data DefModEdificio = DefModEdificio
 -- | Lo que hace un edificio al terminarse, además de sus modificadores: sumar
 -- a la base de una magnitud (el prestigio de la obra), con el nombre del
 -- efecto @sumar_mag@ de "Motor.Efectos"; la entidad es relativa a la obra.
-data EfectoTerminar = SumarBase EntidadEdificio Magnitud Fijo
+data EfectoTerminar
+  = SumarBase EntidadEdificio Magnitud Fijo
+  | CambiarTerreno Text   -- ^ la celda de la obra pasa a este terreno: los componentes de @terreno_en@ se funden en él (T38)
   deriving (Eq, Show)
 
 -- | Templo local (atiende a su zona) o centro ceremonial (a todo el reino,
@@ -166,6 +184,8 @@ data DefEdificio = DefEdificio
   , deOficio      :: Maybe (Text, Fijo)  -- ^ conocimiento y dominio mínimo; sin oficio por omisión
   , deMods        :: [DefModEdificio]
   , deAlTerminar  :: [EfectoTerminar]
+  , deAmbito      :: Ambito              -- ^ en un altépetl por omisión
+  , deTerrenos    :: [Text]              -- ^ de una obra de celda: en qué terrenos puede levantarse (@requisitos.terreno_en@); vacío, en cualquiera
   } deriving (Eq, Show)
 
 -- | ¿Lleva cuadrilla la obra? Sí si pide trabajo o materiales.
@@ -313,7 +333,9 @@ cargarEdificios archivo catalogo v = case A.parseEither leer v of
                   (,) <$> f A..: "conocimiento" <*> f A..: "dominio_minimo"))
       mods  <- o A..:? "modificadores" A..!= []
       fins  <- o A..:? "al_terminar" A..!= []
-      pure (Crudo i val vs trab mats ins cmax maxi cultoV oficio mods fins)
+      amb   <- o A..:? "ambito" A..!= ("asentamiento" :: Text)
+      reqs  <- o A..:? "requisitos" A..!= []
+      pure (Crudo i val vs trab mats ins cmax maxi cultoV oficio mods fins amb reqs)
     validar tradIds conIds c =
       let i = crId c
           ruta x = "edificios." <> i <> "." <> x
@@ -335,10 +357,28 @@ cargarEdificios archivo catalogo v = case A.parseEither leer v of
                     Just m | m < 1 -> err ErrorRango (ruta "maximo") "el máximo es al menos 1"
                     _ -> pure ()
           cultoV = traverse (culto tradIds (ruta "culto")) (crCulto c)
+          ambitoV = case crAmbito c of
+            "asentamiento" -> pure EnAsentamiento
+            "celda"        -> pure EnLaCelda
+            a -> err ErrorReferencia (ruta "ambito") ("ámbito desconocido: " <> a <> " (asentamiento o celda)")
+          terrenosV = fmap concat (traverse (requisito (ruta "requisitos")) (zip [0 :: Int ..] (crRequisitos c)))
           modsV  = traverse (modificador (ruta "modificadores")) (zip [0 :: Int ..] (crMods c))
           finsV  = traverse (efecto (ruta "al_terminar")) (zip [0 :: Int ..] (crFins c))
-          def cu ms fs = DefEdificio i (crValor c) (crVeintenas c) (crTrabajo c) (crMateriales c)
-                                     (crCuadrillaMax c) (crMaximo c) cu (crOficio c) ms fs
+          def cu ms fs amb ts = DefEdificio i (crValor c) (crVeintenas c) (crTrabajo c) (crMateriales c)
+                                            (crCuadrillaMax c) (crMaximo c) cu (crOficio c) ms fs amb ts
+          -- Qué cabe en cada ámbito: una obra de celda solo da modificadores a su celda y
+          -- puede pedir terrenos; una de altépetl no toca celdas ni pide terreno.
+          ambitoOk amb ts ms fs = case amb of
+            EnLaCelda ->
+              traverse (\m -> if dmeEntidad m == ALaCelda then pure ()
+                               else err ErrorEsquema (ruta "modificadores") "una obra de celda solo modifica su celda (entidad «celda»)") ms
+              *> (if null [ () | CambiarTerreno _ <- fs ] || not (null ts) then pure ()
+                  else err ErrorEsquema (ruta "al_terminar") "«cambiar_terreno» necesita «terreno_en» en los requisitos")
+            EnAsentamiento ->
+              traverse (\m -> if dmeEntidad m /= ALaCelda then pure ()
+                               else err ErrorEsquema (ruta "modificadores") "la entidad «celda» es de las obras de celda") ms
+              *> (if null ts && null [ () | CambiarTerreno _ <- fs ] then pure ()
+                  else err ErrorEsquema (ruta "requisitos") "«terreno_en» y «cambiar_terreno» son de las obras de celda (ámbito «celda»)")
           oficioOk = case crOficio c of
             Nothing -> pure ()
             Just (k, dmin) ->
@@ -349,7 +389,10 @@ cargarEdificios archivo catalogo v = case A.parseEither leer v of
           sinCulto cu ms = if any ((== FPorAsistentes) . dmeFormula) ms && cu == Nothing
                              then err ErrorEsquema (ruta "culto") "un beneficio «por_asistentes» necesita el culto del templo"
                              else pure ()
-      in (\cu ms fs -> def cu ms fs) <$> cultoV <*> modsV <*> finsV
+      in (\cu ms fs amb ts -> def cu ms fs amb ts) <$> cultoV <*> modsV <*> finsV <*> ambitoV <*> terrenosV
+           <* (case (valValor modsV, valValor finsV, valValor ambitoV, valValor terrenosV) of
+                 (Just ms, Just fs, Just amb, Just ts) -> ambitoOk amb ts ms fs
+                 _ -> pure ())
            <* valorOk <* trabOk <* matsOk <* veintOk <* insOk <* cuadOk <* maxOk <* oficioOk
            <* (case (valValor cultoV, valValor modsV) of
                  (Just cu, Just ms) -> sinCulto cu ms
@@ -371,7 +414,14 @@ cargarEdificios archivo catalogo v = case A.parseEither leer v of
     entidad ruta t = case (t :: Text) of
       "altepetl" -> pure AlAltepetl
       "faccion"  -> pure AlaFaccion
-      _          -> err ErrorReferencia (ruta <> ".entidad") ("entidad desconocida: " <> t <> " (altepetl o faccion)")
+      "celda"    -> pure ALaCelda
+      _          -> err ErrorReferencia (ruta <> ".entidad") ("entidad desconocida: " <> t <> " (altepetl, faccion o celda)")
+    -- Un requisito de una obra de celda: @{"terreno_en": ["bosque"]}@.
+    requisito base (k, rv) =
+      let ruta = base <> "." <> T.pack (show k)
+      in case A.parseEither (A.withObject "requisito" (\o -> o A..: "terreno_en")) rv of
+           Left e -> err ErrorEstructura ruta (T.pack e)
+           Right ts -> pure (ts :: [Text])
     formula ruta f = case (f :: Text) of
       "fija"           -> pure FFija
       "lineal"         -> pure FLineal
@@ -396,11 +446,16 @@ cargarEdificios archivo catalogo v = case A.parseEither leer v of
              <*> o A..:? "formula" A..!= ("fija" :: Text)
     efecto base (k, ev) =
       let ruta = base <> "." <> T.pack (show k)
-      in case A.parseEither (A.withObject "efecto" (\o ->
-                (,,,) <$> o A..: "tipo" <*> o A..: "entidad" <*> o A..: "magnitud" <*> o A..: "valor")) ev of
+      in case A.parseEither (A.withObject "efecto" (\o -> o A..: "tipo")) ev of
            Left e -> err ErrorEstructura ruta (T.pack e)
-           Right (tipo, ent, mag, val)
-             | tipo == ("sumar_mag" :: Text) -> SumarBase <$> entidad ruta ent <*> magnitud ruta mag <*> pure val
+           Right tipo
+             | tipo == ("sumar_mag" :: Text) -> case A.parseEither (A.withObject "efecto" (\o ->
+                   (,,) <$> o A..: "entidad" <*> o A..: "magnitud" <*> o A..: "valor")) ev of
+                 Left e -> err ErrorEstructura ruta (T.pack e)
+                 Right (ent, mag, val) -> SumarBase <$> entidad ruta ent <*> magnitud ruta mag <*> pure val
+             | tipo == "cambiar_terreno" -> case A.parseEither (A.withObject "efecto" (\o -> o A..: "a")) ev of
+                 Left e -> err ErrorEstructura ruta (T.pack e)
+                 Right a -> pure (CambiarTerreno a)
              | otherwise -> err ErrorEsquema (ruta <> ".tipo") ("efecto no admitido al terminar una obra: " <> tipo)
 
 -- | Un edificio leído, antes de validarlo.
@@ -408,7 +463,7 @@ data Crudo = Crudo
   { crId :: Text, crValor :: Fijo, crVeintenas :: Int, crTrabajo :: Fijo, crMateriales :: Map Text Fijo
   , crInsumos :: [Value], crCuadrillaMax :: Int, crMaximo :: Maybe Int, crCulto :: Maybe Value
   , crOficio :: Maybe (Text, Fijo)
-  , crMods :: [Value], crFins :: [Value] }
+  , crMods :: [Value], crFins :: [Value], crAmbito :: Text, crRequisitos :: [Value] }
 
 -- ---------------------------------------------------------------------------
 -- Fórmulas
@@ -548,18 +603,30 @@ trabajadoresPara falta = go falta 0
 -- curso con su cuadrilla. El costo está en valor y se cobra al tipo del día
 -- ('enCuenta'): en la moneda de la facción, si designó una. Un rechazo no
 -- cambia el estado.
-iniciarObra :: Constantes -> Economia -> Edificios -> FaccionId -> Text -> AltId -> Int -> Estado Purepecha
-            -> Either Rechazo (Estado Purepecha, [Hecho])
-iniciarObra c eco eds fac eid alt cuadrilla est = do
+iniciarObra :: Constantes -> Economia -> Edificios -> Maybe Mapa -> FaccionId -> Text -> AltId -> Maybe Int -> Int
+            -> Estado Purepecha -> Either Rechazo (Estado Purepecha, [Hecho])
+iniciarObra c eco eds mmapa fac eid alt mcelda cuadrilla est = do
   d <- maybe (Left (Rechazo ("edificio desconocido: " <> eid))) Right (Map.lookup eid (edDefs eds))
   a <- maybe (Left (Rechazo "el altépetl no existe")) Right (Map.lookup alt (ppAltepetl jue))
   if altFaccion a /= fac then Left (Rechazo (altNombre a <> " no es de tu facción")) else Right ()
   case altObra a of
     Just o  -> Left (Rechazo (altNombre a <> " ya tiene una obra en curso: " <> obEdificio o))
     Nothing -> Right ()
-  let copias = length (filter (== eid) (altEdificios a))
+  -- Una obra de celda necesita una celda propia a su alcance y de un terreno que le sirva (T38);
+  -- una de altépetl no lleva celda.
+  case (deAmbito d, mcelda) of
+    (EnAsentamiento, Just _) -> Left (Rechazo (eid <> " se levanta en un altépetl, no en una celda"))
+    (EnLaCelda, Nothing)     -> Left (Rechazo (eid <> " se levanta en una celda: elige cuál"))
+    (EnLaCelda, Just cel)    -> validarCelda c d mmapa a cel est
+    _                        -> Right ()
+  let copias = case mcelda of
+        Just cel -> length (filter (== eid) (Map.findWithDefault [] cel (ppObrasCelda jue)))
+        Nothing  -> length (filter (== eid) (altEdificios a))
+      lugar = case mcelda of
+        Just cel -> "la celda " <> tshow cel
+        Nothing  -> altNombre a
   case deMaximo d of
-    Just m | copias >= m -> Left (Rechazo (altNombre a <> " ya tiene " <> tshow copias <> " de " <> eid
+    Just m | copias >= m -> Left (Rechazo (lugar <> " ya tiene " <> tshow copias <> " de " <> eid
                                           <> ", el máximo"))
     _ -> Right ()
   if conCuadrilla d
@@ -585,7 +652,7 @@ iniciarObra c eco eds fac eid alt cuadrilla est = do
     then Left (Rechazo ("no alcanza el tesoro: " <> eid <> " cuesta " <> mostrarFijo costo <> unidadDe fac est
                         <> " y hay " <> mostrarFijo tesoro))
     else Right ()
-  let obra = Obra eid 0 (deVeintenas d) (if conCuadrilla d then cuadrilla else 0) (Fijo 0) Map.empty Map.empty []
+  let obra = Obra eid 0 (deVeintenas d) (if conCuadrilla d then cuadrilla else 0) (Fijo 0) Map.empty Map.empty [] mcelda
       jue' = jue { ppAltepetl = Map.insert alt a { altObra = Just obra } (ppAltepetl jue) }
       alm' = sumarBase (entFac fac) magTesoro (negarF costo) (comunMagnitudes com)
   pure (est { estadoPersistente = p { persistenteJuego = jue', persistenteComun = com { comunMagnitudes = alm' } } }, [])
@@ -593,6 +660,64 @@ iniciarObra c eco eds fac eid alt cuadrilla est = do
     p   = estadoPersistente est
     jue = persistenteJuego p
     com = persistenteComun p
+
+-- | Lo que pide una obra de celda de la celda que elige (T38): que exista, que esté
+-- dentro de 'cRadioProduccion' del altépetl que la levanta (por el costo del grafo),
+-- que alguno de sus terrenos sea de los que pide el edificio y que no haya ya otra obra
+-- igual en ella. Sin mapa, ninguna celda existe.
+validarCelda :: Constantes -> DefEdificio -> Maybe Mapa -> Altepetl -> Int -> Estado Purepecha -> Either Rechazo ()
+validarCelda c d mmapa a cel est = do
+  mapa <- maybe (Left (Rechazo "esta partida no tiene mapa: no se puede construir en una celda")) Right mmapa
+  comp <- maybe (Left (Rechazo ("la celda " <> tshow cel <> " no existe"))) Right
+            (composicionEn (Just mapa) (ppTerrenos jue) cel)
+  let alcance = propagar UnGrupo (Just (cRadioProduccion c)) mapa [(CeldaId (altCelda a), Etiqueta (Fijo 0) 0 0)] IntMap.empty
+  if IntMap.member cel alcance then Right ()
+    else Left (Rechazo ("la celda " <> tshow cel <> " está fuera del radio de producción de " <> altNombre a))
+  if null (deTerrenos d) || any ((`elem` deTerrenos d) . fst) comp then Right ()
+    else Left (Rechazo (deId d <> " pide " <> T.intercalate " o " (deTerrenos d) <> " y la celda "
+                        <> tshow cel <> " es " <> T.intercalate ", " (map fst comp)))
+  case [ b | b <- Map.elems (ppAltepetl jue), Just o <- [altObra b], obCelda o == Just cel, obEdificio o == deId d ] of
+    (b : _) -> Left (Rechazo ("ya hay una obra de " <> deId d <> " en la celda " <> tshow cel <> " (" <> altNombre b <> ")"))
+    []      -> Right ()
+  where jue = persistenteJuego (estadoPersistente est)
+
+-- | La composición después de convertir a @destino@ todos los componentes de los
+-- terrenos @desde@ (la roturación, T38): sus fracciones se suman a la de @destino@. La
+-- suma sigue siendo 1, los terrenos distintos y el dominante primero, con empate por nombre.
+convertirComposicion :: [Text] -> Text -> [(Text, Fijo)] -> [(Text, Fijo)]
+convertirComposicion desde destino cs =
+  let mueve = foldl' (.+.) (Fijo 0) [ f | (t, f) <- cs, t `elem` desde, t /= destino ]
+      propio = foldl' (.+.) (Fijo 0) [ f | (t, f) <- cs, t == destino ]
+      resto = [ x | x@(t, _) <- cs, t `notElem` desde, t /= destino ]
+  in sortBy (\(ta, a) (tb, b) -> compare (b, ta) (a, tb)) [ x | x@(_, f) <- (destino, propio .+. mueve) : resto, f > Fijo 0 ]
+
+-- | El mapa con las celdas cuyo terreno cambió una obra (T38): el dominante es el primer
+-- componente, y la composición queda vacía si ya es de un solo terreno. Es lo que ve el
+-- cliente; el resto del mapa se comparte.
+mapaConTerrenos :: Map Int [(Text, Fijo)] -> Mapa -> Mapa
+mapaConTerrenos cambios m
+  | Map.null cambios = m
+  | otherwise = m { mapaCeldas = Map.foldlWithKey' poner (mapaCeldas m) cambios }
+  where
+    poner cs cel comp = case comp of
+      [] -> cs
+      ((t, _) : _) -> IntMap.adjust (\ce -> ce { celdaTerreno = Terreno t
+                                               , celdaComposicion = if length comp == 1 then [] else [ (Terreno x, f) | (x, f) <- comp ] }) cel cs
+
+-- | Los terrenos que nombran los edificios (los que piden y a los que convierten), para
+-- comprobar al cargar que la tabla de terrenos los tiene.
+terrenosDeEdificios :: Edificios -> [Text]
+terrenosDeEdificios eds = nub (concat [ deTerrenos d ++ [ a | CambiarTerreno a <- deAlTerminar d ] | d <- Map.elems (edDefs eds) ])
+
+-- | Cada terreno que nombra un edificio (el que pide o al que convierte) tiene que estar
+-- en la tabla de terrenos. Sin tabla no se comprueba nada. Acumula un error por terreno.
+validarTerrenosDeEdificios :: Text -> [Text] -> Edificios -> Validacion ()
+validarTerrenosDeEdificios archivo tabla eds
+  | null tabla = pure ()
+  | otherwise = () <$ traverse falta [ t | t <- terrenosDeEdificios eds, t `notElem` tabla ]
+  where
+    falta t = falla (ErrorCarga ErrorReferencia archivo ("terrenos." <> t)
+                       ("un edificio nombra el terreno «" <> t <> "» y la tabla de terrenos no lo declara"))
 
 -- | « mantas» si la facción designó las mantas como moneda; nada si cuenta
 -- en valor. Para que un rechazo diga en qué está el costo.
@@ -608,8 +733,8 @@ unidadDe fac est = maybe "" ((" " <>) . emMoneda)
 -- cada altépetl que tiene alguno. Es el único que añade o cambia
 -- modificadores de edificio y el único que escribe la base de lo que sumen
 -- los efectos al terminar (el prestigio).
-construccion :: Constantes -> Economia -> Edificios -> Sistema Purepecha
-construccion c eco eds = Sistema
+construccion :: Constantes -> Economia -> Edificios -> Maybe Mapa -> Sistema Purepecha
+construccion c eco eds mmapa = Sistema
   { sisNombre   = NombreSistema "construccion"
   , sisCadencia = Periodo
     -- El precio de la moneda, para el transporte: corre antes que la
@@ -631,16 +756,16 @@ construccion c eco eds = Sistema
           enObra = [ (altId a, o) | a <- Map.elems (ppAltepetl jue), Just o <- [altObra a] ]
           paso (e, hs0, rs) (alt, o) =
             let f = facDeAlt jue alt
-                (e', hs', r') = avanzar c eco eds (Map.findWithDefault False f umbrales) f
+                (e', hs', r') = avanzar c eco eds mmapa (Map.findWithDefault False f umbrales) f
                                         (e, hs0, Map.findWithDefault (Fijo 0) f rs) (alt, o)
             in (e', hs', Map.insert f r' rs)
           (est1, hs, _) = foldl' paso (est, [], partidas) enObra
       in (recalcularBeneficios eds est1, hs)
   }
 
-avanzar :: Constantes -> Economia -> Edificios -> Bool -> FaccionId -> (Estado Purepecha, [Hecho], Fijo) -> (AltId, Obra)
+avanzar :: Constantes -> Economia -> Edificios -> Maybe Mapa -> Bool -> FaccionId -> (Estado Purepecha, [Hecho], Fijo) -> (AltId, Obra)
         -> (Estado Purepecha, [Hecho], Fijo)
-avanzar c eco eds umbral fac (est, hs, restante) (alt, o) = case Map.lookup (obEdificio o) (edDefs eds) of
+avanzar c eco eds mmapa umbral fac (est, hs, restante) (alt, o) = case Map.lookup (obEdificio o) (edDefs eds) of
   -- Un edificio que desapareció de los datos (un guardado con otro archivo):
   -- la obra se termina sin efectos, para no quedar colgada.
   Nothing -> (conObra Nothing [] est, hs, restante)
@@ -716,15 +841,31 @@ avanzar c eco eds umbral fac (est, hs, restante) (alt, o) = case Map.lookup (obE
           let ref  = entRefAlt alt
               entD AlAltepetl = ref
               entD AlaFaccion = entFac fac
-              est1 = conObra Nothing [deId d] e0
-              p    = estadoPersistente est1
-              com  = persistenteComun p
-              alm  = foldl' (\al (SumarBase e m v) -> sumarBase (entD e) m v al) (comunMagnitudes com) (deAlTerminar d)
+              entD ALaCelda   = maybe ref (EntRef "celda") (obCelda o')
+              -- Una obra de celda se anota en su celda, no en el altépetl que la levantó (T38).
+              est1 = conObra Nothing [ deId d | Nothing <- [obCelda o'] ] e0
+              p0   = estadoPersistente est1
+              jue0 = persistenteJuego p0
+              com  = persistenteComun p0
+              alm  = foldl' (\al ef -> case ef of
+                                SumarBase e m v -> sumarBase (entD e) m v al
+                                CambiarTerreno _ -> al)
+                            (comunMagnitudes com) (deAlTerminar d)
               (alm', fuera) = quitarAgravioTributo alt (obTributos o') alm
-              alm'' = maybe alm' (\(k, _) -> practica eds fac k (persistenteJuego p) alm') (deOficio d)
-              est2 = est1 { estadoPersistente = p { persistenteComun = com { comunMagnitudes = alm'' } } }
+              alm'' = maybe alm' (\(k, _) -> practica eds fac k jue0 alm') (deOficio d)
               t = estadoTick e0
-          in (est2, hs ++ [Hecho "edificio_terminado" t [ref] (Map.fromList [("edificio", deId d)])]
+              -- La roturación: los componentes de los terrenos de la obra se funden en el nuevo.
+              cambios = [ (cel, a, convertirComposicion (deTerrenos d) a comp)
+                        | Just cel <- [obCelda o'], CambiarTerreno a <- deAlTerminar d
+                        , Just comp <- [composicionEn mmapa (ppTerrenos jue0) cel] ]
+              jue1 = jue0 { ppObrasCelda = case obCelda o' of
+                              Just cel -> Map.insertWith (flip (++)) cel [deId d] (ppObrasCelda jue0)
+                              Nothing  -> ppObrasCelda jue0
+                          , ppTerrenos = foldl' (\m (cel, _, comp) -> Map.insert cel comp m) (ppTerrenos jue0) cambios }
+              est2 = est1 { estadoPersistente = p0 { persistenteJuego = jue1, persistenteComun = com { comunMagnitudes = alm'' } } }
+              hechoTerreno (cel, a, _) = Hecho "terreno_modificado" t [EntRef "celda" cel] (Map.fromList [("terreno", a), ("edificio", deId d)])
+          in (est2, hs ++ [Hecho "edificio_terminado" t [ref] (Map.fromList ([("edificio", deId d)] ++ [ ("celda", tshow cel) | Just cel <- [obCelda o'] ]))]
+                       ++ map hechoTerreno cambios
                        ++ map (hechoModificadorTerminado t "fuente") fuera, rest)
       | otherwise = (conObra (Just o') [] e0, hs, rest)
     listo d o' = obAvance o' >= obTotal o' && obTrabajo o' >= deTrabajo d
@@ -747,6 +888,14 @@ recalcularBeneficios eds est =
       der  = derivadoJuego (estadoDerivado est)
       conEd = [ a | a <- Map.elems (ppAltepetl jue), not (null (altEdificios a)) ]
       altsCon = Set.fromList (map altId conEd)
+      -- Lo que dan las obras de celda (T38): un modificador por obra y celda, sobre la
+      -- celda misma, con la fuente @edificio:<id>:celda<n>@.
+      valoresCelda =
+        [ ( Fuente "edificio" (e <> ":celda" <> tshow cel), EntRef "celda" cel, dmeMagnitud m
+          , beneficio (dmeFormula m) Nothing 1 (Fijo 0) (Fijo 0) (dmeAporte m)
+          , detalleBeneficio (dmeFormula m) Nothing 1 (Fijo 0) (Fijo 0) )
+        | (cel, es) <- Map.toList (ppObrasCelda jue), e <- nub es
+        , Just d <- [Map.lookup e (edDefs eds)], m <- deMods d, dmeEntidad m == ALaCelda ]
       sacerdotes = Map.fromListWith (.+.)
         [ ((popAltepetl pop, trId t), fi (popTamano pop) .*. afinidad t pop)
         | pop <- Map.elems (ppPops jue), popEstrato pop == estratoSacerdote
@@ -761,6 +910,7 @@ recalcularBeneficios eds est =
         , Just d <- [Map.lookup e (edDefs eds)]
         , let entD AlAltepetl = entRefAlt (altId a)
               entD AlaFaccion = entFac (altFaccion a)
+              entD ALaCelda   = entRefAlt (altId a)
               clave cu = (altId a, cuTradicion cu)
               fieles = maybe (Fijo 0) (\cu -> Map.findWithDefault (Fijo 0) (clave cu)
                                                (if cuNivel cu == Local then dpFielesLocal der else dpFielesCentro der))
@@ -768,7 +918,9 @@ recalcularBeneficios eds est =
         ]
       -- Cambia el aporte del modificador existente; si no hay, se añade.
       fijar (alm, nuevos) (f, ent, mag, ap, det) =
-        let base0 = if mag == magProduccionAlt then baseProduccionAlt else Fijo 0
+        let base0 | mag == magProduccionAlt = baseProduccionAlt
+                  | mag == magRendimientoCelda = uno
+                  | otherwise = Fijo 0
             x = Map.findWithDefault (AlmacenMag base0 []) (ent, mag) alm
         in if any ((== f) . modFuente) (almacenMods x)
              then (Map.insert (ent, mag) x { almacenMods = [ if modFuente m == f then m { modAporte = ap, modDetalle = det } else m
@@ -777,9 +929,9 @@ recalcularBeneficios eds est =
                    Modificador 0 mag ent ap f Nothing Nothing Nothing AlcancePropia det : nuevos)
       -- Los nuevos se acumulan al revés y se invierten una vez: con miles de
       -- templos, pegarlos al final uno a uno era cuadrático.
-      (alm1, nuevosAlReves) = foldl' fijar (comunMagnitudes com, []) valores
+      (alm1, nuevosAlReves) = foldl' fijar (comunMagnitudes com, []) (valores ++ valoresCelda)
       alm2 = agregarVarios (reverse nuevosAlReves) alm1
-  in if null conEd then est
+  in if null conEd && Map.null (ppObrasCelda jue) then est
      else est { estadoPersistente = p { persistenteComun = com { comunMagnitudes = alm2 } } }
 
 -- ---------------------------------------------------------------------------
@@ -909,3 +1061,25 @@ mostrarFijo :: Fijo -> Text
 mostrarFijo f = case A.toJSON f of
   A.String t -> t
   otro       -> T.pack (show otro)
+
+-- ---------------------------------------------------------------------------
+-- Obras de celda (T38)
+-- ---------------------------------------------------------------------------
+
+-- | Cuánto rinde una celda respecto de su terreno (base 1): las terrazas la suben con
+-- un modificador de la celda. La producción la lee al trabajar los componentes de la celda
+-- (V5, *Terrazas y roturación*). Solo la escribe la construcción.
+magRendimientoCelda :: Magnitud
+magRendimientoCelda = Magnitud "celda.rendimiento"
+
+-- | De una décima a diez veces el rendimiento del terreno.
+rangoRendimientoCelda :: RangoMag
+rangoRendimientoCelda = RangoMag (Fijo 1000) (fi 10)
+
+-- | Cuánta gente más sostiene una celda por una obra (base 0; las terrazas suman).
+-- La presión de población del hito 6 la leerá sumada a la capacidad de su terreno.
+magCapacidadCelda :: Magnitud
+magCapacidadCelda = Magnitud "celda.capacidad"
+
+rangoCapacidadCelda :: RangoMag
+rangoCapacidadCelda = RangoMag (Fijo 0) (fi 1000000)

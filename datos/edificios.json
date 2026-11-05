@@ -197,6 +197,70 @@
       ]
     },
     {
+      "id": "terrazas",
+      "_fuente": {
+        "origen": "V5, Terrazas y roturación (hito 3); T38",
+        "certeza": "decisión de juego; costos y porcentajes de relleno, por verificar"
+      },
+      "ambito": "celda",
+      "requisitos": [
+        {
+          "terreno_en": [
+            "sierra"
+          ]
+        }
+      ],
+      "costo": {
+        "valor": "200",
+        "veintenas": 5,
+        "trabajo": "800",
+        "insumos": []
+      },
+      "cuadrilla_maxima": 300,
+      "maximo": 1,
+      "modificadores": [
+        {
+          "entidad": "celda",
+          "magnitud": "celda.capacidad",
+          "sumar": "10"
+        },
+        {
+          "entidad": "celda",
+          "magnitud": "celda.rendimiento",
+          "porcentaje": "25"
+        }
+      ]
+    },
+    {
+      "id": "roturacion",
+      "_fuente": {
+        "origen": "V5, Terrazas y roturación (hito 3); T38",
+        "certeza": "decisión de juego; costos y porcentajes de relleno, por verificar"
+      },
+      "ambito": "celda",
+      "requisitos": [
+        {
+          "terreno_en": [
+            "bosque"
+          ]
+        }
+      ],
+      "costo": {
+        "valor": "100",
+        "veintenas": 3,
+        "trabajo": "500",
+        "insumos": []
+      },
+      "cuadrilla_maxima": 300,
+      "maximo": 1,
+      "al_terminar": [
+        {
+          "tipo": "cambiar_terreno",
+          "a": "llano"
+        }
+      ]
+    },
+    {
       "id": "gran_yacata",
       "costo": {
         "valor": "1500",

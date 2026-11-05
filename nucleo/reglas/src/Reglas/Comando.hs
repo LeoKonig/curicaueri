@@ -27,6 +27,7 @@ data Comando
   | NombrarGobernador AltId PerId   -- ^ el altépetl y el personaje
   | DestituirGobernador AltId
   | ConstruirEdificio Text AltId Int  -- ^ el edificio (id de @datos/edificios.json@), el altépetl y la cuadrilla (0 si no lleva)
+  | ConstruirEnCelda Text AltId Int Int  -- ^ lo mismo, en una celda dentro del radio de producción del altépetl (T38)
   | PedirTributoObra AltId Text AltId Int  -- ^ la obra (su altépetl), el material, quien lo envía y cuántos trabajadores pone
   | DesignarMoneda (Maybe Text)  -- ^ el bien que pasa a ser la moneda (id de @datos/bienes_1475.json@), o Nothing para retirarla
   | FijarAbasto Int  -- ^ qué porcentaje del déficit de la capital cubren las trojes cada año (T29)
@@ -54,8 +55,15 @@ instance FromJSON Comando where
       "reclutar_ejercito"      -> ReclutarEjercito <$> o .: "tropas"
       "nombrar_gobernador"     -> NombrarGobernador <$> (AltId <$> o .: "altepetl") <*> (PerId <$> o .: "personaje")
       "destituir_gobernador"   -> DestituirGobernador . AltId <$> o .: "altepetl"
-      "construir_edificio"     -> ConstruirEdificio <$> o .: "edificio" <*> (AltId <$> o .: "altepetl")
-                                                    <*> o .:? "cuadrilla" .!= 0
+      -- Con «celda» (de 0 en adelante) es una obra de celda; el formulario manda -1 para decir «ninguna».
+      "construir_edificio"     -> do
+        celda <- o .:? "celda" :: A.Parser (Maybe Int)
+        e <- o .: "edificio"
+        a <- AltId <$> o .: "altepetl"
+        n <- o .:? "cuadrilla" .!= 0
+        pure (case celda of
+          Just k | k >= 0 -> ConstruirEnCelda e a n k
+          _               -> ConstruirEdificio e a n)
       "pedir_tributo_obra"     -> PedirTributoObra <$> (AltId <$> o .: "altepetl") <*> o .: "material"
                                                    <*> (AltId <$> o .: "fuente") <*> o .: "cuadrilla"
       -- "bien": null (o sin "bien") retira la moneda.
@@ -75,6 +83,8 @@ instance ToJSON Comando where
       object ["tipo" .= ("destituir_gobernador" :: Text), "altepetl" .= a]
     ConstruirEdificio e (AltId a) n ->
       object ["tipo" .= ("construir_edificio" :: Text), "edificio" .= e, "altepetl" .= a, "cuadrilla" .= n]
+    ConstruirEnCelda e (AltId a) n k ->
+      object ["tipo" .= ("construir_edificio" :: Text), "edificio" .= e, "altepetl" .= a, "cuadrilla" .= n, "celda" .= k]
     PedirTributoObra (AltId a) g (AltId f) n ->
       object ["tipo" .= ("pedir_tributo_obra" :: Text), "altepetl" .= a, "material" .= g, "fuente" .= f, "cuadrilla" .= n]
     DesignarMoneda b ->
@@ -113,7 +123,7 @@ catalogoComandosConMonedas edificios materiales monedas =
       [DeclParametro "altepetl" (PEntero 1 1000000)] True requisitoPorOmision
   , DeclComando "construir_edificio" "c.construir_edificio"
       [ DeclParametro "edificio" (POpcion edificios), DeclParametro "altepetl" (PEntero 1 1000000)
-      , DeclParametro "cuadrilla" (PEntero 0 100000) ] True requisitoPorOmision
+      , DeclParametro "cuadrilla" (PEntero 0 100000), DeclParametro "celda" (PEntero (-1) 10000000) ] True requisitoPorOmision
   , DeclComando "pedir_tributo_obra" "c.pedir_tributo_obra"
       [ DeclParametro "altepetl" (PEntero 1 1000000), DeclParametro "material" (POpcion materiales)
       , DeclParametro "fuente" (PEntero 1 1000000), DeclParametro "cuadrilla" (PEntero 1 100000) ] True requisitoPorOmision

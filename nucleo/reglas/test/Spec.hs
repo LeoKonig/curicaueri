@@ -2,7 +2,9 @@
 module Main where
 
 import Control.Monad (forM_)
-import Data.List (foldl')
+import Data.List (foldl', sort)
+import qualified Data.IntMap.Strict as IntMap
+import Motor.Recorrido (Cupo (..), Etiqueta (..), propagar)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -122,6 +124,7 @@ main = do
  dorNombrar   <- BL.readFile "../../pruebas_compartidas/protocolo/comando_nombrar_gobernador.json"
  dorDestituir <- BL.readFile "../../pruebas_compartidas/protocolo/comando_destituir_gobernador.json"
  dorConstruir <- BL.readFile "../../pruebas_compartidas/protocolo/comando_construir_edificio.json"
+ dorEnCelda   <- BL.readFile "../../pruebas_compartidas/protocolo/comando_construir_en_celda.json"
  dorTributo   <- BL.readFile "../../pruebas_compartidas/protocolo/comando_pedir_tributo_obra.json"
  dorMoneda    <- BL.readFile "../../pruebas_compartidas/protocolo/comando_designar_moneda.json"
  terrenosArchivo  <- leerTerrenos
@@ -397,7 +400,7 @@ main = do
         culto e = deCulto (def e)
 
     it "datos/edificios.json carga con cuatro edificios y dos tradiciones" $ do
-      fmap idsEdificios edificiosArchivo `shouldBe` Right ["yacata", "fortaleza", "troje", "gran_yacata"]
+      fmap idsEdificios edificiosArchivo `shouldBe` Right ["yacata", "fortaleza", "troje", "terrazas", "roturacion", "gran_yacata"]
       map trId (tradiciones eds) `shouldBe` ["purepecha", "catolica"]
 
     it "la carga acumula los errores de un edificios.json malo" $ do
@@ -432,7 +435,7 @@ main = do
           hecho = correr (construir "monolito" 1 0) estadoInicial1475
           pobre = correr (construir "monolito" 1 0) (conPresupuestoObras 10 estadoInicial1475)
       altEdificios (ppAltepetl (jue hecho) Map.! AltId 1) `shouldBe` ["monolito"]
-      altObra (ppAltepetl (jue pobre) Map.! AltId 1) `shouldBe` Just (Obra "monolito" 0 2 0 (Fijo 0) Map.empty Map.empty [])
+      altObra (ppAltepetl (jue pobre) Map.! AltId 1) `shouldBe` Just (Obra "monolito" 0 2 0 (Fijo 0) Map.empty Map.empty [] Nothing)
       case aplicarCola jv [Sellado (Tick 0) (FaccionId 1) 0 (ConstruirEdificio "monolito" (AltId 1) 5)] estadoInicial1475 of
         (_, _, [Rechazo _]) -> pure ()
         _ -> expectationFailure "una obra sin cuadrilla no acepta cuadrilla"
@@ -441,7 +444,7 @@ main = do
       case aplicar1 (ConstruirEdificio "yacata" (AltId 2) 500) e0 of
         (st, _, []) -> do
           baseFaccion f1 magTesoro st `shouldBe` (baseFaccion f1 magTesoro e0 .-. desdeEntero 400)
-          altObra (altDe 2 st) `shouldBe` Just (Obra "yacata" 0 8 500 (Fijo 0) Map.empty Map.empty [])
+          altObra (altDe 2 st) `shouldBe` Just (Obra "yacata" 0 8 500 (Fijo 0) Map.empty Map.empty [] Nothing)
           retiradosDe (jue st) `shouldBe` Map.fromList [(AltId 2, 500)]
           Map.lookup (AltId 2) (trabajadoresDe constantesDefault (jue st)) `shouldBe` Just 2500
         (_, _, rs) -> expectationFailure ("rechazado: " <> show rs)
@@ -738,7 +741,7 @@ main = do
 
     it "guardados anteriores: una obra sin cuadrilla ni acopio y un pop sin gradiente cargan con 0" $ do
       (A.decode "{\"obEdificio\":\"yacata\",\"obAvance\":3,\"obTotal\":8}" :: Maybe Obra)
-        `shouldBe` Just (Obra "yacata" 3 8 0 (Fijo 0) Map.empty Map.empty [])
+        `shouldBe` Just (Obra "yacata" 3 8 0 (Fijo 0) Map.empty Map.empty [] Nothing)
       (A.decode "{\"popId\":1,\"popAltepetl\":1,\"popIdentidad\":\"purepecha\",\"popEstrato\":\"comun\",\"popTamano\":10,\"popLealtad\":\"50\"}" :: Maybe Pop)
         `shouldBe` Just (Pop (PopId 1) (AltId 1) "purepecha" "comun" 10 (fi 50) (Fijo 0))
 
@@ -746,11 +749,15 @@ main = do
       A.decode dorConstruir `shouldBe` Just (A.toJSON (ConstruirEdificio "fortaleza" (AltId 1) 300))
       A.decode dorConstruir `shouldBe` Just (ConstruirEdificio "fortaleza" (AltId 1) 300)
       A.decode "{\"tipo\":\"construir_edificio\",\"edificio\":\"troje\",\"altepetl\":2}" `shouldBe` Just (ConstruirEdificio "troje" (AltId 2) 0)
+      -- Con celda es una obra de celda; el formulario manda -1 para decir «ninguna».
+      A.decode dorEnCelda `shouldBe` Just (A.toJSON (ConstruirEnCelda "terrazas" (AltId 2) 300 33))
+      A.decode dorEnCelda `shouldBe` Just (ConstruirEnCelda "terrazas" (AltId 2) 300 33)
+      A.decode "{\"tipo\":\"construir_edificio\",\"edificio\":\"troje\",\"altepetl\":2,\"celda\":-1}" `shouldBe` Just (ConstruirEdificio "troje" (AltId 2) 0)
 
     it "el catálogo ofrece los edificios y la cuadrilla, y los sistemas pasan validarOrdenSistemas" $ do
       [ (dpNombre p, dpTipo p) | d <- catalogoComandosCon (idsEdificios eds), dcTipo d == "construir_edificio", p <- dcParametros d ]
-        `shouldBe` [ ("edificio", POpcion ["yacata", "fortaleza", "troje", "gran_yacata"])
-                   , ("altepetl", PEntero 1 1000000), ("cuadrilla", PEntero 0 100000) ]
+        `shouldBe` [ ("edificio", POpcion ["yacata", "fortaleza", "troje", "terrazas", "roturacion", "gran_yacata"])
+                   , ("altepetl", PEntero 1 1000000), ("cuadrilla", PEntero 0 100000), ("celda", PEntero (-1) 10000000) ]
       validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j) `shouldBe` []
 
   describe "reglas: fusión de pops pequeños (V5, Escala de la simulación)" $ do
@@ -943,6 +950,7 @@ main = do
   pruebasPropios gruposArchivo
   pruebasEscenarios
 
+  pruebasObrasCelda terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
   pruebasMoneda terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo) dorMoneda
 
   pruebasCosecha terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
@@ -2383,6 +2391,150 @@ pruebasMezcla terrenos eco eds = describe "reglas: la celda como mezcla de terre
   it "calibración: con la mezcla del tutorial, en un año medio ningún altépetl pasa hambre" $ do
     let fin = correr entMez sinAzar 0 400 (inicial entMez)
     [ coberturaEn fin (AltId a) | a <- [1, 2, 3] ] `shouldBe` [uno, uno, uno]
+
+-- | T38: las terrazas y la roturación son obras de celda. El jugador elige la celda; el
+-- núcleo comprueba que sea suya, esté a su alcance y tenga el terreno que pide la obra.
+pruebasObrasCelda :: Map.Map Terreno DefTerreno -> Economia -> Edificios -> Spec
+pruebasObrasCelda terrenos eco eds = describe "reglas: obras de celda, terrazas y roturación (T38, hito 3)" $ do
+  let c    = constantesDefault
+      mapa = conCostoDeTerreno terrenos (either (error . show) id (proveedorHexagonal datosMapa1475))
+      ent  = (entornoSimple mapa) { entEconomia = eco }
+      dr   = Reglas.Juego.datosVacios { Reglas.Juego.drTerrenos = terrenos, Reglas.Juego.drEdificios = eds
+                                      , Reglas.Juego.drEconomia = eco, Reglas.Juego.drMapa = Just mapa }
+      j    = Reglas.Juego.juegoDatos c dr
+      conDerivado e = e { estadoDerivado = derivar j (entGrafo ent) (estadoTick e) (estadoPersistente e) }
+      e0   = conDerivado (conConocimientos eds estadoInicial1475)
+      jue st = persistenteJuego (estadoPersistente st)
+      alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
+      der st = derivadoJuego (estadoDerivado st)
+      correr desde hasta cmds est0 =
+        foldl' (\(e, hs) t -> let (e', h) = paso j ent (Semilla 1) (Tick t) (if t == desde then cmds else []) e in (e', hs ++ h))
+               (est0, []) [desde .. hasta]
+      construir e a n k = [Sellado (Tick 0) (FaccionId 1) 0 (ConstruirEnCelda e (AltId a) n k)]
+      aplicar cmd st = let (st', _, rs) = aplicarCola j cmd st in (st', rs)
+      -- Las celdas al alcance de Tzintzuntzan (63) y de qué terreno son.
+      alcance = IntMap.keys (propagar UnGrupo (Just (cRadioProduccion c)) mapa [(CeldaId 63, Etiqueta (Fijo 0) 0 0)] IntMap.empty)
+      terrenoDe cel = maybe (Terreno "") celdaTerreno (IntMap.lookup cel (mapaCeldas mapa))
+      deTerreno t = [ cel | cel <- alcance, terrenoDe cel == Terreno t ]
+      sierra = head (deTerreno "sierra")
+      bosque = head (deTerreno "bosque")
+      llano  = head (deTerreno "llano")
+      lejos  = head [ cel | cel <- IntMap.keys (mapaCeldas mapa), cel `notElem` alcance ]
+      motivoDe cmd st = case aplicar cmd st of
+        (_, [Rechazo m]) -> Just m
+        _ -> Nothing
+      enCelda cel mag st = Map.lookup (EntRef "celda" cel, mag) (alm st)
+
+  it "los datos cargan: terrazas y roturación son de celda, con sus terrenos y sus efectos" $ do
+    fmap deAmbito (defEdificio eds "terrazas") `shouldBe` Just EnLaCelda
+    fmap deTerrenos (defEdificio eds "terrazas") `shouldBe` Just ["sierra"]
+    fmap (map dmeEntidad . deMods) (defEdificio eds "terrazas") `shouldBe` Just [ALaCelda, ALaCelda]
+    fmap deAlTerminar (defEdificio eds "roturacion") `shouldBe` Just [CambiarTerreno "llano"]
+    fmap deAmbito (defEdificio eds "troje") `shouldBe` Just EnAsentamiento
+    terrenosDeEdificios eds `shouldBe` ["bosque", "llano", "sierra"]
+
+  it "la carga rechaza lo que no cabe en el ámbito, acumulando los errores" $ do
+    let base extra = A.object ([ "id" A..= ("x" :: Text), "costo" A..= A.object ["valor" A..= ("1" :: Text), "veintenas" A..= (1 :: Int)] ] ++ extra)
+        carga es = map errRuta (valErrores (cargarEdificios "e.json" catalogoMag (A.object ["edificios" A..= (es :: [A.Value])])))
+        modAlt = A.object ["entidad" A..= ("altepetl" :: Text), "magnitud" A..= ("tasa_agravio" :: Text), "sumar" A..= ("-1" :: Text)]
+        modCel = A.object ["entidad" A..= ("celda" :: Text), "magnitud" A..= ("celda.rendimiento" :: Text), "porcentaje" A..= ("10" :: Text)]
+        req t = A.object ["terreno_en" A..= ([t] :: [Text])]
+    carga [base ["ambito" A..= ("celda" :: Text), "modificadores" A..= [modAlt]]] `shouldBe` ["edificios.x.modificadores"]
+    carga [base ["modificadores" A..= [modCel]]] `shouldBe` ["edificios.x.modificadores"]
+    carga [base ["requisitos" A..= [req "bosque"]]] `shouldBe` ["edificios.x.requisitos"]
+    carga [base ["ambito" A..= ("celda" :: Text), "al_terminar" A..= [A.object ["tipo" A..= ("cambiar_terreno" :: Text), "a" A..= ("llano" :: Text)]]]]
+      `shouldBe` ["edificios.x.al_terminar"]
+    carga [base ["ambito" A..= ("mar" :: Text)]] `shouldBe` ["edificios.x.ambito"]
+    -- Un edificio de celda bien armado carga.
+    carga [base ["ambito" A..= ("celda" :: Text), "requisitos" A..= [req "bosque"], "modificadores" A..= [modCel]]] `shouldBe` []
+
+  it "rechazos sin daño: sin celda, celda en un edificio de altépetl, celda que no existe, lejana, de otro terreno o ya ocupada" $ do
+    let sinDano cmd = do
+          let (st', rs) = aplicar cmd e0
+          length rs `shouldBe` 1
+          guardar st' `shouldBe` guardar e0
+        -- Zacapu puesto en la celda de Tzintzuntzan: los dos alcanzan las mismas celdas.
+        juntos = let per = estadoPersistente e0; pj = persistenteJuego per
+                 in e0 { estadoPersistente = per { persistenteJuego = pj { ppAltepetl = Map.adjust (\a -> a { altCelda = 63 }) (AltId 2) (ppAltepetl pj) } } }
+        (enObra, _) = aplicar (construir "terrazas" 1 300 sierra) juntos
+    sinDano [Sellado (Tick 0) (FaccionId 1) 0 (ConstruirEdificio "terrazas" (AltId 1) 300)]
+    sinDano [Sellado (Tick 0) (FaccionId 1) 0 (ConstruirEnCelda "troje" (AltId 1) 100 sierra)]
+    sinDano (construir "terrazas" 1 300 99999)
+    sinDano (construir "terrazas" 1 300 lejos)
+    sinDano (construir "terrazas" 1 300 llano)
+    sinDano (construir "roturacion" 1 300 sierra)
+    motivoDe (construir "terrazas" 1 300 lejos) e0 `shouldSatisfy` maybe False (T.isInfixOf "fuera del radio")
+    motivoDe (construir "terrazas" 1 300 llano) e0 `shouldSatisfy` maybe False (T.isInfixOf "pide sierra")
+    motivoDe (construir "terrazas" 1 300 99999) e0 `shouldSatisfy` maybe False (T.isInfixOf "no existe")
+    -- Otro altépetl no puede levantar en la misma celda mientras hay una obra igual.
+    motivoDe (construir "terrazas" 2 300 sierra) enObra `shouldSatisfy` maybe False (T.isInfixOf "ya hay una obra")
+    -- Sin mapa, ninguna celda existe.
+    let sinMapa = Reglas.Juego.juegoDatos c dr { Reglas.Juego.drMapa = Nothing }
+        (_, _, rs) = aplicarCola sinMapa (construir "terrazas" 1 300 sierra) e0
+    rs `shouldSatisfy` (\r -> case r of [Rechazo m] -> T.isInfixOf "no tiene mapa" m; _ -> False)
+
+  it "las terrazas se anotan en su celda, no en el altépetl, y dan capacidad y rendimiento a la celda" $ do
+    let (st, hs) = correr 0 140 (construir "terrazas" 1 300 sierra) e0
+    altEdificios (ppAltepetl (jue st) Map.! AltId 1) `shouldBe` []
+    Map.lookup sierra (ppObrasCelda (jue st)) `shouldBe` Just ["terrazas"]
+    altObra (ppAltepetl (jue st) Map.! AltId 1) `shouldBe` Nothing
+    [ Map.lookup "celda" (hechoParams h) | h <- hs, hechoTipo h == "edificio_terminado" ] `shouldBe` [Just (T.pack (show sierra))]
+    let efectivo mag rango = fmap (\x -> valorEfectivo rango (almacenBase x) (almacenMods x)) (enCelda sierra mag st)
+    efectivo magCapacidadCelda rangoCapacidadCelda `shouldBe` Just (fi 10)
+    efectivo magRendimientoCelda rangoRendimientoCelda `shouldBe` Just (Fijo 12500)
+    -- El máximo es una terraza por celda.
+    motivoDe (construir "terrazas" 1 300 sierra) st `shouldSatisfy` maybe False (T.isInfixOf "el máximo")
+
+  it "la producción lee el rendimiento de la celda: una celda aterrazada da 25 % más por trabajador" $ do
+    let (st, _) = correr 0 140 (construir "terrazas" 1 300 sierra) e0
+        rinde s cel = foldl' (.+.) (Fijo 0) [ y | ct <- concat (Map.elems (dpCeldas (der s))), ctCelda ct == cel, y <- Map.elems (ctRendimiento ct) ]
+        antes = rinde e0 sierra
+    antes `shouldSatisfy` (> Fijo 0)
+    abs (unFijo (rinde st sierra) - unFijo (antes .*. Fijo 12500)) `shouldSatisfy` (<= 3)
+
+  it "la roturación convierte el bosque en llano: la composición cambia, el hecho lo dice y la celda produce" $ do
+    let (st, hs) = correr 0 100 (construir "roturacion" 1 300 bosque) e0
+        trabaja s cel = [ ct | ct <- concat (Map.elems (dpCeldas (der s))), ctCelda ct == cel ]
+    trabaja e0 bosque `shouldBe` []
+    Map.lookup bosque (ppTerrenos (jue st)) `shouldBe` Just [("llano", uno)]
+    [ (hechoTipo h, Map.lookup "terreno" (hechoParams h)) | h <- hs, hechoTipo h == "terreno_modificado" ] `shouldBe` [("terreno_modificado", Just "llano")]
+    map ctTerreno (trabaja st bosque) `shouldBe` ["llano"]
+    -- El mapa del cliente ve la celda ya de llano.
+    let m' = mapaConTerrenos (ppTerrenos (jue st)) mapa
+    fmap celdaTerreno (IntMap.lookup bosque (mapaCeldas m')) `shouldBe` Just (Terreno "llano")
+    -- Ya no tiene bosque: no se puede volver a rotular.
+    motivoDe (construir "roturacion" 1 300 bosque) st `shouldSatisfy` maybe False (T.isInfixOf "pide bosque")
+
+  it "ley: convertir la composición conserva la suma, no repite terrenos y deja el dominante primero" $
+    property $ forAll (choose (1, 9)) $ \k -> forAll (choose (1, 9)) $ \l ->
+      let a = Fijo (k * 1000); b = Fijo (l * 1000); r = uno .-. a .-. b
+          comp = [ x | x@(_, f) <- [("bosque", a), ("lago", b), ("llano", r)], f > Fijo 0 ]
+          nueva = convertirComposicion ["bosque"] "llano" comp
+          suma = foldl' (.+.) (Fijo 0) . map snd
+      in (suma nueva === suma comp)
+         .&&. (length (Set.fromList (map fst nueva)) === length nueva)
+         .&&. ("bosque" `notElem` map fst nueva)
+         .&&. (let fs = map snd nueva in fs === reverse (sort fs))
+
+  it "convertir una celda mezclada: el bosque se funde en el llano que ya tenía" $
+    convertirComposicion ["bosque"] "llano" [("bosque", Fijo 6000), ("lago", Fijo 2500), ("llano", Fijo 1500)]
+      `shouldBe` [("llano", Fijo 7500), ("lago", Fijo 2500)]
+
+  it "guardar a mitad de una obra de celda y después de terminar, y cargar, sigue igual" $ do
+    let (mitad, _) = correr 0 50 (construir "roturacion" 1 300 bosque) e0
+        (fin, _)   = correr 51 100 [] mitad
+        foto st = (jue st, alm st)
+        cargado s = either (error . show) id (cargar j mapa (guardar s))
+        seguir s = fst (correr (let Tick t = estadoTick s in t + 1) 200 [] s)
+    foto (cargado mitad) `shouldBe` foto mitad
+    foto (seguir (cargado mitad)) `shouldBe` foto (seguir mitad)
+    foto (cargado fin) `shouldBe` foto fin
+    Map.lookup bosque (ppTerrenos (jue (cargado fin))) `shouldBe` Just [("llano", uno)]
+
+  it "un guardado anterior carga sin obras de celda ni terrenos cambiados" $
+    case A.toJSON (jue e0) of
+      A.Object o -> A.fromJSON (A.Object (KM.delete "ppObrasCelda" (KM.delete "ppTerrenos" o))) `shouldBe` A.Success (jue e0)
+      v -> expectationFailure (show v)
 
 pruebasPropios :: Either [Text] Grupos -> Spec
 pruebasPropios gruposArchivo = describe "reglas: condiciones y efectos propios del guion (T14)" $ do
