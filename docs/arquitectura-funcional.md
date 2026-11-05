@@ -723,7 +723,18 @@ f_{a,\varphi} = \frac{d_k}{T_\varphi}\,\min\big(P_\varphi,\ m_\varphi\, M_a,\ C_
 ```
 
   (con un maestro mínimo de la base del escenario, para que un oficio pueda empezar donde no lo hay). Al cerrarse el año el proceso deja un traslado pendiente de f_{a,φ} personas del pop de origen al del oficio, que la demografía aplica en el paso 11; el sustento de los alumnos sale de las existencias como un insumo más. Cada oficio declara su demanda D_{a,o} (los puestos de los procesos que usan su trabajo, la leva y el tope de su aporte); lo que pasa de ella, \(\max(0, N_{a,o} - D_{a,o})\), vuelve a la gente común al ritmo `RITMO_DESPLAZAMIENTO`, con un aporte «oficio perdido» al agravio de los desplazados. El tamaño de los estratos de cada eje es una fuente del poder de su grupo, con un modificador «estrato» proporcional a su parte de la población.
-- **Recursos que se agotan** (T34). El recurso R_c de una celda se regenera con crecimiento logístico y baja con lo extraído: \(R' = R + g\,R\,(1 - R/K) - e\), con e lo que sacaron los procesos de la celda, que a su vez rinden \(\min(1, R/R_{\text{pleno}})\) de lo suyo. Sin datos de recurso, R = K siempre y nada cambia.
+- **La celda como mezcla de terrenos** (V5, *La celda como mezcla de terrenos*; T36, propuesta). Cada celda c tiene, además de su terreno dominante T(c), una composición \(\{(T_k, s_k)\}_{k=1}^{m}\) con \(m \le 4\), \(s_k \in (0, 1]\) en `Fijo`, \(\sum_k s_k = 1\) y terrenos distintos; T(c) es el de mayor s_k (empate por nombre). Sin composición, \(\{(T(c), 1)\}\). El dominante da μ(c), el terreno del combate y el color del mapa; la composición, lo que la celda da. Cada componente (c, k) es una unidad de trabajo con
+  ```math
+  \ell(c,k) = s_k\,\ell(T_k), \qquad y_b(c,k) = s_k\,y_b(T_k)
+  ```
+  (o, con un proceso ρ de T_k, \(s_k\,\ell_\rho\) e \(y_b = s_k\,\ell_\rho\,r_{\rho,b}\,d/(100P)\)), así que ε y ν por trabajador no dependen de s_k: la fracción cambia cuánto se puede trabajar, no qué tan bueno es. `elegirCeldas` ordena componentes, con empate por id de celda y luego por nombre de terreno; κ(c) es el de la celda para todos sus componentes. La capacidad es \(\text{Cap}(c) = \sum_k s_k\,\text{cap}(T_k)\), y los materiales de obra de T_k rinden con s_k.
+
+  En el mapa hexagonal provisional, con ε_m = `mezcla` del escenario (0 por omisión, a lo más 0,5) y \(n_T\) los vecinos de c con terreno T ≠ T_0(c) (el que da el generador):
+  ```math
+  s_T = \varepsilon_m\,\frac{n_T}{6}, \qquad s_{T_0} = 1 - \sum_{T \ne T_0} s_T
+  ```
+  con solo los tres T de mayor s_T (empate por nombre) y el resto devuelto a T_0. Como \(\sum n_T \le 6\), \(s_{T_0} \ge 1 - \varepsilon_m \ge 0{,}5\), y el dominante sigue siendo T_0. En el mapa completo, las fracciones vienen del paquete, en veinteavos. La composición se calcula al cargar el mapa y no se guarda mientras no la cambie una obra.
+- **Recursos que se agotan** (T34). El recurso R_c de cada componente de una celda (el lago de la ribera se sobrepesca sin tocar su llano) se regenera con crecimiento logístico y baja con lo extraído: \(R' = R + g\,R\,(1 - R/K) - e\), con e lo que sacaron los procesos de ese componente, que a su vez rinden \(\min(1, R/R_{\text{pleno}})\) de lo suyo. Sin datos de recurso, R = K siempre y nada cambia.
 
 **Unidades** (V5, *Medidas reales y cifras de referencia*; T24). Los bienes a granel se cuentan en toneladas y las mantas en piezas (el valor de un kilogramo se redondearía a cero con cuatro decimales). La tabla de terrenos da, por terreno, los trabajadores que trabajan la celda entera, ℓ(c), y el rendimiento por trabajador y año r_b en las unidades del bien; el rendimiento de la celda por periodo, de la fórmula de producción, que no cambia, es y_b(c) = ℓ(c) · r_b / P con P los periodos por año (`periodos_por_anio` del archivo, que una prueba compara con el calendario). Un terreno lleva `rendimiento` por celda y periodo o `rendimiento_por_trabajador`, no los dos.
 
@@ -1658,6 +1669,9 @@ Las reglas del diseño, escritas como propiedades. En un lenguaje puro, "la mism
 | Tope de la dieta | La cobertura de un altépetl nunca pasa de min(1, Σ t_g): un solo grupo de alimento no da más que su tope, por mucho que sobre (T27) |
 | Equivalencia de la dieta | Con un solo grupo sin tope (sin `datos/dieta.json`), la cobertura y la reserva son las de T25 (T27) |
 | Proceso neutro | Un terreno sin procesos, con su `rendimiento_por_trabajador`, produce lo mismo que antes; sin procesos en las tecnologías, la partida es la de antes (T28) |
+| Mezcla neutra | Con `mezcla` en 0 (o sin composición), cada celda es 1,0 de su terreno y la partida es la de antes (T36) |
+| Partición de la celda | Una celda de un solo terreno partida en componentes de ese terreno da lo mismo que entera, con los mismos trabajadores; y una celda mezclada da lo mismo que celdas puras de cada terreno con su fracción, trabajadas en el mismo orden (T36) |
+| Composición válida | Toda composición tiene de 1 a 4 componentes de terrenos distintos y conocidos, fracciones positivas que suman 1 y su dominante como el de mayor fracción; el generador con cualquier `mezcla` de 0 a 0,5 la cumple (T36) |
 | Masa de las cadenas | En cada periodo, lo que un proceso de transformación resta de sus insumos es exactamente \(x_\rho u_{\rho,b}/P\), ninguna existencia queda negativa, y el trabajo usado no pasa del disponible (T28) |
 | Recurso acotado | Un recurso de celda nunca baja de 0 ni pasa de su capacidad K, y sin extracción vuelve a K (T34) |
 | Gente conservada | Formar y desplazar gente solo la cambia de pop: la suma de los tamaños de un altépetl es la misma antes y después de aplicar los traslados (T35) |

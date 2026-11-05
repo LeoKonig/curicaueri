@@ -64,7 +64,7 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 | 7 | T24 Medidas reales y cifras de referencia (hecha en `claude/medidas-reales`) | `datos/terrenos.json`, `datos/bienes_1475.json`, `datos/facciones/tutorial_1475.json`; `reglas`: `Produccion`, `Constantes`; `motor`: `Moneda` (rangos); `cliente/` (unidades) | T17 | 3 |
 | 7 | T25 Subsistencia: cobertura, reserva y tributo en especie (hecha en `claude/subsistencia`) | `reglas`: `Produccion`, `Sistemas`, `Propios`, `Constantes`, sistema nuevo de subsistencia; `datos/guion_1475.json` | T24, T17 | 3 |
 
-**Ronda 8: la dieta, los procesos y los oficios** (V5, *La dieta: alimentos, gustos y lujos*, *Recursos, bienes con usos y procesos* y *Los procesos de una tecnología: bienes y gente*). T25 alimenta solo con maíz; esta ronda da a la gente una dieta con grupos y topes (nadie vive de cacao ni de chile), hace de la milpa, la chinampa y las cadenas (tejido, cobre) procesos de las tecnologías, forma gente de oficio que cambia la sociedad, abastece la capital desde las trojes como en las fuentes, y da a los gustos y lujos un papel en el agravio y la lealtad. Va antes de T26 (influencia), que leerá la lealtad y la población que esta ronda mueve. T27 va primero; T28 y T30 pueden ir en paralelo después de ella; T29 después de T28 (recalibra con los sistemas); T31 después de T28.
+**Ronda 8: la dieta, los procesos y los oficios** (V5, *La dieta: alimentos, gustos y lujos*, *Recursos, bienes con usos y procesos* y *Los procesos de una tecnología: bienes y gente*). T25 alimenta solo con maíz; esta ronda da a la gente una dieta con grupos y topes (nadie vive de cacao ni de chile), hace de la milpa, la chinampa y las cadenas (tejido, cobre) procesos de las tecnologías, forma gente de oficio que cambia la sociedad, abastece la capital desde las trojes como en las fuentes, y da a los gustos y lujos un papel en el agravio y la lealtad. Va antes de T26 (influencia), que leerá la lealtad y la población que esta ronda mueve. T27 va primero; T28 y T30 pueden ir en paralelo después de ella; T29 después de T28 (recalibra con los sistemas); T31 después de T28. T36 (la celda como mezcla de terrenos) va después de T28 y antes de T34, que agota los recursos por componente; si T29 y T36 siguen abiertas a la vez, la que entre segunda recalibra el llano sobre la otra.
 
 | Ronda | Tarea | Área (archivos principales) | Depende de | Hito |
 | --- | --- | --- | --- | --- |
@@ -75,7 +75,8 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 | 8 | T31 La chinampa: tecnología y obra en celda | `datos/edificios.json`, `datos/facciones/`; `reglas`: `Edificios` | T28 | 3 / 5 |
 | 8 | T32 Cadena textil: algodón, hilo y mantas, con el trabajo de la casa | `reglas`: `Produccion`; `datos/edificios.json`, `datos/bienes_1475.json`, `datos/terrenos.json` | T28 | 3 |
 | 8 | T33 Cadena del cobre: mineral, fundición y labrado, con leña y herramientas | `reglas`: `Produccion`, `Edificios`; `datos/edificios.json` | T28 | 3 |
-| 8 | T34 Recursos que se agotan y se regeneran: bosque, pesquería, yacimiento | `reglas`: `Produccion`; `motor`: `Terrenos`; `datos/terrenos.json` | T28 | 3 / 6a |
+| 8 | T36 La celda como mezcla de terrenos: composición por celda y trabajo por componente | `motor`: `Mapa` (composición, generador con `mezcla`), `Protocolo` (mensaje del mapa); `reglas`: `Produccion`, `Procesos`; `escenarios/tutorial_1475.json`; cliente: panel de la celda | T28 | 3 |
+| 8 | T34 Recursos que se agotan y se regeneran: bosque, pesquería, yacimiento | `reglas`: `Produccion`; `motor`: `Terrenos`; `datos/terrenos.json` | T28, T36 | 3 / 6a |
 | 8 | T35 Procesos de gente: oficios, formación y desplazamiento | `reglas`: sistema nuevo de traslados (paso 11), `Edificios`, `Grupos`, `Fusion`; `datos/edificios.json`, `datos/facciones/` | T28, T13 | 3 / 6 |
 | 8 | T26 Influencia: fuerza por población y lealtad, y afinidad de la gente | `reglas`: derivado del mapa (paso 16), `Estado`, `Formulas`; `datos/identidades.json`; `motor`: `Influencia` (solo la publicación con umbral) | T27 (orden, no dependencia de código); T12, T13 | 4 / 6 |
 
@@ -996,7 +997,7 @@ Pruebas: sin leña no hay fundición; sin oficio no se empieza; con hachas, el m
 más, con su fuente en el desglose; la herramienta se gasta. Rama: claude/cadena-cobre.
 ```
 
-## T34. Recursos que se agotan y se regeneran (reglas, hitos 3 y 6a; después de T28)
+## T34. Recursos que se agotan y se regeneran (reglas, hitos 3 y 6a; después de T28 y T36)
 
 ```
 Tarea: que el bosque vuelva a crecer, que la mina se acabe y que el lago se sobrepesque.
@@ -1005,10 +1006,11 @@ Lee: V5 *Recursos, bienes con usos y procesos* (recursos de la celda) y *Erosió
 documento funcional, sección 12 (*Recursos que se agotan*) y la ley «recurso acotado».
 
 Haz:
-1. El recurso de la celda como magnitud, con su capacidad, su regeneración logística y lo
-   extraído por los procesos de la celda; la celda rinde en proporción a lo que queda.
+1. El recurso de cada componente de la celda (T36) como magnitud, con su capacidad, su
+   regeneración logística y lo extraído por los procesos de ese componente; el componente
+   rinde en proporción a lo que queda (el lago de la ribera se agota sin tocar su llano).
 2. Datos por terreno (regeneración, capacidad, recurso pleno), relleno «por verificar».
-3. Solo se escriben las celdas trabajadas; las demás quedan en su capacidad.
+3. Solo se escriben los componentes trabajados; los demás quedan en su capacidad.
 4. Un hecho cuando un recurso baja de un umbral, para la crónica y el guion.
 
 Pruebas: la ley; sin extracción vuelve a su capacidad; con extracción alta se agota y la
@@ -1044,6 +1046,43 @@ Pruebas: las leyes; sin plazas o sin maestros nadie se forma; formar arqueros ac
 gente común y sube la leva; un oficio sin demanda se vacía poco a poco; el poder del grupo
 sigue a sus estratos; guardar y cargar. Mide con --escala 7500x20 cuántos pops nuevos hay.
 Rama: claude/oficios.
+```
+
+## T36. La celda como mezcla de terrenos (motor y reglas, hito 3; después de T28)
+
+```
+Tarea: que una celda no sea toda de un producto. Cada celda tiene una composición de
+terrenos con su fracción, y cada parte se trabaja con su fracción: la ribera pesca y
+siembra a la vez.
+
+Lee: V5 *La celda como mezcla de terrenos*, *Recursos, bienes con usos y procesos* (los dos
+pasos del orden) y *El mapa completo*; documento funcional, sección 12 (*La celda como
+mezcla de terrenos*) y las leyes «mezcla neutra», «partición de la celda» y «composición
+válida».
+
+Haz:
+1. En `Motor.Mapa`, la composición de la celda: lista de (terreno, fracción) en Fijo, con
+   valor por defecto vacío (= 1,0 del terreno de la celda). `celdaTerreno` sigue siendo el
+   dominante, y lo que hoy lo lee (costo de movimiento, combate, color) no cambia. El
+   motor no sabe nada de purépechas: la composición es del mapa.
+2. En el generador hexagonal, la mezcla de los vecinos con `mezcla` en el bloque `mapa`
+   del escenario (0 por omisión, de 0 a 0,5; validada al cargar con los demás errores).
+   Validación de la composición al cargar (ley «composición válida»).
+3. En `Reglas.Produccion` y `Reglas.Procesos`, cada componente es una unidad de trabajo:
+   `opcionesDeCelda` por componente, con s_k en trabajadores y rendimientos; los procesos
+   de celda por el terreno del componente; `elegirCeldas` ordena componentes, empate por
+   celda y luego por terreno. `CeldaTrabajo` lleva el terreno del componente (valor por
+   defecto: el de la celda). Materiales de obra por componente.
+4. El mensaje del mapa al cliente lleva la composición solo de las celdas mezcladas (campo
+   opcional; actualiza el dorado de `pruebas_compartidas/` y `cliente/red/protocolo.gd`),
+   y el panel de la celda la muestra con lo que da cada parte. La vista no cambia nada.
+5. El tutorial con `mezcla` (relleno, por verificar) y la prueba de calibración: la capital
+   no pasa hambre en un año medio; recalibra el llano si hace falta.
+
+Pruebas: las tres leyes; con `mezcla` en 0, la traza del tutorial es idéntica a la de
+antes; una celda de llano con lago vecino pone gente en la pesca cuando la comida ya está
+cubierta; el desglose y el hecho de producción siguen explicando cada bien. Mide con
+--escala 7500x20 (con y sin `mezcla`). Rama: claude/composicion-celdas.
 ```
 
 ## T26. Influencia: fuerza por población y lealtad, y afinidad de la gente (reglas, hitos 4 y 6; después de la ronda 8)
