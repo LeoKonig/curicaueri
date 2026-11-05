@@ -39,6 +39,7 @@ import Reglas.Edificios
 import Reglas.Facciones
 import Reglas.Produccion
 import Reglas.Sistemas (hacienda)
+import Reglas.Subsistencia (cierreAnio, coberturaEn, necesidadDe)
 import Reglas.Fusion (fusionarPops, clavePop)
 import Motor.Terrenos (DefTerreno (..), cargarTerrenos, conCostoDeTerreno)
 import Motor.Moneda (Bien (..), Economia (..), ParamsMoneda (..), cargarEconomia, economiaVacia, aValor, enCuenta, precioEn, mermaEn,
@@ -639,6 +640,8 @@ main = do
           base m st = maybe (Fijo 0) almacenBase (Map.lookup ((entFac f1), m) (alm st))
           -- Uruapan con menos gente: ahí faltan brazos.
           pocos = conPops (\pop -> if popId pop == PopId 5 then pop { popTamano = 4000 } else pop) e0
+          -- Tzintzuntzan con mucha gente: sobran brazos aunque se retire una cuadrilla.
+          muchos = conPops (\pop -> if popId pop == PopId 2 then pop { popTamano = 80000 } else pop) e0
           celdas est a = Map.findWithDefault [] (AltId a) (dpCeldas (derivadoJuego (estadoDerivado est)))
           tierra est a = foldl' (.+.) (Fijo 0) (map ctTrabajadores (celdas est a))
           brazos est a = fi (Map.findWithDefault 0 (AltId a) (trabajadoresDe constantesDefault (jue est)))
@@ -646,7 +649,7 @@ main = do
             let (sin, _) = correrDias [] 0 20 est
                 (st, _)  = correrDias (construir "troje" a c) 0 20 est
             in (brazos est a .-. fi c < tierra est a, q st < q sin, q st == q sin)
-          casos = [ (est, a, c) | est <- [e0, pocos], a <- [1, 2, 3], c <- [100, 300] ]
+          casos = [ (est, a, c) | est <- [e0, pocos, muchos], a <- [1, 2, 3], c <- [100, 300] ]
       forM_ (zip [0 :: Int ..] casos) $ \(k, x) -> case caso x of
         (True, baja, _)   -> (k, baja) `shouldBe` (k, True)
         (False, _, igual) -> (k, igual) `shouldBe` (k, True)
@@ -942,6 +945,7 @@ main = do
 
   pruebasCosecha terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
   pruebasMalaCosecha terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
+  pruebasSubsistencia terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
 
   describe "reglas: tablas de casos del hito 0a (prototipo HTML)" $ do
     tablas <- runIO (fmap (>>= parseEither parseTablas)
@@ -1402,7 +1406,11 @@ pruebasMoneda terrenos eco eds dorado = describe "reglas: moneda en el juego rea
         sinExist st = Map.filterWithKey (\(_, m) _ -> not (esExistencias m)) (alm st)
         exist b st = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, magExistencias b) (alm st))
     sinExist conEco `shouldBe` sinExist sinEco
-    forM_ (bienesDe terrenos) $ \b ->
+    -- Solo los bienes que algún altépetl produce: con los trabajadores de la
+    -- tierra de cultivo del tutorial, los que sobran para pescar o minar son pocos.
+    let producidos = [ b | b <- bienesDe terrenos, exist b sinEco > Fijo 0 ]
+    producidos `shouldSatisfy` (\bs -> "maiz" `elem` bs)
+    forM_ producidos $ \b ->
       exist b conEco `shouldSatisfy` (if bnMerma (ecoBienes eco Map.! b) > Fijo 0 then (< exist b sinEco) else (== exist b sinEco))
 
   it "merma: con producción constante, las existencias se acercan a producción / merma" $ do
@@ -1690,6 +1698,246 @@ pruebasMalaCosecha terrenos eco eds = describe "reglas: mala cosecha y abrir las
     alm (correr j 1 121 400 cargado) `shouldBe` alm (correr j 1 121 400 mitad)
 
   it "los sistemas con el azar de la cosecha pasan validarOrdenSistemas salvo las dos lecturas del precio" $
+    length (validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j)) `shouldBe` 2 * Set.size (lecturasMoneda eco)
+
+-- ---------------------------------------------------------------------------
+-- Subsistencia: comer antes de tributar (T25)
+-- ---------------------------------------------------------------------------
+
+-- | T25: la cosecha se reparte entre las trojes y el altépetl; al cerrarse la
+-- ventana de cosecha se cuenta la cobertura del año; el hambre da agravio y
+-- baja el ingreso; las trojes se reparten con @repartir_bien@.
+pruebasSubsistencia :: Map.Map Terreno DefTerreno -> Economia -> Edificios -> Spec
+pruebasSubsistencia terrenos eco eds = describe "reglas: subsistencia, cobertura y reparto de las trojes (T25)" $ do
+  ventanas <- runIO $ do
+    v <- A.eitherDecodeFileStrict "../../datos/terrenos.json"
+    case v of
+      Left e -> fail e
+      Right jv -> case cargarCosechas "datos/terrenos.json" (bienesDe terrenos) jv of
+        Validacion [] (Just cs) -> pure cs
+        Validacion errs _ -> fail (show (map errMensaje errs))
+  let mapa = conCostoDeTerreno terrenos (either (error . show) id (proveedorHexagonal datosMapa1475))
+      ent  = (entornoSimple mapa) { entEconomia = eco }
+      dr   = Reglas.Juego.datosVacios { Reglas.Juego.drTerrenos = terrenos, Reglas.Juego.drEdificios = eds
+                                      , Reglas.Juego.drEconomia = eco, Reglas.Juego.drCosechas = ventanas }
+      c    = constantesDefault
+      j    = Reglas.Juego.juegoDatos c dr
+      sin nombres jj = jj { juegoSistemas = filter ((`notElem` map NombreSistema nombres) . sisNombre) (juegoSistemas jj) }
+      sinAzar = sin ["cosecha"] j
+      -- Sin producción ni azar: el maíz de los altépetl es el que pone la prueba.
+      aparte = sin ["cosecha", "produccion"] j
+      conDerivado jj e = e { estadoDerivado = derivar jj (entGrafo ent) (estadoTick e) (estadoPersistente e) }
+      e0   = conDerivado j (conConocimientos eds estadoInicial1475)
+      paso1 jj sigma t = paso jj ent (Semilla sigma) (Tick t) []
+      correr jj sigma desde hasta e = foldl' (\st t -> fst (paso1 jj sigma t st)) e [desde .. hasta]
+      correrH jj sigma desde hasta e = foldl' (\(st, hs) t -> let (st', h) = paso1 jj sigma t st in (st', hs ++ h)) (e, []) [desde .. hasta]
+      alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
+      conAlm f st = st { estadoPersistente = (estadoPersistente st)
+                           { persistenteComun = (persistenteComun (estadoPersistente st)) { comunMagnitudes = f (alm st) } } }
+      ponerAlt m a v = conAlm (fijarBase (entRefAlt (AltId a)) m v)
+      ponerFac m v = conAlm (fijarBase (entFac f1) m v)
+      baseAlt m a st = maybe (Fijo 0) almacenBase (Map.lookup (entRefAlt (AltId a), m) (alm st))
+      existencias st = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, magExistencias "maiz") (alm st))
+      produccionBase st = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, magProduccion "maiz") (alm st))
+      p st = persistenteJuego (estadoPersistente st)
+      necesidad a st = necesidadDe c (p st) (AltId a)
+      agravioPop i st = maybe (Fijo 0) almacenBase (Map.lookup (entRefPop (PopId i), Magnitud "agravio") (alm st))
+      tesoro st = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, Magnitud "tesoro") (alm st))
+      vig st = derivadoVigentes (estadoDerivado st)
+      motivo r = either Just (const Nothing) r
+      efecto n args st = case Map.lookup n (juegoEfectos j) of
+        Nothing -> Left "no existe el efecto"
+        Just ef -> epAplicar ef args st
+      repartir a q = A.object ["faccion" A..= (1 :: Int), "altepetl" A..= (a :: Int), "bien" A..= ("maiz" :: Text), "cantidad" A..= (q :: Fijo)]
+      cal = comunCalendario (persistenteComun (estadoPersistente estadoInicial1475))
+      cs  = Cosechas ventanas visible1475 inicio1475
+      maiz = ventanas Map.! "maiz"
+      -- El primer periodo en que se produce maíz.
+      primerCosecha = head [ t | t <- [0 .. 364], esInicioDePeriodo cal (Tick t)
+                               , produccionBase (fst (paso1 sinAzar 1 t (correr sinAzar 1 0 (t - 1) e0))) > Fijo 0 ]
+
+  it "la ventana de cosecha se cierra una sola vez al año, en el periodo que tiene su último día" $ do
+    length [ t | t <- [0 .. 364], esInicioDePeriodo cal (Tick t), cierraVentana cal cs maiz (Tick t) ] `shouldBe` 1
+    length [ t | t <- [365 .. 729], esInicioDePeriodo cal (Tick t), cierraVentana cal cs maiz (Tick t) ] `shouldBe` 1
+
+  it "ley (masa conservada): lo producido en el periodo es lo que se queda en los altépetl más lo que entra a las trojes" $ do
+    let t = primerCosecha
+        antes = correr sinAzar 1 0 (t - 1) e0
+        (despues, _) = paso1 sinAzar 1 t antes
+        m = mermaEn (vig despues) (Tick t) (alm despues) (entFac f1) (ecoBienes eco Map.! "maiz")
+        enAlt st = foldl' (.+.) (Fijo 0) [ baseAlt magCosechado a st | a <- [1, 2, 3] ]
+        trojes = existencias despues .-. existencias antes .*. (uno .-. m)
+    produccionBase despues `shouldSatisfy` (> Fijo 0)
+    produccionBase despues `shouldBe` (enAlt despues .-. enAlt antes) .+. trojes
+    -- La cuota de las trojes es 5 % por punto de la tasa de tributo (3 en el tutorial): 15 %.
+    abs (unFijo trojes - unFijo (produccionBase despues .*. Fijo 1500)) `shouldSatisfy` (< 10)
+
+  it "el cierre del año es una función con su ley: comido + reserva' + perdido = cosechado + reserva, y la cobertura va de 0 a 1" $
+    forM_ [ (n, h, r) | n <- [Fijo 0, Fijo 1, fi 100, fi 5000], h <- [Fijo 0, fi 50, fi 100, fi 6000, fi 20000], r <- [Fijo 0, fi 30, fi 400, fi 5000] ] $ \(n, h, r) -> do
+      let (cob, r', perdido) = cierreAnio n h r
+      min n (h .+. r) .+. r' .+. perdido `shouldBe` h .+. r
+      cob `shouldSatisfy` (\x -> x >= Fijo 0 && x <= uno)
+      r' `shouldSatisfy` (\x -> x >= Fijo 0 && x <= n)
+      perdido `shouldSatisfy` (>= Fijo 0)
+
+  it "ley (cobertura monótona): más cosecha o más reserva nunca bajan la cobertura ni la reserva" $
+    forM_ [ (n, h, r, d) | n <- [fi 100, fi 5000], h <- [Fijo 0, fi 50, fi 6000], r <- [Fijo 0, fi 400], d <- [Fijo 1, fi 10, fi 3000] ] $ \(n, h, r, d) -> do
+      let (c1, r1, _) = cierreAnio n h r
+          (c2, r2, _) = cierreAnio n (h .+. d) r
+          (c3, r3, _) = cierreAnio n h (r .+. d)
+      c2 `shouldSatisfy` (>= c1)
+      c3 `shouldSatisfy` (>= c1)
+      r2 `shouldSatisfy` (>= r1)
+      r3 `shouldSatisfy` (>= r1)
+
+  it "casos del cierre: justo, con hambre, con sobra y con sobra que no cabe en la reserva" $ do
+    cierreAnio (fi 100) (fi 50) (Fijo 0) `shouldBe` (Fijo 5000, Fijo 0, Fijo 0)
+    cierreAnio (fi 100) (fi 130) (Fijo 0) `shouldBe` (uno, fi 30, Fijo 0)
+    cierreAnio (fi 100) (fi 250) (Fijo 0) `shouldBe` (uno, fi 100, fi 50)
+    cierreAnio (Fijo 0) (fi 10) (Fijo 0) `shouldBe` (uno, Fijo 0, fi 10)
+
+  it "dos años malos seguidos dan más hambre que uno: la reserva de un año bueno se agota" $ do
+    let n = fi 100
+        merma r = r .*. (uno .-. Fijo 3000)           -- lo que queda de la reserva al año siguiente (relleno)
+        (_, rBueno, _) = cierreAnio n (fi 140) (Fijo 0)
+        (cMalo1, rMalo1, _) = cierreAnio n (fi 60) (merma rBueno)
+        (cMalo2, _, _) = cierreAnio n (fi 60) (merma rMalo1)
+    cMalo1 `shouldSatisfy` (> cMalo2)
+    cMalo2 `shouldSatisfy` (< uno)
+
+  it "el sistema cierra el año con la función pura: cobertura, reserva y cosechado a cero, y el hecho hambre bajo el umbral" $ do
+    let need = necesidad 1 e0
+        inicio = ponerAlt magCosechado 1 (need .*. Fijo 5000) (ponerAlt magCosechado 2 (necesidad 2 e0 .*. Fijo 12000) e0)
+        (fin, hs) = correrH aparte 1 0 400 inicio
+        (cob1, res1, _) = cierreAnio need (need .*. Fijo 5000) (Fijo 0)
+    baseAlt magCobertura 1 fin `shouldBe` cob1
+    cob1 `shouldBe` Fijo 5000
+    baseAlt magReserva 1 fin `shouldBe` res1
+    baseAlt magCosechado 1 fin `shouldBe` Fijo 0
+    -- El altépetl 2 comió de sobra (1,2 veces) y guarda la quinta parte de un año.
+    coberturaEn fin (AltId 2) `shouldBe` uno
+    baseAlt magReserva 2 fin `shouldSatisfy` (> Fijo 0)
+    -- El altépetl 3 no tiene nada cosechado en esta prueba: cobertura 0, también hambre.
+    [ entId r | h <- hs, hechoTipo h == "hambre", r <- take 1 (hechoEntidades h) ] `shouldBe` [1, 3]
+    take 1 [ Map.lookup "cobertura" (hechoParams h) | h <- hs, hechoTipo h == "hambre" ] `shouldBe` [Just "0.5"]
+
+  it "un año de buena cosecha del tutorial no pasa hambre; uno de mala cosecha sí, en alguna semilla" $ do
+    let cobs sigma = [ coberturaEn (correr j sigma 0 400 e0) (AltId a) | a <- [1, 2, 3] ]
+    all (== uno) (cobs 2) || any (< uno) (cobs 2) `shouldBe` True
+    let factores = [ (sigma, cosechaEn (vig (correr j sigma 0 0 e0)) (Tick 0) (alm (correr j sigma 0 0 e0)) (entFac f1) "maiz") | sigma <- [1 .. 30] ]
+        malos = [ s | (s, f) <- factores, f < Fijo 6000 ]
+        buenos = [ s | (s, f) <- factores, f > Fijo 9000 ]
+    malos `shouldSatisfy` (not . null)
+    buenos `shouldSatisfy` (not . null)
+    forM_ (take 3 buenos) $ \s -> cobs s `shouldBe` [uno, uno, uno]
+    forM_ (take 3 malos) $ \s -> minimum (cobs s) `shouldSatisfy` (< uno)
+
+  it "calibración: en un año medio ningún altépetl del tutorial pasa hambre, ni siquiera con la tasa de tributo al máximo" $ do
+    let fin e = correr sinAzar 1 0 400 e
+        maxima = conFaccionTasa 5 e0
+        conFaccionTasa n st = let per = estadoPersistente st; pj = persistenteJuego per
+                                  fa = (ppFacciones pj Map.! f1) { facTasas = (facTasas (ppFacciones pj Map.! f1)) { tasaTributo = n } }
+                              in st { estadoPersistente = per { persistenteJuego = pj { ppFacciones = Map.insert f1 fa (ppFacciones pj) } } }
+    [ coberturaEn (fin e0) (AltId a) | a <- [1, 2, 3] ] `shouldBe` [uno, uno, uno]
+    [ baseAlt magCobertura a (fin e0) | a <- [1, 2, 3] ] `shouldSatisfy` all (== uno)
+    -- Con tasa 5 (25 %) la capital queda justa pero sin hambre grave: cobertura de al menos 0,8.
+    [ coberturaEn (fin maxima) (AltId a) | a <- [1, 2, 3] ] `shouldSatisfy` all (>= cUmbralHambre constantesDefault)
+
+  it "ley (cobertura neutra): con cobertura 1 el agravio y el tesoro son los de antes" $ do
+    let neutral = foldl' (\st a -> ponerAlt magCobertura a uno st) e0 [1, 2, 3]
+        a = correr aparte 1 0 100 e0
+        b = correr aparte 1 0 100 neutral
+        soloEstos st = Map.filterWithKey (\(_, Magnitud n) _ -> n `elem` ["agravio", "tesoro"]) (alm st)
+    soloEstos b `shouldBe` soloEstos a
+
+  it "el hambre da agravio con su aporte y baja el ingreso: con cobertura 0,5 el agravio sube y el tesoro baja" $ do
+    let hambriento = foldl' (\st a -> ponerAlt magCobertura a (Fijo 5000) st) e0 [1, 2, 3]
+        a = correr aparte 1 0 100 e0
+        b = correr aparte 1 0 100 hambriento
+        periodos = length [ () | t <- [0 .. 100], esInicioDePeriodo cal (Tick t) ]
+        esperado = fromIntegral periodos * unFijo (cAgravioHambre c .*. Fijo 5000 ./. cTicksPorAnio c)
+    abs (unFijo (agravioPop 2 b .-. agravioPop 2 a) - esperado) `shouldSatisfy` (< fromIntegral (2 * periodos))
+    tesoro b `shouldSatisfy` (< tesoro a)
+
+  it "repartir_bien sube la cobertura exactamente x / necesidad y resta x de las trojes" $ do
+    let need = necesidad 1 e0
+        x = need .*. Fijo 2000
+        st = ponerFac (magExistencias "maiz") (need .*. fi 3) (ponerAlt magCobertura 1 (Fijo 5000) e0)
+    case efecto "repartir_bien" (repartir 1 x) st of
+      Left m -> expectationFailure (T.unpack m)
+      Right (e', hs) -> do
+        baseAlt magCobertura 1 e' `shouldBe` Fijo 5000 .+. x ./. need
+        baseAlt magReserva 1 e' `shouldBe` Fijo 0
+        existencias e' `shouldBe` existencias st .-. x
+        map hechoTipo hs `shouldBe` ["bien_repartido"]
+
+  it "repartir_bien: lo que pasa del déficit va a la reserva hasta un año de necesidad; lo que no cabe no sale de las trojes" $ do
+    let need = necesidad 1 e0
+        st = ponerFac (magExistencias "maiz") (need .*. fi 5) (ponerAlt magCobertura 1 (Fijo 8000) e0)
+        deficit = need .*. Fijo 2000
+    case efecto "repartir_bien" (repartir 1 (need .*. fi 3)) st of
+      Left m -> expectationFailure (T.unpack m)
+      Right (e', _) -> do
+        coberturaEn e' (AltId 1) `shouldBe` uno
+        -- Cabe el déficit y una reserva de un año: nada más sale de las trojes.
+        baseAlt magReserva 1 e' `shouldBe` need
+        existencias e' `shouldBe` existencias st .-. (deficit .+. need)
+
+  it "repartir_bien a un altépetl sin hambre y con la reserva llena no entrega nada, y no es un rechazo" $ do
+    let need = necesidad 1 e0
+        st = ponerFac (magExistencias "maiz") (need .*. fi 5) (ponerAlt magReserva 1 need e0)
+    case efecto "repartir_bien" (repartir 1 (fi 100)) st of
+      Left m -> expectationFailure (T.unpack m)
+      Right (e', _) -> (existencias e', baseAlt magReserva 1 e') `shouldBe` (existencias st, need)
+
+  it "ley (monótona): repartir más nunca baja la cobertura" $ do
+    let need = necesidad 1 e0
+        st = ponerFac (magExistencias "maiz") (need .*. fi 5) (ponerAlt magCobertura 1 (Fijo 3000) e0)
+        despues q = either (const (Fijo 0)) (\(e', _) -> coberturaEn e' (AltId 1)) (efecto "repartir_bien" (repartir 1 q) st)
+        cobs = map despues [Fijo 1, need .*. Fijo 1000, need .*. Fijo 3000, need .*. Fijo 7000, need .*. Fijo 9000]
+    and (zipWith (<=) cobs (drop 1 cobs)) `shouldBe` True
+    head cobs `shouldSatisfy` (>= Fijo 3000)
+
+  it "repartir_bien rechaza sin dañar: trojes que no alcanzan, altépetl ajeno o inexistente, cantidad no positiva y bien que no es alimento" $ do
+    let need = necesidad 1 e0
+        st = ponerFac (magExistencias "maiz") (fi 10) (ponerAlt magCobertura 1 (Fijo 3000) e0)
+        malo r = motivo r
+    malo (efecto "repartir_bien" (repartir 1 (need .*. Fijo 5000)) st) `shouldSatisfy` maybe False (T.isInfixOf "no alcanzan")
+    malo (efecto "repartir_bien" (repartir 99 (fi 1)) st) `shouldSatisfy` maybe False (T.isInfixOf "no existe el altépetl")
+    malo (efecto "repartir_bien" (repartir 1 (Fijo 0)) st) `shouldSatisfy` maybe False (T.isInfixOf "positiva")
+    malo (efecto "repartir_bien" (A.object ["faccion" A..= (1 :: Int), "altepetl" A..= (1 :: Int), "bien" A..= ("pescado" :: Text), "cantidad" A..= fi 1]) st)
+      `shouldSatisfy` maybe False (T.isInfixOf "no es un alimento")
+
+  it "recibir_bien suma a las existencias; la cantidad tiene que ser positiva" $ do
+    let args q = A.object ["faccion" A..= (1 :: Int), "bien" A..= ("maiz" :: Text), "cantidad" A..= (q :: Fijo)]
+    case efecto "recibir_bien" (args (fi 500)) e0 of
+      Left m -> expectationFailure (T.unpack m)
+      Right (e', hs) -> do
+        existencias e' `shouldBe` existencias e0 .+. fi 500
+        map hechoTipo hs `shouldBe` ["bien_recibido"]
+    motivo (efecto "recibir_bien" (args (Fijo 0)) e0) `shouldSatisfy` maybe False (T.isInfixOf "positiva")
+
+  it "sin datos de producción no hay subsistencia: nadie escribe cobertura y todo vale 1" $ do
+    let jv = Reglas.Juego.juego c
+        fin = foldl' (\st t -> fst (paso jv ent (Semilla 1) (Tick t) [] st)) estadoInicial1475 [0 .. 400]
+    [ k | (k@(_, m), _) <- Map.toList (alm fin), m `elem` [magCobertura, magReserva, magCosechado] ] `shouldBe` []
+    coberturaEn fin (AltId 1) `shouldBe` uno
+
+  it "guardar a mitad del año agrícola y cargar: la partida sigue igual hasta el cierre" $ do
+    let mitad = correr j 1 0 300 e0
+        cargado = either (error . show) id (cargar j mapa (guardar mitad))
+    alm (correr j 1 301 450 cargado) `shouldBe` alm (correr j 1 301 450 mitad)
+
+  it "la reserva se estropea cada periodo con la merma del maíz" $ do
+    let need = necesidad 1 e0
+        st = ponerAlt magReserva 1 need e0
+        fin = correr aparte 1 0 40 st
+        periodos = length [ () | t <- [0 .. 40], esInicioDePeriodo cal (Tick t) ]
+        m = bnMerma (ecoBienes eco Map.! "maiz")
+    periodos `shouldSatisfy` (>= 1)
+    baseAlt magReserva 1 fin `shouldBe` foldl' (\r _ -> r .*. (uno .-. m)) need [1 .. periodos]
+
+  it "los sistemas de subsistencia pasan validarOrdenSistemas salvo las dos lecturas del precio" $
     length (validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j)) `shouldBe` 2 * Set.size (lecturasMoneda eco)
 
 -- ---------------------------------------------------------------------------

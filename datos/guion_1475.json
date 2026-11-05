@@ -56,7 +56,8 @@
     "frailes_acogidos": "cronica.frailes_acogidos",
     "thares_escondidos": "cronica.thares_escondidos",
     "tesoro_escondido": "cronica.tesoro_escondido",
-    "fin_partida": "cronica.fin_1530"
+    "fin_partida": "cronica.fin_1530",
+    "hambre": "cronica.hambre"
   },
   "fin": {
     "fecha": "1530-02-14",
@@ -2206,7 +2207,7 @@
       "tipo": "tierra",
       "_fuente": {
         "origen": "V5, Decisiones recurrentes: Mala cosecha (abrir las trojes, comprar a un vecino o no hacer nada); hito_0/datos/eventos.json",
-        "certeza": "decisión de juego, sin fuente histórica; las cantidades son de relleno"
+        "certeza": "decisión de juego, sin fuente histórica; las cantidades son de relleno (V5, Comer antes de tributar)"
       },
       "peso": "6",
       "enfriamiento": 730,
@@ -2238,35 +2239,31 @@
       "opciones": [
         {
           "id": "no_hacer_nada",
-          "efectos": [
-            {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 2
-              },
-              "magnitud": "agravio",
-              "valor": "8"
-            }
-          ]
+          "efectos": []
         },
         {
           "id": "abrir_las_trojes",
           "efectos": [
             {
-              "tipo": "consumir_bien",
+              "tipo": "repartir_bien",
               "faccion": 1,
+              "altepetl": 1,
               "bien": "maiz",
-              "cantidad": "3000"
+              "cantidad": "2500"
             },
             {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 2
-              },
-              "magnitud": "agravio",
-              "valor": "-4"
+              "tipo": "repartir_bien",
+              "faccion": 1,
+              "altepetl": 2,
+              "bien": "maiz",
+              "cantidad": "1000"
+            },
+            {
+              "tipo": "repartir_bien",
+              "faccion": 1,
+              "altepetl": 3,
+              "bien": "maiz",
+              "cantidad": "1500"
             }
           ]
         },
@@ -2279,13 +2276,31 @@
               "valor": "150"
             },
             {
-              "tipo": "sumar_mag",
-              "entidad": {
-                "clase": "pop",
-                "id": 2
-              },
-              "magnitud": "agravio",
-              "valor": "-3"
+              "tipo": "recibir_bien",
+              "faccion": 1,
+              "bien": "maiz",
+              "cantidad": "1500"
+            },
+            {
+              "tipo": "repartir_bien",
+              "faccion": 1,
+              "altepetl": 1,
+              "bien": "maiz",
+              "cantidad": "600"
+            },
+            {
+              "tipo": "repartir_bien",
+              "faccion": 1,
+              "altepetl": 2,
+              "bien": "maiz",
+              "cantidad": "400"
+            },
+            {
+              "tipo": "repartir_bien",
+              "faccion": 1,
+              "altepetl": 3,
+              "bien": "maiz",
+              "cantidad": "500"
             }
           ]
         }

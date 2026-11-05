@@ -114,6 +114,7 @@ data PartesAgravio = PartesAgravio
   , paGobernador :: Fijo
   , paIdentidad  :: Fijo
   , paDistancia  :: Fijo
+  , paHambre     :: Fijo   -- ^ A_hambre · (1 − cobertura), por año; lo pone el sistema de agravio (T25)
   } deriving (Eq, Show)
 
 popParts :: Constantes -> Tasas -> Bool -> Text -> Text -> Fijo -> Int -> PartesAgravio
@@ -124,10 +125,17 @@ popParts c t capital estrato identidad distancia adminGob = PartesAgravio
   , paGobernador = fi ((cGobernadorAgravioBase c - adminGob) * cGobernadorAgravioPunto c)
   , paIdentidad  = if identidad == "purepecha" then Fijo 0 else fi 2
   , paDistancia  = distancia .*. fiD 15
+  , paHambre     = Fijo 0
   }
+
+-- | El aporte «hambre» al agravio por año: @cAgravioHambre · (1 − cobertura)@.
+-- Con cobertura 1 es 0 y el agravio es el de antes (V5, *Comer antes de
+-- tributar*).
+agravioHambre :: Constantes -> Fijo -> Fijo
+agravioHambre c cobertura = cAgravioHambre c .*. (uno .-. cobertura)
 
 -- | La suma de las partes, por veintena: `popParts` ÷ `ticks_por_anio`.
 deltaAgravio :: Constantes -> PartesAgravio -> Fijo
 deltaAgravio c p =
-  (paTributo p .+. paImpuesto p .+. paGobernador p .+. paIdentidad p .+. paDistancia p)
+  (paTributo p .+. paImpuesto p .+. paGobernador p .+. paIdentidad p .+. paDistancia p .+. paHambre p)
     ./. cTicksPorAnio c

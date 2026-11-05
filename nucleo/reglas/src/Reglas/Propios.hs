@@ -20,6 +20,13 @@
 -- * @consumir_bien@ (@faccion@, @bien@, @cantidad@): resta esa cantidad de las
 --   existencias del bien de la facción; se rechaza si no alcanzan. Es el
 --   único consumo de bienes del juego por ahora.
+-- * @recibir_bien@ (@faccion@, @bien@, @cantidad@): suma esa cantidad a las
+--   existencias del bien (una compra a un vecino); el reverso de
+--   @consumir_bien@.
+-- * @repartir_bien@ (@faccion@, @altepetl@, @bien@, @cantidad@): reparte maíz
+--   de las trojes de la facción a un altépetl suyo: sube su cobertura hasta 1
+--   y lo que sobra va a su reserva (tope de un año). Solo entrega lo que cabe;
+--   se rechaza si las trojes no alcanzan para eso (T25).
 -- * @gastar_valor@ (@faccion@, @valor@): resta del tesoro de la facción un
 --   costo dado en unidades de valor, pasado a su cuenta (la moneda designada,
 --   si la hay) al tipo del día con @enCuenta@; se rechaza si el tesoro no
@@ -48,7 +55,9 @@ import Motor.Magnitudes
 import Motor.Moneda (Economia (..), enCuenta, magExistencias)
 import Motor.Propios
 import Reglas.Base
+import Reglas.Constantes (Constantes)
 import Reglas.Estado
+import Reglas.Subsistencia (coberturaEn, necesidadDe, reservaEn)
 import Reglas.Facciones (activarFaccionPor, eliminarFaccionPor, pasarAltepetl)
 import Reglas.Grupos (Grupos)
 
@@ -70,8 +79,8 @@ condicionesPropias = Map.fromList
       (\i p -> maybe False perVivo (Map.lookup i (ppPersonajes (juegoDe p)))))
   ]
 
-efectosPropios :: Grupos -> Economia -> Map.Map Text (EfectoPropio Purepecha)
-efectosPropios gs ec = Map.fromList
+efectosPropios :: Constantes -> Grupos -> Economia -> Map.Map Text (EfectoPropio Purepecha)
+efectosPropios c gs ec = Map.fromList
   [ ("transferir_altepetl", efectoPropio
       (withObject "transferir_altepetl" $ \o -> (,) <$> (AltId <$> o .: "altepetl") <*> (FaccionId <$> o .: "faccion"))
       transferir)
@@ -81,6 +90,12 @@ efectosPropios gs ec = Map.fromList
   , ("consumir_bien", efectoPropio
       (withObject "consumir_bien" $ \o -> (,,) <$> (FaccionId <$> o .: "faccion") <*> o .: "bien" <*> o .: "cantidad")
       consumir)
+  , ("recibir_bien", efectoPropio
+      (withObject "recibir_bien" $ \o -> (,,) <$> (FaccionId <$> o .: "faccion") <*> o .: "bien" <*> o .: "cantidad")
+      recibir)
+  , ("repartir_bien", efectoPropio
+      (withObject "repartir_bien" $ \o -> (,,,) <$> (FaccionId <$> o .: "faccion") <*> (AltId <$> o .: "altepetl") <*> o .: "bien" <*> o .: "cantidad")
+      repartir)
   , ("gastar_valor", efectoPropio
       (withObject "gastar_valor" $ \o -> (,) <$> (FaccionId <$> o .: "faccion") <*> o .: "valor")
       gastar)
@@ -116,15 +131,15 @@ efectosPropios gs ec = Map.fromList
                           (Map.fromList [("de", nombreFac (altFaccion alt)), ("a", nombreFac f)])
             in Right (e2, hs ++ [hecho])
 
-    cambiarCondicion (a, c) e = case Map.lookup a (ppAltepetl (p e)) of
+    cambiarCondicion (a, cond) e = case Map.lookup a (ppAltepetl (p e)) of
       Nothing -> Left ("no existe el altépetl " <> nombreAlt a)
       Just alt
         | Cabecera _ <- altCondicion alt -> Left ("el altépetl " <> nombreAlt a <> " es la cabecera de su facción")
-        | altCondicion alt == c -> Left ("el altépetl " <> nombreAlt a <> " ya tiene esa condición")
+        | altCondicion alt == cond -> Left ("el altépetl " <> nombreAlt a <> " ya tiene esa condición")
         | otherwise ->
-            Right ( conJuego (\j -> j { ppAltepetl = Map.adjust (\x -> x { altCondicion = c }) a (ppAltepetl j) }) e
+            Right ( conJuego (\j -> j { ppAltepetl = Map.adjust (\x -> x { altCondicion = cond }) a (ppAltepetl j) }) e
                   , [Hecho "condicion_cambiada" (estadoTick e) [entRefAlt a]
-                       (Map.fromList [("condicion", case c of { Sujeto -> "sujeto"; Senorio -> "senorio"; Cabecera _ -> "cabecera" })])] )
+                       (Map.fromList [("condicion", case cond of { Sujeto -> "sujeto"; Senorio -> "senorio"; Cabecera _ -> "cabecera" })])] )
 
     negarF :: Fijo -> Fijo
     negarF (Fijo x) = Fijo (negate x)
@@ -145,6 +160,51 @@ efectosPropios gs ec = Map.fromList
                 , [Hecho "bien_consumido" (estadoTick e) [entFac f] (Map.fromList [("bien", b), ("cantidad", mostrar q)])] )
       where hay = maybe (Fijo 0) almacenBase
                     (Map.lookup (entFac f, magExistencias b) (comunMagnitudes (persistenteComun (estadoPersistente e))))
+
+    -- Entra un bien a las existencias de la facción (lo que llega de fuera:
+    -- una compra). Es el reverso de 'consumir'.
+    recibir :: (FaccionId, Text, Fijo) -> Estado Purepecha -> Either Text (Estado Purepecha, [Hecho])
+    recibir (f, b, q) e
+      | q <= Fijo 0 = Left "recibir_bien: la cantidad tiene que ser positiva"
+      | not (activa e f) = Left ("la facción " <> nombreFac f <> " no está activa")
+      | not (Map.member b (ecoBienes ec)) = Left ("no existe el bien " <> b)
+      | otherwise =
+          Right ( conComun (\com -> com { comunMagnitudes = sumarBase (entFac f) (magExistencias b) q (comunMagnitudes com) }) e
+                , [Hecho "bien_recibido" (estadoTick e) [entFac f] (Map.fromList [("bien", b), ("cantidad", mostrar q)])] )
+
+    -- Reparte maíz de las trojes de la facción a un altépetl suyo (V5, *Comer
+    -- antes de tributar*). Entrega solo lo que cabe: primero cubre el déficit
+    -- de la cobertura del año y lo que sobra va a la reserva local, hasta un
+    -- año de necesidad. Lo que no cabe no sale de las trojes. Un altépetl que
+    -- no necesita nada no recibe nada (y no es un rechazo, para que una opción
+    -- que reparte a varios no caiga entera por uno que no pasa hambre).
+    repartir :: (FaccionId, AltId, Text, Fijo) -> Estado Purepecha -> Either Text (Estado Purepecha, [Hecho])
+    repartir (f, a, b, q) e
+      | q <= Fijo 0 = Left "repartir_bien: la cantidad tiene que ser positiva"
+      | not (activa e f) = Left ("la facción " <> nombreFac f <> " no está activa")
+      | b /= bienAlimento = Left ("repartir_bien: «" <> b <> "» no es un alimento (solo " <> bienAlimento <> ")")
+      | otherwise = case Map.lookup a (ppAltepetl (p e)) of
+          Nothing -> Left ("no existe el altépetl " <> nombreAlt a)
+          Just alt
+            | altFaccion alt /= f -> Left ("el altépetl " <> nombreAlt a <> " no es de la facción " <> nombreFac f)
+            | hay < usado -> Left ("no alcanzan las existencias de " <> b <> ": hay " <> mostrar hay <> " y se reparten " <> mostrar usado)
+            | otherwise ->
+                Right ( conComun (\com -> com { comunMagnitudes =
+                          fijarBase (entRefAlt a) magReserva (reservaEn e a .+. alReserva)
+                            (fijarBase (entRefAlt a) magCobertura (min uno (cob .+. paraCobertura ./. need))
+                              (sumarBase (entFac f) (magExistencias b) (negarF usado) (comunMagnitudes com))) }) e
+                      , [Hecho "bien_repartido" (estadoTick e) [entFac f, entRefAlt a]
+                           (Map.fromList [("bien", b), ("cantidad", mostrar usado), ("pedido", mostrar q)])] )
+            where
+              need = necesidadDe c (p e) a
+              cob = coberturaEn e a
+              deficit = (uno .-. cob) .*. need
+              paraCobertura = if need <= Fijo 0 then Fijo 0 else min q deficit
+              cabeEnReserva = max (Fijo 0) (need .-. reservaEn e a)
+              alReserva = if need <= Fijo 0 then Fijo 0 else min (q .-. paraCobertura) cabeEnReserva
+              usado = paraCobertura .+. alReserva
+              hay = maybe (Fijo 0) almacenBase
+                      (Map.lookup (entFac f, magExistencias b) (comunMagnitudes (persistenteComun (estadoPersistente e))))
 
     gastar :: (FaccionId, Fijo) -> Estado Purepecha -> Either Text (Estado Purepecha, [Hecho])
     gastar (f, v) e

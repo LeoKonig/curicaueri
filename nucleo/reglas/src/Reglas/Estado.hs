@@ -289,6 +289,30 @@ rangoProduccionAlt  = RangoMag (fi 0) (fi 10)
 rangoTasaAgravio    = RangoMag (fi (-100)) (fi 100)
 rangoReservasAsedio = RangoMag (fi 0) (fi 1000)
 
+-- | El alimento del altépetl (V5, *Comer antes de tributar*; T25), en
+-- toneladas de maíz salvo la cobertura:
+--
+-- * @cosechado@: lo que se cosechó en el año agrícola y se queda en el
+--   altépetl (lo que no fue a las trojes). Lo suma la producción y lo vacía la
+--   subsistencia al cerrarse la ventana de cosecha.
+-- * @reserva@: lo que las casas guardaron, con tope de un año de necesidad. La
+--   escribe la subsistencia (cierre del año y merma) y @repartir_bien@.
+-- * @cobertura@: de 0 a 1, qué parte de la ración cubre el alimento del año.
+--   Vale hasta la siguiente cosecha; sin valor escrito vale 1.
+magCosechado, magReserva, magCobertura :: Magnitud
+magCosechado = Magnitud "cosechado"
+magReserva   = Magnitud "reserva"
+magCobertura = Magnitud "cobertura"
+
+rangoAlimentoAlt, rangoCobertura :: RangoMag
+rangoAlimentoAlt = RangoMag (fi 0) (fi 1000000000)
+rangoCobertura   = RangoMag (fi 0) (fi 1)
+
+-- | El único alimento por ahora (V5: «el maíz es el primer alimento; el
+-- pescado y los demás entran después»).
+bienAlimento :: Text
+bienAlimento = "maiz"
+
 -- | La base de la producción de un altépetl: 1 (el 100 %).
 baseProduccionAlt :: Fijo
 baseProduccionAlt = fi 1
