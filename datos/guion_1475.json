@@ -58,7 +58,8 @@
     "tesoro_escondido": "cronica.tesoro_escondido",
     "fin_partida": "cronica.fin_1530",
     "hambre": "cronica.hambre",
-    "abasto_insuficiente": "cronica.abasto_insuficiente"
+    "abasto_insuficiente": "cronica.abasto_insuficiente",
+    "terreno_modificado": "cronica.terreno_modificado"
   },
   "fin": {
     "fecha": "1530-02-14",

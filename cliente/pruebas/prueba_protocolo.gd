@@ -56,6 +56,18 @@ func _init() -> void:
 	root.add_child(panel)
 	panel.construir(espejo.comandos)
 	_comprobar("el formulario de comandos se arma desde el catálogo", panel.get_child_count() >= espejo.comandos.size())
+	# Una obra de celda: el clic en el mapa escribe la celda en el formulario (T38).
+	var obra := [{"tipo": "construir_edificio", "implementado": true, "requiere": {},
+		"parametros": [{"nombre": "edificio", "tipo": "opcion", "opciones": ["terrazas"]},
+			{"nombre": "celda", "tipo": "entero", "min": -1, "max": 100}]}]
+	var panel_obra = PanelComandos.new()
+	root.add_child(panel_obra)
+	panel_obra.construir(obra)
+	var selectores_celda := panel_obra.find_children("*", "SpinBox", true, false)
+	_comprobar("la celda empieza en -1 (ninguna)", selectores_celda.size() == 1 and int(selectores_celda[0].value) == -1)
+	panel_obra.celda_elegida(7, "Sierra\nSe forma de Sierra 60 %, Bosque 40 %.")
+	_comprobar("elegir una celda en el mapa la escribe en el formulario", int(selectores_celda[0].value) == 7)
+	_comprobar("el panel dice qué celda se eligió", panel_obra._resultado.text.contains("celda 7") and panel_obra._resultado.text.contains("Sierra"))
 
 	var redondo = func(m): return JSON.parse_string(JSON.stringify(m))
 	_comprobar("hola coincide con el dorado", Comun.igual(redondo.call(Protocolo.hola()), leer.call("cliente_hola.json")))

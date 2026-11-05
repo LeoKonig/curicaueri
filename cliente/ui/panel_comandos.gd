@@ -10,9 +10,11 @@ const Desglose = preload("res://ui/desglose.gd")
 
 var _resultado := Label.new()
 var _pendientes := {}      # secuencia -> tipo de comando
+var _celdas := []          # los selectores «celda» de los formularios (T38)
 
 
 func construir(comandos: Array) -> void:
+	_celdas.clear()
 	for h in get_children():
 		if h != _resultado:
 			h.queue_free()
@@ -63,6 +65,10 @@ func _fila(c: Dictionary) -> Control:
 			s.allow_greater = true      # para poder probar que el núcleo rechaza
 			s.allow_lesser = true
 			s.tooltip_text = "%s (%d a %d)" % [p["nombre"], int(p["min"]), int(p["max"])]
+			if p["nombre"] == "celda":
+				# Se elige con un clic en el mapa; -1 quiere decir «ninguna».
+				s.tooltip_text = "celda: haz clic en el mapa para elegirla (-1 = ninguna)"
+				_celdas.append(s)
 			controles[p["nombre"]] = s
 			fila.add_child(s)
 		else:
@@ -94,6 +100,13 @@ func _comando(tipo: String, controles: Dictionary) -> Dictionary:
 		var ctl = controles[nombre]
 		cmd[nombre] = int(ctl.value) if ctl is SpinBox else ctl.get_item_text(ctl.selected)
 	return cmd
+
+
+## Una celda elegida en el mapa: queda en el campo «celda» de los formularios que lo tienen.
+func celda_elegida(id: int, descripcion: String) -> void:
+	for s in _celdas:
+		s.value = id
+	_resultado.text = "celda %d elegida: %s" % [id, descripcion.replace("\n", " · ")]
 
 
 func enviado(secuencia: int, cmd: Dictionary) -> void:

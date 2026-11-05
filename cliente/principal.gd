@@ -77,6 +77,7 @@ func _armar_interfaz() -> void:
 	lienzo.espejo = espejo
 	lienzo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lienzo.seleccion.connect(_seleccionar)
+	lienzo.celda_pulsada.connect(_celda_pulsada)
 	cuerpo.add_child(lienzo)
 
 	# A la derecha, pestañas: así cada panel tiene toda la altura.
@@ -167,6 +168,13 @@ func porcentaje_en_pausa() -> float:
 
 ## Al seleccionar un altépetl se pide su detalle (sus pops): el núcleo solo
 ## manda el detalle de lo que se mira (V5, *Escala de la simulación*).
+## Un clic en el mapa elige la celda para las obras de celda (terrazas, roturación).
+func _celda_pulsada(id: int) -> void:
+	var celdas: Array = espejo.mapa["celdas"]
+	if id >= 0 and id < celdas.size():
+		comandos.celda_elegida(id, LienzoMapa.texto_celda(celdas[id]))
+
+
 func _seleccionar(c: String) -> void:
 	panel.mostrar(c)
 	_pedir_detalle()
