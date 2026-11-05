@@ -4,6 +4,8 @@
 ## derecha, la misma convención que el proveedor hexagonal del núcleo.
 extends Control
 
+const Textos = preload("res://red/textos.gd")
+
 signal seleccion(clave: String)
 
 const COLORES := {
@@ -32,6 +34,54 @@ func centro_celda(id: int) -> Vector2:
 
 func _ready() -> void:
 	resized.connect(_ajustar)
+	# Sin un texto no vacío, Godot no pide _get_tooltip.
+	tooltip_text = " "
+
+
+## La celda bajo un punto de la pantalla, o -1. Mira solo la celda que da la
+## fila y la columna aproximadas y sus vecinas, así que no recorre el mapa.
+func celda_en(pantalla: Vector2) -> int:
+	if espejo == null or espejo.mapa.is_empty():
+		return -1
+	var ancho := int(espejo.mapa["ancho"])
+	var alto := int(espejo.mapa["alto"])
+	var p := (pantalla - desplazamiento) / zoom - _margen
+	var fila0 := roundi(p.y / (tam * 1.5))
+	var mejor := -1
+	var distancia := tam
+	for fila in range(fila0 - 1, fila0 + 2):
+		if fila < 0 or fila >= alto:
+			continue
+		var col0 := roundi(p.x / (tam * sqrt(3.0)) - 0.5 * (fila & 1))
+		for col in range(col0 - 1, col0 + 2):
+			if col < 0 or col >= ancho:
+				continue
+			var d := (_margen + p).distance_to(centro_celda(fila * ancho + col))
+			if d < distancia:
+				distancia = d
+				mejor = fila * ancho + col
+	return mejor
+
+
+## El texto de una celda del mensaje del mapa: su terreno y, si está
+## mezclada, de qué terrenos se forma (T36). Solo es vista: no cambia nada.
+static func texto_celda(c: Dictionary) -> String:
+	var texto := Textos.de("terreno." + str(c["terreno"]))
+	if c.has("composicion"):
+		var partes := PackedStringArray()
+		for k in c["composicion"]:
+			var pct := roundi(float(k["fraccion"]) * 100.0)
+			partes.append(Textos.de("celda.parte", {"terreno": Textos.de("terreno." + str(k["terreno"])), "porcentaje": pct}))
+		texto += "\n" + Textos.de("celda.composicion", {"partes": ", ".join(partes)})
+	return texto
+
+
+func _get_tooltip(en: Vector2) -> String:
+	var id := celda_en(en)
+	if id < 0 or id >= espejo.mapa["celdas"].size():
+		return ""
+	var c: Dictionary = espejo.mapa["celdas"][id]
+	return texto_celda(c) if int(c["id"]) == id else ""
 
 
 ## Elige el tamaño del hexágono para que el mapa llene el espacio disponible.
