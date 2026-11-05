@@ -80,6 +80,22 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 | 8 | T35 Procesos de gente: oficios, formación y desplazamiento | `reglas`: sistema nuevo de traslados (paso 11), `Edificios`, `Grupos`, `Fusion`; `datos/edificios.json`, `datos/facciones/` | T28, T13 | 3 / 6 |
 | 8 | T26 Influencia: fuerza por población y lealtad, y afinidad de la gente | `reglas`: derivado del mapa (paso 16), `Estado`, `Formulas`; `datos/identidades.json`; `motor`: `Influencia` (solo la publicación con umbral) | T27 (orden, no dependencia de código); T12, T13 | 4 / 6 |
 
+**Ronda 9: la alfa del tutorial** (V5, *Plan de respaldo*). La primera versión que juega alguien que no es el autor es el tutorial 1475–1530, no la campaña: el tutorial ya tiene guion de principio a fin (`datos/guion_1475.json`, con la embajada, las viruelas y la entrada castellana) y no necesita la guerra en el mapa ni la IA de la ronda 6, que sigue después. La alfa está lista cuando el hito 3 cierra, el arnés del 0a pasa sobre el juego real, el tutorial se juega de 1475 a 1530 en el cliente sin atascarse, cualquiera puede instalarlo y una persona pasa la prueba 0b. De la ronda 8 entran T29 y T36; T30 a T35 y T26 no bloquean la alfa. El mercado parcial queda para el hito 9, como permite su fila en *Hitos*.
+
+T37, T39 y T41 tocan áreas distintas y pueden correr ya, en paralelo con T29 y T36. T38 espera a T36 (la roturación cambia un componente de la celda, no la celda entera) y coordina con T31 si esta sigue abierta, porque las dos traen el ámbito de celda. T11 puede correr ya, pero su informe definitivo se toma después de T37 y T38. T40 cierra la parte de código; T42 es la prueba.
+
+| Ronda | Tarea | Área (archivos principales) | Depende de | Hito |
+| --- | --- | --- | --- | --- |
+| 9 | T29 Abasto de la capital desde las trojes (ya escrita, ronda 8) | ver la ronda 8 | T28 | 3 |
+| 9 | T36 La celda como mezcla de terrenos (ya escrita, ronda 8; el diseño está en `main`) | ver la ronda 8 | T28 | 3 |
+| 9 | T11 Arnés del 0a sobre el juego real (ya escrita, ronda 3; ampliada con los criterios de tensión) | `agentes/`, `app` (`--sin-cliente --metricas`), `docs/` | T5 | 0 |
+| 9 | T37 Caminos: costo del grafo con modificadores y beneficio con vecino | `motor`: `Recorrido` (`parchearCostos`), `Magnitudes` (`AlcanceRuta`); `reglas`: `Edificios`, `Propios`, derivado del paso 16; `datos/edificios.json` | — | 3 |
+| 9 | T38 Terrazas y roturación: obras en celda y `cambiar_terreno` | `reglas`: `Edificios`, `Comando`, `Produccion`; `motor`: `Efectos`, `Guardado`, `Protocolo` (mapa); `datos/edificios.json`; cliente: elegir la celda | T36; coordinar con T31 | 3 |
+| 9 | T39 El tutorial de punta a punta en el cliente | `cliente/` (`ui/`, `principal.gd`, `textos/`), `cliente/pruebas/` | — | 2 / 3 |
+| 9 | T40 Calibración del tutorial para la alfa | `datos/`, `escenarios/tutorial_1475.json`, `reglas`: `Constantes`; `docs/` | T11, T29, T36, T37, T38 | 3 / 11 |
+| 9 | T41 Paquete de la alfa: núcleo y cliente instalables | `.github/workflows/`, `cliente/export_presets.cfg`, `README.md` | — | 12 |
+| 9 | T42 Prueba 0b con una persona | `docs/prueba_alfa.md` (sin código) | T39, T40, T41 | 0b / 12 |
+
 ---
 
 ## Contexto común (pegar antes de cada tarea)
@@ -389,6 +405,14 @@ Haz:
    estados, con umbrales en datos, no en código).
 2. Un informe en JSON y un resumen en docs/ con el resultado contra el criterio:
    ≥ 15 decisiones con costo en 10 años, ≥ 3 que cambian el rumbo.
+3. Los criterios de tensión de docs/evaluacion_hito0.md (*Criterios de tensión para la
+   siguiente iteración*, (a) a (e)), medidos con varias estrategias fijas (no hacer nada,
+   al azar, impuestos al máximo, constructor, la de reglas) y las mismas semillas. El (c),
+   ninguna opción sin costo, es un validador sobre `datos/guion_1475.json`, no una corrida.
+   Usa la variedad que ya mide `Motor.Director` (`metricas`, `cumpleVariedad`); no la
+   vuelvas a escribir.
+4. Corre el informe sobre los 55 años del tutorial, no solo sobre los primeros 10. Es lo que
+   T40 calibra para la alfa.
 
 Rama: claude/arnes-0a. No cambies las reglas para que pase: si no pasa, el informe lo dice.
 ```
@@ -1112,4 +1136,197 @@ Haz:
 Pruebas: las dos leyes; con afinidad 0 en todo, el costo de gobernar es el de hoy; el
 desglose de la fuerza nombra la lealtad. Mide con --escala 7500x20 cuántas fuentes se
 publican por veintena y cuánto cuesta. Rama: claude/influencia.
+```
+
+## T37. Caminos: costo del grafo con modificadores y beneficio con vecino (motor y reglas, hito 3; ronda 9)
+
+```
+Tarea: que un camino acelere la marcha y suba la producción solo si el vecino también
+tiene camino. Es la primera obra que cambia el costo del grafo, así que el grafo deja de
+ser estático.
+
+Lee: V5 *Caminos* y *Costo del grafo: terreno, ríos, caminos y puertos*; documento
+funcional, sección 8 (el costo de una conexión con μ y ρ, «Implementado (hito 3)» y
+«Grafo parcheado»), sección 14i (la distancia del tributo en especie sale de d_costo) y
+la ley de `parchearCostos`. En el código: `Motor.Recorrido`, `Motor.Terrenos`
+(`conCostoDeTerreno`), `Motor.Magnitudes` (`Alcance`: `AlcanceRuta` existe y se guarda,
+pero nada lo resuelve todavía) y `Reglas.Edificios`.
+
+Haz:
+1. `celda.costo_movimiento` como magnitud: la base es la de la tabla de terrenos y los
+   modificadores la mueven. El grafo del `Entorno` se vuelve derivado: en el paso 16, las
+   celdas cuyo μ cambió se parchean con `parchearCostos` (en `Motor.Recorrido`, pura por
+   fuera aunque use `ST` por dentro) y el resto se comparte. Sin caminos, el grafo es
+   exactamente el de hoy.
+2. Resolver `AlcanceRuta`: el modificador llega a las celdas de la ruta de menor d_costo
+   entre el asentamiento del camino y el asentamiento con camino más cercano, y se mueve
+   si otra obra cambia la ruta (V5: se recalcula cada veintena en el paso 16). Empates por
+   id. Que el μ de la ruta dependa del propio camino no debe hacer oscilar la ruta: usa
+   el grafo de la veintena anterior y dilo en el documento funcional.
+3. La condición propia `vecino_con` (`Propia` en `Reglas.Propios`, validada al cargar): el
+   asentamiento más cercano por ruta tiene un edificio dado. Con ella, el +4 % (relleno,
+   por verificar) a la producción del asentamiento, con su condición, que termina con
+   `modificador_terminado` y razón `condicion` cuando deja de cumplirse.
+4. El edificio `camino` en `datos/edificios.json`, con trabajo y fórmula `lineal` como las
+   demás obras (V5, *Las obras*). Lo demás que lee d_costo (asignación de celdas,
+   tributo en especie, alcance de templos) lo recoge solo, porque lee el grafo derivado:
+   compruébalo con una prueba, no con código especial.
+5. El cliente ya pinta el mapa por dueño: si el mensaje del mapa no lleva el costo, no
+   lo añadas; el desglose de la celda basta para explicarlo.
+
+Pruebas: la ley de `parchearCostos` (parchear = reconstruir, con QuickCheck); sin
+caminos, la traza del tutorial es idéntica a la de antes; un camino solo no sube la
+producción y dos caminos vecinos sí, y el desglose lo dice; el tributo en especie entre
+dos asentamientos con camino tarda menos y cuesta menos. Mide con --escala 7500x20 el
+paso 16 con unas decenas de caminos. Rama: claude/caminos.
+```
+
+## T38. Terrazas y roturación: obras en celda y `cambiar_terreno` (reglas y motor, hito 3; después de T36)
+
+```
+Tarea: las dos obras que cambian lo que da la tierra. La terraza sube lo que da una celda
+de ladera; la roturación convierte bosque en llano, para siempre.
+
+Lee: V5 *Terrazas y roturación*, *La celda como mezcla de terrenos* (último párrafo: la
+roturación cambia un componente, no la celda), *Dónde se construye: ciudad o casilla* y
+*Riesgos* («El terreno deja de ser inmutable»); documento funcional, secciones 12
+(producción: rendimiento y(c) y capacidad son magnitudes distintas) y 14i. En el código:
+`ConstruirEdificio` en `Reglas.Comando` (hoy solo nombra un altépetl), `Reglas.Edificios`,
+`Motor.Efectos`.
+
+La terraza mueve dos magnitudes, con dos modificadores de fuente «terrazas»: la capacidad
+de la celda (cuánta gente sostiene) y el rendimiento del componente de ladera que
+aterraza (cuánto da por trabajador). Con la composición de T36, el rendimiento sube solo
+en ese componente. Usa los nombres de magnitud que ya existan para el rendimiento; si no
+hay ninguna, detente y pregunta antes de crear una.
+
+Haz:
+1. El ámbito de celda: campo `ambitos` del edificio (por defecto, el asentamiento) y un
+   campo opcional `celda` en `construir_edificio`, que se rechaza con motivo legible si la
+   celda no está dentro de `RADIO_PRODUCCION` de un asentamiento propio o no cumple los
+   requisitos (`terreno_en`). Los edificios en celda se guardan dispersos, por celda
+   ocupada. Si T31 (chinampa) ya trajo el ámbito de celda, constrúyelo encima. La
+   condición de control propio (V5, *Dónde se construye*) espera al control de T26: dilo
+   en el PR y no la simules.
+2. El efecto `cambiar_terreno` en el conjunto cerrado (`Motor.Efectos`), que emite
+   `terreno_modificado`, y el campo `al_terminar` del edificio (por defecto, vacío). Con
+   la composición de T36, la roturación pasa la fracción de bosque del componente a llano,
+   y la composición de las celdas cambiadas se guarda como diferencia sobre la del mapa
+   (V5 lo pide así); los guardados anteriores cargan con la diferencia vacía.
+3. `terrazas` y `roturacion` en `datos/edificios.json`, con cuadrilla, trabajo y
+   materiales como las demás obras. Costos y efectos de relleno, «por verificar».
+4. El mensaje del mapa lleva la composición nueva de la celda roturada (campo que ya
+   trajo T36): actualiza el dorado de `pruebas_compartidas/` y `cliente/red/protocolo.gd`.
+   En el cliente, construir en celda pide elegir la celda en el mapa, y la consulta de
+   predicción muestra «+capacidad, −recursos del bosque» antes de confirmar.
+5. Un escenario del espejo con una celda roturada (V5, *Riesgos*).
+
+Pruebas: rechazo sin daño (celda ajena, fuera del radio, terreno que no cumple); la
+terraza aparece en el desglose; la roturación cambia la producción y la capacidad en el
+mismo sentido que la tabla de terrenos y emite el hecho; guardar y cargar con una celda
+roturada da la misma traza; sin estas obras, la traza del tutorial es idéntica. Mide con
+--escala 7500x20 con unos cientos de celdas cambiadas. Rama: claude/terrazas-roturacion.
+```
+
+## T39. El tutorial de punta a punta en el cliente (Godot; ronda 9)
+
+```
+Tarea: que una persona que no es el autor pueda jugar el tutorial 1475–1530 en el cliente
+de principio a fin sin atascarse y sin leer el código.
+
+Lee: V5 *Cliente: el mapa como atlas*, *Una veintena en la vida del cazonci*, *Decisiones
+recurrentes* y la fila del hito 2 en *Hitos* (sus criterios); `cliente/` completo y
+`cliente/pruebas/`. No cambies las reglas: si algo del núcleo impide jugar, anótalo y
+abre un issue aparte.
+
+Haz:
+1. Juega el tutorial completo con `--lanzar-nucleo` y anota cada atasco: un comando del
+   catálogo que no se alcanza desde la interfaz, un costo que no se ve antes de confirmar,
+   una decisión del guion cuyo texto o cuyas opciones no se entienden, un número sin
+   desglose, una pantalla que no dice qué hacer. Entrega la lista en el PR, con lo que
+   arreglaste y lo que no.
+2. Arregla en el cliente lo que sea de la vista: la ayuda del primer minuto (qué es una
+   veintena, qué son el tesoro y el agravio, dónde se construye), textos visibles en
+   `cliente/textos/`, avisos de qué cambió desde la veintena anterior. Nada de lo que el
+   cliente mira o ajusta entra en la simulación.
+3. Que guardar, cargar y la pantalla final funcionen desde la interfaz, también tras una
+   derrota antes de 1530.
+4. Una prueba de integración que lleve una partida del tutorial hasta la pantalla final
+   respondiendo a todas las decisiones (puede ser con avance rápido y respuestas fijas).
+
+Pruebas: ./probar_cliente.sh en verde con Godot 4.3 y 4.7.2; la prueba nueva llega a la
+pantalla final. Rama: claude/tutorial-en-cliente.
+```
+
+## T40. Calibración del tutorial para la alfa (datos; después de T11, T29, T36, T37 y T38)
+
+```
+Tarea: ajustar los números del tutorial para que la alfa sea una partida que vale la pena:
+que haya presión desde el principio, que decidir bien rinda más que no hacer nada y que
+1520 llegue con el reino que el jugador construyó.
+
+Lee: el informe de T11 en docs/; docs/evaluacion_hito0.md (los hallazgos y los criterios
+de tensión); docs/calibrar.md; V5 *Medidas reales y cifras de referencia* y la fila del
+hito 11 en *Hitos*.
+
+Haz:
+1. Con el arnés de T11, mide el tutorial completo con todas las estrategias y las mismas
+   semillas. Ajusta solo datos y constantes con nombre (`datos/`, `escenarios/`,
+   `Reglas.Constantes`), un cambio por commit, con la medición de antes y después en el
+   mensaje.
+2. Objetivo: el criterio 0a y los criterios de tensión (a) a (e) pasan en los 55 años, y
+   ningún año queda sin una decisión con costo. Las cifras con fuente se respetan; lo que
+   no la tiene sigue «por verificar».
+3. Un resumen en docs/ (puede ir en docs/calibrar.md) con lo que cambió, por qué y lo que
+   sigue sin pasar.
+
+No cambies reglas para que pase: si una regla impide el objetivo, dilo en el PR y
+proponla aparte. Rama: claude/calibrar-tutorial.
+```
+
+## T41. Paquete de la alfa: núcleo y cliente instalables (integración continua; ronda 9)
+
+```
+Tarea: que alguien sin Haskell ni Godot pueda bajar la alfa, abrirla y jugar el tutorial.
+
+Lee: README.md (cómo se compila y se lanza), `cliente/principal.gd` (`--lanzar-nucleo`),
+`.github/workflows/pruebas.yml`, LICENCIAS.md, MARCAS.md y el invariante 9 de CLAUDE.md.
+
+Haz:
+1. Presets de exportación de Godot para Linux y Windows (y macOS si la integración continua
+   lo permite sin firmar), y que el cliente exportado busque el núcleo junto a sí mismo
+   cuando no recibe `--lanzar-nucleo`.
+2. Un flujo de trabajo aparte (no el de pruebas) que, al etiquetar una versión
+   `alfa-*`, compile el núcleo, exporte el cliente y publique un archivo por sistema con
+   los dos, los `datos/`, los `escenarios/`, las licencias y un LEEME corto.
+3. Solo recursos libres: el paquete no lleva ni referencia arte de pago.
+4. Una sección del README: cómo instalar la alfa y dónde quedan las partidas guardadas.
+
+Pruebas: el flujo corre en una etiqueta de prueba y el archivo de Linux arranca el
+tutorial sin argumentos (prueba de humo en la integración continua). Rama:
+claude/paquete-alfa.
+```
+
+## T42. Prueba 0b con una persona (sin código; después de T39, T40 y T41)
+
+```
+Tarea: correr la prueba 0b de V5 sobre la alfa y escribir lo que pasó.
+
+Lee: V5, fila del hito 0 en *Hitos* (el 0b) y fila del hito 12; docs/evaluacion_hito0.md,
+*Límites de esta evaluación*.
+
+Haz:
+1. docs/prueba_alfa.md: el protocolo antes de la prueba. Quién juega (alguien que no es el
+   autor), qué se le dice antes (solo cómo abrir el juego), cuánto juega (10 años del
+   tutorial como mínimo), qué se guarda (la partida y el registro de comandos, para
+   repetirla con la ley de repetición; si el núcleo aún no guarda el registro, anótalo
+   como tarea) y las preguntas de después, sin preguntar si le
+   gustó: tres decisiones que tomó y por qué, cuál le costó más, qué consecuencia no
+   esperaba, qué haría distinto.
+2. Después de la prueba, en el mismo documento: las respuestas, dónde se atascó, y el
+   diagnóstico según V5 (si no puede explicar sus decisiones, falla el desglose o la
+   autonomía; si no hubo decisión difícil ni sorpresa, el sistema es plano u opaco).
+3. Lo que haya que arreglar va como tareas nuevas en este archivo, no en este PR.
+
+Rama: claude/prueba-alfa.
 ```
