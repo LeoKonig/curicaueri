@@ -665,23 +665,23 @@ Q''_t = Q'_t \cdot f
 - **Al cosechar** (sistema de producción, cada periodo con cosecha): de lo que entra, q_a, la cuota τ_f va a las trojes de la facción y el resto a lo cosechado del año agrícola del altépetl, H_a:
 
 ```math
-\text{existencias}_f \mathrel{+}= \tau_f\, q_a, \qquad H_a \mathrel{+}= (1 - \tau_f)\, q_a, \qquad \tau_f = \tau(\text{tasa de tributo}_f)
+\text{existencias}_f \mathrel{+}= \sum_a \big(q_a - H^{+}_a\big), \qquad H_a \mathrel{+}= H^{+}_a = (1 - \tau_f)\, q_a, \qquad \tau_f = \text{TRIBUTO\_ESPECIE} \cdot \text{tasa de tributo}_f
 ```
 
-- **Al cerrar la ventana de cosecha** (sistema de subsistencia, paso 7, una vez por año): con R_a la reserva local, D_a lo repartido de las trojes desde la cosecha anterior, r la ración diaria y N_p el tamaño de cada pop del altépetl,
+- **Al cerrar la ventana de cosecha** (sistema de subsistencia, paso 7, `Reglas.Subsistencia`; el único periodo de cada año que contiene el último día de la ventana, `cierraVentana`): con R_a la reserva local, r la ración por persona y año (`RACION_MAIZ`) y N_p el tamaño de cada pop del altépetl (todos los estratos),
 
 ```math
-\text{necesidad}_a = r \cdot 365 \cdot \sum_{p \in a} N_p, \qquad
-\text{disponible}_a = H_a + R_a + D_a, \qquad
+\text{necesidad}_a = r \sum_{p \in a} N_p, \qquad
+\text{disponible}_a = H_a + R_a, \qquad
 c_a = \min\!\Big(1,\ \frac{\text{disponible}_a}{\text{necesidad}_a}\Big)
 ```
 
 ```math
-R'_a = \min\big(\text{necesidad}_a,\ \max(0,\ \text{disponible}_a - \text{necesidad}_a)\big), \qquad H'_a = 0, \qquad D'_a = 0
+R'_a = \min\big(\text{necesidad}_a,\ \max(0,\ \text{disponible}_a - \text{necesidad}_a)\big), \qquad H'_a = 0, \qquad \text{perdido}_a = \text{disponible}_a - \min(\text{necesidad}_a, \text{disponible}_a) - R'_a
 ```
 
-  La reserva pierde cada periodo la merma del maíz, como las existencias. c_a es la magnitud `altepetl.cobertura`: su base la escribe la subsistencia y el desglose separa lo cosechado, la reserva y lo repartido. Lo que excede el tope de la reserva se pierde (se pudre o se intercambia fuera del modelo) y se anota en el hecho del año, para que la ley de conservación cierre.
-- **Durante el año**, el agravio de cada pop de a recibe por veintena el aporte con fuente «hambre» A_hambre · (1 − c_a) / P (P, periodos por año), y la hacienda multiplica el ingreso de cada pop de a por c_a. `repartir_bien` (facción, altépetl, bien, cantidad x) resta x de las existencias de la facción (rechazo sin daño si no alcanzan). Antes de cerrar la ventana, x se suma a D_a y entra en la cuenta del año; después, la cobertura sube en el acto, c_a ← min(1, c_a + x / necesidad_a), y lo que pasa de 1 va a la reserva.
+  Es la función pura `cierreAnio necesidad cosechado reserva = (cobertura, reserva', perdido)`, y cumple `comido + reserva' + perdido = cosechado + reserva` con `comido = min(necesidad, disponible)`: es la ley de masa conservada. Sin gente que alimentar, la cobertura es 1. La reserva pierde cada periodo la merma del maíz de la facción (la efectiva, con sus trojes), antes de contar el cierre. Lo que excede el tope de la reserva se pierde (se pudre o se intercambia fuera del modelo). `altepetl.cosechado`, `altepetl.reserva` y `altepetl.cobertura` son magnitudes del altépetl; la cobertura se escribe como base (en el cierre y en `repartir_bien`) y no tiene modificadores todavía: su desglose es el hecho `hambre`, que lleva cosechado, reserva, necesidad y cobertura del año.
+- **Durante el año**, el agravio de cada pop de a recibe por veintena el aporte «hambre» de `PartesAgravio` (`paHambre = A_hambre · (1 − c_a)` por año, que `deltaAgravio` divide entre P, los periodos por año), y la hacienda multiplica el ingreso de cada pop de a por c_a. **`repartir_bien`** (facción, altépetl, bien, cantidad q) entrega de las existencias de la facción solo lo que cabe: primero cubre el déficit de la cobertura del año, \(\min(q,\ (1-c_a)\,\text{necesidad}_a)\), y lo que sobra va a la reserva hasta su tope, \(\min(\text{sobra},\ \text{necesidad}_a - R_a)\). Sube la cobertura \(\Delta c = \text{para\_cobertura}/\text{necesidad}_a\), nunca la baja, y resta de las trojes solo lo entregado (el hecho `bien_repartido` dice lo pedido y lo entregado). Un altépetl que no necesita nada no recibe nada y no es un rechazo, para que una opción que reparte a varios altépetl no caiga entera por uno que no pasa hambre; se rechazan las trojes que no alcanzan para lo que se entregaría, un altépetl que no es de la facción, una cantidad no positiva y un bien que no es el alimento. **`recibir_bien`** (facción, bien, cantidad) suma a las existencias lo que llega de fuera (una compra) y es el reverso de `consumir_bien`.
 - **Sin datos de producción** (sin `--terrenos`), no hay subsistencia: c_a = 1 y todo sigue como antes.
 
 **Unidades** (V5, *Medidas reales y cifras de referencia*; T24). Los bienes a granel se cuentan en toneladas y las mantas en piezas (el valor de un kilogramo se redondearía a cero con cuatro decimales). La tabla de terrenos da, por terreno, los trabajadores que trabajan la celda entera, ℓ(c), y el rendimiento por trabajador y año r_b en las unidades del bien; el rendimiento de la celda por periodo, de la fórmula de producción, que no cambia, es y_b(c) = ℓ(c) · r_b / P con P los periodos por año (`periodos_por_anio` del archivo, que una prueba compara con el calendario). Un terreno lleva `rendimiento` por celda y periodo o `rendimiento_por_trabajador`, no los dos.

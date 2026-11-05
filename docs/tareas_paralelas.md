@@ -62,7 +62,7 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 | Ronda | Tarea | Área (archivos principales) | Depende de | Hito |
 | --- | --- | --- | --- | --- |
 | 7 | T24 Medidas reales y cifras de referencia (hecha en `claude/medidas-reales`) | `datos/terrenos.json`, `datos/bienes_1475.json`, `datos/facciones/tutorial_1475.json`; `reglas`: `Produccion`, `Constantes`; `motor`: `Moneda` (rangos); `cliente/` (unidades) | T17 | 3 |
-| 7 | T25 Subsistencia: cobertura, reserva y tributo en especie | `reglas`: `Produccion`, `Sistemas`, `Propios`, `Constantes`, sistema nuevo de subsistencia; `datos/guion_1475.json` | T24, T17 | 3 |
+| 7 | T25 Subsistencia: cobertura, reserva y tributo en especie (hecha en `claude/subsistencia`) | `reglas`: `Produccion`, `Sistemas`, `Propios`, `Constantes`, sistema nuevo de subsistencia; `datos/guion_1475.json` | T24, T17 | 3 |
 
 ---
 
@@ -767,7 +767,7 @@ métricas del director y anota las cifras. Mide con --escala 7500x20.
 Rama: claude/medidas-reales.
 ```
 
-## T25. Subsistencia: cobertura, reserva y tributo en especie (reglas, hito 3; después de T24 y T17)
+## T25. Subsistencia: cobertura, reserva y tributo en especie (reglas, hito 3; después de T24 y T17) — hecha
 
 ```
 Tarea: que la gente coma antes de tributar. La cosecha de cada altépetl alimenta primero
