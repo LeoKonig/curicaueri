@@ -69,7 +69,7 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 | Ronda | Tarea | Área (archivos principales) | Depende de | Hito |
 | --- | --- | --- | --- | --- |
 | 8 | T27 La dieta: alimentos por grupo con tope, en toneladas de maíz equivalente (hecha en `claude/dieta`) | `reglas`: `Subsistencia`, `Produccion`, `Constantes`; `datos/dieta.json`, `datos/bienes_1475.json` | T25 | 3 |
-| 8 | T28 Procesos de bienes en las tecnologías: la milpa y los demás | `reglas`: `Produccion`, `Edificios` (conocimientos); `datos/edificios.json`, `datos/terrenos.json` | T27 | 3 |
+| 8 | T28 Procesos de bienes en las tecnologías: la milpa y los demás (hecha en `claude/procesos-de-bienes`) | `reglas`: `Produccion`, `Edificios` (conocimientos); `datos/edificios.json`, `datos/terrenos.json` | T27 | 3 |
 | 8 | T29 Abasto de la capital desde las trojes | `reglas`: `Subsistencia`, `Comando`, `Propios`; `datos/guion_1475.json`; recalibración de `datos/terrenos.json` | T28 | 3 |
 | 8 | T30 Gustos y lujos: necesidades por estrato | `reglas`: `Subsistencia`, `Sistemas`, `Grupos`; `datos/necesidades.json` | T27 | 3 |
 | 8 | T31 La chinampa: tecnología y obra en celda | `datos/edificios.json`, `datos/facciones/`; `reglas`: `Edificios` | T28 | 3 / 5 |
@@ -852,7 +852,9 @@ guardar y cargar. Mide con --escala 7500x20: cinco grupos por altépetl. Rama:
 claude/dieta.
 ```
 
-## T28. Procesos de bienes en las tecnologías: la milpa y los demás (reglas, hito 3; después de T27)
+## T28. Procesos de bienes en las tecnologías: la milpa y los demás (reglas, hito 3; después de T27) — hecha
+
+Hecha con un cambio: el orden de las celdas tiene dos pasos, primero la comida y después el valor (V5, *Qué cambia en la producción*). Por valor solo, el tutorial dejaba la milpa por la obsidiana. La pesca, el monte, el solar de frutas y animales, la huerta de tierra caliente, el magueyal y las salinas quedan como datos para cuando haya terrenos y bienes que los pidan; el lago y la sierra siguen rindiendo por su terreno.
 
 ```
 Tarea: que la celda no rinda por su terreno sino por el proceso de una tecnología que se usa
