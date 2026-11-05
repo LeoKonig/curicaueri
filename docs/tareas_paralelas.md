@@ -95,6 +95,7 @@ T37, T39 y T41 tocan áreas distintas y pueden correr ya, en paralelo con T29 y 
 | 9 | T40 Calibración del tutorial para la alfa | `datos/`, `escenarios/tutorial_1475.json`, `reglas`: `Constantes`; `docs/` | T11, T29, T36, T37, T38 | 3 / 11 |
 | 9 | T41 Paquete de la alfa: núcleo y cliente instalables | `.github/workflows/`, `cliente/export_presets.cfg`, `README.md` | — | 12 |
 | 9 | T42 Prueba 0b con una persona | `docs/prueba_alfa.md` (sin código) | T39, T40, T41 | 0b / 12 |
+| 10 | T43 Caminos hacia un punto cualquiera del mapa | `reglas`: `Edificios`, `Comando`, `Estado`; `datos/edificios.json`; cliente: elegir el destino | T37, T38 | 3 / 4 |
 
 ---
 
@@ -1329,4 +1330,48 @@ Haz:
 3. Lo que haya que arreglar va como tareas nuevas en este archivo, no en este PR.
 
 Rama: claude/prueba-alfa.
+```
+
+## T43. Caminos hacia un punto cualquiera del mapa (reglas, hitos 3 y 4; después de T37 y T38)
+
+```
+Tarea: que el jugador pueda llevar un camino a donde lo necesite, no solo al altépetl más
+cercano que ya tenga camino: a una fortaleza, a un paso de la frontera, a una ciudad de
+otra facción.
+
+Lee: V5 *Caminos* (con su párrafo «Implementado (T37)»), *Dónde se construye: ciudad o
+casilla* y *Mapa: influencia, dueño y control*; documento funcional, sección 8 (grafo
+parchado) y sección 14i; T37 y T38 en este archivo. En el código: `derivarCaminos` en
+`Reglas.Edificios` y el campo `celda` de `construir_edificio` que trae T38.
+
+Hoy el camino (T37) se construye en un altépetl y su ruta va sola al altépetl vecino que
+también tiene camino, y hay un solo camino por altépetl. Ahora el destino lo elige el
+jugador.
+
+Haz:
+1. `construir_edificio camino` con `celda` = el destino. La obra es del altépetl de origen y
+   sigue pagando valor, cuadrilla y materiales como cualquier obra. Se rechaza, con motivo
+   legible, un destino fuera de `ALCANCE_CAMINO` del origen por el costo del grafo o que no
+   exista. Sin `celda`, el camino sigue siendo el de T37 (compatibilidad).
+2. Los caminos terminados guardan su destino (lista por altépetl, dispersa, con valor por
+   defecto vacío, como las obras en celda de T38): un altépetl puede tener varios, cada uno
+   con su ruta. `derivarCaminos` toma la ruta de menor costo del origen al destino, en el
+   grafo sin caminos, y parcha el grafo con ella; los caminos se siguen sin apilar (gana la
+   mejor celda). El factor de cada camino sigue siendo un modificador de alcance `ruta`, con
+   fuente propia por destino, para que el desglose diga cuántos hay.
+3. Quién se beneficia de un tramo. V5 dice que una obra en celda solo rinde bajo control
+   propio, y el control llega con T26 y el hito 7. Mientras no exista, el destino tiene que
+   estar dentro del radio de producción de un altépetl propio, o ser la celda de una
+   fortaleza propia: se rechaza hacia una ciudad extranjera o una celda en disputa, con el
+   motivo «el control de esa celda llega con el hito 7». Deja el punto de enganche donde
+   T26 pondrá la condición de control; no la simules.
+4. El cliente: elegir el destino en el mapa, con el mismo mecanismo que T38, y mostrar la
+   ruta propuesta antes de confirmar (la consulta de predicción ya muestra el costo).
+5. Cierra con la condición `vecino_con`: el +4 % de producción sigue dependiendo del vecino
+   más cercano por ruta con camino; no la cambies sin decirlo en el PR.
+
+Pruebas: un camino a un destino lejano abarata solo su ruta; dos caminos al mismo destino no
+se apilan; un destino fuera de alcance o ajeno se rechaza sin daño; guardar y cargar con
+caminos con destino sigue igual; sin `celda` la traza es la de T37. Mide con
+--escala 7500x20 con cientos de caminos con destino. Rama: claude/caminos-con-destino.
 ```
