@@ -33,6 +33,8 @@ module Reglas.Edificios
   , Tradicion (..)
   , Conocimiento (..)
   , conocimientos
+  , procesosDe
+  , sinProcesos
   , magCodificado
   , magTacito
   , catalogoConocimientos
@@ -86,6 +88,7 @@ import Reglas.Estado
 import Reglas.Formulas (gastoPunto)
 import Reglas.Grupos (agregarVarios)
 import Reglas.Produccion (lecturasMoneda, produccionCeldas, trabajadoresDe)
+import Reglas.Procesos (Proceso (..), leerProceso, validarProceso, magCodificado, magTacito, rangoConocimiento)
 
 -- ---------------------------------------------------------------------------
 -- Datos
@@ -148,6 +151,7 @@ data Conocimiento = Conocimiento
   , cnCodificado :: Fijo   -- ^ base de @conocimiento.<id>.codificado@
   , cnTacito     :: Fijo   -- ^ base de @conocimiento.<id>.tacito@
   , cnPractica   :: Fijo   -- ^ α: la práctica aporta α · ln(1 + n) al tácito
+  , cnProcesos   :: [Proceso] -- ^ los procesos que hace posibles (T28); ninguno por omisión
   } deriving (Eq, Show)
 
 data DefEdificio = DefEdificio
@@ -179,15 +183,18 @@ data Edificios = Edificios
 edificiosVacios :: Edificios
 edificiosVacios = Edificios [] Map.empty [] []
 
+-- | Los mismos edificios con sus conocimientos sin procesos: la partida de
+-- antes de T28 (la ley «proceso neutro» y el ensayo de la dieta sin milpa).
+sinProcesos :: Edificios -> Edificios
+sinProcesos eds = eds { edConocimientos = [ k { cnProcesos = [] } | k <- edConocimientos eds ] }
+
+-- | Todos los procesos de las tecnologías, en el orden del archivo (T28).
+procesosDe :: Edificios -> [Proceso]
+procesosDe eds = concatMap cnProcesos (edConocimientos eds)
+
 conocimientos :: Edificios -> [Conocimiento]
 conocimientos = edConocimientos
 
-magCodificado, magTacito :: Text -> Magnitud
-magCodificado k = Magnitud ("conocimiento." <> k <> ".codificado")
-magTacito k     = Magnitud ("conocimiento." <> k <> ".tacito")
-
-rangoConocimiento :: RangoMag
-rangoConocimiento = RangoMag (Fijo 0) (fi 100)
 
 -- | Las dos magnitudes de cada conocimiento, para el catálogo del juego.
 catalogoConocimientos :: Edificios -> Map Magnitud DefMagnitud
@@ -270,10 +277,15 @@ cargarEdificios archivo catalogo v = case A.parseEither leer v of
                   let r x = "conocimientos." <> cnId k <> "." <> x
                       rango x y = if y >= Fijo 0 && y <= fi 100 then pure () else err ErrorRango (r x) "fuera de 0..100"
                   in rango "codificado" (cnCodificado k) *> rango "tacito" (cnTacito k)
-                     *> (if cnPractica k >= Fijo 0 then pure () else err ErrorRango (r "practica") "no puede ser negativa"))
+                     *> (if cnPractica k >= Fijo 0 then pure () else err ErrorRango (r "practica") "no puede ser negativa")
+                     *> traverse (validarProceso archivo) (cnProcesos k))
                 cons
+        procIds = [ prId pr | k <- cons, pr <- cnProcesos k ]
+        procRep = traverse (\i -> if length (filter (== i) procIds) > 1
+                                     then err ErrorEsquema ("procesos." <> i) "proceso repetido"
+                                     else pure ()) (nub procIds)
     in (\_ _ _ _ ds -> Edificios ids (Map.fromList [ (deId d, d) | d <- ds ]) trads cons)
-         <$> repetidos <*> tradRep <*> conRep <*> conOk <*> traverse (validar tradIds conIds) crudos
+         <$> repetidos <*> tradRep <*> conRep <*> (conOk <* procRep) <*> traverse (validar tradIds conIds) crudos
   where
     err :: CategoriaError -> Text -> Text -> Validacion b
     err cat ruta msg = falla (ErrorCarga cat archivo ruta msg)
@@ -281,7 +293,9 @@ cargarEdificios archivo catalogo v = case A.parseEither leer v of
       ts <- o A..:? "tradiciones" A..!= [] >>= mapM (A.withObject "tradicion" (\t ->
               Tradicion <$> t A..: "id" <*> t A..:? "identidades" A..!= [] <*> t A..:? "por_gradiente" A..!= False))
       cs <- o A..:? "conocimientos" A..!= [] >>= mapM (A.withObject "conocimiento" (\k ->
-              Conocimiento <$> k A..: "id" <*> k A..: "codificado" <*> k A..: "tacito" <*> k A..:? "practica" A..!= Fijo 0))
+              do kid <- k A..: "id"
+                 Conocimiento kid <$> k A..: "codificado" <*> k A..: "tacito" <*> k A..:? "practica" A..!= Fijo 0
+                                  <*> (k A..:? "procesos" A..!= [] >>= mapM (leerProceso kid))))
       es <- o A..: "edificios" >>= mapM edificio
       pure (ts, cs, es)
     edificio = A.withObject "edificio" $ \o -> do

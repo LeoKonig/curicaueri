@@ -414,30 +414,65 @@ Una población que solo tiene maíz llega a 0,85 de cobertura: no se muere de ha
 
 **El abasto de la capital.** Gorenstein y Pollard (1983, citados en Kemper) estiman que Tzintzuntzan importaba un 44 % de su maíz y un 9 % de su frijol, sobre todo de fuera de la cuenca. La capital no comía de su tierra: comía del tributo y del mercado. La calibración de T25 (el llano a 3 500 trabajadores, para que Tzintzuntzan coma de lo suyo) va contra ese dato. Lo que corresponde es que las trojes de la facción abastezcan cada año el déficit de la capital: una orden permanente que el jugador puede bajar o subir (una decisión, no un cálculo escondido), con el llano de vuelta a 2 500 o donde lo dejen las fuentes. Así el tributo en especie tiene un destino visible, y una mala cosecha en las provincias se siente en la capital.
 
-### La milpa, la chinampa y los sistemas de producción (hito 3)
+### Recursos, bienes con usos y procesos: la milpa, la chinampa y las cadenas (hito 3)
 
-Hoy el terreno rinde bienes por trabajador: el llano da maíz y mantas, y el lago, pescado y sal. Pero el campesino no siembra maíz solo: siembra **milpa**, maíz con frijol, calabaza y chile en la misma parcela (y los quelites crecen entre ellos). Y la chinampa no es un terreno: es una técnica y una obra.
+Hoy el terreno rinde bienes por trabajador: el llano da maíz y mantas, y el lago, pescado y sal. Pero el campesino no siembra maíz solo: siembra **milpa**, maíz con frijol, calabaza y chile en la misma parcela (y los quelites crecen entre ellos). La chinampa no es un terreno, sino una técnica y una obra. Las mantas no salen del llano: salen del algodón de la tierra caliente, hilado y tejido en las casas. Y el cobre purépecha pide mineral, leña y oficio.
 
-**Un sistema de producción es un dato** (`datos/sistemas.json`): en qué terrenos se puede usar, qué conocimiento pide, cuántos trabajadores ocupa por celda, qué da por trabajador y año (varios bienes juntos, cada uno con su ventana de cosecha) y, si hace falta, qué obra lo habilita en la celda. Los rendimientos son de relleno; la forma del dato es lo que se fija ahora.
+**Tres cosas distintas.** La economía del juego separa lo que la naturaleza tiene, lo que la gente guarda y lo que la gente sabe hacer:
 
-| Sistema | Dónde | Pide | Da, por trabajador y año (relleno, por verificar) |
-| --- | --- | --- | --- |
-| **Milpa de temporal** | llano; sierra con terrazas | conocimiento `milpa` (todas las facciones mesoamericanas lo tienen al empezar) | maíz 1 t, frijol 0,15 t, calabaza 0,3 t y pepita 0,02 t, chile 0,02 t, quelites 0,1 t; chapulines donde se comen |
-| **Chinampa** | lago somero o ciénega | conocimiento `chinampa` y la obra «chinampas» en la celda | de dos a tres veces la milpa por hectárea, con más trabajo (Calnek, 1972: una hectárea sostenía de 15 a 20 personas, unas 3 a 4 t ME) |
-| **Pesca** | lago | — | pescado blanco, charal, pato, rana |
-| **Monte** | bosque | — | venado, conejo, miel, quelites, y la madera de las obras |
-| **Solar** | en el asentamiento, por casa y no por celda | — | guajolote, aguacate, nopal, capulín y frutas: un poco por persona, sin ocupar tierra |
-| **Huerta de tierra caliente** | tierra caliente | — | cacao, papaya, zapotes, algodón para las mantas |
-| **Magueyal** | sierra y llano seco | — | pulque, aguamiel, fibra |
-| **Salinas** | lago salobre (Cuitzeo, Araró; por verificar) | — | sal |
+1. **Recursos** (de la celda): el suelo, el bosque, el yacimiento, la pesquería, la salina. Son magnitudes de la celda con su capacidad, y en su momento con su regeneración y su agotamiento (un bosque vuelve a crecer, una mina se acaba, un lago se sobrepesca). Un recurso no se guarda ni se comercia: se trabaja. Es lo que la celda ya tiene con la capacidad y la erosión (*Erosión*), extendido a los demás recursos.
+2. **Bienes** (inventario de la facción): lo que existe porque alguien lo sacó o lo hizo, y se guarda, se transporta, se tributa o se consume. Cada bien tiene una **estructura física** (su unidad, su masa por unidad para el transporte y su merma) y unos **usos**.
+3. **Tecnologías con sus procesos**: lo que la gente sabe hacer y lo que ese saber le permite hacer. No hay un sistema de recetas aparte: cada tecnología del mecanismo de *Tecnología y educación* declara, además de sus modificadores, los **procesos** que hace posibles. Cada proceso tiene sus insumos (bienes, trabajo de un estrato, energía, recursos de la celda, plazas de un edificio), sus productos (bienes o gente formada), su lugar (una celda, la casa o una obra) y su ventana del año si la tiene. Rinde según el dominio de la tecnología y no existe bajo su umbral. La milpa, la chinampa, la pesca, el hilado, el tejido y la fundición son procesos de bienes; la formación de arqueros o de escribanos, procesos de gente (ver *Los procesos de una tecnología: bienes y gente*). Si la tecnología se difunde, sus procesos llegan con ella; si se pierde el conocimiento tácito, se pierden. Los insumos de un proceso son los mismos del costo de las actividades (*El costo de las cosas*): cada uno con sus sustitutos, que otra tecnología puede habilitar.
 
-**Qué cambia en la producción.** La fórmula del factor escaso no cambia: cada celda tiene trabajadores ℓ y rendimientos y, y los trabajadores van primero a lo que más rinde por trabajador. Lo que cambia es de dónde salen ℓ e y: del sistema que se usa en la celda, no del terreno. Y lo que «más rinde» se compara en **valor** (cada bien por su valor del catálogo), no en toneladas, que no se pueden sumar entre maíz, cacao y mantas. Un terreno con `rendimiento_por_trabajador` sigue funcionando como hoy (regla 4).
+**La función de un bien no es un atributo: es un uso.** Un artefacto tiene una estructura física y una función que le dan las personas (la «naturaleza dual» de los artefactos técnicos de Kroes y Meijers). La función cambia con el contexto: la manta es vestido, tributo, ofrenda y medio de pago, y el cacao es bebida de los señores y moneda. Por eso el juego no le pone a cada bien una categoría fija. Los usos salen de los archivos que lo nombran:
+
+| Uso | Lo declara | Lo lee |
+| --- | --- | --- |
+| Alimento | `datos/dieta.json` (T27) | La subsistencia |
+| Gusto y lujo | `datos/necesidades.json` (T30) | El agravio y la lealtad por estrato |
+| Insumo, herramienta o energía | Los procesos de las tecnologías | La producción |
+| Material de obra | `datos/edificios.json` | La construcción |
+| Medio de pago | `designable` en el catálogo de bienes | La moneda |
+| Militar | El equipo de los ejércitos (T18) | La leva y el combate |
+
+Un bien puede tener varios usos, y la interfaz los muestra juntos. La **etapa** tampoco se declara: sale de los procesos. Un bien es materia prima si sale de un recurso, intermedio si entra en otro proceso y final si alguien lo consume. La misma pieza puede ser las tres cosas.
+
+**Los procesos de bienes** (dentro de cada tecnología: hoy en la lista de conocimientos de `datos/edificios.json`, y en `datos/tecnologias.json` cuando llegue el paso 15; rendimientos de relleno, por verificar). Los que trabajan un recurso de la celda son lo que antes se llamaba sistemas de producción:
+
+| Proceso | Lugar | Tecnología | Insumos | Productos, por trabajador y año |
+| --- | --- | --- | --- | --- |
+| **Milpa de temporal** | llano; sierra con terrazas | conocimiento `milpa` (todas las facciones mesoamericanas lo tienen al empezar) | el suelo | maíz 1 t, frijol 0,15 t, calabaza 0,3 t y pepita 0,02 t, chile 0,02 t, quelites 0,1 t; chapulines donde se comen |
+| **Chinampa** | lago somero o ciénega | conocimiento `chinampa` y la obra «chinampas» en la celda | el suelo de la chinampa | de dos a tres veces la milpa por hectárea, con más trabajo (Calnek, 1972: una hectárea sostenía de 15 a 20 personas, unas 3 a 4 t ME) |
+| **Pesca** | lago | — | la pesquería | pescado blanco, charal, pato, rana |
+| **Monte** | bosque | — | el bosque | venado, conejo, miel, quelites, leña, madera |
+| **Solar** | la casa, por persona y no por celda | — | — | guajolote, aguacate, nopal, capulín y frutas |
+| **Huerta de tierra caliente** | tierra caliente | — | el suelo | cacao, papaya, zapotes, **algodón** |
+| **Magueyal** | sierra y llano seco | — | el suelo | pulque, aguamiel, ixtle |
+| **Salinas** | lago salobre (Cuitzeo, Araró; por verificar) | — | la salina | sal |
+| **Minería** | sierra con yacimiento | — | el yacimiento | mineral de cobre |
+
+Los que transforman bienes son las cadenas. Empiezan dos, las que obligan a mover bienes entre regiones y dan al reino su rasgo propio:
+
+| Proceso | Lugar | Tecnología | Insumos | Productos |
+| --- | --- | --- | --- | --- |
+| **Hilado** | la casa | `tejido` (dominio pleno al empezar) | algodón (o ixtle) | hilo |
+| **Tejido** | la casa | `tejido` | hilo | mantas |
+| **Fundición** | obra «fundición» | `metalurgia` | mineral de cobre, leña (o carbón), trabajo de fundidores | cobre |
+| **Labrado del cobre** | obra «taller» | `metalurgia` | cobre, trabajo de fundidores | hachas, cascabeles, adornos |
+
+El tejido de la casa se hacía sobre todo por mujeres, con el telar de cintura (por verificar la proporción de su tiempo). Por eso los procesos de la casa usan un trabajo propio, el de la casa, que no le quita gente a la milpa. Así las mantas del tributo cuestan algodón y tiempo, no tierra. La metalurgia purépecha era la más avanzada de Mesoamérica: cobre, bronce, oro y plata (por verificar con Hosler, 1994, y Pollard). Con la fundición, las hachas de cobre pueden ser **herramienta**: un bien que un proceso gasta despacio y que sube su rendimiento (las hachas en la tala y en el monte), con el desglose de siempre.
+
+La nixtamalización y la tortilla no son procesos del juego: pasan en cada casa todos los días, y nadie las guarda ni las comercia en volumen. Ya están dentro de la ración. Si hace falta un bien de campaña (las tortillas tostadas o el pinole de los guerreros, por verificar), será un solo proceso de T18.
+
+**Qué cambia en la producción.** La fórmula del factor escaso no cambia: cada celda tiene trabajadores ℓ y rendimientos y, y los trabajadores van por orden a las celdas. Lo que cambia es de dónde salen ℓ e y (del proceso que se usa en la celda, no del terreno) y el orden, que tiene **dos pasos: primero la comida, después el valor**. Ordenar solo por valor dejaría a todos minando obsidiana mientras pasan hambre: con los valores de relleno, la sierra rinde 1,8 de valor por trabajador y el llano 0,07. Los campesinos cubrían primero su comida. Por eso cada altépetl trabaja primero las celdas que más energía dan por trabajador, con su mejor proceso para comer, hasta cosechar lo que come su gente más el tributo en especie (necesidad / (1 − τ)). Las demás celdas van por valor por trabajador. A igualdad de energía, desempata el valor, y a igualdad de valor, la energía: la milpa da el mismo maíz que el terreno, pero también frijol. Los procesos de la casa y de las obras transforman bienes de las existencias de la facción, con el trabajo de la casa o con una cuadrilla, en orden de valor agregado por trabajador y hasta donde alcancen sus insumos. Y lo que «más rinde» se compara en **valor** (cada bien por su valor del catálogo), no en toneladas, que no se pueden sumar entre maíz, cacao y mantas. Un terreno con `rendimiento_por_trabajador` sigue funcionando como hoy (regla 4).
 
 **La milpa y la chinampa son tecnologías** del mecanismo de *Tecnología y educación*: la milpa con dominio pleno en todas las facciones mesoamericanas desde el principio; la chinampa con condición geográfica (lago somero o ciénega), dominio alto entre los mexicas, xochimilcas y chalcas en 1475, y bajo o nulo entre los purépechas (por verificar: la ciénega de Zacapu y la ribera del lago de Pátzcuaro; Fisher, Pollard y Frederick, 1999, estudian la agricultura intensiva de la cuenca). Mientras no exista la difusión (paso 15), el dominio es una base del escenario, como el oficio de las obras: la chinampa ya se puede construir con lo que hay (una obra en celda con oficio). Las terrazas, que ya son una obra, habilitan la milpa en la sierra.
 
+**Hecho en T28** (`Reglas.Procesos`, `Produccion`, `Edificios`). Los procesos van dentro de los conocimientos de `datos/edificios.json`. El tutorial tiene dos: la `milpa` (proceso de celda en el llano: maíz, frijol, calabaza, chile y quelites, cada uno con su ventana de cosecha) y el `tejido` (proceso de casa: 0,35 mantas por persona y año). Por eso el llano ya no da mantas: las teje la gente en casa, y en un año son casi las mismas que antes. Un proceso existe si el dominio de la facción llega a su mínimo (50 por omisión), y rinde en proporción a él. El derivado usa las bases del conocimiento y la producción de casa el dominio efectivo. Con la milpa a medias, la gente vuelve a la manera vieja de trabajar el llano, porque rinde más. Con la milpa, `--dieta` entra a las opciones del juego completo. La cadena textil (T32), el cobre (T33) y los recursos que se agotan (T34) siguen.
+
 **Por qué es bueno para el juego.** El jugador no decide qué sembrar en cada celda, porque eso sería una hoja de cálculo. Decide lo que decidía un señor: qué obras levantar (chinampas, terrazas), qué pedir en tributo a cada provincia (cacao a la tierra caliente, frijol al Bajío), cómo repartir lo guardado (abasto de la capital, cacao a los señores, maíz a los que tienen hambre) y con quién comerciar por lo que su tierra no da. Las regiones se vuelven distintas por lo que comen y lo que les falta, y la interfaz agrupa los bienes (granos, frijol, verduras, carne y pescado, gustos, lujos) para que una veintena de bienes no se vuelva una lista.
 
-**Escala.** Los bienes son magnitudes de la facción, pocas aunque sean veinticinco. En el altépetl solo se guarda la energía por grupo (cinco grupos, cosechado y reserva): con 7 500 altépetl, unas 75 000 entradas, y un cálculo por altépetl y año. La producción recorre por altépetl sus celdas y sistemas, como hoy.
+**Escala.** Los bienes son magnitudes de la facción, pocas aunque sean treinta. En el altépetl solo se guarda la energía por grupo (cinco grupos, cosechado y reserva): con 7 500 altépetl, unas 75 000 entradas, y un cálculo por altépetl y año. La producción recorre por altépetl sus celdas y procesos, como hoy. Las cadenas son un modelo insumo-producto à la Leontief: lineal, determinista, con unos pocos procesos por facción y periodo. Los recursos que se agotan son una magnitud más por celda trabajada, y solo se escriben las que cambian.
 
 ### Crecimiento (hito 3b)
 
@@ -885,8 +920,8 @@ La unidad política básica es el altépetl, que puede ser sujeto, señorío o i
 | Vínculo | id, partes, tipo (tregua, alianza, tributo, regalos recurrentes, alianza dinástica, rehén, guerra ritual), obligaciones, exclusiones, desde, hasta (opcional), condiciones, fuente | Generaliza la tregua y la alianza; el tributo existente se lee como vínculo sin cambiar su entidad. Reservado para el juego completo |
 | Grupo de poder | id, clave de nombre por facción y periodo, eje al que contribuye, base de lealtad y poder por tipo de facción | `datos/grupos.json`; su lealtad y su poder son magnitudes de la facción. Paso 12 |
 | Reforma | id, requisitos (condiciones), costo inicial, efectos, grupo que la impulsa, grupo que se opone y umbrales de bloqueo | `datos/reformas.json`; se aprueba con `AprobarReforma` |
-| Tecnología | id, tipo (producto o sistema), canales, condiciones, efectos, resistencia, umbral de dominio | `datos/tecnologias.json`; su conocimiento codificado y tácito son magnitudes de la facción. Paso 15 |
-| Sistema de producción | id, terrenos, conocimiento, obra que lo habilita, trabajadores por celda, rendimiento por trabajador y año de cada bien | `datos/sistemas.json` (milpa, chinampa, pesca, monte, solar…; ver *La milpa, la chinampa y los sistemas de producción*). Paso 6 |
+| Tecnología | id, tipo (producto o sistema), eje o ejes a los que sirve, canales, condiciones, efectos, procesos (de bienes y de gente), resistencia, umbral de dominio | `datos/tecnologias.json`; su conocimiento codificado y tácito son magnitudes de la facción. Paso 15 |
+| Proceso de una tecnología | id, lugar (celda, casa u obra), terrenos, insumos (bienes, trabajo de un estrato, energía, recurso, plazas de un edificio), productos (bienes o gente formada), ventana | Dentro de cada tecnología (`datos/edificios.json` hoy; `datos/tecnologias.json` con el paso 15) (milpa, chinampa, pesca, monte, solar…; ver *Recursos, bienes con usos y procesos*). Paso 6 |
 | Grupo de la dieta | id, alimentos, tope de energía, tope de reserva, merma | `datos/dieta.json` (ver *La dieta*). Paso 7 |
 | Pop | asentamiento, residencia (núcleo o dispersa), identidad (origen o categoría: purépecha, hñähñú, nahua, chichimeca…; lista que crece), condición legal (por defecto `comun`), autoadscripción (por defecto, la identidad), estrato (incluye `nobleza_local`), `gradiente_catolicismo` (de 0, culto tradicional, a 1, catolicismo; en el juego completo, un valor por culto), tamaño, resto de crecimiento, lealtad, agravio, necesidades | Agregado, como en Victoria II; la condición y la autoadscripción las usa el juego completo (ver *Población: origen, condición y mestizaje*) |
 | Bien | id, clave de nombre, categoría, valor base; para la moneda: calidad monetaria, referencia, elasticidad y si es designable (ver *La moneda designada y la inflación*) | Maíz, pescado, sal, cobre, mantas, obsidiana |
@@ -1630,6 +1665,37 @@ Las escuelas, colegios e imprentas son edificios (`ConstruirEdificio`): no hace 
 La adopción no es automática. La resistencia son modificadores negativos a la tasa de difusión con fuente visible: un grupo de poder (el sacerdocio frente a lo que desplaza al culto), la nobleza local o una condición geográfica (el arado con bueyes necesita tierra plana; las chinampas, lago somero). Cada tecnología declara sus efectos sobre los ejes y la producción, que pueden tener signos opuestos; sus valores se fijan con fuentes.
 
 **Comandos** (reservados): `InvertirTecnologia` (ya en el catálogo), `ContratarExperto`, `EnviarExpertos` y `ComprarTextos`. Permitir una misión es `OtorgarConcesion` de tipo doctrina.
+
+### Los procesos de una tecnología: bienes y gente
+
+Una tecnología no es solo un porcentaje: es lo que hace posible. Cada tecnología declara sus **procesos** (V5, *Recursos, bienes con usos y procesos*), y hay dos clases:
+
+- **Procesos de bienes**: convierten recursos y bienes en otros bienes (la milpa, el tejido, la fundición).
+- **Procesos de gente**: convierten a personas de un estrato en personas de un **oficio**. Sus insumos son los candidatos (una parte de un estrato de origen, los jóvenes), las **plazas** de un edificio (un telpochcalli, un calmécac, un colegio, un taller), **maestros** (gente del oficio de destino: el conocimiento tácito se enseña en persona), el sustento en bienes y un tiempo de formación en años. Su producto es un flujo de gente del estrato de origen al oficio.
+
+**Los oficios son estratos.** La clave de un pop ya incluye el estrato, así que un oficio no multiplica dimensiones: los arqueros, los canteros, los mineros, los fundidores, los escribanos, los mercaderes o los zapadores de un altépetl son un pop más, con su estrato. Cada oficio declara para qué sirve:
+
+- su trabajo como insumo de procesos (los fundidores en la fundición, los mineros en la minería);
+- su lugar en la leva y en el combate (los arqueros, con T18);
+- su aporte a una magnitud por persona, con tope: los escribanos a la eficiencia administrativa, los mercaderes a la red, los sacerdotes al culto, como ya lo hacen en los templos.
+
+**Formar gente pasa por la demografía.** El sistema de demografía es el único que escribe `pop.tamano`. Un proceso de gente no mueve a nadie por sí mismo: deja un **traslado pendiente** de un pop a otro, como `ajustar_poblacion` deja un ajuste, y la demografía lo aplica en el paso 11. La gente formada no aparece de la nada: sale de su estrato de origen, que se achica.
+
+**La tecnología cambia la sociedad.** Cada oficio tiene una demanda: los puestos de los procesos que usan su trabajo, los de la leva, los de su aporte con tope. Lo que pasa de la demanda queda **desplazado** y vuelve poco a poco a la gente común, con un aporte al agravio («oficio perdido»). Así una tecnología nueva puede reemplazar a un estrato por otro sin una regla especial. Si el ejército profesional forma guerreros que hacen lo que hacía la nobleza guerrera, la demanda de la nobleza como guerrera baja. La nobleza ya pierde lealtad con «ejército profesional» (*Los grupos*): ahí está la tensión política. Lo mismo vale para los escribanos que aprenden el alfabeto frente a los pintores de códices, o para los arcabuceros frente a los arqueros después de 1520.
+
+**Los cinco ejes ordenan las tecnologías.** Cada tecnología declara el eje o los ejes a los que sirve. Eso decide en qué familia la muestra la interfaz, qué grupo de poder la empuja y cuál se le resiste (los grupos ya contribuyen cada uno a un eje), y cómo pesa su resistencia en la difusión. Los estratos que forma alimentan el poder del grupo de su eje: formar escribanos sube el poder de los administradores; formar guerreros profesionales, el de quien los mande. La política interna se mueve con la técnica. Ejemplos de partida, todos por verificar:
+
+| Eje | Tecnologías | Procesos de gente (oficio que forman) | Dónde se forman |
+| --- | --- | --- | --- |
+| Coerción | Arquería, guerreros profesionales, fortificación | Arqueros (los purépechas eran arqueros célebres), guerreros, zapadores y canteros de frontera | Casa de los jóvenes (el telpochcalli mexica; el equivalente purépecha, por verificar) |
+| Extracción | Milpa, chinampa, minería y metalurgia, tejido | Mineros, fundidores | Taller y mina, con maestros |
+| Legitimidad | Culto y calendario, arquitectura ceremonial | Sacerdotes, canteros de templo | Templo (el calmécac mexica, por verificar el purépecha) |
+| Administración | Registro y cuenta, escritura alfabética, derecho | Escribanos, intérpretes | Escuela; después de 1536, colegios como Santa Cruz de Tlatelolco (1536) o San Nicolás en Pátzcuaro (1540) |
+| Red | Comercio a larga distancia, diplomacia, lenguas | Mercaderes, embajadores, nahuatlatos | Casas de mercaderes; cortes |
+
+**Por qué es bueno para el juego.** Construir una escuela no da un «+5 %»: da gente, y esa gente cambia el reino. Gente que hay que sostener, que deja su milpa y que, si sobra, se queja. Las decisiones del jugador son las de siempre: qué edificios construir y con cuántas plazas, a quién nombrar y cuánto sustento dar. Las consecuencias son de dos clases: económicas (más cobre, mejor administración) y sociales (un estrato que crece, otro que se resiente, un grupo de poder que se fortalece). Con la llegada de los castellanos, el mismo mecanismo cuenta la transformación de la sociedad sin reglas propias: colegios, nuevos oficios y estratos que se vacían.
+
+**Escala.** Los oficios son pocos por altépetl y solo existen donde hay alguien que los ejerce. Para no llenar el mapa de pops diminutos, un oficio con menos gente que un umbral (`OFICIO_MINIMO`) no forma pop propio: sus aprendices quedan en su estrato de origen hasta pasarlo. Con 7 500 altépetl y unos pocos oficios cada uno, el número de pops crece de forma acotada; se mide con `--escala 7500x20` cuando entre.
 
 **Hechos:** `tecnologia_adoptada`, `tecnologia_perdida`, `experto_llego`, `experto_murio`, `idea_difundida`; pasan a la crónica.
 
@@ -2854,7 +2920,7 @@ El mayor riesgo es el alcance: un juego que mezcla dos géneros completos puede 
 - [ ] Obras: trabajo, materiales, cuadrilla máxima, veintenas mínimas y oficio de cada edificio; sustento por trabajador de la cuadrilla; rendimiento y trabajadores de la extracción por terreno (hito 3)
 - [ ] Tributo en especie de materiales: velocidad de transporte (km de llano por veintena de retraso), costo de transporte por unidad y distancia, y el agravio extra de un señorío (hito 3)
 - [ ] Beneficio de los templos: capacidad de fieles y sacerdotes por templo, `ALCANCE_TEMPLO_LOCAL`, `ALCANCE_CENTRO_CEREMONIAL` y su caída con la distancia, qué yácatas son centros ceremoniales, la proporción de sacerdotes por asentamiento y qué tradiciones comparten templos, con fuentes (*Relación de Michoacán*, Pollard) (hito 3)
-- [ ] Si el estrato `sacerdote` mueve el poder del grupo de poder `sacerdocio` (con la política interna)
+- [x] Si el estrato `sacerdote` mueve el poder del grupo de poder `sacerdocio` (con la política interna). Decidido con *Los procesos de una tecnología*: sí, y de forma general. El tamaño de los estratos de cada eje es una fuente del poder de su grupo, con un modificador «estrato» (T35)
 - [ ] Conocimientos del prototipo (cantería, arquitectura ceremonial, metalurgia…), sus bases por facción y la escala de "aprender haciendo" (hito 3)
 - [ ] Qué pasa con un edificio en una celda que cambia de dueño: sigue siendo de su constructor, pasa a quien la controla o se daña en el saqueo (hito 4)
 - [ ] `P_max`, `k` y recompensas de la alianza (hito 5)

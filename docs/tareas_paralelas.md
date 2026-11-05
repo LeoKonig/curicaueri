@@ -64,15 +64,19 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 | 7 | T24 Medidas reales y cifras de referencia (hecha en `claude/medidas-reales`) | `datos/terrenos.json`, `datos/bienes_1475.json`, `datos/facciones/tutorial_1475.json`; `reglas`: `Produccion`, `Constantes`; `motor`: `Moneda` (rangos); `cliente/` (unidades) | T17 | 3 |
 | 7 | T25 Subsistencia: cobertura, reserva y tributo en especie (hecha en `claude/subsistencia`) | `reglas`: `Produccion`, `Sistemas`, `Propios`, `Constantes`, sistema nuevo de subsistencia; `datos/guion_1475.json` | T24, T17 | 3 |
 
-**Ronda 8: la dieta y la milpa** (V5, *La dieta: alimentos, gustos y lujos* y *La milpa, la chinampa y los sistemas de producción*). T25 alimenta solo con maíz; esta ronda da a la gente una dieta con grupos y topes (nadie vive de cacao ni de chile), hace de la milpa y la chinampa sistemas de producción, abastece la capital desde las trojes como en las fuentes, y da a los gustos y lujos un papel en el agravio y la lealtad. Va antes de T26 (influencia), que leerá la lealtad y la población que esta ronda mueve. T27 va primero; T28 y T30 pueden ir en paralelo después de ella; T29 después de T28 (recalibra con los sistemas); T31 después de T28.
+**Ronda 8: la dieta, los procesos y los oficios** (V5, *La dieta: alimentos, gustos y lujos*, *Recursos, bienes con usos y procesos* y *Los procesos de una tecnología: bienes y gente*). T25 alimenta solo con maíz; esta ronda da a la gente una dieta con grupos y topes (nadie vive de cacao ni de chile), hace de la milpa, la chinampa y las cadenas (tejido, cobre) procesos de las tecnologías, forma gente de oficio que cambia la sociedad, abastece la capital desde las trojes como en las fuentes, y da a los gustos y lujos un papel en el agravio y la lealtad. Va antes de T26 (influencia), que leerá la lealtad y la población que esta ronda mueve. T27 va primero; T28 y T30 pueden ir en paralelo después de ella; T29 después de T28 (recalibra con los sistemas); T31 después de T28.
 
 | Ronda | Tarea | Área (archivos principales) | Depende de | Hito |
 | --- | --- | --- | --- | --- |
 | 8 | T27 La dieta: alimentos por grupo con tope, en toneladas de maíz equivalente (hecha en `claude/dieta`) | `reglas`: `Subsistencia`, `Produccion`, `Constantes`; `datos/dieta.json`, `datos/bienes_1475.json` | T25 | 3 |
-| 8 | T28 Sistemas de producción: la milpa y los demás | `motor`: `Terrenos`; `reglas`: `Produccion`; `datos/sistemas.json`, `datos/terrenos.json` | T27 | 3 |
+| 8 | T28 Procesos de bienes en las tecnologías: la milpa y los demás (hecha en `claude/procesos-de-bienes`) | `reglas`: `Produccion`, `Edificios` (conocimientos); `datos/edificios.json`, `datos/terrenos.json` | T27 | 3 |
 | 8 | T29 Abasto de la capital desde las trojes | `reglas`: `Subsistencia`, `Comando`, `Propios`; `datos/guion_1475.json`; recalibración de `datos/terrenos.json` | T28 | 3 |
 | 8 | T30 Gustos y lujos: necesidades por estrato | `reglas`: `Subsistencia`, `Sistemas`, `Grupos`; `datos/necesidades.json` | T27 | 3 |
-| 8 | T31 La chinampa: tecnología y obra en celda | `datos/sistemas.json`, `datos/edificios.json`, `datos/facciones/`; `reglas`: `Edificios` | T28 | 3 / 5 |
+| 8 | T31 La chinampa: tecnología y obra en celda | `datos/edificios.json`, `datos/facciones/`; `reglas`: `Edificios` | T28 | 3 / 5 |
+| 8 | T32 Cadena textil: algodón, hilo y mantas, con el trabajo de la casa | `reglas`: `Produccion`; `datos/edificios.json`, `datos/bienes_1475.json`, `datos/terrenos.json` | T28 | 3 |
+| 8 | T33 Cadena del cobre: mineral, fundición y labrado, con leña y herramientas | `reglas`: `Produccion`, `Edificios`; `datos/edificios.json` | T28 | 3 |
+| 8 | T34 Recursos que se agotan y se regeneran: bosque, pesquería, yacimiento | `reglas`: `Produccion`; `motor`: `Terrenos`; `datos/terrenos.json` | T28 | 3 / 6a |
+| 8 | T35 Procesos de gente: oficios, formación y desplazamiento | `reglas`: sistema nuevo de traslados (paso 11), `Edificios`, `Grupos`, `Fusion`; `datos/edificios.json`, `datos/facciones/` | T28, T13 | 3 / 6 |
 | 8 | T26 Influencia: fuerza por población y lealtad, y afinidad de la gente | `reglas`: derivado del mapa (paso 16), `Estado`, `Formulas`; `datos/identidades.json`; `motor`: `Influencia` (solo la publicación con umbral) | T27 (orden, no dependencia de código); T12, T13 | 4 / 6 |
 
 ---
@@ -848,33 +852,39 @@ guardar y cargar. Mide con --escala 7500x20: cinco grupos por altépetl. Rama:
 claude/dieta.
 ```
 
-## T28. Sistemas de producción: la milpa y los demás (motor y reglas, hito 3; después de T27)
+## T28. Procesos de bienes en las tecnologías: la milpa y los demás (reglas, hito 3; después de T27) — hecha
+
+Hecha con un cambio: el orden de las celdas tiene dos pasos, primero la comida y después el valor (V5, *Qué cambia en la producción*). Por valor solo, el tutorial dejaba la milpa por la obsidiana. La pesca, el monte, el solar de frutas y animales, la huerta de tierra caliente, el magueyal y las salinas quedan como datos para cuando haya terrenos y bienes que los pidan; el lago y la sierra siguen rindiendo por su terreno.
 
 ```
-Tarea: que la celda no rinda por su terreno sino por el sistema que se usa en ella: la
-milpa (maíz, frijol, calabaza, chile, quelites), la pesca, el monte, el solar, la huerta de
-tierra caliente, el magueyal y las salinas.
+Tarea: que la celda no rinda por su terreno sino por el proceso de una tecnología que se usa
+en ella: la milpa (maíz, frijol, calabaza, chile, quelites), la pesca, el monte, el solar,
+la huerta de tierra caliente, el magueyal y las salinas. No hay archivo de recetas: cada
+proceso es parte de una tecnología.
 
-Lee: V5 *La milpa, la chinampa y los sistemas de producción*; documento funcional, sección
-12 (*Sistemas de producción* y *Producción: tierra y brazos*) y la ley «sistema neutro».
+Lee: V5 *Recursos, bienes con usos y procesos* y *Los procesos de una tecnología*;
+documento funcional, sección 12 (*Recursos, bienes y procesos* y *Producción: tierra y
+brazos*), secciones 14e y 14h (insumos con sustitutos), y las leyes «proceso neutro»,
+«masa de las cadenas» y «recetas sin ciclos».
 
 Haz:
-1. `datos/sistemas.json`, cargado y validado en `Motor.Terrenos` (terrenos, conocimiento,
-   obra, trabajadores, rendimiento por trabajador y año por bien). Un terreno con
-   `rendimiento_por_trabajador` sigue igual.
-2. Cada celda se trabaja con el sistema posible que más valor da por trabajador; el orden de
-   las celdas compara valor por trabajador, no toneladas. Escribe el desglose: qué sistema
-   y por qué.
+1. Los procesos de bienes dentro de cada conocimiento de `datos/edificios.json` (lugar,
+   terrenos, obra, estrato cuyo trabajo usa, trabajadores, insumos como los `Insumo` de la
+   sección 14h, productos por trabajador y año, ventana). Valida al cargar, con todos los
+   errores; un terreno con `rendimiento_por_trabajador` sigue igual.
+2. Cada celda se trabaja con el proceso posible que más valor da por trabajador; el orden de
+   las celdas compara valor por trabajador, no toneladas. El desglose dice qué proceso y por
+   qué. Con dominio a medias, rinde a medias; bajo el umbral, no existe.
 3. El solar: rendimiento por persona del altépetl, sin celdas.
-4. Los bienes nuevos del tutorial, con clase, energía, valor y merma de relleno marcados
-   «por verificar», y su ventana de cosecha.
-5. La milpa como conocimiento con base en el escenario (dominio pleno en las facciones
-   mesoamericanas); un dominio a medias rinde a medias.
+4. Los bienes nuevos del tutorial en el catálogo y en `datos/dieta.json` (con su grupo y su
+   energía), con valor y merma de relleno «por verificar», y su ventana de cosecha.
+5. La milpa como tecnología con dominio pleno en las facciones mesoamericanas del escenario.
+   Con la milpa, `--dieta` entra a las opciones del juego completo.
 
-Pruebas: la ley «sistema neutro»; la milpa da sus cinco bienes en sus ventanas; con más
-valor, la celda cambia de sistema; el solar crece con la gente; guardar y cargar. Juega el
-tutorial y anota la cobertura media y los años de hambre. Mide con --escala 7500x20. Rama:
-claude/sistemas-produccion.
+Pruebas: las leyes; la milpa da sus cinco bienes en sus ventanas; con más valor, la celda
+cambia de proceso; perder dominio baja el rendimiento; el solar crece con la gente; guardar
+y cargar. Juega el tutorial con la dieta y anota la cobertura media y los años de hambre.
+Mide con --escala 7500x20. Rama: claude/procesos-de-bienes.
 ```
 
 ## T29. Abasto de la capital desde las trojes (reglas, hito 3; después de T28)
@@ -924,14 +934,14 @@ claude/gustos-y-lujos.
 
 ```
 Tarea: la chinampa como obra en celda de lago somero o ciénega, con su oficio, que habilita
-el sistema de producción «chinampa».
+el proceso «chinampa» de la tecnología del mismo nombre.
 
-Lee: V5 *La milpa, la chinampa y los sistemas de producción*, *Tecnología y educación* y
+Lee: V5 *Recursos, bienes con usos y procesos*, *Tecnología y educación* y
 *Las obras* (obras en celda, oficio).
 
 Haz:
 1. El edificio «chinampas» en `datos/edificios.json` (ámbito de celda, materiales, trabajo,
-   oficio `chinampa`) y el sistema «chinampa» que pide esa obra.
+   oficio `chinampa`) y el proceso «chinampa» de esa tecnología, que pide esa obra.
 2. Bases del conocimiento por facción en los escenarios: alta entre mexicas, xochimilcas y
    chalcas; baja o nula entre los purépechas (por verificar: la ciénega de Zacapu y la
    ribera de Pátzcuaro).
@@ -939,6 +949,101 @@ Haz:
 
 Pruebas: sin el oficio no se empieza; con la obra, la celda pasa a la chinampa y rinde más
 por hectárea; bajo control enemigo no rinde. Rama: claude/chinampa.
+```
+
+## T32. Cadena textil: algodón, hilo y mantas (reglas, hito 3; después de T28)
+
+```
+Tarea: que las mantas salgan del algodón hilado y tejido en las casas, no del llano.
+
+Lee: V5 *Recursos, bienes con usos y procesos* (las cadenas y el trabajo de la casa);
+documento funcional, sección 12 (*Procesos de transformación*) y la ley «masa de las
+cadenas».
+
+Haz:
+1. El trabajo de la casa: una fracción de cada pop (`FRACCION_TRABAJO_CASA`, relleno, por
+   verificar) que no le quita gente a la milpa.
+2. La tecnología `tejido` con sus procesos de hilado y tejido (lugar: la casa); el algodón
+   de la huerta de tierra caliente y el ixtle del magueyal como insumos, el segundo como
+   sustituto del primero con su calidad.
+3. Los procesos de transformación por facción y periodo, en orden de valor agregado por
+   trabajador, hasta donde alcancen el trabajo y los insumos.
+4. Quita las mantas del rendimiento del llano en `datos/terrenos.json` y recalibra.
+
+Pruebas: la ley; sin algodón ni ixtle no hay mantas; con ixtle hay menos (su calidad); el
+tributo en mantas de un altépetl sin algodón depende del algodón que le llega. Mide con
+--escala 7500x20. Rama: claude/cadena-textil.
+```
+
+## T33. Cadena del cobre: mineral, fundición y labrado (reglas, hito 3; después de T28)
+
+```
+Tarea: el cobre purépecha como cadena: mineral de la sierra, fundición con leña y oficio,
+labrado en hachas, cascabeles y adornos; las hachas como herramienta.
+
+Lee: V5 *Recursos, bienes con usos y procesos* (las cadenas y las herramientas); *Las
+obras* (oficio); documento funcional, sección 12 (herramientas).
+
+Haz:
+1. La tecnología `metalurgia` con sus procesos: minería (en la sierra con yacimiento),
+   fundición (obra «fundición», mineral y leña, carbón como sustituto) y labrado (obra
+   «taller»).
+2. Las hachas como herramienta de la tala y del monte: suben su rendimiento y se gastan.
+3. Base del conocimiento por facción en el escenario (alta entre los purépechas; por
+   verificar con Hosler, 1994, y Pollard).
+
+Pruebas: sin leña no hay fundición; sin oficio no se empieza; con hachas, el monte rinde
+más, con su fuente en el desglose; la herramienta se gasta. Rama: claude/cadena-cobre.
+```
+
+## T34. Recursos que se agotan y se regeneran (reglas, hitos 3 y 6a; después de T28)
+
+```
+Tarea: que el bosque vuelva a crecer, que la mina se acabe y que el lago se sobrepesque.
+
+Lee: V5 *Recursos, bienes con usos y procesos* (recursos de la celda) y *Erosión*;
+documento funcional, sección 12 (*Recursos que se agotan*) y la ley «recurso acotado».
+
+Haz:
+1. El recurso de la celda como magnitud, con su capacidad, su regeneración logística y lo
+   extraído por los procesos de la celda; la celda rinde en proporción a lo que queda.
+2. Datos por terreno (regeneración, capacidad, recurso pleno), relleno «por verificar».
+3. Solo se escriben las celdas trabajadas; las demás quedan en su capacidad.
+4. Un hecho cuando un recurso baja de un umbral, para la crónica y el guion.
+
+Pruebas: la ley; sin extracción vuelve a su capacidad; con extracción alta se agota y la
+producción baja; guardar y cargar. Mide con --escala 7500x20. Rama: claude/recursos.
+```
+
+## T35. Procesos de gente: oficios, formación y desplazamiento (reglas, hitos 3 y 6; después de T28)
+
+```
+Tarea: que una tecnología forme gente (arqueros, canteros, mineros, fundidores, escribanos,
+mercaderes) y que esa gente cambie la sociedad: unos estratos crecen, otros se vacían, y el
+poder de los grupos se mueve con ellos.
+
+Lee: V5 *Los procesos de una tecnología: bienes y gente*, *Los grupos* y el párrafo de
+demografía con un solo escritor de `pop.tamano`; documento funcional, sección 12
+(*Procesos de gente*), sección 14d y las leyes «gente conservada» y «formación acotada».
+
+Haz:
+1. Los oficios como estratos (`datos/` del escenario): para qué sirve cada uno (trabajo de
+   un proceso, leva, aporte por persona con tope) y su demanda.
+2. Los procesos de gente dentro de las tecnologías: candidatos de un estrato de origen,
+   plazas de un edificio, maestros del oficio, sustento y años de formación.
+3. El sistema que aplica los traslados pendientes entre pops en el paso 11: es la semilla
+   del sistema de demografía y el único escritor de `pop.tamano`; `ajustar_poblacion`
+   entra por él cuando llegue.
+4. El desplazamiento: lo que pasa de la demanda vuelve a la gente común con el aporte
+   «oficio perdido» al agravio.
+5. Cada tecnología declara sus ejes; el tamaño de los estratos de un eje es una fuente del
+   poder de su grupo, con su modificador en el desglose.
+6. `OFICIO_MINIMO`: debajo de él, un oficio no forma pop propio.
+
+Pruebas: las leyes; sin plazas o sin maestros nadie se forma; formar arqueros achica a la
+gente común y sube la leva; un oficio sin demanda se vacía poco a poco; el poder del grupo
+sigue a sus estratos; guardar y cargar. Mide con --escala 7500x20 cuántos pops nuevos hay.
+Rama: claude/oficios.
 ```
 
 ## T26. Influencia: fuerza por población y lealtad, y afinidad de la gente (reglas, hitos 4 y 6; después de la ronda 8)

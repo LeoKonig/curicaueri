@@ -38,6 +38,9 @@ module Reglas.Produccion
   , cierraVentana
   , derivarCeldas
   , derivarTerritorio
+  , ConProcesos (..)
+  , derivarTerritorioCon
+  , bienesConProcesos
   , celdaTrabajo
   , ordenarCeldas
   , trabajadoresDe
@@ -63,7 +66,7 @@ import qualified Data.Text as T
 import Motor.Base
 import Motor.Estado
 import Motor.Magnitudes
-import Motor.Mapa (Mapa (..), Celda (..), Terreno)
+import Motor.Mapa (Mapa (..), Celda (..), Terreno (..))
 import Motor.Azar (uniforme)
 import Motor.Calendario (CalendarioInterno (..), CalendarioVisible, Fecha, InfoPeriodo (..), diaDelAnioDe, diaDelAnioVisible, infoPeriodo)
 import Motor.Carga (CategoriaError (..), ErrorCarga (..), Validacion, falla)
@@ -75,6 +78,7 @@ import Reglas.Base
 import Reglas.Constantes
 import Reglas.Dieta (Dieta (..), GrupoDieta (..), grupoDe, magCosechadoDe)
 import Reglas.Estado
+import Reglas.Procesos (LugarProceso (..), Proceso (..), bienesDeProcesos, dominioEn, elegirCeldas, opcionesDeCelda)
 
 -- | Los bienes que el territorio puede producir: los que aparece en el
 -- rendimiento de algún terreno, en orden alfabético.
@@ -84,14 +88,14 @@ bienesDe t = Map.keys (Map.unions (map dtRendimiento (Map.elems t)))
 -- | Cada bien de la economía (@datos/bienes_<escenario>.json@) tiene que ser
 -- uno que produzca el territorio: el precio se lee de sus existencias y su
 -- producción, y un bien con otro nombre («manta») tendría siempre cero y un
--- precio fijo sin que nadie lo note. Acumula un error por bien. Sin tabla de
--- terrenos no hay producción y no se comprueba nada.
-validarBienesDelTerritorio :: Text -> Map Terreno DefTerreno -> Economia -> Validacion ()
-validarBienesDelTerritorio archivo tabla ec
-  | Map.null tabla = pure ()
+-- precio fijo sin que nadie lo note. Acumula un error por bien. Los bienes
+-- producidos son los de los terrenos y los de los procesos ('bienesConProcesos');
+-- sin ninguno no hay producción y no se comprueba nada.
+validarBienesDelTerritorio :: Text -> [Text] -> Economia -> Validacion ()
+validarBienesDelTerritorio archivo producidos ec
+  | null producidos = pure ()
   | otherwise = () <$ traverse falta [ b | b <- Map.keys (ecoBienes ec), b `notElem` producidos ]
   where
-    producidos = bienesDe tabla
     falta b = falla (ErrorCarga ErrorReferencia archivo ("bienes." <> b)
                        ("el territorio no produce «" <> b <> "»; produce " <> T.intercalate ", " producidos))
 
@@ -221,7 +225,7 @@ cargarCosechas archivo producidos v = case A.parseEither leer v of
 celdaTrabajo :: Int -> DefTerreno -> Maybe CeldaTrabajo
 celdaTrabajo c d
   | Map.null (dtRendimiento d) || dtTrabajadores d <= Fijo 0 = Nothing
-  | otherwise = Just (CeldaTrabajo c (dtTrabajadores d) (dtRendimiento d))
+  | otherwise = Just (CeldaTrabajo c (dtTrabajadores d) (dtRendimiento d) Nothing)
 
 -- | Las celdas de mejor a peor por y/ℓ, con empate por id. La comparación se
 -- hace en enteros, multiplicando en cruz, para no redondear el cociente.
@@ -243,18 +247,66 @@ derivarCeldas c tabla mapa p = fst (derivarTerritorio c tabla mapa (grafoDe mapa
 -- dé material, nada (y no se recorre el mapa).
 derivarTerritorio :: Constantes -> Map Terreno DefTerreno -> Mapa -> Grafo -> Purepecha
                   -> (Map AltId [CeldaTrabajo], Map AltId (Map Text [CeldaTrabajo]))
-derivarTerritorio c tabla mapa gr p
-  | null (bienesDe tabla) && all (Map.null . dtMateriales) (Map.elems tabla) = (Map.empty, Map.empty)
-  | otherwise =
-      let fuentes = [ (AsentId i, CeldaId (altCelda a)) | a <- Map.elems (ppAltepetl p), let AltId i = altId a ]
-          asig = asignarCeldas (cRadioProduccion c) gr fuentes
-          defDe cel = IntMap.lookup cel (mapaCeldas mapa) >>= \ce -> Map.lookup (celdaTerreno ce) tabla
-          asignadas = [ (AltId a, cel, d) | (cel, AsentId a) <- IntMap.toList asig, Just d <- [defDe cel] ]
+derivarTerritorio = derivarTerritorioCon Nothing
+
+-- | Los bienes que da el territorio: los de los terrenos y los de los
+-- procesos de las tecnologías (T28), en orden alfabético.
+bienesConProcesos :: Map Terreno DefTerreno -> [Proceso] -> [Text]
+bienesConProcesos tabla procs = Map.keys (Map.fromList [ (b, ()) | b <- bienesDe tabla ++ bienesDeProcesos procs ])
+
+-- | Lo que necesita la derivación para trabajar las celdas con los procesos
+-- de las tecnologías (T28): los procesos, lo que vale cada bien en energía (t
+-- ME, de la dieta) y en valor (del catálogo; sin catálogo, 1 por unidad), la
+-- necesidad por persona y año, y el dominio de cada facción con las bases.
+data ConProcesos = ConProcesos
+  { cpProcesos  :: [Proceso]
+  , cpEnergia   :: Map Text Fijo
+  , cpValor     :: Map Text Fijo
+  , cpNecesidad :: Fijo
+  , cpDominio   :: FaccionId -> Text -> Fijo
+  }
+
+-- | 'derivarTerritorio' con los procesos de las tecnologías. Sin procesos de
+-- celda, el orden de las celdas es el de antes (por toneladas por
+-- trabajador): la ley «proceso neutro». Con ellos, cada altépetl elige la
+-- manera de trabajar cada celda con 'elegirCeldas': primero la comida, hasta
+-- lo que come su gente más el tributo en especie, y después el valor.
+derivarTerritorioCon :: Maybe ConProcesos -> Constantes -> Map Terreno DefTerreno -> Mapa -> Grafo -> Purepecha
+                     -> (Map AltId [CeldaTrabajo], Map AltId (Map Text [CeldaTrabajo]))
+derivarTerritorioCon mcp c tabla mapa gr p
+  | null (bienesDe tabla) && null deCelda && all (Map.null . dtMateriales) (Map.elems tabla) = (Map.empty, Map.empty)
+  | not (null deCelda), Just cp <- mcp =
+      let (_, mats) = sinProcesos
+          ws = trabajadoresDe c p
+          personas = Map.fromListWith (+) [ (popAltepetl pop, popTamano pop) | pop <- Map.elems (ppPops p) ]
           porAlt = Map.fromListWith (++)
-                     [ (a, [ct]) | (a, cel, d) <- asignadas, Just ct <- [celdaTrabajo cel d] ]
+                     [ (a, [(cel, t, d)]) | (a, cel, t, d) <- asignadas ]
+          deAltepetl a celdas =
+            let alt = Map.lookup a (ppAltepetl p)
+                f = maybe (FaccionId 0) altFaccion alt
+                tau = maybe (Fijo 0) (\fa -> cTributoEspecie c .*. fi (tasaTributo (facTasas fa))) (alt >>= \x -> Map.lookup (altFaccion x) (ppFacciones p))
+                need = fi (Map.findWithDefault 0 a personas) .*. cpNecesidad cp
+                objetivo = (need ./. (uno .-. tau)) ./. cTicksPorAnio c
+                opciones = [ opcionesDeCelda (cTicksPorAnio c) (cpDominio cp f) deCelda cel t (celdaTrabajo cel d)
+                           | (cel, Terreno t, d) <- celdas ]
+            in elegirCeldas (cpEnergia cp) (cpValor cp) objetivo (Map.findWithDefault 0 a ws) [ os | os <- opciones, not (null os) ]
+      in (Map.mapWithKey deAltepetl porAlt, mats)
+  | otherwise = sinProcesos
+  where
+    deCelda = [ pr | Just cp <- [mcp], pr <- cpProcesos cp, prLugar pr == EnCelda ]
+    fuentes = [ (AsentId i, CeldaId (altCelda a)) | a <- Map.elems (ppAltepetl p), let AltId i = altId a ]
+    asig = asignarCeldas (cRadioProduccion c) gr fuentes
+    defDe cel = IntMap.lookup cel (mapaCeldas mapa) >>= \ce -> (,) (celdaTerreno ce) <$> Map.lookup (celdaTerreno ce) tabla
+    asignadas = [ (AltId a, cel, t, d) | (cel, AsentId a) <- IntMap.toList asig, Just (t, d) <- [defDe cel] ]
+    sinProcesos = derivarSinProcesos asignadas
+
+derivarSinProcesos :: [(AltId, Int, Terreno, DefTerreno)] -> (Map AltId [CeldaTrabajo], Map AltId (Map Text [CeldaTrabajo]))
+derivarSinProcesos asignadas =
+      let porAlt = Map.fromListWith (++)
+                     [ (a, [ct]) | (a, cel, _, d) <- asignadas, Just ct <- [celdaTrabajo cel d] ]
           mats = Map.fromListWith (Map.unionWith (++))
-                   [ (a, Map.singleton g [CeldaTrabajo cel (mtTrabajadores mt) (Map.singleton g (mtRendimiento mt))])
-                   | (a, cel, d) <- asignadas, (g, mt) <- Map.toList (dtMateriales d) ]
+                   [ (a, Map.singleton g [CeldaTrabajo cel (mtTrabajadores mt) (Map.singleton g (mtRendimiento mt)) Nothing])
+                   | (a, cel, _, d) <- asignadas, (g, mt) <- Map.toList (dtMateriales d) ]
       in (Map.map ordenarCeldas porAlt, Map.map (Map.map ordenarCeldas) mats)
 
 -- | Trabajadores de cada altépetl (sección 12):
@@ -332,8 +384,8 @@ totalProduccion = foldl' (.+.) (Fijo 0) . Map.elems
 -- Un bien con ventana de cosecha ('Cosechas') no se produce parejo: cada
 -- periodo entra 'factorCosecha' veces lo de una veintena pareja, y fuera de
 -- la ventana nada. Lo cosechado en el año es lo mismo.
-produccion :: Constantes -> Economia -> Dieta -> Cosechas -> [Text] -> Sistema Purepecha
-produccion c ec dieta temporadas bienes = Sistema
+produccion :: Constantes -> Economia -> Dieta -> [Proceso] -> Cosechas -> [Text] -> Sistema Purepecha
+produccion c ec dieta procesos temporadas bienes = Sistema
   { sisNombre   = NombreSistema "produccion"
   , sisCadencia = Periodo
   , sisLee      = Set.singleton magProduccionAlt
@@ -350,7 +402,18 @@ produccion c ec dieta temporadas bienes = Sistema
           deAlt alt cs = Map.map (.*. factor alt) (produccionCeldas (Map.findWithDefault 0 alt ws) cs)
           -- Lo producido por cada altépetl de una facción activa, calculado
           -- una sola vez, y por cada facción: la suma de sus altépetl.
-          porAltepetl = [ (f, alt, deAlt alt cs) | (alt, cs) <- Map.toList celdas
+          -- Lo de casa (el solar, el tejido en casa): por persona del
+          -- altépetl, con el dominio de su facción, sin ocupar celdas (T28).
+          enCasa = [ pr | pr <- procesos, prLugar pr == EnCasa ]
+          personas = if null enCasa then Map.empty
+                     else Map.fromListWith (+) [ (popAltepetl pop, popTamano pop) | pop <- Map.elems (ppPops p) ]
+          deCasa f alt = Map.unionsWith (.+.)
+            [ Map.map (\r -> fi n .*. r ./. cTicksPorAnio c .*. (d ./. fi 100)) (prProductos pr)
+            | pr <- enCasa, let n = Map.findWithDefault 0 alt personas, n > 0
+            , let d = dominioEn vig (estadoTick est) (comunMagnitudes com) f (prTecnologia pr), d >= prDominioMinimo pr, d > Fijo 0 ]
+          altsConAlgo = if null enCasa then Map.keys celdas else Map.keys (ppAltepetl p)
+          porAltepetl = [ (f, alt, Map.unionWith (.+.) (deAlt alt (Map.findWithDefault [] alt celdas)) (deCasa f alt))
+                        | alt <- altsConAlgo
                         , let f = facDeAlt p alt, Just fa <- [Map.lookup f (ppFacciones p)], facEstado fa == Activa ]
           porFac = Map.fromListWith (Map.unionWith (.+.)) [ (f, m) | (f, _, m) <- porAltepetl ]
           -- Lo producido por cada altépetl de cada facción, para repartir los

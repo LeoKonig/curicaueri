@@ -15,7 +15,7 @@ import Motor.Estado
 import Motor.Hechos
 import Motor.Juego
 import Motor.Magnitudes
-import Motor.Moneda (Economia (..), economiaVacia, designarMoneda, magPrecioMoneda, magNivelPrecios, magInflacion)
+import Motor.Moneda (Bien (..), Economia (..), economiaVacia, designarMoneda, magPrecioMoneda, magNivelPrecios, magInflacion)
 import Motor.Vista
 
 import Reglas.Base
@@ -30,7 +30,8 @@ import Reglas.Estado
 import Reglas.Grupos
 import Reglas.Sistemas
 import Reglas.Subsistencia (subsistencia)
-import Reglas.Dieta (Dieta, catalogoDieta, dietaPorDefecto)
+import Reglas.Dieta (Dieta (..), GrupoDieta (..), catalogoDieta, dietaPorDefecto)
+import Reglas.Procesos (dominioBase)
 import Reglas.Facciones (facciones)
 import Reglas.Fusion (fusion)
 import Reglas.Propios (condicionesPropias, efectosPropios)
@@ -297,9 +298,20 @@ type JuegoPurepecha = Juego Purepecha Comando
 -- | El derivado del juego (paso 16). El grafo compacto viene del entorno,
 -- construido una vez por partida, y lo comparten la asignación de celdas y la
 -- asistencia a los templos.
-derivarPurepecha :: Constantes -> DatosReglas -> Grafo -> Purepecha -> DerivadoPurepecha
-derivarPurepecha c dr gr p =
-  let (celdas, mats) = derivarTerritorio c (drTerrenos dr) (grafoMapa gr) gr p
+derivarPurepecha :: Constantes -> DatosReglas -> Grafo -> Persistente Purepecha -> DerivadoPurepecha
+derivarPurepecha c dr gr per =
+  let p = persistenteJuego per
+      alm = comunMagnitudes (persistenteComun per)
+      dieta = dietaDe c dr
+      ec = drEconomia dr
+      procs = procesosDe (drEdificios dr)
+      -- Lo que vale cada bien: en energía, de la dieta; en valor, del
+      -- catálogo (sin catálogo, una unidad cada uno: toneladas, como antes).
+      energia = Map.unions [ gdAlimentos g | g <- dtGrupos dieta ]
+      valor | Map.null (ecoBienes ec) = Map.fromList [ (b, uno) | b <- bienesConProcesos (drTerrenos dr) procs ]
+            | otherwise = Map.map bnValor (ecoBienes ec)
+      cp = ConProcesos procs energia valor (dtNecesidad dieta) (dominioBase alm)
+      (celdas, mats) = derivarTerritorioCon (if null procs then Nothing else Just cp) c (drTerrenos dr) (grafoMapa gr) gr p
       (loc, cen) = derivarFieles c (drEdificios dr) gr p
   in DerivadoPurepecha celdas mats loc cen (derivarDistancias c gr p)
 
@@ -324,14 +336,14 @@ juegoDatos = juegoDatosEn visible1475 inicio1475
 -- | El juego con sus datos de reglas en el calendario de un escenario: la
 -- cosecha por estación sabe en qué día del año cae cada tick.
 juegoDatosEn :: CalendarioVisible -> Fecha -> Constantes -> DatosReglas -> Juego Purepecha Comando
-juegoDatosEn visible inicio c dr = let bienes = bienesDe (drTerrenos dr); dieta = dietaDe c dr in Juego
+juegoDatosEn visible inicio c dr = let bienes = bienesConProcesos (drTerrenos dr) (procesosDe (drEdificios dr)); dieta = dietaDe c dr in Juego
   { juegoSistemas    = [ facciones (drGrupos dr) (drEconomia dr), construccion c (drEconomia dr) (drEdificios dr)
                        , azarCosecha c (Cosechas (drCosechas dr) visible inicio)
-                       , produccion c (drEconomia dr) dieta (Cosechas (drCosechas dr) visible inicio) bienes
+                       , produccion c (drEconomia dr) dieta (procesosDe (drEdificios dr)) (Cosechas (drCosechas dr) visible inicio) bienes
                        , subsistencia c (drEconomia dr) dieta (Cosechas (drCosechas dr) visible inicio)
                        , hacienda c (drEconomia dr), evolucionAgravio c, fusion c ]
   , juegoAplicarCmd  = aplicarComando c dr
-  , juegoDerivar     = \g _ p -> derivarPurepecha c dr g (persistenteJuego p)
+  , juegoDerivar     = \g _ p -> derivarPurepecha c dr g p
   , juegoProyectar   = proyectar
   , juegoProyectarDe = proyectarDe
   , juegoSucias      = sucias

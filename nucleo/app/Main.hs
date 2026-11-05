@@ -90,8 +90,9 @@ import Reglas.Constantes (constantesDefault)
 import Reglas.Escenario
 import Reglas.Estado (Purepecha, ppAltepetl, ppFacciones, ppPops, jugableDe)
 import Reglas.Facciones (conAgentesNulos)
-import Reglas.Edificios (cargarEdificios, conConocimientos, edificiosVacios, idsEdificios)
-import Reglas.Produccion (bienesDe, cargarCosechas, catalogoBienes, validarBienesDelTerritorio)
+import Reglas.Edificios (cargarEdificios, conConocimientos, edificiosVacios, idsEdificios, procesosDe)
+import Reglas.Produccion (bienesConProcesos, bienesDe, cargarCosechas, catalogoBienes, validarBienesDelTerritorio)
+import Reglas.Procesos (validarProcesosDelTerritorio)
 import Reglas.Dieta (Dieta (..), GrupoDieta (..), cargarDieta)
 import Motor.Terrenos (DefTerreno (..), cargarTerrenos, conCostoDeTerreno, validarTerrenosDelMapa)
 import Motor.Recorrido (grafoDe)
@@ -181,8 +182,8 @@ main = do
         Left err -> fail ("grupos ilegibles (" <> ruta <> "): " <> err)
         Right v -> validado (cargarGrupos (T.pack ruta) v)
   unless (null (grIds grupos)) $ registro ("grupos de poder: " <> T.intercalate ", " (grIds grupos))
-  (terrenos, cosechas) <- case opcion "--terrenos" "" of
-    "" -> pure (Map.empty, Map.empty)
+  (terrenos, terrenosJson) <- case opcion "--terrenos" "" of
+    "" -> pure (Map.empty, Nothing)
     ruta -> do
       bs <- BL.readFile ruta
       case A.eitherDecode bs of
@@ -190,10 +191,7 @@ main = do
         Right v -> do
           t <- validado (cargarTerrenos (T.pack ruta) v)
           validado (validarTerrenosDelMapa (T.pack ruta) t mapaHex)
-          cs <- validado (cargarCosechas (T.pack ruta) (bienesDe t) v)
-          pure (t, cs)
-  unless (Map.null terrenos) $ registro ("bienes del territorio: " <> T.intercalate ", " (bienesDe terrenos))
-  unless (Map.null cosechas) $ registro ("con cosecha por estación: " <> T.intercalate ", " (Map.keys cosechas))
+          pure (t, Just v)
   -- Los edificios van después de los terrenos: sus modificadores pueden
   -- apuntar a magnitudes de los bienes (la troje baja la merma del maíz).
   edificios <- case opcion "--edificios" "" of
@@ -204,6 +202,16 @@ main = do
         Left err -> fail ("edificios ilegibles (" <> ruta <> "): " <> err)
         Right v -> validado (cargarEdificios (T.pack ruta) (Map.union RJ.catalogoMag (catalogoBienes (bienesDe terrenos))) v)
   unless (null (idsEdificios edificios)) $ registro ("edificios: " <> T.intercalate ", " (idsEdificios edificios))
+  -- Los bienes del territorio son los de los terrenos y los de los procesos
+  -- de las tecnologías (T28); las ventanas de cosecha pueden ser de unos y
+  -- de otros, así que se leen después de los edificios.
+  let procesos = procesosDe edificios
+      producidos = bienesConProcesos terrenos procesos
+      rutaTerrenos = T.pack (opcion "--terrenos" "")
+  validado (validarProcesosDelTerritorio (T.pack (opcion "--edificios" "")) [ t | Terreno t <- Map.keys terrenos ] procesos)
+  cosechas <- maybe (pure Map.empty) (validado . cargarCosechas rutaTerrenos producidos) terrenosJson
+  unless (null producidos) $ registro ("bienes del territorio: " <> T.intercalate ", " producidos)
+  unless (Map.null cosechas) $ registro ("con cosecha por estación: " <> T.intercalate ", " (Map.keys cosechas))
   -- --bienes datos/bienes_1475.json: qué bienes tienen precio y cuáles puede
   -- designar una facción como moneda (V5, *La moneda designada y la
   -- inflación*). Sin ella, nadie designa moneda y todo se cuenta en valor.
@@ -215,7 +223,7 @@ main = do
         Left err -> fail ("bienes ilegibles (" <> ruta <> "): " <> err)
         Right v -> do
           ec <- validado (cargarEconomia (T.pack ruta) v)
-          validado (validarBienesDelTerritorio (T.pack ruta) terrenos ec)
+          validado (validarBienesDelTerritorio (T.pack ruta) producidos ec)
           pure ec
   -- --dieta datos/dieta.json: los grupos de la dieta, con su tope de energía
   -- (V5, *La dieta*; T27). Sin ella, la gente come solo maíz, como en T25.
@@ -225,7 +233,7 @@ main = do
       bs <- BL.readFile ruta
       case A.eitherDecode bs of
         Left err -> fail ("dieta ilegible (" <> ruta <> "): " <> err)
-        Right v -> Just <$> validado (cargarDieta constantesDefault (T.pack ruta) (Map.keys (ecoBienes economia) ++ bienesDe terrenos) v)
+        Right v -> Just <$> validado (cargarDieta constantesDefault (T.pack ruta) (Map.keys (ecoBienes economia) ++ producidos) v)
   forM_ dieta $ \d -> registro ("dieta: " <> T.intercalate ", " [ gdId g | g <- dtGrupos d ])
   let designables = [ bnId b | b <- Map.elems (ecoBienes economia), bnDesignable b ]
   unless (null designables) $ registro ("pueden ser moneda: " <> T.intercalate ", " designables)

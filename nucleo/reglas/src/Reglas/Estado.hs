@@ -346,6 +346,7 @@ data CeldaTrabajo = CeldaTrabajo
   { ctCelda        :: Int
   , ctTrabajadores :: Fijo
   , ctRendimiento  :: Map Text Fijo
+  , ctProceso      :: Maybe Text     -- ^ el proceso de la tecnología con que se trabaja; 'Nothing', el del terreno (T28)
   } deriving (Eq, Show)
 
 -- | El derivado del juego (paso 16). Nunca se guarda: se recalcula desde el

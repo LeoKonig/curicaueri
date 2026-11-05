@@ -38,6 +38,7 @@ import Reglas.Grupos
 import Reglas.Edificios
 import Reglas.Facciones
 import Reglas.Produccion
+import Reglas.Procesos
 import Reglas.Sistemas (hacienda)
 import Reglas.Subsistencia (cierreAnio, coberturaEn, necesidadDe)
 import Reglas.Dieta
@@ -98,7 +99,7 @@ genCeldas = do
           k  <- choose (1, 3)
           ys <- vectorOf k (choose (0, 500000))
           let bs = take k ["maiz", "pescado", "sal"]
-          pure (CeldaTrabajo i (Fijo (l * 10000)) (Map.fromList (zip bs (map Fijo ys)))))
+          pure (CeldaTrabajo i (Fijo (l * 10000)) (Map.fromList (zip bs (map Fijo ys))) Nothing))
        [1 .. n]
 
 -- | @datos/grupos.json@ cargado, o la lista de errores.
@@ -568,7 +569,7 @@ main = do
         `shouldBe` ["altepetl", "material", "fuente", "cuadrilla"]
 
     it "oficio: datos/edificios.json declara los conocimientos y el dominio es el mínimo de codificado y tácito" $ do
-      map cnId (conocimientos eds) `shouldBe` ["arquitectura_ceremonial", "canteria"]
+      map cnId (conocimientos eds) `shouldBe` ["arquitectura_ceremonial", "canteria", "milpa", "tejido"]
       dominio e0 f1 "arquitectura_ceremonial" `shouldBe` fi 45
       dominio e0 f1 "canteria" `shouldBe` fi 55
       productividad e0 f1 (def "yacata") `shouldBe` Fijo 4500
@@ -860,11 +861,11 @@ main = do
         correrDias desde hasta e = foldl' (\st t -> fst (paso j ent (Semilla 1) (Tick t) [] st)) e [desde .. hasta]
         alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
         base m st = maybe (Fijo 0) almacenBase (Map.lookup ((entFac f1), m) (alm st))
-        llano = CeldaTrabajo 1 (fi 500) (Map.fromList [("maiz", fi 40), ("mantas", fi 4)])
-        lago  = CeldaTrabajo 2 (fi 400) (Map.fromList [("pescado", fi 20), ("sal", fi 3)])
+        llano = CeldaTrabajo 1 (fi 500) (Map.fromList [("maiz", fi 40), ("mantas", fi 4)]) Nothing
+        lago  = CeldaTrabajo 2 (fi 400) (Map.fromList [("pescado", fi 20), ("sal", fi 3)]) Nothing
 
-    it "los bienes del territorio son los seis de V5 y están en el catálogo del juego" $ do
-      bienesDe terrenosArchivo `shouldBe` ["cobre", "maiz", "mantas", "obsidiana", "pescado", "sal"]
+    it "los bienes de los terrenos son cinco de los seis de V5 (las mantas se tejen en casa, T28) y están en el catálogo del juego" $ do
+      bienesDe terrenosArchivo `shouldBe` ["cobre", "maiz", "obsidiana", "pescado", "sal"]
       all (`Map.member` juegoCatalogoMag j) (concat [ [magExistencias b, magProduccion b] | b <- bienesDe terrenosArchivo ])
         `shouldBe` True
 
@@ -948,6 +949,7 @@ main = do
   pruebasMalaCosecha terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
   pruebasSubsistencia terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
   pruebasDieta terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
+  pruebasProcesos terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
 
   describe "reglas: tablas de casos del hito 0a (prototipo HTML)" $ do
     tablas <- runIO (fmap (>>= parseEither parseTablas)
@@ -1308,7 +1310,8 @@ pruebasFacciones gruposArchivo = describe "reglas: varias facciones (T12, hito 4
 -- inflación*; documento funcional, sección 14g).
 pruebasMoneda :: Map.Map Terreno DefTerreno -> Economia -> Edificios -> BL.ByteString -> Spec
 pruebasMoneda terrenos eco eds dorado = describe "reglas: moneda en el juego real (T10, hito 3)" $ do
-  let mapa = conCostoDeTerreno terrenos (either (error . show) id (proveedorHexagonal datosMapa1475))
+  let producidos = bienesConProcesos terrenos (procesosDe eds)
+      mapa = conCostoDeTerreno terrenos (either (error . show) id (proveedorHexagonal datosMapa1475))
       ent  = (entornoSimple mapa) { entEconomia = eco }
       dr   = Reglas.Juego.datosVacios { Reglas.Juego.drTerrenos = terrenos, Reglas.Juego.drEdificios = eds
                                       , Reglas.Juego.drEconomia = eco }
@@ -1332,17 +1335,17 @@ pruebasMoneda terrenos eco eds dorado = describe "reglas: moneda en el juego rea
                        in st { estadoPersistente = p { persistenteComun = com { comunMagnitudes =
                                  fijarBase (entFac f1) magTesoro x (comunMagnitudes com) } } }
 
-  it "datos/bienes_1475.json: los seis bienes del territorio; mantas y cobre designables; el tesoro es nominal" $ do
-    Map.keys (ecoBienes eco) `shouldBe` bienesDe terrenos
+  it "datos/bienes_1475.json: los bienes del territorio y de la milpa; mantas y cobre designables; el tesoro es nominal" $ do
+    Map.keys (ecoBienes eco) `shouldBe` producidos
     [ bnId b | b <- Map.elems (ecoBienes eco), bnDesignable b ] `shouldBe` ["cobre", "mantas"]
     pmNominales (ecoParams eco) `shouldBe` [magTesoro]
-    valErrores (validarBienesDelTerritorio "datos/bienes_1475.json" terrenos eco) `shouldBe` []
+    valErrores (validarBienesDelTerritorio "datos/bienes_1475.json" producidos eco) `shouldBe` []
 
   it "un bien que el territorio no produce es un error de carga, con su ruta" $ do
     let manta = (ecoBienes eco Map.! "mantas") { bnId = "manta" }
         mala  = eco { ecoBienes = Map.insert "manta" manta (ecoBienes eco) }
-    map errRuta (valErrores (validarBienesDelTerritorio "x.json" terrenos mala)) `shouldBe` ["bienes.manta"]
-    valErrores (validarBienesDelTerritorio "x.json" Map.empty mala) `shouldBe` []
+    map errRuta (valErrores (validarBienesDelTerritorio "x.json" producidos mala)) `shouldBe` ["bienes.manta"]
+    valErrores (validarBienesDelTerritorio "x.json" [] mala) `shouldBe` []
 
   it "el comando coincide con su archivo dorado; null retira, y el catálogo ofrece los designables" $ do
     A.decode dorado `shouldBe` Just (A.toJSON (DesignarMoneda (Just "mantas")))
@@ -1399,21 +1402,21 @@ pruebasMoneda terrenos eco eds dorado = describe "reglas: moneda en el juego rea
     precio despues `shouldSatisfy` (< precio conMantas)
     cien despues `shouldSatisfy` (< cien conMantas)
 
-  it "con los bienes cargados y sin moneda designada, solo cambian las existencias y aparece la merma" $ do
+  it "con los bienes cargados y sin moneda designada, el tesoro y el agravio no cambian y aparece la merma" $ do
     let jSin  = Reglas.Juego.juegoDatos constantesDefault dr { Reglas.Juego.drEconomia = economiaVacia }
         entSin = entornoSimple mapa
         sinEco = foldl' (\st t -> fst (paso jSin entSin (Semilla 1) (Tick t) [] st)) e0 [0 .. 420]
         conEco = correrDias 365 420 anio
-        esExistencias (Magnitud n) = "bien." `T.isPrefixOf` n && (".existencias" `T.isSuffixOf` n || ".merma" `T.isSuffixOf` n)
+        -- Con el catálogo, los bienes tienen valor y el trabajo que sobra
+        -- después de la comida va a lo que más vale (T28): cambian los bienes,
+        -- no el resto de la partida.
+        esExistencias (Magnitud n) = "bien." `T.isPrefixOf` n
         sinExist st = Map.filterWithKey (\(_, m) _ -> not (esExistencias m)) (alm st)
         exist b st = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, magExistencias b) (alm st))
     sinExist conEco `shouldBe` sinExist sinEco
-    -- Solo los bienes que algún altépetl produce: con los trabajadores de la
-    -- tierra de cultivo del tutorial, los que sobran para pescar o minar son pocos.
-    let producidos = [ b | b <- bienesDe terrenos, exist b sinEco > Fijo 0 ]
-    producidos `shouldSatisfy` (\bs -> "maiz" `elem` bs)
-    forM_ producidos $ \b ->
-      exist b conEco `shouldSatisfy` (if bnMerma (ecoBienes eco Map.! b) > Fijo 0 then (< exist b sinEco) else (== exist b sinEco))
+    Map.member (entFac f1, magMerma "maiz") (alm conEco) `shouldBe` True
+    Map.member (entFac f1, magMerma "maiz") (alm sinEco) `shouldBe` False
+    exist "maiz" conEco `shouldSatisfy` (> Fijo 0)
 
   it "merma: con producción constante, las existencias se acercan a producción / merma" $ do
     let largo = correrDias 0 (365 * 30) e0
@@ -1470,7 +1473,7 @@ pruebasCosecha terrenos eco eds = describe "reglas: cosecha por estación y troj
     v <- A.eitherDecodeFileStrict "../../datos/terrenos.json"
     case v of
       Left e -> fail e
-      Right j -> case cargarCosechas "datos/terrenos.json" (bienesDe terrenos) j of
+      Right j -> case cargarCosechas "datos/terrenos.json" (bienesConProcesos terrenos (procesosDe eds)) j of
         Validacion [] (Just cs) -> pure cs
         Validacion errs _ -> fail (show (map errMensaje errs))
   let mapa = conCostoDeTerreno terrenos (either (error . show) id (proveedorHexagonal datosMapa1475))
@@ -1498,8 +1501,9 @@ pruebasCosecha terrenos eco eds = describe "reglas: cosecha por estación y troj
       precioMaiz st = precioEn (ecoParams eco) (derivadoVigentes (estadoDerivado st)) (estadoTick st) (alm st) (entFac f1) maiz
       ventanaMaiz = ventanas Map.! "maiz"
 
-  it "datos/terrenos.json: el maíz se cosecha del 15 de octubre al 30 de noviembre; los demás, todo el año" $ do
-    ventanas `shouldBe` Map.fromList [("maiz", Cosecha 288 334)]
+  it "datos/terrenos.json: el maíz y el frijol se cosechan del 15 de octubre al 30 de noviembre; la calabaza, el chile y los quelites en sus ventanas; los demás, todo el año" $ do
+    ventanas `shouldBe` Map.fromList [ ("calabaza", Cosecha 227 304), ("chile", Cosecha 258 319), ("frijol", Cosecha 288 334)
+                                     , ("maiz", Cosecha 288 334), ("quelites", Cosecha 166 273) ]
     diasVentana ventanaMaiz `shouldBe` 47
     diasVentana (Cosecha 350 10) `shouldBe` 26
     map (enVentana (Cosecha 350 10)) [349, 350, 365, 1, 10, 11] `shouldBe` [False, True, True, True, True, False]
@@ -1573,7 +1577,7 @@ pruebasMalaCosecha terrenos eco eds = describe "reglas: mala cosecha y abrir las
     v <- A.eitherDecodeFileStrict "../../datos/terrenos.json"
     case v of
       Left e -> fail e
-      Right jv -> case cargarCosechas "datos/terrenos.json" (bienesDe terrenos) jv of
+      Right jv -> case cargarCosechas "datos/terrenos.json" (bienesConProcesos terrenos (procesosDe eds)) jv of
         Validacion [] (Just cs) -> pure cs
         Validacion errs _ -> fail (show (map errMensaje errs))
   let mapa = conCostoDeTerreno terrenos (either (error . show) id (proveedorHexagonal datosMapa1475))
@@ -1715,7 +1719,7 @@ pruebasSubsistencia terrenos eco eds = describe "reglas: subsistencia, cobertura
     v <- A.eitherDecodeFileStrict "../../datos/terrenos.json"
     case v of
       Left e -> fail e
-      Right jv -> case cargarCosechas "datos/terrenos.json" (bienesDe terrenos) jv of
+      Right jv -> case cargarCosechas "datos/terrenos.json" (bienesConProcesos terrenos (procesosDe eds)) jv of
         Validacion [] (Just cs) -> pure cs
         Validacion errs _ -> fail (show (map errMensaje errs))
   let mapa = conCostoDeTerreno terrenos (either (error . show) id (proveedorHexagonal datosMapa1475))
@@ -1954,7 +1958,7 @@ pruebasDieta terrenos eco eds = describe "reglas: la dieta por grupos con tope (
     v <- A.eitherDecodeFileStrict "../../datos/terrenos.json"
     case v of
       Left e -> fail e
-      Right jv -> case cargarCosechas "datos/terrenos.json" (bienesDe terrenos) jv of
+      Right jv -> case cargarCosechas "datos/terrenos.json" (bienesConProcesos terrenos (procesosDe eds)) jv of
         Validacion [] (Just cs) -> pure cs
         Validacion errs _ -> fail (show (map errMensaje errs))
   dietaJson <- runIO (either fail pure =<< A.eitherDecodeFileStrict "../../datos/dieta.json")
@@ -1994,7 +1998,7 @@ pruebasDieta terrenos eco eds = describe "reglas: la dieta por grupos con tope (
       dietaDe t = either error id (A.eitherDecode t) :: A.Value
 
   it "datos/dieta.json carga: grupos por id, energía en t ME, necesidad en energía" $ do
-    map gdId (dtGrupos dieta) `shouldBe` ["carne_y_pescado", "granos"]
+    map gdId (dtGrupos dieta) `shouldBe` ["carne_y_pescado", "granos", "leguminosas", "verduras_y_frutos"]
     fmap snd (grupoDe dieta "maiz") `shouldBe` Just uno
     fmap snd (grupoDe dieta "pescado") `shouldBe` Just (fi 1100 ./. fi 3650)
     dtNecesidad dieta `shouldBe` Fijo 2000
@@ -2026,12 +2030,19 @@ pruebasDieta terrenos eco eds = describe "reglas: la dieta por grupos con tope (
     fst (cierreDieta (fi 100) [(Fijo 8500, uno, fi 500)]) `shouldBe` Fijo 8500
     fst (cierreDieta (fi 100) [(Fijo 8500, uno, fi 500), (Fijo 2500, Fijo 500, fi 500)]) `shouldBe` uno
 
-  it "en el tutorial con la dieta, la gente come solo maíz: cobertura 0,85 en un año medio, sin hambre y con la reserva del maíz" $ do
+  it "en el tutorial con la dieta y la milpa, un año medio cubre la dieta; los granos llegan a su tope y el frijol completa" $ do
     let fin = correr sinAzar 0 400 e0
+    [ coberturaEn fin (AltId a) | a <- [1, 2, 3] ] `shouldBe` replicate 3 uno
+    [ baseAlt (magCubiertoDe "granos") a fin | a <- [1, 2, 3] ] `shouldSatisfy` and . zipWith (\a x -> x <= necesidad a e0 .*. Fijo 8500) [1, 2, 3]
+    [ baseAlt (magCubiertoDe "leguminosas") a fin | a <- [1, 2, 3] ] `shouldSatisfy` all (> Fijo 0)
+    [ baseAlt magCosechado a fin | a <- [1, 2, 3] ] `shouldBe` replicate 3 (Fijo 0)
+
+  it "sin la milpa, la gente come solo maíz: cobertura 0,85 en un año medio, sin hambre y con la reserva del maíz" $ do
+    let sinMilpa = Reglas.Juego.juegoDatos c dr { Reglas.Juego.drEdificios = sinProcesos eds }
+        fin = correr (sin ["cosecha"] sinMilpa) 0 400 (conDerivado sinMilpa (conConocimientos eds estadoInicial1475))
     [ coberturaEn fin (AltId a) | a <- [1, 2, 3] ] `shouldBe` replicate 3 (Fijo 8500)
     [ baseAlt (magReservaDe "granos") a fin | a <- [1, 2, 3] ] `shouldSatisfy` all (> Fijo 0)
     [ baseAlt (magCubiertoDe "granos") a fin | a <- [1, 2, 3] ] `shouldBe` [ necesidad a e0 .*. Fijo 8500 | a <- [1, 2, 3] ]
-    [ baseAlt magCosechado a fin | a <- [1, 2, 3] ] `shouldBe` replicate 3 (Fijo 0)
 
   it "ley (masa conservada): lo que se queda del maíz entra a lo cosechado de los granos, tonelada por tonelada" $ do
     let t = head [ x | x <- [0 .. 364], esInicioDePeriodo cal (Tick x)
@@ -2082,6 +2093,114 @@ pruebasDieta terrenos eco eds = describe "reglas: la dieta por grupos con tope (
 
   it "los sistemas con la dieta pasan validarOrdenSistemas salvo las dos lecturas del precio" $
     length (validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j)) `shouldBe` 2 * Set.size (lecturasMoneda eco)
+
+-- ---------------------------------------------------------------------------
+-- Procesos de bienes en las tecnologías (T28)
+-- ---------------------------------------------------------------------------
+
+-- | T28: las celdas se trabajan con los procesos de las tecnologías (la
+-- milpa), primero para comer y después por valor; el tejido en casa da por
+-- persona; sin procesos, todo es como antes.
+pruebasProcesos :: Map.Map Terreno DefTerreno -> Economia -> Edificios -> Spec
+pruebasProcesos terrenos eco eds = describe "reglas: procesos de bienes en las tecnologías (T28)" $ do
+  ventanas <- runIO $ do
+    v <- A.eitherDecodeFileStrict "../../datos/terrenos.json"
+    case v of
+      Left e -> fail e
+      Right jv -> case cargarCosechas "datos/terrenos.json" (bienesConProcesos terrenos (procesosDe eds)) jv of
+        Validacion [] (Just cs) -> pure cs
+        Validacion errs _ -> fail (show (map errMensaje errs))
+  let c    = constantesDefault
+      mapa = conCostoDeTerreno terrenos (either (error . show) id (proveedorHexagonal datosMapa1475))
+      ent  = (entornoSimple mapa) { entEconomia = eco }
+      drCon e = Reglas.Juego.datosVacios { Reglas.Juego.drTerrenos = terrenos, Reglas.Juego.drEdificios = e
+                                         , Reglas.Juego.drEconomia = eco, Reglas.Juego.drCosechas = ventanas }
+      j    = Reglas.Juego.juegoDatos c (drCon eds)
+      jSin = Reglas.Juego.juegoDatos c (drCon (sinProcesos eds))
+      sinAzar jj = jj { juegoSistemas = filter ((/= NombreSistema "cosecha") . sisNombre) (juegoSistemas jj) }
+      conDerivado jj e = e { estadoDerivado = derivar jj (entGrafo ent) (estadoTick e) (estadoPersistente e) }
+      inicial jj = conDerivado jj (conConocimientos eds estadoInicial1475)
+      correr jj desde hasta e = foldl' (\st t -> fst (paso jj ent (Semilla 1) (Tick t) [] st)) e [desde .. hasta]
+      alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
+      prod b st = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, magProduccion b) (alm st))
+      celdas st = dpCeldas (derivadoJuego (estadoDerivado st))
+      cal = comunCalendario (persistenteComun (estadoPersistente estadoInicial1475))
+      inicios = [ t | t <- [0 .. 364], esInicioDePeriodo cal (Tick t) ]
+      -- La producción de cada periodo del primer año.
+      porPeriodo jj b = [ (t, prod b (correr jj 0 t (inicial jj))) | t <- inicios ]
+      conTacito k v st = st { estadoPersistente = (estadoPersistente st)
+                                { persistenteComun = (persistenteComun (estadoPersistente st))
+                                    { comunMagnitudes = fijarBase (entFac f1) (magTacito k) v (alm st) } } }
+      cel i l ys = CeldaTrabajo i (fi l) (Map.fromList ys) Nothing
+      errores v = length (valErrores (cargarEdificios "e.json" catalogoMag v))
+      json t = either error id (A.eitherDecode t) :: A.Value
+
+  it "ley (proceso neutro): sin procesos, la derivación es la de antes" $ do
+    let p0 = persistenteJuego (estadoPersistente estadoInicial1475)
+    derivarTerritorioCon Nothing c terrenos mapa (entGrafo ent) p0 `shouldBe` derivarTerritorio c terrenos mapa (entGrafo ent) p0
+    celdas (inicial jSin) `shouldBe` fst (derivarTerritorio c terrenos mapa (entGrafo ent) p0)
+
+  it "el tutorial trabaja el llano con la milpa, y el desglose dice qué proceso" $ do
+    let cs = concat (Map.elems (celdas (inicial j)))
+    [ ctProceso x | x <- cs, Map.member "frijol" (ctRendimiento x) ] `shouldSatisfy` (\ps -> not (null ps) && all (== Just "milpa_temporal") ps)
+
+  it "la milpa da sus cinco bienes, cada uno en su ventana" $ do
+    let enAlguno b = any ((> Fijo 0) . snd) (porPeriodo (sinAzar j) b)
+        enEnero b = snd (head (porPeriodo (sinAzar j) b))
+    mapM_ (\b -> enAlguno b `shouldBe` True) ["maiz", "frijol", "calabaza", "chile", "quelites"]
+    mapM_ (\b -> enEnero b `shouldBe` Fijo 0) ["maiz", "frijol", "calabaza", "chile", "quelites"]
+
+  it "con dominio a medias la milpa rinde a medias; bajo el mínimo no existe" $ do
+    let llano = Map.findWithDefault (error "sin llano") (Terreno "llano") terrenos
+        terreno = celdaTrabajo 1 llano
+        maizDeMilpa d = [ Map.findWithDefault (Fijo 0) "maiz" (ctRendimiento o)
+                        | o <- opcionesDeCelda (cTicksPorAnio c) (const d) (procesosDe eds) 1 "llano" terreno
+                        , ctProceso o == Just "milpa_temporal" ]
+    case (maizDeMilpa (fi 100), maizDeMilpa (fi 50)) of
+      ([pleno], [medio]) -> abs (unFijo (medio .*. fi 2 .-. pleno)) `shouldSatisfy` (< 5)
+      otro -> expectationFailure (show otro)
+    maizDeMilpa (fi 40) `shouldBe` []
+
+  it "con la milpa a medias, la gente vuelve a la manera vieja de trabajar el llano" $ do
+    let medio = conDerivado j (conTacito "milpa" (fi 50) (conConocimientos eds estadoInicial1475))
+        cs = concat (Map.elems (celdas medio))
+    [ ctProceso x | x <- cs, Map.member "maiz" (ctRendimiento x) ] `shouldSatisfy` all (== Nothing)
+
+  it "primero la comida: con pocos trabajadores la celda de comida va antes que la que más vale" $ do
+    let energia = Map.fromList [("maiz", uno)]
+        valor = Map.fromList [("maiz", Fijo 300), ("obsidiana", fi 5)]
+        comida = cel 1 100 [("maiz", fi 10)]
+        mina = cel 2 100 [("obsidiana", fi 1)]
+    map ctCelda (elegirCeldas energia valor (fi 5) 100 [[mina], [comida]]) `shouldBe` [1, 2]
+    -- Sin necesidad de comida, manda el valor.
+    map ctCelda (elegirCeldas energia valor (Fijo 0) 100 [[mina], [comida]]) `shouldBe` [2, 1]
+    -- Entre maneras de una celda, para comer gana la que más energía da.
+    map ctProceso (elegirCeldas energia valor (fi 5) 100 [[cel 1 100 [("maiz", fi 5)], (cel 1 100 [("maiz", fi 9)]) { ctProceso = Just "milpa" }]])
+      `shouldBe` [Just "milpa"]
+
+  it "el tejido en casa da mantas por persona, todo el año, sin ocupar celdas" $ do
+    let personas = sum [ popTamano p | p <- Map.elems (ppPops (persistenteJuego (estadoPersistente estadoInicial1475))) ]
+        mantasEnero e = prod "mantas" (correr (sinAzar j) 0 0 e)
+        conTejido = inicial j
+        sinTejido = conDerivado j (conTacito "tejido" (Fijo 0) (conConocimientos eds estadoInicial1475))
+        deCasa = mantasEnero conTejido .-. mantasEnero sinTejido
+        esperado = fi personas .*. Fijo 3500 ./. cTicksPorAnio c
+    -- Las mismas celdas con y sin el tejido: la diferencia es lo de casa.
+    celdas sinTejido `shouldBe` celdas conTejido
+    abs (unFijo (deCasa .-. esperado)) `shouldSatisfy` (< 10)
+
+  it "la carga de procesos acumula los errores: celda sin terrenos, casa con trabajadores, producto negativo, dominio fuera de rango y proceso repetido" $
+    errores (json "{\"conocimientos\": [{\"id\": \"k\", \"codificado\": \"1\", \"tacito\": \"1\", \"procesos\": [{\"id\": \"a\", \"lugar\": \"celda\", \"trabajadores\": \"10\", \"productos\": {\"maiz\": \"1\"}}, {\"id\": \"b\", \"lugar\": \"casa\", \"trabajadores\": \"3\", \"productos\": {\"maiz\": \"-1\"}, \"dominio_minimo\": \"200\"}, {\"id\": \"a\", \"lugar\": \"casa\", \"productos\": {\"maiz\": \"1\"}}]}], \"edificios\": []}")
+      `shouldBe` 5
+
+  it "un proceso que nombra un terreno que la tabla no tiene es un error, con su ruta" $
+    map errRuta (valErrores (validarProcesosDelTerritorio "e.json" ["llano"] (procesosDe eds ++ [Proceso "x" "milpa" EnCelda ["selva"] (fi 1) (Map.fromList [("maiz", uno)]) (fi 50)])))
+      `shouldBe` ["conocimientos.milpa.procesos.x.terrenos"]
+
+  it "guardar y cargar con la milpa: la partida sigue igual" $ do
+    let mitad = correr j 0 300 (inicial j)
+        cargado = either (error . show) id (cargar j mapa (guardar mitad))
+    alm (correr j 301 420 cargado) `shouldBe` alm (correr j 301 420 mitad)
 
 -- ---------------------------------------------------------------------------
 -- Condiciones y efectos propios del guion (T14)
