@@ -57,7 +57,8 @@
     "thares_escondidos": "cronica.thares_escondidos",
     "tesoro_escondido": "cronica.tesoro_escondido",
     "fin_partida": "cronica.fin_1530",
-    "hambre": "cronica.hambre"
+    "hambre": "cronica.hambre",
+    "abasto_insuficiente": "cronica.abasto_insuficiente"
   },
   "fin": {
     "fecha": "1530-02-14",
@@ -2301,6 +2302,107 @@
               "altepetl": 3,
               "bien": "maiz",
               "cantidad": "500"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "trojes_vacias",
+      "tipo": "tributo",
+      "_fuente": {
+        "origen": "V5, La dieta: «El abasto de la capital» (Gorenstein y Pollard, 1983, citados en Kemper: Tzintzuntzan importaba un 44 % de su maíz); T29",
+        "certeza": "decisión de juego; las cantidades son de relleno, por verificar"
+      },
+      "peso": "5",
+      "enfriamiento": 365,
+      "plazo": 40,
+      "fases": [],
+      "condicion": {
+        "tipo": "ocurrio",
+        "hecho": "abasto_insuficiente",
+        "dias": 40
+      },
+      "opciones": [
+        {
+          "id": "comprar_maiz_fuera_de_la_cuenca",
+          "efectos": [
+            {
+              "tipo": "gastar_valor",
+              "faccion": 1,
+              "valor": "200"
+            },
+            {
+              "tipo": "recibir_bien",
+              "faccion": 1,
+              "bien": "maiz",
+              "cantidad": "1000"
+            },
+            {
+              "tipo": "repartir_bien",
+              "faccion": 1,
+              "altepetl": 1,
+              "bien": "maiz",
+              "cantidad": "1000"
+            }
+          ]
+        },
+        {
+          "id": "exigir_mas_a_los_sujetos",
+          "efectos": [
+            {
+              "tipo": "recibir_bien",
+              "faccion": 1,
+              "bien": "maiz",
+              "cantidad": "800"
+            },
+            {
+              "tipo": "repartir_bien",
+              "faccion": 1,
+              "altepetl": 1,
+              "bien": "maiz",
+              "cantidad": "800"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 3
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 5
+              },
+              "magnitud": "agravio",
+              "valor": "5"
+            }
+          ]
+        },
+        {
+          "id": "racionar_en_la_capital",
+          "efectos": [
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "pop",
+                "id": 2
+              },
+              "magnitud": "agravio",
+              "valor": "6"
+            },
+            {
+              "tipo": "sumar_mag",
+              "entidad": {
+                "clase": "faccion",
+                "id": 1
+              },
+              "magnitud": "legitimidad",
+              "valor": "-2"
             }
           ]
         }
