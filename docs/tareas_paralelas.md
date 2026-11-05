@@ -70,7 +70,7 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 | --- | --- | --- | --- | --- |
 | 8 | T27 La dieta: alimentos por grupo con tope, en toneladas de maíz equivalente (hecha en `claude/dieta`) | `reglas`: `Subsistencia`, `Produccion`, `Constantes`; `datos/dieta.json`, `datos/bienes_1475.json` | T25 | 3 |
 | 8 | T28 Procesos de bienes en las tecnologías: la milpa y los demás (hecha en `claude/procesos-de-bienes`) | `reglas`: `Produccion`, `Edificios` (conocimientos); `datos/edificios.json`, `datos/terrenos.json` | T27 | 3 |
-| 8 | T29 Abasto de la capital desde las trojes | `reglas`: `Subsistencia`, `Comando`, `Propios`; `datos/guion_1475.json`; recalibración de `datos/terrenos.json` | T28 | 3 |
+| 8 | T29 Abasto de la capital desde las trojes (hecha en `claude/abasto-capital`) | `reglas`: `Subsistencia`, `Comando`, `Propios`; `datos/guion_1475.json`; recalibración de `datos/terrenos.json` | T28 | 3 |
 | 8 | T30 Gustos y lujos: necesidades por estrato | `reglas`: `Subsistencia`, `Sistemas`, `Grupos`; `datos/necesidades.json` | T27 | 3 |
 | 8 | T31 La chinampa: tecnología y obra en celda | `datos/edificios.json`, `datos/facciones/`; `reglas`: `Edificios` | T28 | 3 / 5 |
 | 8 | T32 Cadena textil: algodón, hilo y mantas, con el trabajo de la casa | `reglas`: `Produccion`; `datos/edificios.json`, `datos/bienes_1475.json`, `datos/terrenos.json` | T28 | 3 |
