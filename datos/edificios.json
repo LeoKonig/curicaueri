@@ -25,6 +25,46 @@
       "codificado": "70",
       "tacito": "55",
       "practica": "5"
+    },
+    {
+      "id": "milpa",
+      "codificado": "100",
+      "tacito": "100",
+      "practica": "0",
+      "_nota": "La milpa de temporal (V5, Recursos, bienes con usos y procesos; T28): maíz, frijol, calabaza, chile y quelites en la misma parcela. Dominio pleno en las facciones mesoamericanas al empezar. Rendimientos por trabajador y año (1 ha por trabajador): maíz 1 t como en T24; frijol, calabaza, chile y quelites de RELLENO, por verificar con estudios de la milpa tradicional de temporal.",
+      "procesos": [
+        {
+          "id": "milpa_temporal",
+          "lugar": "celda",
+          "terrenos": [
+            "llano"
+          ],
+          "trabajadores": "3500",
+          "productos": {
+            "maiz": "1",
+            "frijol": "0.15",
+            "calabaza": "0.3",
+            "chile": "0.02",
+            "quelites": "0.1"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tejido",
+      "codificado": "100",
+      "tacito": "100",
+      "practica": "0",
+      "_nota": "El tejido en casa, con el telar de cintura (V5, Recursos, bienes con usos y procesos). Hasta la cadena textil (T32), las mantas salen del trabajo de la casa por persona, sin algodón: RELLENO, por verificar.",
+      "procesos": [
+        {
+          "id": "tejido_en_casa",
+          "lugar": "casa",
+          "productos": {
+            "mantas": "0.35"
+          }
+        }
+      ]
     }
   ],
   "edificios": [

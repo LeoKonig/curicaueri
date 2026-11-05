@@ -736,14 +736,14 @@ main = hspec $ do
       map errMensaje (valErrores (cargarTerrenos "malo.json" terrenosMalos))
         `shouldBe` [ "terreno repetido", "la capacidad no puede ser negativa"
                    , "la erosión no puede ser negativa", "recurso repetido" ]
-    it "trabajadores y rendimiento: por omisión 0 y vacío; el archivo trae los seis bienes de V5" $ do
+    it "trabajadores y rendimiento: por omisión 0 y vacío; el archivo trae cinco de los seis bienes de V5 (las mantas se tejen en casa)" $ do
       let Just t = valValor tablaReal
           Just llanoMalo = valValor (cargarTerrenos "x.json" (A.object [ "terrenos" A..=
                              [ A.object ["id" A..= ("llano" :: Text), "capacidad" A..= ("1" :: Text), "erosion" A..= ("0" :: Text)] ] ]))
       fmap (\d -> (dtTrabajadores d, dtRendimiento d)) (Map.lookup (Terreno "llano") llanoMalo)
         `shouldBe` Just (Fijo 0, Map.empty)
       Map.keys (Map.unions (map dtRendimiento (Map.elems t)))
-        `shouldBe` ["cobre", "maiz", "mantas", "obsidiana", "pescado", "sal"]
+        `shouldBe` ["cobre", "maiz", "obsidiana", "pescado", "sal"]
       all (\d -> Map.null (dtRendimiento d) || dtTrabajadores d > Fijo 0) (Map.elems t) `shouldBe` True
     it "rendimiento por trabajador y año (medidas reales): la celda rinde trabajadores · r / periodos por año" $ do
       let terr extra = A.object ([ "id" A..= ("llano" :: Text), "capacidad" A..= ("1" :: Text), "erosion" A..= ("0" :: Text)
