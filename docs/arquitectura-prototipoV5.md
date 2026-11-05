@@ -273,7 +273,7 @@ Son obras sobre una **celda** (no sobre un asentamiento) dentro de `RADIO_PRODUC
 
 | Obra | Costo | Efecto | Consecuencia visible |
 | --- | --- | --- | --- |
-| Terrazas | Tesoro y 5 veintenas de obra | +10 de capacidad en el hexágono; desde el hito 6a, también menos erosión | El desglose de `celda.capacidad` muestra "+10 terrazas"; sube la producción y baja la presión |
+| Terrazas | Tesoro y 5 veintenas de obra | Hace las dos cosas: +10 de capacidad en el hexágono (sostiene a más gente) y más rendimiento en la ladera que aterraza (rinde más por trabajador); desde el hito 6a, también menos erosión | El desglose de `celda.capacidad` y el del rendimiento muestran cada uno su "terrazas"; sube la producción y baja la presión |
 | Roturación | Tesoro y 3 veintenas de obra; irreversible en el prototipo | El hexágono pasa de bosque a llano: sube su capacidad base, bajan los recursos propios del bosque y, desde el hito 6a, sube su erosión base | La consulta de predicción muestra el costo antes de confirmar ("+capacidad, −recursos del bosque"); el mapa lo repinta y la crónica registra `terreno_modificado` |
 
 La capacidad base, los recursos y la erosión base de un hexágono salen de una tabla por terreno (`datos/terrenos.json`), así que cambiar de terreno cambia las tres sin escribir valores sueltos. El terreno modificado es estado almacenado (la lista de hexágonos cuyo terreno difiere del de los datos); los datos del mapa no se reescriben. Esto rompe la suposición de que la geografía nunca cambia: ver *Riesgos*.
@@ -286,7 +286,8 @@ La capacidad base, los recursos y la erosión base de un hexágono salen de una 
   "costo": {"tesoro": 200, "veintenas": 5},
   "requisitos": [{"terreno_en": ["colina", "montana"]}],
   "modificadores": [
-    {"magnitud": "celda.capacidad", "sumar": 10}
+    {"magnitud": "celda.capacidad", "sumar": 10},
+    {"magnitud": "celda.rendimiento", "porcentaje": 25}
   ]
 }
 ```

@@ -1194,9 +1194,11 @@ roturación cambia un componente, no la celda), *Dónde se construye: ciudad o c
 `ConstruirEdificio` en `Reglas.Comando` (hoy solo nombra un altépetl), `Reglas.Edificios`,
 `Motor.Efectos`.
 
-Ojo, antes de escribir: V5 dice que la terraza suma capacidad («+10 terrazas») y el
-documento funcional dice que sube el rendimiento. Lee las dos secciones y, si no se
-reconcilian solas, detente y pregunta cuál magnitud mueve la terraza.
+La terraza mueve dos magnitudes, con dos modificadores de fuente «terrazas»: la capacidad
+de la celda (cuánta gente sostiene) y el rendimiento del componente de ladera que
+aterraza (cuánto da por trabajador). Con la composición de T36, el rendimiento sube solo
+en ese componente. Usa los nombres de magnitud que ya existan para el rendimiento; si no
+hay ninguna, detente y pregunta antes de crear una.
 
 Haz:
 1. El ámbito de celda: campo `ambitos` del edificio (por defecto, el asentamiento) y un
