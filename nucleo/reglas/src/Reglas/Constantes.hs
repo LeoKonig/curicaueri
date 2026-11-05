@@ -61,6 +61,9 @@ data Constantes = Constantes
   , cTributoEspecie        :: Fijo   -- TRIBUTO_ESPECIE: parte de la cosecha que va a las trojes por punto de la tasa de tributo
   , cAgravioHambre         :: Fijo   -- AGRAVIO_HAMBRE: puntos de agravio por año con cobertura 0
   , cUmbralHambre          :: Fijo   -- UMBRAL_HAMBRE: la cobertura por debajo de la cual hay hecho «hambre»
+    -- La dieta (V5, *La dieta*; T27). PROVISIONALES.
+  , cNecesidadEnergia      :: Fijo   -- NECESIDAD_ENERGIA: t de maíz equivalente por persona y año, con datos/dieta.json
+  , cKcalMaiz              :: Fijo   -- KCAL_MAIZ: kilocalorías por kilogramo de maíz, la unidad de la t ME
   } deriving (Eq, Show)
 
 constantesDefault :: Constantes
@@ -128,4 +131,8 @@ constantesDefault = Constantes
   , cAgravioHambre         = fi 20
     -- Por debajo de 0,8 de cobertura el año es de hambre y entra en la crónica.
   , cUmbralHambre          = Fijo 8000
+    -- 2 000 kcal por persona y día, toda la energía: 730 000 kcal al año, que
+    -- son 0,2 t de maíz de 3 650 kcal/kg. Por verificar con las tablas de la FAO.
+  , cNecesidadEnergia      = Fijo 2000
+  , cKcalMaiz              = fi 3650         -- USDA, maíz en grano: 365 kcal por 100 g
   }

@@ -68,7 +68,7 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 
 | Ronda | Tarea | Área (archivos principales) | Depende de | Hito |
 | --- | --- | --- | --- | --- |
-| 8 | T27 La dieta: alimentos por grupo con tope, en toneladas de maíz equivalente | `reglas`: `Subsistencia`, `Produccion`, `Constantes`; `datos/dieta.json`, `datos/bienes_1475.json` | T25 | 3 |
+| 8 | T27 La dieta: alimentos por grupo con tope, en toneladas de maíz equivalente (hecha en `claude/dieta`) | `reglas`: `Subsistencia`, `Produccion`, `Constantes`; `datos/dieta.json`, `datos/bienes_1475.json` | T25 | 3 |
 | 8 | T28 Sistemas de producción: la milpa y los demás | `motor`: `Terrenos`; `reglas`: `Produccion`; `datos/sistemas.json`, `datos/terrenos.json` | T27 | 3 |
 | 8 | T29 Abasto de la capital desde las trojes | `reglas`: `Subsistencia`, `Comando`, `Propios`; `datos/guion_1475.json`; recalibración de `datos/terrenos.json` | T28 | 3 |
 | 8 | T30 Gustos y lujos: necesidades por estrato | `reglas`: `Subsistencia`, `Sistemas`, `Grupos`; `datos/necesidades.json` | T27 | 3 |
@@ -816,7 +816,9 @@ protocolo con varias políticas y anota cuántos años de hambre salen. Mide con
 son del hito 6: no las adelantes. Rama: claude/subsistencia.
 ```
 
-## T27. La dieta: alimentos por grupo con tope (reglas, hito 3; después de T25)
+## T27. La dieta: alimentos por grupo con tope (reglas, hito 3; después de T25) — hecha
+
+Hecha con una diferencia: la clase de un bien no va en el catálogo de bienes (lo carga el motor, que no sabe de dietas) sino en `datos/dieta.json` (alimentos) y, con T30, en `datos/necesidades.json` (gustos y lujos).
 
 ```
 Tarea: que la gente coma más que maíz. Los alimentos cuentan por su energía, en toneladas

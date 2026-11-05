@@ -365,7 +365,7 @@ Antes del hito 6 no muere nadie de hambre: no hay un sistema que escriba `pop.ta
 
 T25 alimenta a la gente solo con maíz y supone que el resto de la dieta (un quinto de la energía) sale de algo que el juego no ve. La dieta mesoamericana era más amplia, y de ella dependen decisiones reales: qué se pide en tributo, qué se reparte a la nobleza y qué se pierde cuando falla una parte. Kemper (2018, con Gorenstein y Pollard, 1983) da la del reino purépecha: maíz (tortillas, tamales y atole), frijol, calabaza, chile, chayote, amaranto (*huauhtli*) y jitomate; el pescado blanco (*acúmara*) y los charales del lago, patos, ranas; venado, conejo, codorniz y guajolote; nopales, quelites y frutas (chirimoya, guayaba, mamey, chicozapote, capulín, tejocote). El cacao, la fruta tropical y el pescado de mar eran de la nobleza y llegaban como tributo o por los mercaderes del cazonci; la sal se importaba. Las fuentes del reino no mencionan insectos (sí la miel); los chapulines, escamoles y jumiles son de otras regiones y entran con sus facciones.
 
-**Tres clases de bien que se consume.** Cada bien del catálogo (`datos/bienes_<escenario>.json`) declara su `clase`; un bien sin clase es como hoy:
+**Tres clases de bien que se consume.** La clase la dan los archivos de las reglas, no el catálogo de bienes (que carga el motor, y el motor no sabe de dietas: regla 1). Un alimento es un bien que está en `datos/dieta.json`; un gusto o un lujo, uno que está en `datos/necesidades.json` (T30). Un bien que no está en ninguno es como hoy:
 
 | Clase | Ejemplos | Qué hace | Qué no hace |
 | --- | --- | --- | --- |
@@ -407,6 +407,8 @@ Una población que solo tiene maíz llega a 0,85 de cobertura: no se muere de ha
 | Pescado fresco | 100 a 120 | 0,27 a 0,33 | Charal seco | 300 a 350 (por verificar) | 0,8 a 1,0 |
 | Venado | 120 | 0,33 | Guajolote | 160 | 0,44 |
 | Chapulín tostado | unas 350 (proteína de 53 % a 63 %: Ramos-Elorduy *et al.*, 1997) | 0,96 | Escamol y jumil | por verificar | — |
+
+**Hecho en T27** (`Reglas.Dieta`, `Subsistencia`, `Produccion`, `Propios`; la cáscara lo carga con `--dieta datos/dieta.json`). Los grupos de `datos/dieta.json` son, por ahora, los de los alimentos que el territorio ya produce: los granos (el maíz) y la carne y el pescado. Con la dieta, el tutorial come solo maíz y su cobertura es 0,85 en un año medio: dieta pobre, sin hambre, con algo de agravio y menos tributo. Por eso `--dieta` todavía no está entre las opciones del juego completo; entra cuando la milpa (T28) dé frijol, calabaza y lo demás. `repartir_bien` respeta el tope del grupo del alimento: repartir maíz a quien ya tiene cubiertos sus granos no sube su cobertura y va a la reserva; repartir pescado, sí. Lo que cada grupo cubrió en el cierre es la magnitud `cubierto.<grupo>` del altépetl. Un guardado de T25 carga: su maíz pasa al grupo de los granos.
 
 **Los gustos y los lujos son necesidades por estrato** (`datos/necesidades.json`): cuánto pide cada estrato por persona y año, de qué bienes y con qué peso. Una sola cuenta de satisfacción por estrato y año, con la misma forma que la cobertura, alimenta un aporte al agravio (los macehuales con sal y chile, o sin ellos) y, para la nobleza y el sacerdocio, un modificador de la lealtad de su grupo de poder. Repartir cacao a los señores se vuelve una herramienta de lealtad con su costo (el cacao que no se usa para otra cosa), como en las fuentes, donde el cacao era de la nobleza. Los gustos y los lujos salen de las existencias de la facción, como el tributo que el cazonci redistribuía.
 

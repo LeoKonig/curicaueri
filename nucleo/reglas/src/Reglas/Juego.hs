@@ -30,6 +30,7 @@ import Reglas.Estado
 import Reglas.Grupos
 import Reglas.Sistemas
 import Reglas.Subsistencia (subsistencia)
+import Reglas.Dieta (Dieta, catalogoDieta, dietaPorDefecto)
 import Reglas.Facciones (facciones)
 import Reglas.Fusion (fusion)
 import Reglas.Propios (condicionesPropias, efectosPropios)
@@ -60,13 +61,9 @@ catalogoMag = Map.fromList
      DefMagnitud "tasa_agravio" rangoTasaAgravio "m.tasa_agravio" Nothing False)
   , (magReservasAsedio,
      DefMagnitud "reservas_asedio" rangoReservasAsedio "m.reservas_asedio" Nothing False)
-    -- Alimento del altépetl (T25). Lo cosechado lo suma la producción y lo
-    -- vacía la subsistencia; la reserva y la cobertura las escribe la
-    -- subsistencia y también @repartir_bien@.
-  , (magCosechado,
-     DefMagnitud "cosechado" rangoAlimentoAlt "m.cosechado" Nothing True)
-  , (magReserva,
-     DefMagnitud "reserva" rangoAlimentoAlt "m.reserva" Nothing True)
+    -- La cobertura de alimento del altépetl (T25): la escriben la subsistencia
+    -- y @repartir_bien@. Lo cosechado y la reserva son por grupo de la dieta
+    -- ('catalogoDieta').
   , (magCobertura,
      DefMagnitud "cobertura" rangoCobertura "m.cobertura" Nothing True)
   ]
@@ -82,10 +79,15 @@ data DatosReglas = DatosReglas
                                                 --   Es la misma que lleva el 'Motor.Guion.Entorno' para 'pasoMoneda'.
   , drCosechas  :: Map.Map Text Cosecha         -- ^ ventanas de cosecha por bien (@cosechas@ de @datos/terrenos.json@);
                                                 --   un bien sin ventana se produce parejo todo el año
+  , drDieta     :: Maybe Dieta                  -- ^ los grupos de la dieta (@datos/dieta.json@); sin ella, la de T25
   }
 
 datosVacios :: DatosReglas
-datosVacios = DatosReglas gruposVacios edificiosVacios Map.empty economiaVacia Map.empty
+datosVacios = DatosReglas gruposVacios edificiosVacios Map.empty economiaVacia Map.empty Nothing
+
+-- | La dieta del juego: la del archivo o, sin él, la de T25.
+dietaDe :: Constantes -> DatosReglas -> Dieta
+dietaDe c dr = maybe (dietaPorDefecto c) id (drDieta dr)
 
 -- | Aplica un comando de la facción que lo sella (@sellFaccion@). Un comando
 -- de una facción que no existe o no está activa se rechaza; los que nombran
@@ -322,11 +324,11 @@ juegoDatos = juegoDatosEn visible1475 inicio1475
 -- | El juego con sus datos de reglas en el calendario de un escenario: la
 -- cosecha por estación sabe en qué día del año cae cada tick.
 juegoDatosEn :: CalendarioVisible -> Fecha -> Constantes -> DatosReglas -> Juego Purepecha Comando
-juegoDatosEn visible inicio c dr = let bienes = bienesDe (drTerrenos dr) in Juego
+juegoDatosEn visible inicio c dr = let bienes = bienesDe (drTerrenos dr); dieta = dietaDe c dr in Juego
   { juegoSistemas    = [ facciones (drGrupos dr) (drEconomia dr), construccion c (drEconomia dr) (drEdificios dr)
                        , azarCosecha c (Cosechas (drCosechas dr) visible inicio)
-                       , produccion c (drEconomia dr) (Cosechas (drCosechas dr) visible inicio) bienes
-                       , subsistencia c (drEconomia dr) (Cosechas (drCosechas dr) visible inicio)
+                       , produccion c (drEconomia dr) dieta (Cosechas (drCosechas dr) visible inicio) bienes
+                       , subsistencia c (drEconomia dr) dieta (Cosechas (drCosechas dr) visible inicio)
                        , hacienda c (drEconomia dr), evolucionAgravio c, fusion c ]
   , juegoAplicarCmd  = aplicarComando c dr
   , juegoDerivar     = \g _ p -> derivarPurepecha c dr g (persistenteJuego p)
@@ -334,10 +336,10 @@ juegoDatosEn visible inicio c dr = let bienes = bienesDe (drTerrenos dr) in Jueg
   , juegoProyectarDe = proyectarDe
   , juegoSucias      = sucias
   , juegoAgentes     = Map.empty
-  , juegoCatalogoMag = Map.unions [ catalogoMag, catalogoGrupos (drGrupos dr), catalogoBienes bienes
+  , juegoCatalogoMag = Map.unions [ catalogoMag, catalogoDieta dieta, catalogoGrupos (drGrupos dr), catalogoBienes bienes
                                   , catalogoConocimientos (drEdificios dr), catalogoMoneda (drEconomia dr) ]
   , juegoCondiciones = condicionesPropias
-  , juegoEfectos     = efectosPropios c (drGrupos dr) (drEconomia dr)
+  , juegoEfectos     = efectosPropios dieta (drGrupos dr) (drEconomia dr)
   }
 
 -- | Las tres magnitudes que escribe 'Motor.Moneda.pasoMoneda' en la facción
