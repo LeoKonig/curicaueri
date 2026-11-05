@@ -361,6 +361,82 @@ Antes del hito 6 no muere nadie de hambre: no hay un sistema que escriba `pop.ta
 
 **Una prueba que los datos deben pasar.** Con estas cifras, en un año medio el núcleo del reino produce un poco más de lo que come y el excedente alcanza para el tributo: 60 000 personas necesitan unas 9 900 t de maíz al año; con un cuarto de la gente en el campo, a 1 ha por trabajador y 1 t por hectárea, se cosechan unas 14 000 t (una prueba lo comprueba: de 1,1 a 1,6 veces lo que necesita la gente). Una celda de llano necesita 3 500 trabajadores, es decir, 3 500 ha de las unas 34 600 de una celda de 20 km (un 10 %). El total no basta: la prueba de T25 pide además que **cada altépetl** coma en un año medio, porque con 2 500 la tierra de Tzintzuntzan daba 5 000 t y, tras el 15 % del tributo en especie, la capital pasaba hambre todos los años (necesita 4 986 t). Si los datos no lo cumplen, se corrigen los datos, no la fórmula.
 
+### La dieta: alimentos, gustos y lujos (hito 3)
+
+T25 alimenta a la gente solo con maíz y supone que el resto de la dieta (un quinto de la energía) sale de algo que el juego no ve. La dieta mesoamericana era más amplia, y de ella dependen decisiones reales: qué se pide en tributo, qué se reparte a la nobleza y qué se pierde cuando falla una parte. Kemper (2018, con Gorenstein y Pollard, 1983) da la del reino purépecha: maíz (tortillas, tamales y atole), frijol, calabaza, chile, chayote, amaranto (*huauhtli*) y jitomate; el pescado blanco (*acúmara*) y los charales del lago, patos, ranas; venado, conejo, codorniz y guajolote; nopales, quelites y frutas (chirimoya, guayaba, mamey, chicozapote, capulín, tejocote). El cacao, la fruta tropical y el pescado de mar eran de la nobleza y llegaban como tributo o por los mercaderes del cazonci; la sal se importaba. Las fuentes del reino no mencionan insectos (sí la miel); los chapulines, escamoles y jumiles son de otras regiones y entran con sus facciones.
+
+**Tres clases de bien que se consume.** Cada bien del catálogo (`datos/bienes_<escenario>.json`) declara su `clase`; un bien sin clase es como hoy:
+
+| Clase | Ejemplos | Qué hace | Qué no hace |
+| --- | --- | --- | --- |
+| **Alimento** | maíz, amaranto, frijol, calabaza, chayote, nopal, quelites, jitomate, tomate, jícama, aguacate, papaya, zapotes, pescado, charal, pato, venado, conejo, guajolote; los insectos donde se comen | Cubre la necesidad de energía de la gente, según sus kilocalorías por kilogramo y el tope de su grupo | — |
+| **Gusto** | sal, chile, miel, pulque | Cubre una necesidad pequeña de cada estrato (unos kilogramos por persona y año); cubierta, baja el agravio; sin cubrir, lo sube | No alimenta: no cuenta en la cobertura de energía |
+| **Lujo** | cacao, vainilla, vino de maguey, mantas finas, pescado de mar | Lo consume la nobleza (y el sacerdocio); repartirlo sube su lealtad y negarlo la baja | No alimenta ni le toca a la gente común |
+
+Así **nadie vive de cacao o de chile**: los gustos y los lujos no dan energía, y los alimentos tienen un tope por grupo. El chile y la miel tienen calorías, pero en las cantidades que se consumían no alimentan (por verificar si conviene contarlas).
+
+**Grupos de la dieta, con tope.** Cada alimento pertenece a un grupo (`datos/dieta.json`), y de cada grupo solo cuenta, como mucho, una parte de la energía que necesita la gente. Con E la necesidad del altépetl en el año y E_g la energía disponible del grupo g:
+
+```math
+\text{cobertura} = \min\Big(1,\ \frac{\sum_g \min(E_g,\ t_g\, E)}{E}\Big)
+```
+
+| Grupo | Alimentos | Tope t_g (relleno, por verificar) | Se guarda |
+| --- | --- | --- | --- |
+| Granos | maíz, amaranto, chía | 0,85 | Sí: el maíz seco dura años en la troje |
+| Leguminosas | frijol | 0,30 | Sí |
+| Verduras y frutos | calabaza, chayote, nopal, quelites, jitomate, tomate, jícama, aguacate, frutas | 0,25 | No: se come al cosecharse (las pepitas de calabaza, sí) |
+| Carne y pescado | pescado blanco, charal, pato, rana, venado, conejo, guajolote | 0,25 | Poco: el pescado seco y salado, con merma alta |
+| Insectos | chapulín, escamol, jumil | 0,10 | Poco, tostados |
+
+Una población que solo tiene maíz llega a 0,85 de cobertura: no se muere de hambre, pero come mal, y eso ya da agravio («dieta pobre») sin llegar al hecho `hambre`. Los topes no son una regla de nutrición exacta: son la forma más simple de que la variedad importe y de que ningún alimento sustituya a todos. Si después hace falta, la proteína (el maíz con frijol se completa) puede ser una segunda cuenta con la misma forma.
+
+**La energía se cuenta en toneladas de maíz equivalente** (t ME): las kilocalorías de un alimento divididas entre las del maíz (3 650 kcal por kg). La necesidad pasa de la ración de maíz de T25 (0,164 t, el 80 % de la energía) a la necesidad entera: 2 000 kcal por persona y día son 0,2 t ME por persona y año (`NECESIDAD_ENERGIA`). Las magnitudes de T25 (`cosechado`, `reserva`) pasan a ser por grupo y en t ME, y con un solo grupo sin tope (lo que pasa sin `datos/dieta.json`) todo queda como en T25.
+
+**Energía de partida** (kcal por 100 g de la parte que se come; USDA FoodData Central y tablas mexicanas de composición de alimentos; todos por verificar con la tabla que se elija):
+
+| Alimento | kcal/100 g | t ME por t | Alimento | kcal/100 g | t ME por t |
+| --- | --- | --- | --- | --- | --- |
+| Maíz en grano | 365 | 1,00 | Frijol seco | 340 | 0,93 |
+| Amaranto | 370 | 1,01 | Chía | 490 | 1,34 |
+| Calabaza (fruto) | 25 | 0,07 | Pepita de calabaza | 560 | 1,53 |
+| Chayote | 20 | 0,05 | Nopal | 16 | 0,04 |
+| Quelites | 25 | 0,07 | Jitomate y tomate | 20 a 30 | 0,05 a 0,08 |
+| Jícama | 38 | 0,10 | Aguacate | 160 | 0,44 |
+| Papaya | 43 | 0,12 | Mamey y zapotes | 120 a 135 | 0,33 a 0,37 |
+| Pescado fresco | 100 a 120 | 0,27 a 0,33 | Charal seco | 300 a 350 (por verificar) | 0,8 a 1,0 |
+| Venado | 120 | 0,33 | Guajolote | 160 | 0,44 |
+| Chapulín tostado | unas 350 (proteína de 53 % a 63 %: Ramos-Elorduy *et al.*, 1997) | 0,96 | Escamol y jumil | por verificar | — |
+
+**Los gustos y los lujos son necesidades por estrato** (`datos/necesidades.json`): cuánto pide cada estrato por persona y año, de qué bienes y con qué peso. Una sola cuenta de satisfacción por estrato y año, con la misma forma que la cobertura, alimenta un aporte al agravio (los macehuales con sal y chile, o sin ellos) y, para la nobleza y el sacerdocio, un modificador de la lealtad de su grupo de poder. Repartir cacao a los señores se vuelve una herramienta de lealtad con su costo (el cacao que no se usa para otra cosa), como en las fuentes, donde el cacao era de la nobleza. Los gustos y los lujos salen de las existencias de la facción, como el tributo que el cazonci redistribuía.
+
+**El abasto de la capital.** Gorenstein y Pollard (1983, citados en Kemper) estiman que Tzintzuntzan importaba un 44 % de su maíz y un 9 % de su frijol, sobre todo de fuera de la cuenca. La capital no comía de su tierra: comía del tributo y del mercado. La calibración de T25 (el llano a 3 500 trabajadores, para que Tzintzuntzan coma de lo suyo) va contra ese dato. Lo que corresponde es que las trojes de la facción abastezcan cada año el déficit de la capital: una orden permanente que el jugador puede bajar o subir (una decisión, no un cálculo escondido), con el llano de vuelta a 2 500 o donde lo dejen las fuentes. Así el tributo en especie tiene un destino visible, y una mala cosecha en las provincias se siente en la capital.
+
+### La milpa, la chinampa y los sistemas de producción (hito 3)
+
+Hoy el terreno rinde bienes por trabajador: el llano da maíz y mantas, y el lago, pescado y sal. Pero el campesino no siembra maíz solo: siembra **milpa**, maíz con frijol, calabaza y chile en la misma parcela (y los quelites crecen entre ellos). Y la chinampa no es un terreno: es una técnica y una obra.
+
+**Un sistema de producción es un dato** (`datos/sistemas.json`): en qué terrenos se puede usar, qué conocimiento pide, cuántos trabajadores ocupa por celda, qué da por trabajador y año (varios bienes juntos, cada uno con su ventana de cosecha) y, si hace falta, qué obra lo habilita en la celda. Los rendimientos son de relleno; la forma del dato es lo que se fija ahora.
+
+| Sistema | Dónde | Pide | Da, por trabajador y año (relleno, por verificar) |
+| --- | --- | --- | --- |
+| **Milpa de temporal** | llano; sierra con terrazas | conocimiento `milpa` (todas las facciones mesoamericanas lo tienen al empezar) | maíz 1 t, frijol 0,15 t, calabaza 0,3 t y pepita 0,02 t, chile 0,02 t, quelites 0,1 t; chapulines donde se comen |
+| **Chinampa** | lago somero o ciénega | conocimiento `chinampa` y la obra «chinampas» en la celda | de dos a tres veces la milpa por hectárea, con más trabajo (Calnek, 1972: una hectárea sostenía de 15 a 20 personas, unas 3 a 4 t ME) |
+| **Pesca** | lago | — | pescado blanco, charal, pato, rana |
+| **Monte** | bosque | — | venado, conejo, miel, quelites, y la madera de las obras |
+| **Solar** | en el asentamiento, por casa y no por celda | — | guajolote, aguacate, nopal, capulín y frutas: un poco por persona, sin ocupar tierra |
+| **Huerta de tierra caliente** | tierra caliente | — | cacao, papaya, zapotes, algodón para las mantas |
+| **Magueyal** | sierra y llano seco | — | pulque, aguamiel, fibra |
+| **Salinas** | lago salobre (Cuitzeo, Araró; por verificar) | — | sal |
+
+**Qué cambia en la producción.** La fórmula del factor escaso no cambia: cada celda tiene trabajadores ℓ y rendimientos y, y los trabajadores van primero a lo que más rinde por trabajador. Lo que cambia es de dónde salen ℓ e y: del sistema que se usa en la celda, no del terreno. Y lo que «más rinde» se compara en **valor** (cada bien por su valor del catálogo), no en toneladas, que no se pueden sumar entre maíz, cacao y mantas. Un terreno con `rendimiento_por_trabajador` sigue funcionando como hoy (regla 4).
+
+**La milpa y la chinampa son tecnologías** del mecanismo de *Tecnología y educación*: la milpa con dominio pleno en todas las facciones mesoamericanas desde el principio; la chinampa con condición geográfica (lago somero o ciénega), dominio alto entre los mexicas, xochimilcas y chalcas en 1475, y bajo o nulo entre los purépechas (por verificar: la ciénega de Zacapu y la ribera del lago de Pátzcuaro; Fisher, Pollard y Frederick, 1999, estudian la agricultura intensiva de la cuenca). Mientras no exista la difusión (paso 15), el dominio es una base del escenario, como el oficio de las obras: la chinampa ya se puede construir con lo que hay (una obra en celda con oficio). Las terrazas, que ya son una obra, habilitan la milpa en la sierra.
+
+**Por qué es bueno para el juego.** El jugador no decide qué sembrar en cada celda, porque eso sería una hoja de cálculo. Decide lo que decidía un señor: qué obras levantar (chinampas, terrazas), qué pedir en tributo a cada provincia (cacao a la tierra caliente, frijol al Bajío), cómo repartir lo guardado (abasto de la capital, cacao a los señores, maíz a los que tienen hambre) y con quién comerciar por lo que su tierra no da. Las regiones se vuelven distintas por lo que comen y lo que les falta, y la interfaz agrupa los bienes (granos, frijol, verduras, carne y pescado, gustos, lujos) para que una veintena de bienes no se vuelva una lista.
+
+**Escala.** Los bienes son magnitudes de la facción, pocas aunque sean veinticinco. En el altépetl solo se guarda la energía por grupo (cinco grupos, cosechado y reserva): con 7 500 altépetl, unas 75 000 entradas, y un cálculo por altépetl y año. La producción recorre por altépetl sus celdas y sistemas, como hoy.
+
 ### Crecimiento (hito 3b)
 
 Un sistema de demografía en el paso 11, cadencia de veintena:
@@ -808,6 +884,8 @@ La unidad política básica es el altépetl, que puede ser sujeto, señorío o i
 | Grupo de poder | id, clave de nombre por facción y periodo, eje al que contribuye, base de lealtad y poder por tipo de facción | `datos/grupos.json`; su lealtad y su poder son magnitudes de la facción. Paso 12 |
 | Reforma | id, requisitos (condiciones), costo inicial, efectos, grupo que la impulsa, grupo que se opone y umbrales de bloqueo | `datos/reformas.json`; se aprueba con `AprobarReforma` |
 | Tecnología | id, tipo (producto o sistema), canales, condiciones, efectos, resistencia, umbral de dominio | `datos/tecnologias.json`; su conocimiento codificado y tácito son magnitudes de la facción. Paso 15 |
+| Sistema de producción | id, terrenos, conocimiento, obra que lo habilita, trabajadores por celda, rendimiento por trabajador y año de cada bien | `datos/sistemas.json` (milpa, chinampa, pesca, monte, solar…; ver *La milpa, la chinampa y los sistemas de producción*). Paso 6 |
+| Grupo de la dieta | id, alimentos, tope de energía, tope de reserva, merma | `datos/dieta.json` (ver *La dieta*). Paso 7 |
 | Pop | asentamiento, residencia (núcleo o dispersa), identidad (origen o categoría: purépecha, hñähñú, nahua, chichimeca…; lista que crece), condición legal (por defecto `comun`), autoadscripción (por defecto, la identidad), estrato (incluye `nobleza_local`), `gradiente_catolicismo` (de 0, culto tradicional, a 1, catolicismo; en el juego completo, un valor por culto), tamaño, resto de crecimiento, lealtad, agravio, necesidades | Agregado, como en Victoria II; la condición y la autoadscripción las usa el juego completo (ver *Población: origen, condición y mestizaje*) |
 | Bien | id, clave de nombre, categoría, valor base; para la moneda: calidad monetaria, referencia, elasticidad y si es designable (ver *La moneda designada y la inflación*) | Maíz, pescado, sal, cobre, mantas, obsidiana |
 | Edificio | id, costo (valor, veintenas mínimas, trabajo, materiales, oficio), cuadrilla máxima, requisitos, modificadores (fijos o con fórmula de beneficio), ámbitos (asentamiento, celda o los dos; por defecto, asentamiento), al terminar (efectos, opcional), reemplaza (edificio del nivel anterior, opcional), mantenimiento (opcional), máximo por asentamiento (opcional, para lo único) | Datos puros; los niveles de un templo son edificios que se reemplazan; ver *Las obras* |
@@ -972,6 +1050,28 @@ I = F \, e^{-c/\lambda}
 | Mesoamérica (juego completo) | ~1 000 000 km² | ~45 000 |
 
 **Dueño y control.** El dueño de un hexágono se deriva de la influencia y se recalcula cada veintena. El control se consulta al momento: si un ejército enemigo ocupa el hexágono, controla el ocupante; si no, el dueño. Si hay varios ocupantes, controla el que llegó primero; los empates se resuelven por id de facción y luego de ejército.
+
+### Qué mueve la fuerza de una fuente: población, lealtad y afinidad (T26)
+
+Hoy el recorrido de influencia existe y está medido (abajo), pero las reglas todavía no le dan sus fuentes: ninguna F sale de la población, la lealtad ni la identidad. Lo que sí existe es el costo de gobernar a gente ajena dentro de cada altépetl: la identidad ajena suma agravio (+2 por año), resta 10 al techo de la lealtad y sube la carga administrativa. Esta sección dice cómo se conecta eso con el mapa, sin tocar el algoritmo del motor (regla 1: la fórmula de I y el recorrido no saben de identidades).
+
+**La fuerza de una fuente es una magnitud con modificadores.** Cada asentamiento que es fuente de influencia tiene `asentamiento.fuerza_influencia`:
+
+- **Base: su población, con rendimientos decrecientes.** \(F_0 = (N / N_{\text{ref}})^{\beta}\), con N_ref = 1 000 personas y β = 0,5 (relleno). Una ciudad cuatro veces más grande irradia el doble, no el cuádruple: es el tercer freno de *Población e influencia se retroalimentan*.
+- **Lealtad.** Un modificador de porcentaje con fuente «lealtad», \(\lambda_L\,(\ell - 50)/50\), con ℓ la lealtad del altépetl y λ_L = 0,2 (relleno): de −20 % con lealtad 0 a +20 % con lealtad 100. Un altépetl descontento empuja menos la frontera de su señor. El hambre de T25 entra por aquí sin regla aparte: baja la lealtad, y la lealtad baja la fuerza.
+- **Obras y personajes**, como ya prevé V5: la fortaleza de frontera, un gobernador hábil.
+
+Los topes son a propósito pequeños: la lealtad y la afinidad inclinan la frontera, no la deciden. Si la deciden, el ciclo influencia → tierras → producción → hambre → lealtad → influencia se vuelve una bola de nieve.
+
+**La afinidad: ¿de qué lado está la gente?** Cada identidad (purépecha, nahua, hñähñú, matlatzinca, chichimeca…) pertenece a una o más familias de afinidad (`datos/identidades.json`: lengua, culto, linaje, alianzas históricas), y cada facción tiene una identidad dominante, la de su centro. La afinidad de un pop con una facción es 1 si comparte su identidad, un valor intermedio si comparten familia (relleno: 0,5) y 0 si no; los sucesos la mueven con modificadores con fuente (los matlatzincas y otomíes acogidos por el cazonci como guardias de frontera ganan afinidad con el reino purépecha por un evento, no por la tabla). La afinidad media de un altépetl, ponderada por el tamaño de sus pops, actúa en tres lugares:
+
+1. **El costo de gobernar.** Lo que hoy es «identidad ajena sí o no» pasa a ser proporcional a 1 − afinidad: el agravio, el techo de la lealtad y la carga administrativa. Con afinidad 0 es lo de hoy; con afinidad 1, nada.
+2. **Las zonas disputadas.** Cuando dos fuentes casi empatan en las celdas de un altépetl (la segunda llega al 80 % de la primera), la afinidad de su gente con cada facción desempata: la influencia que se compara para decidir el dueño es \(I_f\,(1 + \kappa\, a_f)\), con a_f la afinidad con f y κ = 0,1 (relleno). Fuera de las zonas disputadas no cambia nada.
+3. **El riesgo de cambiar de lado.** Un señorío con lealtad baja dentro de la influencia de otra facción con la que tiene afinidad alta tiene más riesgo de rebelarse o de pasarse a ella (situaciones del guion con esa condición, no un sorteo nuevo).
+
+**Por qué es bueno para el juego.** Conquistar gente afín cuesta poco y conquistar gente ajena cuesta mucho, y el costo es visible en el desglose («fuerza 4,1: base 3,6, +12 % lealtad, +3 % fortaleza»). Pero la conquista nunca queda bloqueada: un pueblo ajeno se retiene con guarnición, con menos tributo, nombrando a su nobleza local o concediéndole el señorío. Las facciones se distinguen sin reglas propias: la Triple Alianza, hegemónica, deja a los señores locales y cobra tributo, así que vive con enclaves de baja afinidad como Tlaxcala; el reino purépecha, centralizado, integra y asienta colonos. La aculturación y el mestizaje del hito 6 mueven la identidad y, con ella, la afinidad.
+
+**Escala.** La fuerza cambia cada veintena en muchos altépetl (la lealtad se mueve sola), y la reparación incremental cuesta según cuántas fuentes cambian (13 ms con 1 de cada 1 000; 45 ms con 1 de cada 100). Para no rehacer el recorrido entero cada veintena, la fuente solo se actualiza cuando su fuerza cambia más que un umbral (`UMBRAL_CAMBIO_FUERZA`; relleno: 2 %). Es un umbral sobre lo que se publica, no sobre la simulación, y una ley compara el resultado con el cálculo completo dentro de esa tolerancia. Se mide con `--escala 7500x20`.
 
 **Rendimiento.** El recorrido se diseña para el mapa completo, no para el prototipo. Medido con 150 000 celdas y 7 500 fuentes de ocho facciones, sin umbral (`Motor.Recorrido` y `Motor.Influencia`):
 
@@ -1646,7 +1746,7 @@ Cada edificio declara en `ambitos` dónde puede levantarse: en el asentamiento (
 
 La economía del prototipo es extractiva: tasas, tributo y gasto. El mercado completo (oferta y demanda, mercaderes individuales, rutas explícitas) sería un sistema entero con su IA, su interfaz y su balance. Lo previsto es un mercado parcial:
 
-- **Seis bienes estratégicos,** los que V5 ya declara: maíz, pescado, sal, cobre, mantas y obsidiana. Cada región produce unos y necesita otros.
+- **Seis bienes estratégicos,** los que V5 ya declara: maíz, pescado, sal, cobre, mantas y obsidiana. Cada región produce unos y necesita otros. La dieta amplía el catálogo con alimentos, gustos y lujos (ver *La dieta: alimentos, gustos y lujos*); el mercado parcial los trata igual que a los seis.
 - **Precio administrado por facción** (`faccion.precio.<bien>`), que sube con la escasez y baja con la abundancia; no hay precio global.
 - **Comercio exterior por concesiones** de comercio, con precio negociado.
 - **El precio es una decisión:** subsidiar el maíz sube la lealtad y baja la extracción; dejar que suba hace lo contrario.

@@ -684,6 +684,25 @@ R'_a = \min\big(\text{necesidad}_a,\ \max(0,\ \text{disponible}_a - \text{necesi
 - **Durante el año**, el agravio de cada pop de a recibe por veintena el aporte «hambre» de `PartesAgravio` (`paHambre = A_hambre · (1 − c_a)` por año, que `deltaAgravio` divide entre P, los periodos por año), y la hacienda multiplica el ingreso de cada pop de a por c_a. **`repartir_bien`** (facción, altépetl, bien, cantidad q) entrega de las existencias de la facción solo lo que cabe: primero cubre el déficit de la cobertura del año, \(\min(q,\ (1-c_a)\,\text{necesidad}_a)\), y lo que sobra va a la reserva hasta su tope, \(\min(\text{sobra},\ \text{necesidad}_a - R_a)\). Sube la cobertura \(\Delta c = \text{para\_cobertura}/\text{necesidad}_a\), nunca la baja, y resta de las trojes solo lo entregado (el hecho `bien_repartido` dice lo pedido y lo entregado). Un altépetl que no necesita nada no recibe nada y no es un rechazo, para que una opción que reparte a varios altépetl no caiga entera por uno que no pasa hambre; se rechazan las trojes que no alcanzan para lo que se entregaría, un altépetl que no es de la facción, una cantidad no positiva y un bien que no es el alimento. **`recibir_bien`** (facción, bien, cantidad) suma a las existencias lo que llega de fuera (una compra) y es el reverso de `consumir_bien`.
 - **Sin datos de producción** (sin `--terrenos`), no hay subsistencia: c_a = 1 y todo sigue como antes.
 
+**La dieta por grupos** (V5, *La dieta: alimentos, gustos y lujos*; T27, propuesta). Cada alimento b tiene kilocalorías por kilogramo k_b y un grupo g(b); su energía en toneladas de maíz equivalente es e_b = k_b / k_maíz por tonelada. Al cosechar, lo que queda en el altépetl entra a lo cosechado de su grupo, en t ME: \(H_{a,g} \mathrel{+}= \sum_{b \in g} e_b\,(1-\tau_f)\,q_{a,b}\). Al cerrar el año, con N la necesidad de energía (\(n \sum_p N_p\), n = `NECESIDAD_ENERGIA`, 0,2 t ME por persona y año), t_g el tope del grupo y ρ_g su tope de reserva (0 para lo que no se guarda):
+
+```math
+D_{a,g} = H_{a,g} + R_{a,g}, \qquad
+c_a = \min\Big(1,\ \frac{1}{N}\sum_g \min(D_{a,g},\ t_g N)\Big)
+```
+
+La gente come de cada grupo lo que cuenta, \(\min(D_{a,g}, t_g N)\), escalado si la suma pasa de N, y lo que sobra de cada grupo va a su reserva hasta \(\rho_g N\). Sin `datos/dieta.json` hay un solo grupo con t = 1 y ρ = 1, la necesidad es la ración de maíz de T25 y todo es como en T25. Leyes: **tope** (la cobertura nunca pasa de \(\min(1, \sum_g t_g)\) aunque un grupo sobre; un solo grupo no da más que su tope), **equivalencia con T25** (con un grupo sin tope, la cobertura y la reserva son las de `cierreAnio`), masa conservada y cobertura monótona por grupo.
+
+**Necesidades de gustos y lujos** (T30, propuesta). Para el estrato s con N_s personas y la necesidad m_{s,b} por persona y año de cada bien b de gusto o lujo, con peso w_{s,b} (que suman 1), la satisfacción del año es
+
+```math
+\sigma_s = \sum_b w_{s,b}\, \min\Big(1,\ \frac{x_{s,b}}{m_{s,b}\, N_s}\Big)
+```
+
+donde x_{s,b} es lo que se le entregó de las existencias de la facción. Aporta al agravio de sus pops \(A_{\text{gusto}}\,(\sigma_0 - \sigma_s)\) por año (σ_0, la satisfacción neutra: con σ = σ_0 no cambia nada) y, para la nobleza y el sacerdocio, un modificador de la lealtad de su grupo de poder con fuente «lujos». Sin `datos/necesidades.json`, σ = σ_0 y nada cambia.
+
+**Sistemas de producción** (V5, *La milpa, la chinampa y los sistemas de producción*; T28, propuesta). Un sistema σ declara los terrenos donde se usa, el conocimiento k(σ) y la obra que pide, sus trabajadores por celda ℓ_σ y su rendimiento por trabajador y año r_{σ,b} de cada bien. En la celda c con terreno T(c), los sistemas posibles son los de T(c) cuyo conocimiento domina la facción y cuya obra está en la celda; la celda se trabaja con el que más valor da por trabajador, \(\sum_b r_{\sigma,b}\, v_b\) (v_b, el valor del bien en el catálogo), con empate por id. De ahí salen ℓ(c) e y_b(c) = ℓ_σ r_{σ,b} / P, y la fórmula del factor escaso de abajo no cambia, salvo que el orden de las celdas compara valor por trabajador, \(\sum_b y_b(c)\, v_b / \ell(c)\), y no toneladas. Un sistema a medias de dominio (d < 1) rinde d veces lo suyo. El solar no ocupa celdas: da \(N_a\, r_{\text{solar},b}\) por año a cada altépetl, proporcional a su gente.
+
 **Unidades** (V5, *Medidas reales y cifras de referencia*; T24). Los bienes a granel se cuentan en toneladas y las mantas en piezas (el valor de un kilogramo se redondearía a cero con cuatro decimales). La tabla de terrenos da, por terreno, los trabajadores que trabajan la celda entera, ℓ(c), y el rendimiento por trabajador y año r_b en las unidades del bien; el rendimiento de la celda por periodo, de la fórmula de producción, que no cambia, es y_b(c) = ℓ(c) · r_b / P con P los periodos por año (`periodos_por_anio` del archivo, que una prueba compara con el calendario). Un terreno lleva `rendimiento` por celda y periodo o `rendimiento_por_trabajador`, no los dos.
 
 **Producción: tierra y brazos, el factor escaso manda.** Cada celda c tiene un rendimiento y(c) cuando se trabaja completa y necesita ℓ(c) trabajadores para ello; las dos son magnitudes, así que el terreno, las terrazas, la erosión y la estación las mueven. Los trabajadores van primero a las mejores celdas: se ordenan las celdas asignadas K(a) por κ(c)·y(c)/ℓ(c) descendente, con empates por id, y se llenan en ese orden.
@@ -752,6 +771,14 @@ Los flujos se calculan todos a la vez desde el estado anterior, **por origen y s
 2. O_i se reparte entre los destinos por el **método del mayor resto** (Hamilton): cada destino recibe la parte entera de su cuota y las unidades sobrantes van a los de mayor parte fraccionaria, con empates por id.
 
 Así, lo que sale de cada origen es exactamente lo que entra en sus destinos en cada veintena, y la ley de conservación se cumple por construcción.
+
+**La fuerza de una fuente** (V5, *Qué mueve la fuerza de una fuente*; T26, propuesta). Para el asentamiento s con población N_s, lealtad ℓ_s y la suma p_s de los demás porcentajes (obras, personajes):
+
+```math
+F_s = \Big(\frac{N_s}{N_{\text{ref}}}\Big)^{\beta}\,\Big(1 + \lambda_L\,\frac{\ell_s - 50}{50} + p_s\Big)
+```
+
+La afinidad del altépetl a con la facción f es \(a_{a,f} = \sum_{p \in a} N_p\, \alpha(\text{id}_p, f) / \sum_{p\in a} N_p\), con α = 1 para la identidad dominante de f, la de familia para las afines y 0 para las ajenas, más los modificadores de los sucesos. En una zona disputada, el dueño se decide comparando \(I_f\,(1 + \kappa\, a_{a,f})\); fuera de ellas, con I_f. El costo de gobernar (agravio por identidad, techo de lealtad, carga administrativa) se multiplica por \(1 - a_{a,f}\). La fuente se publica al recorrido solo cuando \(|F_s - F_s^{\text{publicada}}| > u\,F_s^{\text{publicada}}\) (u = `UMBRAL_CAMBIO_FUERZA`).
 
 **Población e influencia.** La fuerza F de una fuente crece con su población, así que la migración desplaza las fronteras sin regla especial. Los frenos (presión, carga administrativa, exposición) son términos que entran en A y en la eficiencia.
 
@@ -1606,6 +1633,11 @@ Las reglas del diseño, escritas como propiedades. En un lenguaje puro, "la mism
 | Masa conservada | En el año de cada altépetl, lo cosechado es igual a lo tributado más lo comido más el cambio de la reserva más lo perdido por merma y por el tope, salvo el redondeo |
 | Cobertura neutra | Con cobertura 1 en todos los altépetl, el agravio y la hacienda son los de antes de la subsistencia; sin datos de producción, la partida es idéntica |
 | Cobertura monótona | Más cosecha, más reserva o más reparto nunca bajan la cobertura de un altépetl |
+| Tope de la dieta | La cobertura de un altépetl nunca pasa de min(1, Σ t_g): un solo grupo de alimento no da más que su tope, por mucho que sobre (T27) |
+| Equivalencia de la dieta | Con un solo grupo sin tope (sin `datos/dieta.json`), la cobertura y la reserva son las de T25 (T27) |
+| Sistema neutro | Un terreno sin sistemas, con su `rendimiento_por_trabajador`, produce lo mismo que antes de los sistemas (T28) |
+| Influencia neutra | Con lealtad 50 en todos los altépetl y sin afinidades (todas 1 o todas 0 por igual), el dueño de cada celda es el mismo que con la fuerza de la sola población (T26) |
+| Lealtad monótona en la influencia | Más lealtad de un altépetl nunca baja su fuerza ni le quita celdas a su facción (T26) |
 | Rango de los bienes | Con las cifras de referencia a la escala del juego completo, ninguna magnitud en kg satura `Fijo` |
 | Consumo exacto | `consumir_bien` resta exactamente lo pedido; con menos existencias, o `gastar_valor` con menos tesoro, se rechaza sin cambiar el estado |
 | Nombramiento sin trinquete | Mientras dura un cargo, su aporte al poder del grupo es constante; al terminar el cargo, es 0 y sus modificadores emiten `modificador_terminado` (sección 14d) |
