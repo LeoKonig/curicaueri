@@ -65,16 +65,21 @@ data Faccion = Faccion
   , facDesde         :: Maybe Int
   , facHasta         :: Maybe Int
   , facTransferencia :: Transferencia
+  , facAbasto        :: Int
+    -- ^ la orden permanente de abasto (T29): qué porcentaje del déficit de
+    -- la capital cubren las trojes al cerrarse la cosecha; 0 por omisión
   } deriving (Eq, Show, Generic, ToJSON)
 
 -- | Los guardados anteriores no traen fechas ni transferencia: la facción no
--- aparece ni desaparece por fecha, y lo que tuviera se perdería.
+-- aparece ni desaparece por fecha, y lo que tuviera se perdería. Tampoco
+-- traen la orden de abasto: las trojes no abastecen a la capital.
 instance FromJSON Faccion where
   parseJSON = withObject "Faccion" $ \o ->
     Faccion <$> o .: "facId" <*> o .: "facNombre" <*> o .: "facTipo" <*> o .: "facEstado"
             <*> o .: "facGobernante" <*> o .: "facTasas" <*> o .: "facPresupuesto"
             <*> o .: "facJugable" <*> o .:? "facDesde" <*> o .:? "facHasta"
             <*> o .:? "facTransferencia" .!= transferenciaNada
+            <*> o .:? "facAbasto" .!= 0
 
 -- | Potencial: declarada pero todavía no existe. Activa: la recorren los
 -- sistemas. Eliminada: ya no existe, y su id no se vuelve a usar.
@@ -103,7 +108,7 @@ transferenciaNada = Transferencia SePierde SePierde SePierde
 faccionUnica :: PerId -> Tasas -> Presupuesto -> Faccion
 faccionUnica gob tas pre =
   Faccion (FaccionId 1) "Reino purépecha" "reino_centralizado" Activa gob tas pre True
-          Nothing Nothing transferenciaNada
+          Nothing Nothing transferenciaNada 0
 
 -- | La condición del altépetl (V5, *Condición del altépetl*). @Cabecera f@
 -- es la cabecera de la facción @f@: el altépetl independiente es la cabecera
