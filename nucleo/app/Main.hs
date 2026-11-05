@@ -65,7 +65,7 @@ import Motor.Guardado (guardar, cargar)
 import Motor.Base
 import qualified Data.IntMap.Strict as IntMap
 import Motor.Estado
-import Motor.Hechos (Hecho)
+import Motor.Hechos (Hecho (..))
 import Motor.Juego
 import Motor.Mapa
 import Motor.Proyeccion
@@ -89,9 +89,9 @@ import Agente
 import Reglas.Comando
 import Reglas.Constantes (constantesDefault)
 import Reglas.Escenario
-import Reglas.Estado (Purepecha, ppAltepetl, ppFacciones, ppPops, jugableDe)
+import Reglas.Estado (Purepecha, ppAltepetl, ppFacciones, ppPops, ppTerrenos, jugableDe)
 import Reglas.Facciones (conAgentesNulos)
-import Reglas.Edificios (cargarEdificios, conConocimientos, edificiosVacios, idsEdificios, procesosDe)
+import Reglas.Edificios (cargarEdificios, conConocimientos, edificiosVacios, idsEdificios, mapaConTerrenos, procesosDe, validarTerrenosDeEdificios)
 import Reglas.Produccion (bienesConProcesos, bienesDe, cargarCosechas, catalogoBienes, validarBienesDelTerritorio)
 import Reglas.Procesos (validarProcesosDelTerritorio)
 import Reglas.Dieta (Dieta (..), GrupoDieta (..), cargarDieta)
@@ -217,6 +217,7 @@ main = do
       producidos = bienesConProcesos terrenos procesos
       rutaTerrenos = T.pack (opcion "--terrenos" "")
   validado (validarProcesosDelTerritorio (T.pack (opcion "--edificios" "")) [ t | Terreno t <- Map.keys terrenos ] procesos)
+  validado (validarTerrenosDeEdificios (T.pack (opcion "--edificios" "")) [ t | Terreno t <- Map.keys terrenos ] edificios)
   cosechas <- maybe (pure Map.empty) (validado . cargarCosechas rutaTerrenos producidos) terrenosJson
   unless (null producidos) $ registro ("bienes del territorio: " <> T.intercalate ", " producidos)
   unless (Map.null cosechas) $ registro ("con cosecha por estación: " <> T.intercalate ", " (Map.keys cosechas))
@@ -253,7 +254,7 @@ main = do
       grafoR = grafoDe mapaR
   let comandos = catalogoComandosConMonedas (idsEdificios edificios)
                    (Map.keys (Map.unions (map dtMateriales (Map.elems terrenos)))) designables
-      juego = RJ.juegoDatosEn (escVisible esc) (escInicio esc) constantesDefault (RJ.DatosReglas grupos edificios terrenos economia cosechas dieta)
+      juego = RJ.juegoDatosEn (escVisible esc) (escInicio esc) constantesDefault (RJ.DatosReglas grupos edificios terrenos economia cosechas dieta (Just mapaR))
       -- --escala 7500x20: altépetl y pops de prueba para medir el costo a la
       -- escala del mapa completo (solo para la prueba de rendimiento del núcleo).
       (escN, escK) = case break (== 'x') (opcion "--escala" "") of
@@ -454,6 +455,11 @@ turnoDelAgente conf juego p t = case cAgente conf of
         registro ("agente, tick " <> T.pack (show t) <> ": comando ilegible: " <> T.pack err)
         pure []
 
+-- | El mapa que ve el cliente: el de la partida con los terrenos que cambió alguna obra (T38).
+mapaActual :: Config -> Mapa -> Estado Purepecha -> MapaCliente
+mapaActual conf mapaR e =
+  mapaCliente (cAncho conf) (cAlto conf) (mapaConTerrenos (ppTerrenos (persistenteJuego (estadoPersistente e))) mapaR)
+
 sesion :: Config -> RJ.JuegoPurepecha -> Mapa -> IORef Partida -> Socket -> IO ()
 sesion conf juego mapaR ref conn = do
   h <- socketToHandle conn ReadWriteMode
@@ -505,7 +511,7 @@ sesion conf juego mapaR ref conn = do
           enviar (NHola versionProtocolo)
           enviar (NCatalogo (CatalogoCliente (declMagnitudes RJ.catalogoMag) (cComandos conf) (cVelocidades conf)
                        (comunCalendario (persistenteComun (estadoPersistente (pEstado p)))) (cEjes conf)))
-          enviar (NMapa (mapaCliente (cAncho conf) (cAlto conf) mapaR))
+          enviar (NMapa (mapaActual conf mapaR (pEstado p)))
           enviar (NInstantanea (reloj p) v')
           modifyIORef' ref (\q -> q { pDecisionesEnviadas = [], pCronicaEnviada = 0, pFinEnviado = False })
           sincronizarDecisiones enviar
@@ -556,6 +562,8 @@ sesion conf juego mapaR ref conn = do
                 -- núcleo debe reenviar todas las pendientes del guardado.
                 modifyIORef' ref (\p -> p { pEstado = e, pSiguiente = sig, pPendientes = [], pRespuestas = [], pDecisionesEnviadas = [], pCronicaEnviada = 0, pFinEnviado = False, pPausado = True, pVista = proyeccionCon juego (pInteres p) e })
                 p <- readIORef ref
+                -- El mapa también: la partida guardada puede traer terrenos cambiados por una obra.
+                enviar (NMapa (mapaActual conf mapaR (pEstado p)))
                 enviar (NInstantanea (reloj p) (pVista p))
                 sincronizarDecisiones enviar
                 sincronizarCronica enviar reloj
@@ -630,6 +638,9 @@ sesion conf juego mapaR ref conn = do
         enviar (NError (Just (sellSecuencia s)) motivo)
       forM_ rechazosR $ \(r, Rechazo motivo) -> enviar (NError (Just (reSecuencia r)) motivo)
       enviar (NCambios (reloj p') (cambios (pVista p) (pVista p')) (hs :: [Hecho]))
+      -- Una roturación terminada cambió el terreno de una celda: el cliente repinta con el mapa nuevo.
+      when (any ((== "terreno_modificado") . hechoTipo) hs) $
+        enviar (NMapa (mapaActual conf mapaR (pEstado p')))
       sincronizarDecisiones enviar
       sincronizarCronica enviar reloj
       when (t `mod` 20 == 0) $ registro ("tick " <> T.pack (show t))

@@ -7,6 +7,8 @@ extends Control
 const Textos = preload("res://red/textos.gd")
 
 signal seleccion(clave: String)
+## Un clic en una celda que no es de un altépetl: sirve para elegir dónde construir (T38).
+signal celda_pulsada(id: int)
 
 const COLORES := {
 	"llano": Color("#c9b97a"), "bosque": Color("#5f7f4a"),
@@ -21,6 +23,7 @@ var _margen := Vector2(30, 30)
 var zoom := 1.0                 # rueda del ratón
 var desplazamiento := Vector2.ZERO   # arrastrar con el botón derecho o el central
 var celdas_dibujadas := 0
+var celda_marcada := -1         # la celda elegida para construir; solo se dibuja, no entra a la simulación
 
 
 func centro_celda(id: int) -> Vector2:
@@ -125,6 +128,14 @@ func _draw() -> void:
 	draw_set_transform(desplazamiento, 0.0, Vector2(zoom, zoom))
 	draw_mesh(_malla, null)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
+	# La celda elegida para construir, con un contorno.
+	if celda_marcada >= 0:
+		var centro := a_pantalla(centro_celda(celda_marcada))
+		var contorno := PackedVector2Array()
+		for k in 7:
+			var a := deg_to_rad(60.0 * (k % 6) - 30.0)
+			contorno.append(centro + Vector2(cos(a), sin(a)) * (tam - 1.0) * zoom)
+		draw_polyline(contorno, Color("#fff4b0"), 3.0)
 	# Los altépetl y sus nombres se dibujan en coordenadas de pantalla, para que
 	# sigan legibles con cualquier zoom.
 	var fuente := ThemeDB.fallback_font
@@ -178,3 +189,9 @@ func _gui_input(evento: InputEvent) -> void:
 			seleccionado = mejor
 			queue_redraw()
 			seleccion.emit(mejor)
+		else:
+			var id := celda_en(evento.position)
+			if id >= 0 and id < espejo.mapa["celdas"].size():
+				celda_marcada = id
+				queue_redraw()
+				celda_pulsada.emit(id)

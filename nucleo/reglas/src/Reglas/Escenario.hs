@@ -33,7 +33,9 @@ import Reglas.Estado
 
 escenario1475 :: Purepecha
 escenario1475 = Purepecha
-  { ppAltepetl = Map.fromList
+  { ppObrasCelda = Map.empty
+  , ppTerrenos = Map.empty
+  , ppAltepetl = Map.fromList
       [ (AltId 1, Altepetl (AltId 1) "Tzintzuntzan"
                     (Just (PerId 2)) (fi 0) Nothing (fi 80) 63 Nothing [] f1 (Cabecera f1))
       , (AltId 2, Altepetl (AltId 2) "Zacapu"
@@ -65,8 +67,9 @@ escenario1475 = Purepecha
       ]
   , ppFacciones   = Map.singleton f1 $
       -- El cazonci es Zuangua, de administración 3.
-      (faccionUnica (PerId 1) (Tasas 3 3) (Presupuesto 30 25 30 15 0))
-        { facTipo = tipoFaccion1475 }
+      -- Las trojes abastecen todo el déficit de la capital (T29), como el
+      -- tributo abastecía a Tzintzuntzan.
+      (faccionUnica (PerId 1) (Tasas 3 3) (Presupuesto 30 25 30 15 0)) { facTipo = tipoFaccion1475, facAbasto = 100 }
   }
   where f1 = FaccionId 1
 
@@ -224,7 +227,7 @@ data FaccionD = FaccionD
   { fdId :: Int, fdNombre :: Text, fdTipo :: Text, fdEstado :: EstadoFaccion, fdJugable :: Bool
   , fdDesde :: Maybe Fecha, fdHasta :: Maybe Fecha, fdAbsorbente :: Maybe Int
   , fdGobernante :: Int, fdTasas :: Tasas, fdPresupuesto :: Presupuesto
-  , fdTesoro :: Maybe Fijo, fdPrestigio :: Maybe Fijo, fdLegitimidad :: Maybe Fijo
+  , fdTesoro :: Maybe Fijo, fdPrestigio :: Maybe Fijo, fdLegitimidad :: Maybe Fijo, fdAbasto :: Int
   , fdPersonajes :: [PersonajeD], fdAltepetl :: [AltepetlD] }
 
 data PersonajeD = PersonajeD
@@ -251,7 +254,7 @@ leerFacciones = withObject "archivo de facciones" $ \o -> o .: "facciones" >>= m
         <*> (o .:? "tasas" >>= maybe (pure (Tasas 3 3)) (withObject "tasas" (\t -> Tasas <$> t .: "tributo" <*> t .: "impuesto")))
         <*> (o .:? "presupuesto" >>= maybe (pure (Presupuesto 30 25 30 15 0)) (withObject "presupuesto" (\p ->
                Presupuesto <$> p .: "ejercito" <*> p .: "administracion" <*> p .: "obras" <*> p .: "diplomacia" <*> p .: "culto")))
-        <*> o .:? "tesoro" <*> o .:? "prestigio" <*> o .:? "legitimidad"
+        <*> o .:? "tesoro" <*> o .:? "prestigio" <*> o .:? "legitimidad" <*> o .:? "abasto" .!= 0
         <*> (o .:? "personajes" .!= [] >>= mapM personaje)
         <*> (o .: "altepetl" >>= mapM altepetl)
     personaje = withObject "personaje" $ \o ->
@@ -348,6 +351,7 @@ cargarEscenario esc archivos = do
       let fac f = Faccion (FaccionId (fdId f)) (fdNombre f) (fdTipo f) (fdEstado f) (PerId (fdGobernante f))
                           (fdTasas f) (fdPresupuesto f) (fdJugable f) (fmap tick (fdDesde f)) (fmap tick (fdHasta f))
                           (maybe transferenciaNada (\ab -> let d = AlAbsorbente (FaccionId ab) in Transferencia d d d) (fdAbsorbente f))
+                          (fdAbasto f)
           alt f a = Altepetl (AltId (adId a)) (adNombre a) (fmap PerId (adGobernador a)) (adDistancia a)
                              (fmap AltId (adSujetoA a)) (adLealtad a) (adCelda a) Nothing [] (FaccionId (fdId f))
                              (case adCondicion a of
@@ -361,6 +365,8 @@ cargarEscenario esc archivos = do
             , ppPops       = Map.fromList [ (PopId (qdId q), pop a q) | f <- facs, a <- fdAltepetl f, q <- adPops a ]
             , ppPersonajes = Map.fromList [ (PerId (pdId p), per f p) | f <- facs, p <- fdPersonajes f ]
             , ppFacciones  = Map.fromList [ (FaccionId (fdId f), fac f) | f <- facs ]
+            , ppObrasCelda = Map.empty
+            , ppTerrenos   = Map.empty
             }
           mags = Map.fromList $
             [ ((entRefPop (PopId (qdId q)), Magnitud "agravio"), AlmacenMag ag [])

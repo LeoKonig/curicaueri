@@ -7,6 +7,7 @@
       "tipo": "reino_centralizado",
       "estado": "activa",
       "jugable": true,
+      "abasto": 100,
       "gobernante": 1,
       "tasas": {
         "tributo": 3,

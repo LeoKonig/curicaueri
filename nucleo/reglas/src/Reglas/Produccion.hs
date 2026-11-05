@@ -40,6 +40,8 @@ module Reglas.Produccion
   , derivarTerritorio
   , ConProcesos (..)
   , derivarTerritorioCon
+  , derivarTerritorioMej
+  , composicionEn
   , bienesConProcesos
   , celdaTrabajo
   , ordenarCeldas
@@ -237,12 +239,28 @@ celdaTrabajo c t s d
 parteDe :: Fijo -> Fijo -> Fijo
 parteDe s x = if s == uno then x else s .*. x
 
+-- | La composición de una celda: la que cambió una obra (la roturación, T38) o, si no,
+-- la del mapa. 'Nothing' si no hay mapa o la celda no existe.
+composicionEn :: Maybe Mapa -> Map Int [(Text, Fijo)] -> Int -> Maybe [(Text, Fijo)]
+composicionEn mm cambios cel = case Map.lookup cel cambios of
+  Just cs -> Just cs
+  Nothing -> do
+    m <- mm
+    ce <- IntMap.lookup cel (mapaCeldas m)
+    pure [ (t, s) | (Terreno t, s) <- composicionDe ce ]
+
 -- | Los componentes que trabaja cada celda asignada: cada uno con su terreno,
--- su fracción y su definición. Un terreno sin definición no da nada.
-componentesDe :: Map Terreno DefTerreno -> Mapa -> Int -> [(Text, Fijo, DefTerreno)]
-componentesDe tabla mapa cel = case IntMap.lookup cel (mapaCeldas mapa) of
-  Nothing -> []
-  Just ce -> [ (t, s, d) | (Terreno t, s) <- composicionDe ce, Just d <- [Map.lookup (Terreno t) tabla] ]
+-- su fracción y su definición. Un terreno sin definición no da nada. Las celdas
+-- cuyo terreno cambió una obra usan la composición nueva.
+componentesDe :: Map Terreno DefTerreno -> Mapa -> Map Int [(Text, Fijo)] -> Int -> [(Text, Fijo, DefTerreno)]
+componentesDe tabla mapa cambios cel =
+  [ (t, s, d) | Just comp <- [composicionEn (Just mapa) cambios cel], (t, s) <- comp, Just d <- [Map.lookup (Terreno t) tabla] ]
+
+-- | Una celda trabajada, con el rendimiento multiplicado por la mejora de su celda.
+-- Con mejora 1 no se toca nada (sin redondeo).
+mejorada :: (Int -> Fijo) -> CeldaTrabajo -> CeldaTrabajo
+mejorada mejora ct = let f = mejora (ctCelda ct)
+                     in if f == uno then ct else ct { ctRendimiento = Map.map (.*. f) (ctRendimiento ct) }
 
 -- | Las celdas de mejor a peor por y/ℓ, con empate por id de celda y luego por
 -- terreno del componente. La comparación se hace en enteros, multiplicando en
@@ -292,7 +310,14 @@ data ConProcesos = ConProcesos
 -- lo que come su gente más el tributo en especie, y después el valor.
 derivarTerritorioCon :: Maybe ConProcesos -> Constantes -> Map Terreno DefTerreno -> Mapa -> Grafo -> Purepecha
                      -> (Map AltId [CeldaTrabajo], Map AltId (Map Text [CeldaTrabajo]))
-derivarTerritorioCon mcp c tabla mapa gr p
+derivarTerritorioCon = derivarTerritorioMej (const uno)
+
+-- | 'derivarTerritorioCon' con la mejora de rendimiento de cada celda (las terrazas,
+-- T38): lo que da cada componente de la celda se multiplica por ella. Con mejora 1
+-- en todas, es 'derivarTerritorioCon'.
+derivarTerritorioMej :: (Int -> Fijo) -> Maybe ConProcesos -> Constantes -> Map Terreno DefTerreno -> Mapa -> Grafo -> Purepecha
+                     -> (Map AltId [CeldaTrabajo], Map AltId (Map Text [CeldaTrabajo]))
+derivarTerritorioMej mejora mcp c tabla mapa gr p
   | null (bienesDe tabla) && null deCelda && all (Map.null . dtMateriales) (Map.elems tabla) = (Map.empty, Map.empty)
   | not (null deCelda), Just cp <- mcp =
       let (_, mats) = sinProcesos
@@ -306,7 +331,7 @@ derivarTerritorioCon mcp c tabla mapa gr p
                 tau = maybe (Fijo 0) (\fa -> cTributoEspecie c .*. fi (tasaTributo (facTasas fa))) (alt >>= \x -> Map.lookup (altFaccion x) (ppFacciones p))
                 need = fi (Map.findWithDefault 0 a personas) .*. cpNecesidad cp
                 objetivo = (need ./. (uno .-. tau)) ./. cTicksPorAnio c
-                opciones = [ opcionesDeCelda (cTicksPorAnio c) (cpDominio cp f) deCelda cel t s (celdaTrabajo cel t s d)
+                opciones = [ map (mejorada mejora) (opcionesDeCelda (cTicksPorAnio c) (cpDominio cp f) deCelda cel t s (celdaTrabajo cel t s d))
                            | (cel, t, s, d) <- celdas ]
             in elegirCeldas (cpEnergia cp) (cpValor cp) objetivo (Map.findWithDefault 0 a ws) [ os | os <- opciones, not (null os) ]
       in (Map.mapWithKey deAltepetl porAlt, mats)
@@ -315,15 +340,15 @@ derivarTerritorioCon mcp c tabla mapa gr p
     deCelda = [ pr | Just cp <- [mcp], pr <- cpProcesos cp, prLugar pr == EnCelda ]
     fuentes = [ (AsentId i, CeldaId (altCelda a)) | a <- Map.elems (ppAltepetl p), let AltId i = altId a ]
     asig = asignarCeldas (cRadioProduccion c) gr fuentes
-    asignadas = [ (AltId a, cel, t, s, d) | (cel, AsentId a) <- IntMap.toList asig, (t, s, d) <- componentesDe tabla mapa cel ]
-    sinProcesos = derivarSinProcesos asignadas
+    asignadas = [ (AltId a, cel, t, s, d) | (cel, AsentId a) <- IntMap.toList asig, (t, s, d) <- componentesDe tabla mapa (ppTerrenos p) cel ]
+    sinProcesos = derivarSinProcesos mejora asignadas
 
 -- | Las celdas y los materiales de cada altépetl sin procesos de celda. Los
 -- materiales de obra salen del componente que los tiene, con su fracción.
-derivarSinProcesos :: [(AltId, Int, Text, Fijo, DefTerreno)] -> (Map AltId [CeldaTrabajo], Map AltId (Map Text [CeldaTrabajo]))
-derivarSinProcesos asignadas =
+derivarSinProcesos :: (Int -> Fijo) -> [(AltId, Int, Text, Fijo, DefTerreno)] -> (Map AltId [CeldaTrabajo], Map AltId (Map Text [CeldaTrabajo]))
+derivarSinProcesos mejora asignadas =
       let porAlt = Map.fromListWith (++)
-                     [ (a, [ct]) | (a, cel, t, s, d) <- asignadas, Just ct <- [celdaTrabajo cel t s d] ]
+                     [ (a, [mejorada mejora ct]) | (a, cel, t, s, d) <- asignadas, Just ct <- [celdaTrabajo cel t s d] ]
           mats = Map.fromListWith (Map.unionWith (++))
                    [ (a, Map.singleton g [CeldaTrabajo cel l (Map.singleton g (parteDe s (mtRendimiento mt))) Nothing t])
                    | (a, cel, t, s, d) <- asignadas, (g, mt) <- Map.toList (dtMateriales d)

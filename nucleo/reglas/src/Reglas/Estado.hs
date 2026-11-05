@@ -19,6 +19,12 @@ data Purepecha = Purepecha
   , ppPops        :: Map PopId Pop
   , ppPersonajes  :: Map PerId Personaje
   , ppFacciones   :: Map FaccionId Faccion   -- ^ toda facción declarada, también la potencial y la eliminada: los ids no se reutilizan
+  , ppObrasCelda  :: Map Int [Text]
+    -- ^ los edificios terminados en cada celda (T38), dispersos: solo las celdas con obra.
+    -- Vacío por omisión: los guardados anteriores no traen obras en celdas.
+  , ppTerrenos    :: Map Int [(Text, Fijo)]
+    -- ^ la composición de las celdas cuyo terreno cambió una obra (la roturación, T38): solo la
+    -- diferencia sobre la del mapa, con el dominante primero. Vacío por omisión.
   } deriving (Eq, Show, Generic)
 
 -- | Los nombres son los del 'ToJSON' genérico. Un guardado anterior a las
@@ -28,7 +34,8 @@ data Purepecha = Purepecha
 instance ToJSON Purepecha where
   toJSON p = object
     [ "ppAltepetl" .= ppAltepetl p, "ppPops" .= ppPops p
-    , "ppPersonajes" .= ppPersonajes p, "ppFacciones" .= ppFacciones p ]
+    , "ppPersonajes" .= ppPersonajes p, "ppFacciones" .= ppFacciones p
+    , "ppObrasCelda" .= ppObrasCelda p, "ppTerrenos" .= ppTerrenos p ]
 
 instance FromJSON Purepecha where
   parseJSON = withObject "Purepecha" $ \o -> do
@@ -40,6 +47,7 @@ instance FromJSON Purepecha where
         pre <- o .: "ppPresupuesto"
         pure (Map.singleton (FaccionId 1) (faccionUnica gob tas pre))
     Purepecha <$> o .: "ppAltepetl" <*> o .: "ppPops" <*> o .: "ppPersonajes" <*> pure facs
+              <*> o .:? "ppObrasCelda" .!= Map.empty <*> o .:? "ppTerrenos" .!= Map.empty
 
 -- | Una facción de las que es dueña de su propia bolsa (V5, *Qué es una
 -- facción*). Su tesoro, su prestigio y su legitimidad no están aquí: son
@@ -65,16 +73,21 @@ data Faccion = Faccion
   , facDesde         :: Maybe Int
   , facHasta         :: Maybe Int
   , facTransferencia :: Transferencia
+  , facAbasto        :: Int
+    -- ^ la orden permanente de abasto (T29): qué porcentaje del déficit de
+    -- la capital cubren las trojes al cerrarse la cosecha; 0 por omisión
   } deriving (Eq, Show, Generic, ToJSON)
 
 -- | Los guardados anteriores no traen fechas ni transferencia: la facción no
--- aparece ni desaparece por fecha, y lo que tuviera se perdería.
+-- aparece ni desaparece por fecha, y lo que tuviera se perdería. Tampoco
+-- traen la orden de abasto: las trojes no abastecen a la capital.
 instance FromJSON Faccion where
   parseJSON = withObject "Faccion" $ \o ->
     Faccion <$> o .: "facId" <*> o .: "facNombre" <*> o .: "facTipo" <*> o .: "facEstado"
             <*> o .: "facGobernante" <*> o .: "facTasas" <*> o .: "facPresupuesto"
             <*> o .: "facJugable" <*> o .:? "facDesde" <*> o .:? "facHasta"
             <*> o .:? "facTransferencia" .!= transferenciaNada
+            <*> o .:? "facAbasto" .!= 0
 
 -- | Potencial: declarada pero todavía no existe. Activa: la recorren los
 -- sistemas. Eliminada: ya no existe, y su id no se vuelve a usar.
@@ -103,7 +116,7 @@ transferenciaNada = Transferencia SePierde SePierde SePierde
 faccionUnica :: PerId -> Tasas -> Presupuesto -> Faccion
 faccionUnica gob tas pre =
   Faccion (FaccionId 1) "Reino purépecha" "reino_centralizado" Activa gob tas pre True
-          Nothing Nothing transferenciaNada
+          Nothing Nothing transferenciaNada 0
 
 -- | La condición del altépetl (V5, *Condición del altépetl*). @Cabecera f@
 -- es la cabecera de la facción @f@: el altépetl independiente es la cabecera
@@ -161,6 +174,7 @@ data Obra = Obra
   , obAcopio    :: Map Text Fijo  -- ^ material acopiado
   , obTributos  :: Map Text TributoObra  -- ^ por material, el altépetl que lo envía como tributo en especie
   , obEnCamino  :: [Entrega]      -- ^ el material que viene en camino
+  , obCelda     :: Maybe Int      -- ^ la celda donde se levanta, si es una obra de celda (T38)
   } deriving (Eq, Show, Generic, ToJSON)
 
 -- | Un pedido de tributo en especie (V5, *Las obras*, etapa 2): el altépetl
@@ -188,6 +202,7 @@ instance FromJSON Obra where
          <*> o .:? "obCuadrilla" .!= 0 <*> o .:? "obTrabajo" .!= Fijo 0
          <*> o .:? "obAcopio" .!= Map.empty <*> o .:? "obTributos" .!= Map.empty
          <*> o .:? "obEnCamino" .!= []
+         <*> o .:? "obCelda"
 
 data Pop = Pop
   { popId        :: PopId
