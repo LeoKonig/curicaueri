@@ -67,6 +67,11 @@ catalogoMag = Map.fromList
     -- ('catalogoDieta').
   , (magCobertura,
      DefMagnitud "cobertura" rangoCobertura "m.cobertura" Nothing True)
+    -- El factor de costo de la ruta de un camino (T37): lo escribe la
+    -- construcción con un modificador de alcance @ruta@ y el derivado parcha
+    -- con él el grafo.
+  , (magCostoMovimiento,
+     DefMagnitud "celda.costo_movimiento" rangoCostoMovimiento "m.celda.costo_movimiento" Nothing False)
   ]
 
 -- | Los datos de reglas que vienen de archivos: grupos de poder y edificios.
@@ -311,9 +316,12 @@ derivarPurepecha c dr gr per =
       valor | Map.null (ecoBienes ec) = Map.fromList [ (b, uno) | b <- bienesConProcesos (drTerrenos dr) procs ]
             | otherwise = Map.map bnValor (ecoBienes ec)
       cp = ConProcesos procs energia valor (dtNecesidad dieta) (dominioBase alm)
-      (celdas, mats) = derivarTerritorioCon (if null procs then Nothing else Just cp) c (drTerrenos dr) (grafoMapa gr) gr p
-      (loc, cen) = derivarFieles c (drEdificios dr) gr p
-  in DerivadoPurepecha celdas mats loc cen (derivarDistancias c gr p)
+      -- Los caminos abaratan sus rutas: lo que recorre el resto del derivado
+      -- (celdas, templos, tributo) lee el grafo ya parchado (T37).
+      (vecinos, gr') = derivarCaminos c (drEdificios dr) (drTerrenos dr) alm gr p
+      (celdas, mats) = derivarTerritorioCon (if null procs then Nothing else Just cp) c (drTerrenos dr) (grafoMapa gr') gr' p
+      (loc, cen) = derivarFieles c (drEdificios dr) gr' p
+  in DerivadoPurepecha celdas mats loc cen (derivarDistancias c gr' p) vecinos
 
 -- | El juego sin archivo de grupos: nombrar gobernadores no mueve poder.
 juego :: Constantes -> Juego Purepecha Comando
@@ -349,7 +357,8 @@ juegoDatosEn visible inicio c dr = let bienes = bienesConProcesos (drTerrenos dr
   , juegoSucias      = sucias
   , juegoAgentes     = Map.empty
   , juegoCatalogoMag = Map.unions [ catalogoMag, catalogoDieta dieta, catalogoGrupos (drGrupos dr), catalogoBienes bienes
-                                  , catalogoConocimientos (drEdificios dr), catalogoMoneda (drEconomia dr) ]
+                                  , catalogoConocimientos (drEdificios dr), catalogoVecinos (drEdificios dr)
+                                  , catalogoMoneda (drEconomia dr) ]
   , juegoCondiciones = condicionesPropias
   , juegoEfectos     = efectosPropios dieta (drGrupos dr) (drEconomia dr)
   }

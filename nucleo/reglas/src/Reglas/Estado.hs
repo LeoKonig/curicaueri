@@ -364,10 +364,11 @@ data DerivadoPurepecha = DerivadoPurepecha
   , dpFielesLocal  :: Map (AltId, Text) Fijo
   , dpFielesCentro :: Map (AltId, Text) Fijo
   , dpDistancias   :: Map AltId (Map AltId Fijo)  -- ^ de cada altépetl con obra a los que pueden enviarle tributo
+  , dpVecino       :: Map AltId AltId             -- ^ el altépetl más cercano por ruta, solo si algún edificio lo pide (T37)
   } deriving (Eq, Show)
 
 derivadoPurepechaVacio :: DerivadoPurepecha
-derivadoPurepechaVacio = DerivadoPurepecha Map.empty Map.empty Map.empty Map.empty Map.empty
+derivadoPurepechaVacio = DerivadoPurepecha Map.empty Map.empty Map.empty Map.empty Map.empty Map.empty
 
 type instance DerivadoDe Purepecha = DerivadoPurepecha
 type instance PlanDe     Purepecha = ()

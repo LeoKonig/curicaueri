@@ -55,6 +55,11 @@ module Reglas.Edificios
   , trabajadoresPara
   , derivarFieles
   , derivarDistancias
+  , magCostoMovimiento
+  , rangoCostoMovimiento
+  , magVecinoCon
+  , catalogoVecinos
+  , derivarCaminos
   , fuenteTributo
   , diasDeTransporte
   , pedirTributo
@@ -80,7 +85,9 @@ import Motor.Hechos
 import Motor.Juego (Rechazo (..), hechoModificadorTerminado)
 import Motor.Magnitudes
 import Motor.Moneda (Economia, enCuenta)
-import Motor.Recorrido (Etiqueta (..), Cupo (..), Grafo, grafoMapa, primera, propagar, propagarGrafo)
+import Motor.Mapa (Celda (..), Mapa (..), Terreno)
+import Motor.Recorrido (Etiqueta (..), Cupo (..), Grafo, grafoMapa, listaMejores, parchearCostos, primera, propagar, propagarGrafo, rutaMasCorta)
+import Motor.Terrenos (DefTerreno (..))
 import Motor.Sistema
 import Reglas.Base
 import Reglas.Constantes
@@ -113,6 +120,9 @@ data DefModEdificio = DefModEdificio
   , dmeMagnitud :: Magnitud
   , dmeAporte   :: Aporte
   , dmeFormula  :: Formula
+  , dmeAlcance  :: Alcance        -- ^ a qué llega el modificador; @ruta@ solo para @celda.costo_movimiento@ (T37)
+  , dmeVecino   :: Maybe Text     -- ^ @condicion: {vecino_con: <edificio>}@: cuenta solo si el asentamiento
+                                  --   más cercano por ruta tiene ese edificio (T37)
   } deriving (Eq, Show)
 
 -- | Lo que hace un edificio al terminarse, además de sus modificadores: sumar
@@ -285,7 +295,7 @@ cargarEdificios archivo catalogo v = case A.parseEither leer v of
                                      then err ErrorEsquema ("procesos." <> i) "proceso repetido"
                                      else pure ()) (nub procIds)
     in (\_ _ _ _ ds -> Edificios ids (Map.fromList [ (deId d, d) | d <- ds ]) trads cons)
-         <$> repetidos <*> tradRep <*> conRep <*> (conOk <* procRep) <*> traverse (validar tradIds conIds) crudos
+         <$> repetidos <*> tradRep <*> conRep <*> (conOk <* procRep) <*> traverse (validar tradIds conIds ids) crudos
   where
     err :: CategoriaError -> Text -> Text -> Validacion b
     err cat ruta msg = falla (ErrorCarga cat archivo ruta msg)
@@ -314,7 +324,7 @@ cargarEdificios archivo catalogo v = case A.parseEither leer v of
       mods  <- o A..:? "modificadores" A..!= []
       fins  <- o A..:? "al_terminar" A..!= []
       pure (Crudo i val vs trab mats ins cmax maxi cultoV oficio mods fins)
-    validar tradIds conIds c =
+    validar tradIds conIds idsTodos c =
       let i = crId c
           ruta x = "edificios." <> i <> "." <> x
           positivoOCero r x msg = if x >= Fijo 0 then pure () else err ErrorRango r msg
@@ -335,7 +345,7 @@ cargarEdificios archivo catalogo v = case A.parseEither leer v of
                     Just m | m < 1 -> err ErrorRango (ruta "maximo") "el máximo es al menos 1"
                     _ -> pure ()
           cultoV = traverse (culto tradIds (ruta "culto")) (crCulto c)
-          modsV  = traverse (modificador (ruta "modificadores")) (zip [0 :: Int ..] (crMods c))
+          modsV  = traverse (modificador idsTodos (ruta "modificadores")) (zip [0 :: Int ..] (crMods c))
           finsV  = traverse (efecto (ruta "al_terminar")) (zip [0 :: Int ..] (crFins c))
           def cu ms fs = DefEdificio i (crValor c) (crVeintenas c) (crTrabajo c) (crMateriales c)
                                      (crCuadrillaMax c) (crMaximo c) cu (crOficio c) ms fs
@@ -381,19 +391,33 @@ cargarEdificios archivo catalogo v = case A.parseEither leer v of
     magnitud ruta m@(Magnitud n)
       | Map.member m catalogo = pure m
       | otherwise = err ErrorReferencia (ruta <> ".magnitud") ("magnitud que el juego no declara: " <> n)
-    modificador base (k, mv) =
+    modificador idsTodos base (k, mv) =
       let ruta = base <> "." <> T.pack (show k)
       in case A.parseEither campos mv of
            Left e -> err ErrorEstructura ruta (T.pack e)
-           Right (ent, mag, suma, por, f) ->
+           Right (ent, mag, suma, por, f, alc, vec) ->
              let aporte = case (suma, por) of
                    (Just s, Nothing) -> pure (Aporte s (Fijo 0))
                    (Nothing, Just p) -> pure (Aporte (Fijo 0) (p ./. desdeEntero 100))
                    _ -> err ErrorEsquema ruta "un modificador lleva «sumar» o «porcentaje», uno de los dos"
+                 alcance = case (alc :: Text) of
+                   "propia" -> pure AlcancePropia
+                   "ruta" | mag == magCostoMovimiento && ent == "altepetl" -> pure AlcanceRuta
+                          | otherwise -> err ErrorEsquema (ruta <> ".alcance")
+                              "el alcance «ruta» es de la magnitud celda.costo_movimiento de un altépetl"
+                   _ -> err ErrorReferencia (ruta <> ".alcance") ("alcance desconocido: " <> alc <> " (propia o ruta)")
+                 vecino = case vec of
+                   Nothing -> pure Nothing
+                   Just e | ent /= "altepetl" -> err ErrorEsquema (ruta <> ".condicion") "«vecino_con» es de un modificador del altépetl"
+                          | e `notElem` idsTodos -> err ErrorReferencia (ruta <> ".condicion.vecino_con") ("edificio que el archivo no declara: " <> e)
+                          | otherwise -> pure (Just e)
              in DefModEdificio <$> entidad ruta ent <*> magnitud ruta mag <*> aporte <*> formula ruta f
+                               <*> alcance <*> vecino
     campos = A.withObject "modificador" $ \o ->
-      (,,,,) <$> o A..: "entidad" <*> o A..: "magnitud" <*> o A..:? "sumar" <*> o A..:? "porcentaje"
-             <*> o A..:? "formula" A..!= ("fija" :: Text)
+      (,,,,,,) <$> o A..: "entidad" <*> o A..: "magnitud" <*> o A..:? "sumar" <*> o A..:? "porcentaje"
+               <*> o A..:? "formula" A..!= ("fija" :: Text)
+               <*> o A..:? "alcance" A..!= ("propia" :: Text)
+               <*> (o A..:? "condicion" >>= traverse (A.withObject "condicion" (\c -> c A..: "vecino_con")))
     efecto base (k, ev) =
       let ruta = base <> "." <> T.pack (show k)
       in case A.parseEither (A.withObject "efecto" (\o ->
@@ -618,6 +642,7 @@ construccion c eco eds = Sistema
   , sisLee      = lecturasMoneda eco
   , sisEscribe  = Set.fromList (magTesoro : map (magTacito . cnId) (edConocimientos eds)
                                 ++ [ dmeMagnitud m | d <- Map.elems (edDefs eds), m <- deMods d ]
+                                ++ map magVecinoCon (vecinosUsados eds)
                                 ++ [ m | d <- Map.elems (edDefs eds), SumarBase _ m _ <- deAlTerminar d ])
   , sisEjecutar = \_ est ->
       if Map.null (edDefs eds) then (est, []) else
@@ -635,7 +660,7 @@ construccion c eco eds = Sistema
                                         (e, hs0, Map.findWithDefault (Fijo 0) f rs) (alt, o)
             in (e', hs', Map.insert f r' rs)
           (est1, hs, _) = foldl' paso (est, [], partidas) enObra
-      in (recalcularBeneficios eds est1, hs)
+      in (recalcularVecinos eds (recalcularBeneficios eds est1), hs)
   }
 
 avanzar :: Constantes -> Economia -> Edificios -> Bool -> FaccionId -> (Estado Purepecha, [Hecho], Fijo) -> (AltId, Obra)
@@ -754,7 +779,9 @@ recalcularBeneficios eds est =
       valores = concat
         [ [ (fuenteEdificio e (altId a), entD (dmeEntidad m), dmeMagnitud m
             , beneficio (dmeFormula m) (deCulto d) n (fieles (deCulto d)) (sac (deCulto d)) (dmeAporte m)
-            , detalleBeneficio (dmeFormula m) (deCulto d) n (fieles (deCulto d)) (sac (deCulto d)))
+            , detalleBeneficio (dmeFormula m) (deCulto d) n (fieles (deCulto d)) (sac (deCulto d))
+            , dmeAlcance m
+            , fmap (\v -> Mayor (entRefAlt (altId a)) (magVecinoCon v) (Fijo 0)) (dmeVecino m))
           | m <- deMods d ]
         | a <- conEd
         , (e, n) <- Map.toList (Map.fromListWith (+) [ (x, 1 :: Int) | x <- altEdificios a ])
@@ -767,14 +794,16 @@ recalcularBeneficios eds est =
               sac = maybe (Fijo 0) (\cu -> Map.findWithDefault (Fijo 0) (clave cu) sacerdotes)
         ]
       -- Cambia el aporte del modificador existente; si no hay, se añade.
-      fijar (alm, nuevos) (f, ent, mag, ap, det) =
-        let base0 = if mag == magProduccionAlt then baseProduccionAlt else Fijo 0
+      fijar (alm, nuevos) (f, ent, mag, ap, det, alc, cond) =
+        let base0 | mag == magProduccionAlt = baseProduccionAlt
+                  | mag == magCostoMovimiento = uno
+                  | otherwise = Fijo 0
             x = Map.findWithDefault (AlmacenMag base0 []) (ent, mag) alm
         in if any ((== f) . modFuente) (almacenMods x)
              then (Map.insert (ent, mag) x { almacenMods = [ if modFuente m == f then m { modAporte = ap, modDetalle = det } else m
                                                            | m <- almacenMods x ] } alm, nuevos)
              else (Map.insert (ent, mag) x alm,
-                   Modificador 0 mag ent ap f Nothing Nothing Nothing AlcancePropia det : nuevos)
+                   Modificador 0 mag ent ap f Nothing Nothing cond alc det : nuevos)
       -- Los nuevos se acumulan al revés y se invierten una vez: con miles de
       -- templos, pegarlos al final uno a uno era cuadrático.
       (alm1, nuevosAlReves) = foldl' fijar (comunMagnitudes com, []) valores
@@ -909,3 +938,115 @@ mostrarFijo :: Fijo -> Text
 mostrarFijo f = case A.toJSON f of
   A.String t -> t
   otro       -> T.pack (show otro)
+
+-- ---------------------------------------------------------------------------
+-- Caminos (T37)
+-- ---------------------------------------------------------------------------
+
+-- | El costo relativo de cruzar las celdas de una ruta (V5, *Caminos*): un
+-- factor sobre el costo de movimiento del terreno, que el camino baja con un
+-- modificador de alcance @ruta@. Lo guarda el altépetl que levantó el camino
+-- (base 1), así que el desglose dice cuánto abarata su ruta.
+magCostoMovimiento :: Magnitud
+magCostoMovimiento = Magnitud "celda.costo_movimiento"
+
+-- | De una décima a diez veces el costo del terreno.
+rangoCostoMovimiento :: RangoMag
+rangoCostoMovimiento = RangoMag (Fijo 1000) (fi 10)
+
+-- | 1 si el asentamiento más cercano por ruta tiene el edificio @e@, 0 si no.
+-- La condición @vecino_con@ de un modificador la lee como una condición
+-- cualquiera (@Mayor … 0@): el lenguaje del guion no cambia. Solo la escribe
+-- la construcción, con lo que dejó el derivado de la veintena anterior.
+magVecinoCon :: Text -> Magnitud
+magVecinoCon e = Magnitud ("asentamiento.vecino_con." <> e)
+
+-- | Los edificios que algún modificador nombra en @vecino_con@, sin repetir.
+vecinosUsados :: Edificios -> [Text]
+vecinosUsados eds = Set.toAscList (Set.fromList [ e | d <- Map.elems (edDefs eds), m <- deMods d, Just e <- [dmeVecino m] ])
+
+-- | Los edificios con algún modificador de alcance @ruta@.
+conRuta :: Edificios -> [Text]
+conRuta eds = [ deId d | d <- Map.elems (edDefs eds), any ((== AlcanceRuta) . dmeAlcance) (deMods d) ]
+
+catalogoVecinos :: Edificios -> Map Magnitud DefMagnitud
+catalogoVecinos eds = Map.fromList
+  [ (m, DefMagnitud n (RangoMag (Fijo 0) uno) ("m." <> n) Nothing False)
+  | e <- vecinosUsados eds, let m@(Magnitud n) = magVecinoCon e ]
+
+-- | Escribe la base de @asentamiento.vecino_con.<e>@ de cada altépetl que
+-- tiene el edificio @e@: 1 si su vecino más cercano ('dpVecino', del derivado
+-- de la veintena anterior) también lo tiene. Es el único escritor.
+recalcularVecinos :: Edificios -> Estado Purepecha -> Estado Purepecha
+recalcularVecinos eds est
+  | null usados = est
+  | otherwise = est { estadoPersistente = p { persistenteComun = com { comunMagnitudes = alm' } } }
+  where
+    usados = vecinosUsados eds
+    p = estadoPersistente est
+    jue = persistenteJuego p
+    com = persistenteComun p
+    der = derivadoJuego (estadoDerivado est)
+    tiene a e = e `elem` altEdificios a
+    bandera a e = case Map.lookup (altId a) (dpVecino der) >>= \b -> Map.lookup b (ppAltepetl jue) of
+      Just vecino | tiene vecino e -> uno
+      _ -> Fijo 0
+    alm' = foldl' (\al (a, e) -> fijarBase (entRefAlt (altId a)) (magVecinoCon e) (bandera a e) al)
+                  (comunMagnitudes com) [ (a, e) | a <- Map.elems (ppAltepetl jue), e <- usados, tiene a e ]
+
+-- | Lo que el paso 16 hace con los caminos (V5, *Caminos*; T37): el vecino
+-- más cercano de cada altépetl y el grafo con las rutas abaratadas.
+--
+-- * El vecino de un altépetl es el otro altépetl más cercano por el costo
+--   del grafo, hasta 'cAlcanceCamino', con empate por id (un recorrido de
+--   dos grupos desde todos los altépetl).
+-- * La ruta de un altépetl con un edificio de alcance @ruta@ va a su vecino
+--   más cercano entre los que tienen ese mismo edificio. Las celdas de la
+--   ruta pasan a costar el factor del modificador (la magnitud
+--   'magCostoMovimiento' del altépetl), y entre varias rutas gana la mejor:
+--   los caminos no se apilan. Con ese costo se parchea el grafo
+--   ('parchearCostos').
+--
+-- Las rutas y los vecinos se buscan en el grafo sin caminos, no en el parchado:
+-- así el derivado es función solo del estado persistente y una ruta nunca
+-- cambia por el camino que ella misma abarata. Sin edificios con ruta ni
+-- @vecino_con@ en juego no se recorre nada.
+derivarCaminos :: Constantes -> Edificios -> Map Terreno DefTerreno -> Almacen -> Grafo -> Purepecha
+               -> (Map AltId AltId, Grafo)
+derivarCaminos c eds tabla alm gr p
+  | null relevantes = (Map.empty, gr)
+  | otherwise = (vecinos, gr')
+  where
+    nec = Set.fromList (vecinosUsados eds ++ conRuta eds)
+    alts = Map.elems (ppAltepetl p)
+    relevantes = [ a | a <- alts, any (`Set.member` nec) (altEdificios a) ]
+    celdaDe a = CeldaId (altCelda a)
+    semilla a = let AltId i = altId a in (celdaDe a, Etiqueta (Fijo 0) i i)
+    -- El otro altépetl más cercano de cada uno de @grupo@ y a qué distancia,
+    -- desde las celdas de @grupo@.
+    vecinosDe grupo =
+      let res = propagarGrafo DosGrupos (Just (cAlcanceCamino c)) gr (map semilla grupo)
+      in Map.fromList
+           [ (altId a, (AltId (etGrupo e), etDistancia e))
+           | a <- grupo, let AltId i = altId a
+           , Just m <- [IntMap.lookup (altCelda a) res]
+           , e <- take 1 [ e | e <- listaMejores m, etGrupo e /= i ] ]
+    vecinos | null (vecinosUsados eds) = Map.empty
+            | otherwise = Map.map fst (vecinosDe alts)
+    -- Los factores de cada altépetl con camino, y las celdas de cada ruta.
+    factorDe a = case Map.lookup (entRefAlt a, magCostoMovimiento) alm of
+      Nothing -> uno
+      Just x -> valorEfectivo rangoCostoMovimiento (almacenBase x) (filter (\m -> modAlcance m == AlcanceRuta) (almacenMods x))
+    rutas = IntMap.unionsWith min
+      [ IntMap.fromList [ (cel, min (factorDe a) (factorDe b)) | CeldaId cel <- celdasRuta ]
+      | e <- conRuta eds
+      , let con = [ a | a <- alts, e `elem` altEdificios a ]
+      , length con >= 2
+      , ((a, b), d) <- Map.toAscList (Map.fromListWith min [ ((min x y, max x y), dist) | (x, (y, dist)) <- Map.toList (vecinosDe con) ])
+      , Just aa <- [Map.lookup a (ppAltepetl p)], Just bb <- [Map.lookup b (ppAltepetl p)]
+        -- La ruta no pasa de la distancia entre las dos puntas: explora solo esa bola.
+      , Just celdasRuta <- [rutaMasCorta (Just d) gr (celdaDe aa) (celdaDe bb)] ]
+    base cel = maybe uno dtCostoMovimiento
+                 (IntMap.lookup cel (mapaCeldas (grafoMapa gr)) >>= \ce -> Map.lookup (celdaTerreno ce) tabla)
+    mu (CeldaId cel) = base cel .*. IntMap.findWithDefault uno cel rutas
+    gr' = parchearCostos mu (map CeldaId (IntMap.keys rutas)) gr

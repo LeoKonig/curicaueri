@@ -46,6 +46,7 @@ data Constantes = Constantes
   , cVelocidadTransporte   :: Fijo   -- VELOCIDAD_TRANSPORTE: km de llano que recorre una carga por veintena
   , cCostoTransporte       :: Fijo   -- COSTO_TRANSPORTE: valor por unidad y km de llano
   , cAlcanceTributo        :: Fijo   -- ALCANCE_TRIBUTO: hasta dónde se pide material
+  , cAlcanceCamino         :: Fijo   -- ALCANCE_CAMINO: hasta dónde busca un camino al asentamiento vecino
   , cAgravioTributoObra    :: Fijo   -- AGRAVIO_TRIBUTO_OBRA: puntos por año en quien lo envía
     -- Fusión de pops (V5, *Escala de la simulación*). PROVISIONALES: es una
     -- mecánica de rendimiento, como POP_MERGE_MAX_WORKFORCE de Victoria 3.
@@ -105,6 +106,7 @@ constantesDefault = Constantes
   , cVelocidadTransporte   = fi 100
   , cCostoTransporte       = Fijo 100        -- 0,01, provisional
   , cAlcanceTributo        = fi 300
+  , cAlcanceCamino         = fi 200          -- diez anillos del mapa provisional; relleno, por verificar
   , cAgravioTributoObra    = fi 2
     -- Un pop de menos de 1 000 personas es una aldea o un barrio: por debajo
     -- de eso, distinguir dos con la misma clave y casi los mismos valores no

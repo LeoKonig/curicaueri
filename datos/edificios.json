@@ -197,6 +197,37 @@
       ]
     },
     {
+      "id": "camino",
+      "_fuente": {
+        "origen": "V5, Caminos (hito 3); T37",
+        "certeza": "decisión de juego; costos y porcentajes de relleno, por verificar"
+      },
+      "costo": {
+        "valor": "150",
+        "veintenas": 4,
+        "trabajo": "600",
+        "insumos": []
+      },
+      "cuadrilla_maxima": 300,
+      "maximo": 1,
+      "modificadores": [
+        {
+          "entidad": "altepetl",
+          "magnitud": "celda.costo_movimiento",
+          "porcentaje": "-30",
+          "alcance": "ruta"
+        },
+        {
+          "entidad": "altepetl",
+          "magnitud": "produccion",
+          "porcentaje": "4",
+          "condicion": {
+            "vecino_con": "camino"
+          }
+        }
+      ]
+    },
+    {
       "id": "gran_yacata",
       "costo": {
         "valor": "1500",

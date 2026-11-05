@@ -51,6 +51,8 @@ import Motor.Azar (Rng (..))
 import Motor.Sistema (Sistema (..), NombreSistema (..))
 import Test.QuickCheck
 import Motor.Guardado (guardar, cargar)
+import qualified Data.IntMap.Strict as IntMap
+import Motor.Recorrido (Etiqueta (..), Cupo (..), grafoMapa, primera, propagarGrafo)
 import Motor.Hechos (Hecho (..))
 import qualified Data.ByteString.Lazy as BL
 
@@ -397,7 +399,7 @@ main = do
         culto e = deCulto (def e)
 
     it "datos/edificios.json carga con cuatro edificios y dos tradiciones" $ do
-      fmap idsEdificios edificiosArchivo `shouldBe` Right ["yacata", "fortaleza", "troje", "gran_yacata"]
+      fmap idsEdificios edificiosArchivo `shouldBe` Right ["yacata", "fortaleza", "troje", "camino", "gran_yacata"]
       map trId (tradiciones eds) `shouldBe` ["purepecha", "catolica"]
 
     it "la carga acumula los errores de un edificios.json malo" $ do
@@ -749,7 +751,7 @@ main = do
 
     it "el catálogo ofrece los edificios y la cuadrilla, y los sistemas pasan validarOrdenSistemas" $ do
       [ (dpNombre p, dpTipo p) | d <- catalogoComandosCon (idsEdificios eds), dcTipo d == "construir_edificio", p <- dcParametros d ]
-        `shouldBe` [ ("edificio", POpcion ["yacata", "fortaleza", "troje", "gran_yacata"])
+        `shouldBe` [ ("edificio", POpcion ["yacata", "fortaleza", "troje", "camino", "gran_yacata"])
                    , ("altepetl", PEntero 1 1000000), ("cuadrilla", PEntero 0 100000) ]
       validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j) `shouldBe` []
 
@@ -943,6 +945,7 @@ main = do
   pruebasPropios gruposArchivo
   pruebasEscenarios
 
+  pruebasCaminos terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
   pruebasMoneda terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo) dorMoneda
 
   pruebasCosecha terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
@@ -2212,6 +2215,100 @@ guionPropios :: A.Value
 guionPropios = case A.decode "{\"tipos\": [\"t\"], \"situaciones\": [ {\"id\": \"frontera\", \"tipo\": \"t\", \"condicion\": {\"tipo\": \"todas\", \"de\": [ {\"tipo\": \"soberano\", \"altepetl\": 12, \"faccion\": 2}, {\"tipo\": \"faccion_activa\", \"faccion\": 2}, {\"tipo\": \"personaje_vivo\", \"personaje\": 1} ]}, \"opciones\": [ {\"id\": \"nada\", \"efectos\": []}, {\"id\": \"tomar_zacapu\", \"efectos\": [ {\"tipo\": \"transferir_altepetl\", \"altepetl\": 12, \"faccion\": 1}, {\"tipo\": \"modificador\", \"entidad\": {\"clase\": \"faccion\", \"id\": 1}, \"magnitud\": \"prestigio\", \"valor\": \"5\", \"dias\": 365} ]}, {\"id\": \"tomar_la_cabecera\", \"efectos\": [ {\"tipo\": \"modificador\", \"entidad\": {\"clase\": \"faccion\", \"id\": 1}, \"magnitud\": \"prestigio\", \"valor\": \"5\", \"dias\": 365}, {\"tipo\": \"transferir_altepetl\", \"altepetl\": 11, \"faccion\": 1} ]}, {\"id\": \"senorio\", \"efectos\": [ {\"tipo\": \"cambiar_condicion\", \"altepetl\": 12, \"condicion\": \"senorio\"} ]}, {\"id\": \"absorber\", \"efectos\": [ {\"tipo\": \"absorber_faccion\", \"faccion\": 2, \"absorbente\": 1} ]}, {\"id\": \"activar\", \"efectos\": [ {\"tipo\": \"activar_faccion\", \"faccion\": 3} ]} ]} ]}" of
   Just v  -> v
   Nothing -> error "guionPropios no es JSON"
+
+-- | T37: los caminos abaratan su ruta (el grafo se parcha en el paso 16) y
+-- suben la producción solo si el vecino más cercano también tiene camino.
+pruebasCaminos :: Map.Map Terreno DefTerreno -> Economia -> Edificios -> Spec
+pruebasCaminos terrenos eco eds = describe "reglas: caminos (T37, hito 3)" $ do
+  let c    = constantesDefault
+      mapa = conCostoDeTerreno terrenos (either (error . show) id (proveedorHexagonal datosMapa1475))
+      ent  = (entornoSimple mapa) { entEconomia = eco }
+      dr   = Reglas.Juego.datosVacios { Reglas.Juego.drTerrenos = terrenos, Reglas.Juego.drEdificios = eds, Reglas.Juego.drEconomia = eco }
+      j    = Reglas.Juego.juegoDatos c dr
+      conDerivado e = e { estadoDerivado = derivar j (entGrafo ent) (estadoTick e) (estadoPersistente e) }
+      e00  = conDerivado (conConocimientos eds estadoInicial1475)
+      conCamino alts st = let per = estadoPersistente st; pj = persistenteJuego per
+                              ponerlo a = if altId a `elem` map AltId alts then a { altEdificios = ["camino"] } else a
+                          in st { estadoPersistente = per { persistenteJuego = pj { ppAltepetl = Map.map ponerlo (ppAltepetl pj) } } }
+      sinCamino a st = let per = estadoPersistente st; pj = persistenteJuego per
+                       in st { estadoPersistente = per { persistenteJuego = pj { ppAltepetl = Map.adjust (\x -> x { altEdificios = [] }) (AltId a) (ppAltepetl pj) } } }
+      correr desde hasta e = foldl' (\(st, hs) t -> let (st', h) = paso j ent (Semilla 1) (Tick t) [] st in (st', hs ++ h)) (e, []) [desde .. hasta]
+      alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
+      jue st = persistenteJuego (estadoPersistente st)
+      der st = derivadoJuego (estadoDerivado st)
+      produccionDe a st = maybe (Fijo 0) (valorEn (derivadoVigentes (estadoDerivado st)) (estadoTick st) rangoProduccionAlt)
+                            (Map.lookup (entRefAlt (AltId a), magProduccionAlt) (alm st))
+      distancia g a b = maybe (Fijo (-1)) (etDistancia . primera)
+                          (IntMap.lookup b (propagarGrafo UnGrupo Nothing g [(CeldaId a, Etiqueta (Fijo 0) 0 0)]))
+      celdaDe a st = altCelda (ppAltepetl (jue st) Map.! AltId a)
+      caminos alts = conCamino alts e00
+
+  it "sin caminos el derivado no tiene vecinos y el grafo es el de antes" $ do
+    dpVecino (der e00) `shouldBe` Map.empty
+    let (vecinos, g') = derivarCaminos c eds terrenos (alm e00) (entGrafo ent) (jue e00)
+    vecinos `shouldBe` Map.empty
+    grafoMapa g' `shouldBe` grafoMapa (entGrafo ent)
+
+  it "el camino declara su ruta y su vecino: los datos cargan con alcance y condición" $
+    case defEdificio eds "camino" of
+      Nothing -> expectationFailure "el edificio camino no está en los datos"
+      Just d -> do
+        map dmeAlcance (deMods d) `shouldBe` [AlcanceRuta, AlcancePropia]
+        map dmeVecino (deMods d) `shouldBe` [Nothing, Just "camino"]
+
+  it "dos altépetl con camino: el vecino más cercano de cada uno está en el derivado y la ruta cuesta menos" $ do
+    let (st, _) = correr 0 0 (caminos [1, 2, 3])
+        vecinos = dpVecino (der st)
+        (_, g') = derivarCaminos c eds terrenos (alm st) (entGrafo ent) (jue st)
+    Map.keys vecinos `shouldBe` [AltId 1, AltId 2, AltId 3]
+    -- Cada uno apunta a otro, y el vecino es de verdad el más cercano por el grafo base.
+    forM_ (Map.toList vecinos) $ \(a, b) -> do
+      b `shouldSatisfy` (/= a)
+      let AltId ia = a
+          propios = [ distancia (entGrafo ent) (celdaDe ia st) (celdaDe ib st) | AltId ib <- [AltId 1, AltId 2, AltId 3], ib /= ia ]
+          AltId iv = b
+      distancia (entGrafo ent) (celdaDe ia st) (celdaDe iv st) `shouldBe` minimum propios
+    -- Las rutas abaratan: entre las cabeceras de la pareja más cercana, el camino es más barato.
+    let (a, b) = head [ (x, y) | (x, y) <- Map.toList vecinos ]
+        AltId ia = a; AltId ib = b
+        antes = distancia (entGrafo ent) (celdaDe ia st) (celdaDe ib st)
+        despues = distancia g' (celdaDe ia st) (celdaDe ib st)
+    despues `shouldSatisfy` (< antes)
+    -- El factor es el del modificador (−30 %): la ruta entera cuesta 0,7 de lo normal.
+    abs (unFijo despues - unFijo (antes .*. Fijo 7000)) `shouldSatisfy` (<= 5)
+
+  it "el camino de un solo altépetl no cambia el grafo ni sube la producción" $ do
+    let (st, _) = correr 0 60 (caminos [1])
+    produccionDe 1 st `shouldBe` baseProduccionAlt
+    let (_, g') = derivarCaminos c eds terrenos (alm st) (entGrafo ent) (jue st)
+    grafoMapa g' `shouldBe` grafoMapa (entGrafo ent)
+
+  it "con el vecino más cercano también con camino, la producción sube 4 %, y el desglose lo dice" $ do
+    let (st0, _) = correr 0 0 (caminos [1, 2, 3])
+        vecinoDe1 = dpVecino (der st0) Map.! AltId 1
+        AltId iv = vecinoDe1
+        (st, _) = correr 1 60 (conCamino [1, iv] st0)
+    produccionDe 1 st `shouldBe` baseProduccionAlt .*. Fijo 10400
+    let mods = maybe [] almacenMods (Map.lookup (entRefAlt (AltId 1), magProduccionAlt) (alm st))
+    [ (fuenteTipo (modFuente m), porcentaje (modAporte m)) | m <- mods, fuenteTipo (modFuente m) == "edificio" ] `shouldBe` [("edificio", Fijo 400)]
+
+  it "si el vecino pierde su camino, el modificador termina con la razón condicion" $ do
+    let (st0, _) = correr 0 0 (caminos [1, 2, 3])
+        iv = let AltId i = dpVecino (der st0) Map.! AltId 1 in i
+        (st1, _) = correr 1 60 (conCamino [1, iv] st0)
+        (st2, hs) = correr 61 100 (sinCamino iv st1)
+    produccionDe 1 st1 `shouldBe` baseProduccionAlt .*. Fijo 10400
+    produccionDe 1 st2 `shouldBe` baseProduccionAlt
+    [ Map.lookup "razon" (hechoParams h) | h <- hs, hechoTipo h == "modificador_terminado", Map.lookup "magnitud" (hechoParams h) == Just "produccion" ]
+      `shouldSatisfy` (Just (Just "condicion") `elem`) . map Just
+
+  it "guardar a mitad con un camino y cargar sigue igual" $ do
+    let (mitad, _) = correr 0 70 (caminos [1, 2, 3])
+        cargado = either (error . show) id (cargar j mapa (guardar mitad))
+        seguir st = fst (correr 71 200 st)
+        foto st = (jue st, alm st, dpVecino (der st))
+    foto cargado `shouldBe` foto mitad
+    foto (seguir cargado) `shouldBe` foto (seguir mitad)
 
 pruebasPropios :: Either [Text] Grupos -> Spec
 pruebasPropios gruposArchivo = describe "reglas: condiciones y efectos propios del guion (T14)" $ do
