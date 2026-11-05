@@ -73,6 +73,7 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 | 8 | T29 Abasto de la capital desde las trojes | `reglas`: `Subsistencia`, `Comando`, `Propios`; `datos/guion_1475.json`; recalibración de `datos/terrenos.json` | T28 | 3 |
 | 8 | T30 Gustos y lujos: necesidades por estrato | `reglas`: `Subsistencia`, `Sistemas`, `Grupos`; `datos/necesidades.json` | T27 | 3 |
 | 8 | T31 La chinampa: tecnología y obra en celda | `datos/sistemas.json`, `datos/edificios.json`, `datos/facciones/`; `reglas`: `Edificios` | T28 | 3 / 5 |
+| 8 | T26 Influencia: fuerza por población y lealtad, y afinidad de la gente | `reglas`: derivado del mapa (paso 16), `Estado`, `Formulas`; `datos/identidades.json`; `motor`: `Influencia` (solo la publicación con umbral) | T27 (orden, no dependencia de código); T12, T13 | 4 / 6 |
 
 ---
 
@@ -936,4 +937,33 @@ Haz:
 
 Pruebas: sin el oficio no se empieza; con la obra, la celda pasa a la chinampa y rinde más
 por hectárea; bajo control enemigo no rinde. Rama: claude/chinampa.
+```
+
+## T26. Influencia: fuerza por población y lealtad, y afinidad de la gente (reglas, hitos 4 y 6; después de la ronda 8)
+
+```
+Tarea: conectar el recorrido de influencia del motor con el juego. La fuerza de cada fuente
+sale de su población y su lealtad, y la afinidad de la gente con cada facción inclina las
+zonas disputadas y el costo de gobernar.
+
+Lee: V5 *Mapa: influencia, dueño y control* y *Qué mueve la fuerza de una fuente*;
+documento funcional, sección 9 (*La fuerza de una fuente*) y las leyes «influencia
+neutra» y «lealtad monótona en la influencia».
+
+Haz:
+1. `asentamiento.fuerza_influencia` como magnitud: base (N/N_ref)^β, modificador «lealtad»
+   y los de obras y personajes. Un solo escritor de la base.
+2. El dueño de cada celda en el derivado (paso 16) con `Motor.Influencia`, y la producción
+   y el control leyéndolo (V5, *La influencia cuesta recursos*). Sin mapa, nada cambia.
+3. `datos/identidades.json`: identidades, familias de afinidad y su valor; la identidad
+   dominante de cada facción en su archivo. La afinidad por altépetl y su uso en el
+   desempate de las zonas disputadas y en el costo de gobernar (hoy «identidad ajena»).
+4. Publicar al recorrido solo los cambios de fuerza mayores que el umbral, con la ley que
+   compara con el cálculo completo.
+5. Una situación del guion: un señorío desleal dentro de la influencia de una facción afín
+   pide pasarse a ella.
+
+Pruebas: las dos leyes; con afinidad 0 en todo, el costo de gobernar es el de hoy; el
+desglose de la fuerza nombra la lealtad. Mide con --escala 7500x20 cuántas fuentes se
+publican por veintena y cuánto cuesta. Rama: claude/influencia.
 ```

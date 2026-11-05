@@ -1051,6 +1051,28 @@ I = F \, e^{-c/\lambda}
 
 **Dueño y control.** El dueño de un hexágono se deriva de la influencia y se recalcula cada veintena. El control se consulta al momento: si un ejército enemigo ocupa el hexágono, controla el ocupante; si no, el dueño. Si hay varios ocupantes, controla el que llegó primero; los empates se resuelven por id de facción y luego de ejército.
 
+### Qué mueve la fuerza de una fuente: población, lealtad y afinidad (T26)
+
+Hoy el recorrido de influencia existe y está medido (abajo), pero las reglas todavía no le dan sus fuentes: ninguna F sale de la población, la lealtad ni la identidad. Lo que sí existe es el costo de gobernar a gente ajena dentro de cada altépetl: la identidad ajena suma agravio (+2 por año), resta 10 al techo de la lealtad y sube la carga administrativa. Esta sección dice cómo se conecta eso con el mapa, sin tocar el algoritmo del motor (regla 1: la fórmula de I y el recorrido no saben de identidades).
+
+**La fuerza de una fuente es una magnitud con modificadores.** Cada asentamiento que es fuente de influencia tiene `asentamiento.fuerza_influencia`:
+
+- **Base: su población, con rendimientos decrecientes.** \(F_0 = (N / N_{\text{ref}})^{\beta}\), con N_ref = 1 000 personas y β = 0,5 (relleno). Una ciudad cuatro veces más grande irradia el doble, no el cuádruple: es el tercer freno de *Población e influencia se retroalimentan*.
+- **Lealtad.** Un modificador de porcentaje con fuente «lealtad», \(\lambda_L\,(\ell - 50)/50\), con ℓ la lealtad del altépetl y λ_L = 0,2 (relleno): de −20 % con lealtad 0 a +20 % con lealtad 100. Un altépetl descontento empuja menos la frontera de su señor. El hambre de T25 entra por aquí sin regla aparte: baja la lealtad, y la lealtad baja la fuerza.
+- **Obras y personajes**, como ya prevé V5: la fortaleza de frontera, un gobernador hábil.
+
+Los topes son a propósito pequeños: la lealtad y la afinidad inclinan la frontera, no la deciden. Si la deciden, el ciclo influencia → tierras → producción → hambre → lealtad → influencia se vuelve una bola de nieve.
+
+**La afinidad: ¿de qué lado está la gente?** Cada identidad (purépecha, nahua, hñähñú, matlatzinca, chichimeca…) pertenece a una o más familias de afinidad (`datos/identidades.json`: lengua, culto, linaje, alianzas históricas), y cada facción tiene una identidad dominante, la de su centro. La afinidad de un pop con una facción es 1 si comparte su identidad, un valor intermedio si comparten familia (relleno: 0,5) y 0 si no; los sucesos la mueven con modificadores con fuente (los matlatzincas y otomíes acogidos por el cazonci como guardias de frontera ganan afinidad con el reino purépecha por un evento, no por la tabla). La afinidad media de un altépetl, ponderada por el tamaño de sus pops, actúa en tres lugares:
+
+1. **El costo de gobernar.** Lo que hoy es «identidad ajena sí o no» pasa a ser proporcional a 1 − afinidad: el agravio, el techo de la lealtad y la carga administrativa. Con afinidad 0 es lo de hoy; con afinidad 1, nada.
+2. **Las zonas disputadas.** Cuando dos fuentes casi empatan en las celdas de un altépetl (la segunda llega al 80 % de la primera), la afinidad de su gente con cada facción desempata: la influencia que se compara para decidir el dueño es \(I_f\,(1 + \kappa\, a_f)\), con a_f la afinidad con f y κ = 0,1 (relleno). Fuera de las zonas disputadas no cambia nada.
+3. **El riesgo de cambiar de lado.** Un señorío con lealtad baja dentro de la influencia de otra facción con la que tiene afinidad alta tiene más riesgo de rebelarse o de pasarse a ella (situaciones del guion con esa condición, no un sorteo nuevo).
+
+**Por qué es bueno para el juego.** Conquistar gente afín cuesta poco y conquistar gente ajena cuesta mucho, y el costo es visible en el desglose («fuerza 4,1: base 3,6, +12 % lealtad, +3 % fortaleza»). Pero la conquista nunca queda bloqueada: un pueblo ajeno se retiene con guarnición, con menos tributo, nombrando a su nobleza local o concediéndole el señorío. Las facciones se distinguen sin reglas propias: la Triple Alianza, hegemónica, deja a los señores locales y cobra tributo, así que vive con enclaves de baja afinidad como Tlaxcala; el reino purépecha, centralizado, integra y asienta colonos. La aculturación y el mestizaje del hito 6 mueven la identidad y, con ella, la afinidad.
+
+**Escala.** La fuerza cambia cada veintena en muchos altépetl (la lealtad se mueve sola), y la reparación incremental cuesta según cuántas fuentes cambian (13 ms con 1 de cada 1 000; 45 ms con 1 de cada 100). Para no rehacer el recorrido entero cada veintena, la fuente solo se actualiza cuando su fuerza cambia más que un umbral (`UMBRAL_CAMBIO_FUERZA`; relleno: 2 %). Es un umbral sobre lo que se publica, no sobre la simulación, y una ley compara el resultado con el cálculo completo dentro de esa tolerancia. Se mide con `--escala 7500x20`.
+
 **Rendimiento.** El recorrido se diseña para el mapa completo, no para el prototipo. Medido con 150 000 celdas y 7 500 fuentes de ocho facciones, sin umbral (`Motor.Recorrido` y `Motor.Influencia`):
 
 | Qué | Cómo | Tiempo |

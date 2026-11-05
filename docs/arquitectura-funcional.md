@@ -772,6 +772,14 @@ Los flujos se calculan todos a la vez desde el estado anterior, **por origen y s
 
 Así, lo que sale de cada origen es exactamente lo que entra en sus destinos en cada veintena, y la ley de conservación se cumple por construcción.
 
+**La fuerza de una fuente** (V5, *Qué mueve la fuerza de una fuente*; T26, propuesta). Para el asentamiento s con población N_s, lealtad ℓ_s y la suma p_s de los demás porcentajes (obras, personajes):
+
+```math
+F_s = \Big(\frac{N_s}{N_{\text{ref}}}\Big)^{\beta}\,\Big(1 + \lambda_L\,\frac{\ell_s - 50}{50} + p_s\Big)
+```
+
+La afinidad del altépetl a con la facción f es \(a_{a,f} = \sum_{p \in a} N_p\, \alpha(\text{id}_p, f) / \sum_{p\in a} N_p\), con α = 1 para la identidad dominante de f, la de familia para las afines y 0 para las ajenas, más los modificadores de los sucesos. En una zona disputada, el dueño se decide comparando \(I_f\,(1 + \kappa\, a_{a,f})\); fuera de ellas, con I_f. El costo de gobernar (agravio por identidad, techo de lealtad, carga administrativa) se multiplica por \(1 - a_{a,f}\). La fuente se publica al recorrido solo cuando \(|F_s - F_s^{\text{publicada}}| > u\,F_s^{\text{publicada}}\) (u = `UMBRAL_CAMBIO_FUERZA`).
+
 **Población e influencia.** La fuerza F de una fuente crece con su población, así que la migración desplaza las fronteras sin regla especial. Los frenos (presión, carga administrativa, exposición) son términos que entran en A y en la eficiencia.
 
 **Eficiencia y carga administrativa** (fórmula `eficiencia_altepetl`, constantes en V5):
@@ -1628,6 +1636,8 @@ Las reglas del diseño, escritas como propiedades. En un lenguaje puro, "la mism
 | Tope de la dieta | La cobertura de un altépetl nunca pasa de min(1, Σ t_g): un solo grupo de alimento no da más que su tope, por mucho que sobre (T27) |
 | Equivalencia de la dieta | Con un solo grupo sin tope (sin `datos/dieta.json`), la cobertura y la reserva son las de T25 (T27) |
 | Sistema neutro | Un terreno sin sistemas, con su `rendimiento_por_trabajador`, produce lo mismo que antes de los sistemas (T28) |
+| Influencia neutra | Con lealtad 50 en todos los altépetl y sin afinidades (todas 1 o todas 0 por igual), el dueño de cada celda es el mismo que con la fuerza de la sola población (T26) |
+| Lealtad monótona en la influencia | Más lealtad de un altépetl nunca baja su fuerza ni le quita celdas a su facción (T26) |
 | Rango de los bienes | Con las cifras de referencia a la escala del juego completo, ninguna magnitud en kg satura `Fijo` |
 | Consumo exacto | `consumir_bien` resta exactamente lo pedido; con menos existencias, o `gastar_valor` con menos tesoro, se rechaza sin cambiar el estado |
 | Nombramiento sin trinquete | Mientras dura un cargo, su aporte al poder del grupo es constante; al terminar el cargo, es 0 y sus modificadores emiten `modificador_terminado` (sección 14d) |
