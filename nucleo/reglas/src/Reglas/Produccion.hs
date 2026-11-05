@@ -73,6 +73,7 @@ import Motor.Sistema
 import Motor.Terrenos (DefTerreno (..), MaterialTerreno (..))
 import Reglas.Base
 import Reglas.Constantes
+import Reglas.Dieta (Dieta (..), GrupoDieta (..), grupoDe, magCosechadoDe)
 import Reglas.Estado
 
 -- | Los bienes que el territorio puede producir: los que aparece en el
@@ -331,12 +332,12 @@ totalProduccion = foldl' (.+.) (Fijo 0) . Map.elems
 -- Un bien con ventana de cosecha ('Cosechas') no se produce parejo: cada
 -- periodo entra 'factorCosecha' veces lo de una veintena pareja, y fuera de
 -- la ventana nada. Lo cosechado en el año es lo mismo.
-produccion :: Constantes -> Economia -> Cosechas -> [Text] -> Sistema Purepecha
-produccion c ec temporadas bienes = Sistema
+produccion :: Constantes -> Economia -> Dieta -> Cosechas -> [Text] -> Sistema Purepecha
+produccion c ec dieta temporadas bienes = Sistema
   { sisNombre   = NombreSistema "produccion"
   , sisCadencia = Periodo
   , sisLee      = Set.singleton magProduccionAlt
-  , sisEscribe  = Set.fromList (magCosechado : concat [ [magExistencias b, magProduccion b, magMerma b, magCosecha b] | b <- bienes ])
+  , sisEscribe  = Set.fromList (map (magCosechadoDe . gdId) (dtGrupos dieta) ++ concat [ [magExistencias b, magProduccion b, magMerma b, magCosecha b] | b <- bienes ])
   , sisEjecutar = \_ est ->
       if null bienes then (est, []) else
       let p     = persistenteJuego (estadoPersistente est)
@@ -352,9 +353,9 @@ produccion c ec temporadas bienes = Sistema
           porAltepetl = [ (f, alt, deAlt alt cs) | (alt, cs) <- Map.toList celdas
                         , let f = facDeAlt p alt, Just fa <- [Map.lookup f (ppFacciones p)], facEstado fa == Activa ]
           porFac = Map.fromListWith (Map.unionWith (.+.)) [ (f, m) | (f, _, m) <- porAltepetl ]
-          -- El maíz de cada altépetl, antes de repartirse (T25).
-          alimentoDe = Map.fromListWith (++)
-                         [ (f, [(alt, Map.findWithDefault (Fijo 0) bienAlimento m)]) | (f, alt, m) <- porAltepetl ]
+          -- Lo producido por cada altépetl de cada facción, para repartir los
+          -- alimentos (T25 y T27).
+          alimentoDe = Map.fromListWith (++) [ (f, [(alt, m)]) | (f, alt, m) <- porAltepetl ]
           repartirAlimento = Map.member bienAlimento (csVentanas temporadas) && bienAlimento `elem` bienes
           -- La parte de la cosecha que va a las trojes de la facción: el
           -- tributo en especie, 5 % por punto de la tasa (V5, *Comer antes de
@@ -375,21 +376,25 @@ produccion c ec temporadas bienes = Sistema
                 alm0a = if ventana then fijarBase (entFac f) (magCosecha b) uno alm00 else alm00
                 factorAnio = if ventana then cosechaEn vig t alm0a (entFac f) b else uno
                 q1 = enPeriodo b q0 .*. factorAnio
-                -- El maíz se reparte por altépetl: la cuota de las trojes va a
-                -- las existencias de la facción y el resto se queda en lo
-                -- cosechado del año del altépetl. Lo producido (para el
-                -- precio) es el total, y las trojes son lo que no se queda,
-                -- así que la masa se conserva exacta.
+                -- Cada alimento de la dieta se reparte por altépetl: la cuota
+                -- de las trojes va a las existencias de la facción y el resto
+                -- se queda en lo cosechado del año del altépetl, en su grupo y
+                -- en t ME. Lo producido (para el precio) es el total, y las
+                -- trojes son lo que no se queda, así que la masa del bien se
+                -- conserva exacta.
+                grupo = if repartirAlimento then grupoDe dieta b else Nothing
                 repartido = [ (alt, qa, qa .*. (uno .-. cuotaTrojes f))
-                            | repartirAlimento, b == bienAlimento
-                            , (alt, qa0) <- Map.findWithDefault [] f alimentoDe
-                            , let qa = enPeriodo b qa0 .*. factorAnio ]
+                            | Just _ <- [grupo]
+                            , (alt, prod) <- Map.findWithDefault [] f alimentoDe
+                            , let qa = enPeriodo b (Map.findWithDefault (Fijo 0) b prod) .*. factorAnio ]
                 (q, qTrojes, alm0)
                   | null repartido = (q1, q1, alm0a)
                   | otherwise =
                       ( foldl' (\s (_, qa, _) -> s .+. qa) (Fijo 0) repartido
                       , foldl' (\s (_, qa, h) -> s .+. (qa .-. h)) (Fijo 0) repartido
-                      , foldl' (\a (alt, _, h) -> sumarBase (entRefAlt alt) magCosechado h a) alm0a repartido )
+                      , case grupo of
+                          Just (g, e) -> foldl' (\a (alt, _, h) -> sumarBase (entRefAlt alt) (magCosechadoDe (gdId g)) (h .*. e) a) alm0a repartido
+                          Nothing     -> alm0a )
                 -- La base de la merma, del catálogo; la efectiva, con las trojes.
                 (alm, m) = case Map.lookup b (ecoBienes ec) of
                   Nothing -> (alm0, Fijo 0)

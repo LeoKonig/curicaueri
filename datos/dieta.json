@@ -1,0 +1,10 @@
+{
+  "_nota": "Grupos de la dieta (V5, La dieta: alimentos, gustos y lujos; T27). Cada alimento da sus kilocalorías por kilogramo (la energía se cuenta en toneladas de maíz equivalente: kcal / 3 650). De cada grupo solo cuenta, como mucho, su tope de la necesidad de energía; lo que sobra va a la reserva hasta su tope de reserva y se estropea con su merma por veintena. TODOS LOS TOPES SON DE RELLENO, por verificar. Kilocalorías: USDA FoodData Central (maíz en grano 365 kcal por 100 g; pescado de agua dulce fresco unas 110), por verificar con una tabla mexicana de composición de alimentos. Solo están los alimentos que el territorio del tutorial ya produce; la milpa (frijol, calabaza, chile, quelites) y los demás entran con los sistemas de producción (T28). Con solo estos dos grupos, una población que come maíz llega a 0,85 de cobertura: dieta pobre, sin hambre.",
+  "version": 1,
+  "grupos": [
+    {"id": "granos", "tope": "0.85", "tope_reserva": "1", "merma": "0.02",
+     "alimentos": {"maiz": "3650"}},
+    {"id": "carne_y_pescado", "tope": "0.25", "tope_reserva": "0.05", "merma": "0.15",
+     "alimentos": {"pescado": "1100"}}
+  ]
+}

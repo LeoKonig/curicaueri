@@ -37,6 +37,9 @@
 -- Terrenos (ver Motor.Terrenos y Reglas.Produccion; sin esta opción, el
 -- territorio no produce bienes):
 --   --terrenos ARCHIVO       por ejemplo datos/terrenos.json
+--
+-- Dieta (ver Reglas.Dieta; sin esta opción, la gente come solo maíz):
+--   --dieta ARCHIVO          por ejemplo datos/dieta.json
 module Main (main) where
 
 import Control.Concurrent (forkIO, threadDelay)
@@ -89,6 +92,7 @@ import Reglas.Estado (Purepecha, ppAltepetl, ppFacciones, ppPops, jugableDe)
 import Reglas.Facciones (conAgentesNulos)
 import Reglas.Edificios (cargarEdificios, conConocimientos, edificiosVacios, idsEdificios)
 import Reglas.Produccion (bienesDe, cargarCosechas, catalogoBienes, validarBienesDelTerritorio)
+import Reglas.Dieta (Dieta (..), GrupoDieta (..), cargarDieta)
 import Motor.Terrenos (DefTerreno (..), cargarTerrenos, conCostoDeTerreno, validarTerrenosDelMapa)
 import Motor.Recorrido (grafoDe)
 import Reglas.Grupos (cargarGrupos, conGrupos, gruposVacios, grIds)
@@ -213,6 +217,16 @@ main = do
           ec <- validado (cargarEconomia (T.pack ruta) v)
           validado (validarBienesDelTerritorio (T.pack ruta) terrenos ec)
           pure ec
+  -- --dieta datos/dieta.json: los grupos de la dieta, con su tope de energía
+  -- (V5, *La dieta*; T27). Sin ella, la gente come solo maíz, como en T25.
+  dieta <- case opcion "--dieta" "" of
+    "" -> pure Nothing
+    ruta -> do
+      bs <- BL.readFile ruta
+      case A.eitherDecode bs of
+        Left err -> fail ("dieta ilegible (" <> ruta <> "): " <> err)
+        Right v -> Just <$> validado (cargarDieta constantesDefault (T.pack ruta) (Map.keys (ecoBienes economia) ++ bienesDe terrenos) v)
+  forM_ dieta $ \d -> registro ("dieta: " <> T.intercalate ", " [ gdId g | g <- dtGrupos d ])
   let designables = [ bnId b | b <- Map.elems (ecoBienes economia), bnDesignable b ]
   unless (null designables) $ registro ("pueden ser moneda: " <> T.intercalate ", " designables)
   -- Con la tabla de terrenos, cada conexión cuesta su longitud por el terreno
@@ -223,7 +237,7 @@ main = do
       grafoR = grafoDe mapaR
   let comandos = catalogoComandosConMonedas (idsEdificios edificios)
                    (Map.keys (Map.unions (map dtMateriales (Map.elems terrenos)))) designables
-      juego = RJ.juegoDatosEn (escVisible esc) (escInicio esc) constantesDefault (RJ.DatosReglas grupos edificios terrenos economia cosechas)
+      juego = RJ.juegoDatosEn (escVisible esc) (escInicio esc) constantesDefault (RJ.DatosReglas grupos edificios terrenos economia cosechas dieta)
       -- --escala 7500x20: altépetl y pops de prueba para medir el costo a la
       -- escala del mapa completo (solo para la prueba de rendimiento del núcleo).
       (escN, escK) = case break (== 'x') (opcion "--escala" "") of

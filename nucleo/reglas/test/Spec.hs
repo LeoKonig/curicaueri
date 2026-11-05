@@ -40,6 +40,7 @@ import Reglas.Facciones
 import Reglas.Produccion
 import Reglas.Sistemas (hacienda)
 import Reglas.Subsistencia (cierreAnio, coberturaEn, necesidadDe)
+import Reglas.Dieta
 import Reglas.Fusion (fusionarPops, clavePop)
 import Motor.Terrenos (DefTerreno (..), cargarTerrenos, conCostoDeTerreno)
 import Motor.Moneda (Bien (..), Economia (..), ParamsMoneda (..), cargarEconomia, economiaVacia, aValor, enCuenta, precioEn, mermaEn,
@@ -145,7 +146,7 @@ main = do
   describe "reglas: sistemas no violan el orden" $ do
     it "los tres sistemas del juego pasan validarOrdenSistemas" $ do
       let j = Reglas.Juego.juego constantesDefault
-      validarOrdenSistemas catalogoMag (juegoSistemas j) `shouldBe` []
+      validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j) `shouldBe` []
 
   describe "reglas: subir el impuesto sube el ingreso y el agravio" $ do
     let j  = Reglas.Juego.juego constantesDefault
@@ -946,6 +947,7 @@ main = do
   pruebasCosecha terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
   pruebasMalaCosecha terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
   pruebasSubsistencia terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
+  pruebasDieta terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
 
   describe "reglas: tablas de casos del hito 0a (prototipo HTML)" $ do
     tablas <- runIO (fmap (>>= parseEither parseTablas)
@@ -1740,7 +1742,7 @@ pruebasSubsistencia terrenos eco eds = describe "reglas: subsistencia, cobertura
       existencias st = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, magExistencias "maiz") (alm st))
       produccionBase st = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, magProduccion "maiz") (alm st))
       p st = persistenteJuego (estadoPersistente st)
-      necesidad a st = necesidadDe c (p st) (AltId a)
+      necesidad a st = necesidadDe (cRacionMaiz c) (p st) (AltId a)
       agravioPop i st = maybe (Fijo 0) almacenBase (Map.lookup (entRefPop (PopId i), Magnitud "agravio") (alm st))
       tesoro st = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, Magnitud "tesoro") (alm st))
       vig st = derivadoVigentes (estadoDerivado st)
@@ -1938,6 +1940,147 @@ pruebasSubsistencia terrenos eco eds = describe "reglas: subsistencia, cobertura
     baseAlt magReserva 1 fin `shouldBe` foldl' (\r _ -> r .*. (uno .-. m)) need [1 .. periodos]
 
   it "los sistemas de subsistencia pasan validarOrdenSistemas salvo las dos lecturas del precio" $
+    length (validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j)) `shouldBe` 2 * Set.size (lecturasMoneda eco)
+
+-- ---------------------------------------------------------------------------
+-- La dieta: alimentos por grupo con tope (T27)
+-- ---------------------------------------------------------------------------
+
+-- | T27: los alimentos cuentan por su energía en t ME y cada grupo de la
+-- dieta tiene un tope; sin @datos/dieta.json@, todo es como en T25.
+pruebasDieta :: Map.Map Terreno DefTerreno -> Economia -> Edificios -> Spec
+pruebasDieta terrenos eco eds = describe "reglas: la dieta por grupos con tope (T27)" $ do
+  ventanas <- runIO $ do
+    v <- A.eitherDecodeFileStrict "../../datos/terrenos.json"
+    case v of
+      Left e -> fail e
+      Right jv -> case cargarCosechas "datos/terrenos.json" (bienesDe terrenos) jv of
+        Validacion [] (Just cs) -> pure cs
+        Validacion errs _ -> fail (show (map errMensaje errs))
+  dietaJson <- runIO (either fail pure =<< A.eitherDecodeFileStrict "../../datos/dieta.json")
+  let c    = constantesDefault
+      conocidos = Map.keys (ecoBienes eco) ++ bienesDe terrenos
+      dieta = case cargarDieta c "datos/dieta.json" conocidos dietaJson of
+        Validacion [] (Just d) -> d
+        Validacion errs _ -> error (show (map errMensaje errs))
+      mapa = conCostoDeTerreno terrenos (either (error . show) id (proveedorHexagonal datosMapa1475))
+      ent  = (entornoSimple mapa) { entEconomia = eco }
+      dr   = Reglas.Juego.datosVacios { Reglas.Juego.drTerrenos = terrenos, Reglas.Juego.drEdificios = eds
+                                      , Reglas.Juego.drEconomia = eco, Reglas.Juego.drCosechas = ventanas
+                                      , Reglas.Juego.drDieta = Just dieta }
+      j    = Reglas.Juego.juegoDatos c dr
+      sin nombres jj = jj { juegoSistemas = filter ((`notElem` map NombreSistema nombres) . sisNombre) (juegoSistemas jj) }
+      sinAzar = sin ["cosecha"] j
+      aparte = sin ["cosecha", "produccion"] j
+      conDerivado jj e = e { estadoDerivado = derivar jj (entGrafo ent) (estadoTick e) (estadoPersistente e) }
+      e0   = conDerivado j (conConocimientos eds estadoInicial1475)
+      paso1 jj t = paso jj ent (Semilla 1) (Tick t) []
+      correr jj desde hasta e = foldl' (\st t -> fst (paso1 jj t st)) e [desde .. hasta]
+      alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
+      conAlm f st = st { estadoPersistente = (estadoPersistente st)
+                           { persistenteComun = (persistenteComun (estadoPersistente st)) { comunMagnitudes = f (alm st) } } }
+      ponerAlt m a v = conAlm (fijarBase (entRefAlt (AltId a)) m v)
+      ponerFac m v = conAlm (fijarBase (entFac f1) m v)
+      baseAlt m a st = maybe (Fijo 0) almacenBase (Map.lookup (entRefAlt (AltId a), m) (alm st))
+      existencias b st = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, magExistencias b) (alm st))
+      p st = persistenteJuego (estadoPersistente st)
+      necesidad a st = necesidadDe (dtNecesidad dieta) (p st) (AltId a)
+      efecto n args st = case Map.lookup n (juegoEfectos j) of
+        Nothing -> Left "no existe el efecto"
+        Just ef -> epAplicar ef args st
+      repartir a b q = A.object ["faccion" A..= (1 :: Int), "altepetl" A..= (a :: Int), "bien" A..= (b :: Text), "cantidad" A..= (q :: Fijo)]
+      cal = comunCalendario (persistenteComun (estadoPersistente estadoInicial1475))
+      errores v = length (valErrores (cargarDieta c "d.json" conocidos v))
+      dietaDe t = either error id (A.eitherDecode t) :: A.Value
+
+  it "datos/dieta.json carga: grupos por id, energía en t ME, necesidad en energía" $ do
+    map gdId (dtGrupos dieta) `shouldBe` ["carne_y_pescado", "granos"]
+    fmap snd (grupoDe dieta "maiz") `shouldBe` Just uno
+    fmap snd (grupoDe dieta "pescado") `shouldBe` Just (fi 1100 ./. fi 3650)
+    dtNecesidad dieta `shouldBe` Fijo 2000
+    dtDeArchivo dieta `shouldBe` True
+
+  it "la carga acumula los errores: grupo repetido, tope fuera de rango, kcal no positivas, bien que no existe, alimento en dos grupos y sin maíz" $ do
+    errores (dietaDe "{\"grupos\": [{\"id\": \"a\", \"tope\": \"0\", \"tope_reserva\": \"1\", \"merma\": \"0\", \"alimentos\": {\"maiz\": \"-1\", \"oro\": \"5\"}}, {\"id\": \"a\", \"tope\": \"0.5\", \"tope_reserva\": \"2\", \"merma\": \"1\", \"alimentos\": {\"maiz\": \"3650\"}}]}")
+      `shouldBe` 7
+    errores (dietaDe "{\"grupos\": [{\"id\": \"b\", \"tope\": \"1\", \"tope_reserva\": \"1\", \"merma\": \"0\", \"alimentos\": {\"pescado\": \"1100\"}}]}") `shouldBe` 1
+    errores (dietaDe "{\"grupos\": 3}") `shouldBe` 1
+
+  it "ley (tope de la dieta): la cobertura nunca pasa de min(1, Σ topes), por mucho que sobre de un grupo" $
+    forM_ [ (n, ds) | n <- [fi 100, fi 5000], ds <- [[Fijo 0, Fijo 0], [fi 1000000, Fijo 0], [Fijo 0, fi 1000000], [fi 1000000, fi 1000000], [fi 50, fi 10]] ] $ \(n, ds) -> do
+      let topes = [Fijo 8500, Fijo 2500]
+          (cob, porGrupo) = cierreDieta n (zip3 topes [uno, Fijo 500] ds)
+          alcanza = [ min d (t .*. n) | (t, d) <- zip topes ds ]
+      cob `shouldSatisfy` (<= min uno (foldl' (.+.) (Fijo 0) topes))
+      cob `shouldSatisfy` (<= min uno (foldl' (.+.) (Fijo 0) alcanza ./. n .+. Fijo 1))
+      -- Por grupo, lo disponible es lo comido más la reserva más lo perdido.
+      [ com .+. r .+. per | (com, r, per) <- porGrupo ] `shouldBe` ds
+      all (\(com, r, per) -> com >= Fijo 0 && r >= Fijo 0 && per >= Fijo 0) porGrupo `shouldBe` True
+
+  it "ley (equivalencia de la dieta): un solo grupo sin tope da lo mismo que el cierre de T25" $
+    forM_ [ (n, h, r) | n <- [Fijo 0, fi 100, fi 5000], h <- [Fijo 0, fi 50, fi 6000], r <- [Fijo 0, fi 400] ] $ \(n, h, r) -> do
+      let (cob, [(_, r', per)]) = cierreDieta n [(uno, uno, h .+. r)]
+      (cob, r', per) `shouldBe` cierreAnio n h r
+
+  it "solo con maíz se llega a 0,85 y no más; con maíz y pescado de sobra, a 1" $ do
+    fst (cierreDieta (fi 100) [(Fijo 8500, uno, fi 500)]) `shouldBe` Fijo 8500
+    fst (cierreDieta (fi 100) [(Fijo 8500, uno, fi 500), (Fijo 2500, Fijo 500, fi 500)]) `shouldBe` uno
+
+  it "en el tutorial con la dieta, la gente come solo maíz: cobertura 0,85 en un año medio, sin hambre y con la reserva del maíz" $ do
+    let fin = correr sinAzar 0 400 e0
+    [ coberturaEn fin (AltId a) | a <- [1, 2, 3] ] `shouldBe` replicate 3 (Fijo 8500)
+    [ baseAlt (magReservaDe "granos") a fin | a <- [1, 2, 3] ] `shouldSatisfy` all (> Fijo 0)
+    [ baseAlt (magCubiertoDe "granos") a fin | a <- [1, 2, 3] ] `shouldBe` [ necesidad a e0 .*. Fijo 8500 | a <- [1, 2, 3] ]
+    [ baseAlt magCosechado a fin | a <- [1, 2, 3] ] `shouldBe` replicate 3 (Fijo 0)
+
+  it "ley (masa conservada): lo que se queda del maíz entra a lo cosechado de los granos, tonelada por tonelada" $ do
+    let t = head [ x | x <- [0 .. 364], esInicioDePeriodo cal (Tick x)
+                     , maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, magProduccion "maiz") (alm (fst (paso1 sinAzar x (correr sinAzar 0 (x - 1) e0))))) > Fijo 0 ]
+        antes = correr sinAzar 0 (t - 1) e0
+        (despues, _) = paso1 sinAzar t antes
+        m = mermaEn (derivadoVigentes (estadoDerivado despues)) (Tick t) (alm despues) (entFac f1) (ecoBienes eco Map.! "maiz")
+        enAlt st = foldl' (.+.) (Fijo 0) [ baseAlt (magCosechadoDe "granos") a st | a <- [1, 2, 3] ]
+        trojes = existencias "maiz" despues .-. existencias "maiz" antes .*. (uno .-. m)
+        producido = maybe (Fijo 0) almacenBase (Map.lookup (entFac f1, magProduccion "maiz") (alm despues))
+    producido `shouldBe` (enAlt despues .-. enAlt antes) .+. trojes
+
+  it "un guardado de T25 (lo cosechado y la reserva sin grupo) pasa al grupo del maíz" $ do
+    let viejo = ponerAlt magCosechado 1 (fi 700) (ponerAlt magReserva 1 (fi 300) e0)
+        st = correr aparte 0 0 viejo
+    Map.member (entRefAlt (AltId 1), magCosechado) (alm st) `shouldBe` False
+    Map.member (entRefAlt (AltId 1), magReserva) (alm st) `shouldBe` False
+    baseAlt (magCosechadoDe "granos") 1 st `shouldBe` fi 700
+    baseAlt (magReservaDe "granos") 1 st `shouldBe` fi 300 .*. (uno .-. Fijo 200)
+
+  it "repartir_bien respeta el tope del grupo: maíz a quien ya tiene sus granos no sube la cobertura; pescado, sí" $ do
+    let need = necesidad 1 e0
+        st = ponerFac (magExistencias "maiz") (need .*. fi 3) (ponerFac (magExistencias "pescado") (need .*. fi 3)
+               (ponerAlt (magCubiertoDe "granos") 1 (need .*. Fijo 8500) (ponerAlt magCobertura 1 (Fijo 8500) e0)))
+        x = need .*. Fijo 1000
+    case efecto "repartir_bien" (repartir 1 "maiz" x) st of
+      Left err -> expectationFailure (T.unpack err)
+      Right (e', _) -> do
+        coberturaEn e' (AltId 1) `shouldBe` Fijo 8500
+        baseAlt (magReservaDe "granos") 1 e' `shouldBe` x
+    let energia = fi 1100 ./. fi 3650
+        q = need .*. Fijo 100
+    case efecto "repartir_bien" (repartir 1 "pescado" q) st of
+      Left err -> expectationFailure (T.unpack err)
+      Right (e', _) -> do
+        coberturaEn e' (AltId 1) `shouldBe` Fijo 8500 .+. (q .*. energia) ./. need
+        baseAlt (magCubiertoDe "carne_y_pescado") 1 e' `shouldBe` q .*. energia
+        existencias "pescado" e' `shouldBe` existencias "pescado" st .-. q
+
+  it "repartir_bien rechaza lo que no es alimento de la dieta y dice cuáles lo son" $ do
+    let st = ponerFac (magExistencias "sal") (fi 100) e0
+    either id (const "") (efecto "repartir_bien" (repartir 1 "sal" (fi 1)) st) `shouldSatisfy` T.isInfixOf "los alimentos son: pescado, maiz"
+
+  it "guardar a mitad del año con la dieta y cargar: la partida sigue igual" $ do
+    let mitad = correr j 0 300 e0
+        cargado = either (error . show) id (cargar j mapa (guardar mitad))
+    alm (correr j 301 450 cargado) `shouldBe` alm (correr j 301 450 mitad)
+
+  it "los sistemas con la dieta pasan validarOrdenSistemas salvo las dos lecturas del precio" $
     length (validarOrdenSistemas (juegoCatalogoMag j) (juegoSistemas j)) `shouldBe` 2 * Set.size (lecturasMoneda eco)
 
 -- ---------------------------------------------------------------------------
