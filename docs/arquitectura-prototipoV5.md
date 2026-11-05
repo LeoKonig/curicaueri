@@ -2918,7 +2918,7 @@ El mayor riesgo es el alcance: un juego que mezcla dos géneros completos puede 
 - [ ] Obras: trabajo, materiales, cuadrilla máxima, veintenas mínimas y oficio de cada edificio; sustento por trabajador de la cuadrilla; rendimiento y trabajadores de la extracción por terreno (hito 3)
 - [ ] Tributo en especie de materiales: velocidad de transporte (km de llano por veintena de retraso), costo de transporte por unidad y distancia, y el agravio extra de un señorío (hito 3)
 - [ ] Beneficio de los templos: capacidad de fieles y sacerdotes por templo, `ALCANCE_TEMPLO_LOCAL`, `ALCANCE_CENTRO_CEREMONIAL` y su caída con la distancia, qué yácatas son centros ceremoniales, la proporción de sacerdotes por asentamiento y qué tradiciones comparten templos, con fuentes (*Relación de Michoacán*, Pollard) (hito 3)
-- [ ] Si el estrato `sacerdote` mueve el poder del grupo de poder `sacerdocio` (con la política interna)
+- [x] Si el estrato `sacerdote` mueve el poder del grupo de poder `sacerdocio` (con la política interna). Decidido con *Los procesos de una tecnología*: sí, y de forma general. El tamaño de los estratos de cada eje es una fuente del poder de su grupo, con un modificador «estrato» (T35)
 - [ ] Conocimientos del prototipo (cantería, arquitectura ceremonial, metalurgia…), sus bases por facción y la escala de "aprender haciendo" (hito 3)
 - [ ] Qué pasa con un edificio en una celda que cambia de dueño: sigue siendo de su constructor, pasa a quien la controla o se daña en el saqueo (hito 4)
 - [ ] `P_max`, `k` y recompensas de la alianza (hito 5)
