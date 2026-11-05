@@ -414,30 +414,63 @@ Una población que solo tiene maíz llega a 0,85 de cobertura: no se muere de ha
 
 **El abasto de la capital.** Gorenstein y Pollard (1983, citados en Kemper) estiman que Tzintzuntzan importaba un 44 % de su maíz y un 9 % de su frijol, sobre todo de fuera de la cuenca. La capital no comía de su tierra: comía del tributo y del mercado. La calibración de T25 (el llano a 3 500 trabajadores, para que Tzintzuntzan coma de lo suyo) va contra ese dato. Lo que corresponde es que las trojes de la facción abastezcan cada año el déficit de la capital: una orden permanente que el jugador puede bajar o subir (una decisión, no un cálculo escondido), con el llano de vuelta a 2 500 o donde lo dejen las fuentes. Así el tributo en especie tiene un destino visible, y una mala cosecha en las provincias se siente en la capital.
 
-### La milpa, la chinampa y los sistemas de producción (hito 3)
+### Recursos, bienes con usos y recetas: la milpa, la chinampa y las cadenas (hito 3)
 
-Hoy el terreno rinde bienes por trabajador: el llano da maíz y mantas, y el lago, pescado y sal. Pero el campesino no siembra maíz solo: siembra **milpa**, maíz con frijol, calabaza y chile en la misma parcela (y los quelites crecen entre ellos). Y la chinampa no es un terreno: es una técnica y una obra.
+Hoy el terreno rinde bienes por trabajador: el llano da maíz y mantas, y el lago, pescado y sal. Pero el campesino no siembra maíz solo: siembra **milpa**, maíz con frijol, calabaza y chile en la misma parcela (y los quelites crecen entre ellos). La chinampa no es un terreno, sino una técnica y una obra. Las mantas no salen del llano: salen del algodón de la tierra caliente, hilado y tejido en las casas. Y el cobre purépecha pide mineral, leña y oficio.
 
-**Un sistema de producción es un dato** (`datos/sistemas.json`): en qué terrenos se puede usar, qué conocimiento pide, cuántos trabajadores ocupa por celda, qué da por trabajador y año (varios bienes juntos, cada uno con su ventana de cosecha) y, si hace falta, qué obra lo habilita en la celda. Los rendimientos son de relleno; la forma del dato es lo que se fija ahora.
+**Tres cosas distintas.** La economía del juego separa lo que la naturaleza tiene, lo que la gente guarda y lo que la gente sabe hacer:
 
-| Sistema | Dónde | Pide | Da, por trabajador y año (relleno, por verificar) |
-| --- | --- | --- | --- |
-| **Milpa de temporal** | llano; sierra con terrazas | conocimiento `milpa` (todas las facciones mesoamericanas lo tienen al empezar) | maíz 1 t, frijol 0,15 t, calabaza 0,3 t y pepita 0,02 t, chile 0,02 t, quelites 0,1 t; chapulines donde se comen |
-| **Chinampa** | lago somero o ciénega | conocimiento `chinampa` y la obra «chinampas» en la celda | de dos a tres veces la milpa por hectárea, con más trabajo (Calnek, 1972: una hectárea sostenía de 15 a 20 personas, unas 3 a 4 t ME) |
-| **Pesca** | lago | — | pescado blanco, charal, pato, rana |
-| **Monte** | bosque | — | venado, conejo, miel, quelites, y la madera de las obras |
-| **Solar** | en el asentamiento, por casa y no por celda | — | guajolote, aguacate, nopal, capulín y frutas: un poco por persona, sin ocupar tierra |
-| **Huerta de tierra caliente** | tierra caliente | — | cacao, papaya, zapotes, algodón para las mantas |
-| **Magueyal** | sierra y llano seco | — | pulque, aguamiel, fibra |
-| **Salinas** | lago salobre (Cuitzeo, Araró; por verificar) | — | sal |
+1. **Recursos** (de la celda): el suelo, el bosque, el yacimiento, la pesquería, la salina. Son magnitudes de la celda con su capacidad, y en su momento con su regeneración y su agotamiento (un bosque vuelve a crecer, una mina se acaba, un lago se sobrepesca). Un recurso no se guarda ni se comercia: se trabaja. Es lo que la celda ya tiene con la capacidad y la erosión (*Erosión*), extendido a los demás recursos.
+2. **Bienes** (inventario de la facción): lo que existe porque alguien lo sacó o lo hizo, y se guarda, se transporta, se tributa o se consume. Cada bien tiene una **estructura física** (su unidad, su masa por unidad para el transporte y su merma) y unos **usos**.
+3. **Recetas** (técnicas): cómo se convierte una cosa en otra. Cada receta tiene sus insumos (bienes, trabajo, energía y recursos de la celda), sus productos, su lugar (una celda, la casa o una obra), el conocimiento que pide y con qué dominio, y su ventana del año si la tiene. La milpa, la chinampa, la pesca, el hilado, el tejido y la fundición son todas recetas: un solo mecanismo.
 
-**Qué cambia en la producción.** La fórmula del factor escaso no cambia: cada celda tiene trabajadores ℓ y rendimientos y, y los trabajadores van primero a lo que más rinde por trabajador. Lo que cambia es de dónde salen ℓ e y: del sistema que se usa en la celda, no del terreno. Y lo que «más rinde» se compara en **valor** (cada bien por su valor del catálogo), no en toneladas, que no se pueden sumar entre maíz, cacao y mantas. Un terreno con `rendimiento_por_trabajador` sigue funcionando como hoy (regla 4).
+**La función de un bien no es un atributo: es un uso.** Un artefacto tiene una estructura física y una función que le dan las personas (la «naturaleza dual» de los artefactos técnicos de Kroes y Meijers). La función cambia con el contexto: la manta es vestido, tributo, ofrenda y medio de pago, y el cacao es bebida de los señores y moneda. Por eso el juego no le pone a cada bien una categoría fija. Los usos salen de los archivos que lo nombran:
+
+| Uso | Lo declara | Lo lee |
+| --- | --- | --- |
+| Alimento | `datos/dieta.json` (T27) | La subsistencia |
+| Gusto y lujo | `datos/necesidades.json` (T30) | El agravio y la lealtad por estrato |
+| Insumo, herramienta o energía | `datos/recetas.json` | La producción |
+| Material de obra | `datos/edificios.json` | La construcción |
+| Medio de pago | `designable` en el catálogo de bienes | La moneda |
+| Militar | El equipo de los ejércitos (T18) | La leva y el combate |
+
+Un bien puede tener varios usos, y la interfaz los muestra juntos. La **etapa** tampoco se declara: sale de las recetas. Un bien es materia prima si sale de un recurso, intermedio si entra en otra receta y final si alguien lo consume. La misma pieza puede ser las tres cosas.
+
+**Las recetas** (`datos/recetas.json`; rendimientos de relleno, por verificar). Las que trabajan un recurso de la celda son lo que antes se llamaba sistemas de producción:
+
+| Receta | Lugar | Pide | Insumos | Productos, por trabajador y año |
+| --- | --- | --- | --- | --- |
+| **Milpa de temporal** | llano; sierra con terrazas | conocimiento `milpa` (todas las facciones mesoamericanas lo tienen al empezar) | el suelo | maíz 1 t, frijol 0,15 t, calabaza 0,3 t y pepita 0,02 t, chile 0,02 t, quelites 0,1 t; chapulines donde se comen |
+| **Chinampa** | lago somero o ciénega | conocimiento `chinampa` y la obra «chinampas» en la celda | el suelo de la chinampa | de dos a tres veces la milpa por hectárea, con más trabajo (Calnek, 1972: una hectárea sostenía de 15 a 20 personas, unas 3 a 4 t ME) |
+| **Pesca** | lago | — | la pesquería | pescado blanco, charal, pato, rana |
+| **Monte** | bosque | — | el bosque | venado, conejo, miel, quelites, leña, madera |
+| **Solar** | la casa, por persona y no por celda | — | — | guajolote, aguacate, nopal, capulín y frutas |
+| **Huerta de tierra caliente** | tierra caliente | — | el suelo | cacao, papaya, zapotes, **algodón** |
+| **Magueyal** | sierra y llano seco | — | el suelo | pulque, aguamiel, ixtle |
+| **Salinas** | lago salobre (Cuitzeo, Araró; por verificar) | — | la salina | sal |
+| **Minería** | sierra con yacimiento | — | el yacimiento | mineral de cobre |
+
+Las que transforman bienes son las cadenas. Empiezan dos, las que obligan a mover bienes entre regiones y dan al reino su rasgo propio:
+
+| Receta | Lugar | Pide | Insumos | Productos |
+| --- | --- | --- | --- | --- |
+| **Hilado** | la casa | — | algodón (o ixtle) | hilo |
+| **Tejido** | la casa | — | hilo | mantas |
+| **Fundición** | obra «fundición» | oficio `metalurgia` | mineral de cobre, leña (o carbón) | cobre |
+| **Labrado del cobre** | obra «taller» | oficio `metalurgia` | cobre | hachas, cascabeles, adornos |
+
+El tejido de la casa se hacía sobre todo por mujeres, con el telar de cintura (por verificar la proporción de su tiempo). Por eso las recetas de la casa usan un trabajo propio, el de la casa, que no le quita gente a la milpa. Así las mantas del tributo cuestan algodón y tiempo, no tierra. La metalurgia purépecha era la más avanzada de Mesoamérica: cobre, bronce, oro y plata (por verificar con Hosler, 1994, y Pollard). Con la fundición, las hachas de cobre pueden ser **herramienta**: un bien que una receta gasta despacio y que sube su rendimiento (las hachas en la tala y en el monte), con el desglose de siempre.
+
+La nixtamalización y la tortilla no son recetas del juego: pasan en cada casa todos los días, y nadie las guarda ni las comercia en volumen. Ya están dentro de la ración. Si hace falta un bien de campaña (las tortillas tostadas o el pinole de los guerreros, por verificar), será una sola receta de T18.
+
+**Qué cambia en la producción.** La fórmula del factor escaso no cambia: cada celda tiene trabajadores ℓ y rendimientos y, y los trabajadores van primero a lo que más rinde por trabajador. Lo que cambia es de dónde salen ℓ e y: de la receta que se usa en la celda, no del terreno. Las recetas de la casa y de las obras transforman bienes de las existencias de la facción, con el trabajo de la casa o con una cuadrilla, en orden de valor agregado por trabajador y hasta donde alcancen sus insumos. Y lo que «más rinde» se compara en **valor** (cada bien por su valor del catálogo), no en toneladas, que no se pueden sumar entre maíz, cacao y mantas. Un terreno con `rendimiento_por_trabajador` sigue funcionando como hoy (regla 4).
 
 **La milpa y la chinampa son tecnologías** del mecanismo de *Tecnología y educación*: la milpa con dominio pleno en todas las facciones mesoamericanas desde el principio; la chinampa con condición geográfica (lago somero o ciénega), dominio alto entre los mexicas, xochimilcas y chalcas en 1475, y bajo o nulo entre los purépechas (por verificar: la ciénega de Zacapu y la ribera del lago de Pátzcuaro; Fisher, Pollard y Frederick, 1999, estudian la agricultura intensiva de la cuenca). Mientras no exista la difusión (paso 15), el dominio es una base del escenario, como el oficio de las obras: la chinampa ya se puede construir con lo que hay (una obra en celda con oficio). Las terrazas, que ya son una obra, habilitan la milpa en la sierra.
 
 **Por qué es bueno para el juego.** El jugador no decide qué sembrar en cada celda, porque eso sería una hoja de cálculo. Decide lo que decidía un señor: qué obras levantar (chinampas, terrazas), qué pedir en tributo a cada provincia (cacao a la tierra caliente, frijol al Bajío), cómo repartir lo guardado (abasto de la capital, cacao a los señores, maíz a los que tienen hambre) y con quién comerciar por lo que su tierra no da. Las regiones se vuelven distintas por lo que comen y lo que les falta, y la interfaz agrupa los bienes (granos, frijol, verduras, carne y pescado, gustos, lujos) para que una veintena de bienes no se vuelva una lista.
 
-**Escala.** Los bienes son magnitudes de la facción, pocas aunque sean veinticinco. En el altépetl solo se guarda la energía por grupo (cinco grupos, cosechado y reserva): con 7 500 altépetl, unas 75 000 entradas, y un cálculo por altépetl y año. La producción recorre por altépetl sus celdas y sistemas, como hoy.
+**Escala.** Los bienes son magnitudes de la facción, pocas aunque sean treinta. En el altépetl solo se guarda la energía por grupo (cinco grupos, cosechado y reserva): con 7 500 altépetl, unas 75 000 entradas, y un cálculo por altépetl y año. La producción recorre por altépetl sus celdas y recetas, como hoy. Las cadenas son un modelo insumo-producto à la Leontief: lineal, determinista, con unas pocas recetas por facción y periodo. Los recursos que se agotan son una magnitud más por celda trabajada, y solo se escriben las que cambian.
 
 ### Crecimiento (hito 3b)
 
@@ -886,7 +919,7 @@ La unidad política básica es el altépetl, que puede ser sujeto, señorío o i
 | Grupo de poder | id, clave de nombre por facción y periodo, eje al que contribuye, base de lealtad y poder por tipo de facción | `datos/grupos.json`; su lealtad y su poder son magnitudes de la facción. Paso 12 |
 | Reforma | id, requisitos (condiciones), costo inicial, efectos, grupo que la impulsa, grupo que se opone y umbrales de bloqueo | `datos/reformas.json`; se aprueba con `AprobarReforma` |
 | Tecnología | id, tipo (producto o sistema), canales, condiciones, efectos, resistencia, umbral de dominio | `datos/tecnologias.json`; su conocimiento codificado y tácito son magnitudes de la facción. Paso 15 |
-| Sistema de producción | id, terrenos, conocimiento, obra que lo habilita, trabajadores por celda, rendimiento por trabajador y año de cada bien | `datos/sistemas.json` (milpa, chinampa, pesca, monte, solar…; ver *La milpa, la chinampa y los sistemas de producción*). Paso 6 |
+| Receta | id, lugar (celda, casa u obra), terrenos, conocimiento y dominio, insumos (bienes, trabajo, energía, recurso), productos por trabajador y año, ventana | `datos/recetas.json` (milpa, chinampa, pesca, monte, solar…; ver *Recursos, bienes con usos y recetas*). Paso 6 |
 | Grupo de la dieta | id, alimentos, tope de energía, tope de reserva, merma | `datos/dieta.json` (ver *La dieta*). Paso 7 |
 | Pop | asentamiento, residencia (núcleo o dispersa), identidad (origen o categoría: purépecha, hñähñú, nahua, chichimeca…; lista que crece), condición legal (por defecto `comun`), autoadscripción (por defecto, la identidad), estrato (incluye `nobleza_local`), `gradiente_catolicismo` (de 0, culto tradicional, a 1, catolicismo; en el juego completo, un valor por culto), tamaño, resto de crecimiento, lealtad, agravio, necesidades | Agregado, como en Victoria II; la condición y la autoadscripción las usa el juego completo (ver *Población: origen, condición y mestizaje*) |
 | Bien | id, clave de nombre, categoría, valor base; para la moneda: calidad monetaria, referencia, elasticidad y si es designable (ver *La moneda designada y la inflación*) | Maíz, pescado, sal, cobre, mantas, obsidiana |
