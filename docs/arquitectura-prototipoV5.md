@@ -267,6 +267,15 @@ Para esto, el modificador gana dos campos opcionales (con valor por defecto, com
 
 Los costos y porcentajes de estos ejemplos son de relleno; se fijan en el hito 0.
 
+**Implementado (T37).** El camino es un edificio de altépetl (`maximo: 1`): el jugador decide en cuáles altépetl lo levanta; la ruta no la traza él, sale sola. Su modificador de alcance `ruta` vive en el altépetl como `celda.costo_movimiento` (base 1; con el −30 % vale 0,7) y el paso 16 lo resuelve así:
+
+- La ruta va del altépetl al **otro altépetl más cercano que también tiene camino**, por el costo del grafo, hasta `ALCANCE_CAMINO` (200, relleno). Es la ruta de menor costo, con empate por id de celda.
+- Las celdas de la ruta cuestan el factor del modificador por el costo de su terreno. Una celda en varias rutas vale lo de la mejor: los caminos no se apilan. Todo lo que lee el costo del grafo (la asignación de celdas, los templos, el tributo en especie) lo ve ya abaratado, sin regla propia.
+- Las rutas se buscan en el grafo **sin caminos**, no en el de la veintena anterior: así el derivado es función solo del estado persistente (ley del derivado reproducible) y una ruta no puede cambiar por el camino que ella misma abarata.
+- El +4 % de producción es un modificador condicional corriente: `condicion: {"vecino_con": "camino"}` en `datos/edificios.json` se compila a `Mayor` sobre la magnitud `asentamiento.vecino_con.camino` del altépetl, que vale 1 si su vecino más cercano por ruta (cualquiera, no solo con camino) también tiene camino. La escribe la construcción con el derivado de la veintena anterior, así que la condición llega con una veintena de retraso y no hace falta un lenguaje de condiciones nuevo. Cuando deja de cumplirse el modificador termina con `modificador_terminado` y razón `condicion`.
+
+El jugador no ve el efecto en una celda (el cliente no tiene panel de celda): el desglose del altépetl muestra su `celda.costo_movimiento` con el aporte del camino y su producción con el +4 %. Medido con `--escala 7500x20`: con un camino en 76 o 300 altépetl el tick no cambia de forma medible; en un caso extremo, con caminos en uno de cada 5 altépetl (1 500), pasa de 81 a 144 ms por tick, y con uno de cada 2 (3 750), a 201 ms (documento funcional, sección 8).
+
 ### Terrazas y roturación (hito 3)
 
 Son obras sobre una **celda** (no sobre un asentamiento) dentro de `RADIO_PRODUCCION` de un asentamiento propio. Usan `ConstruirEdificio` con un hexágono de destino: no hay comando nuevo.

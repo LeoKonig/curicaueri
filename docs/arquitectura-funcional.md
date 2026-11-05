@@ -407,6 +407,8 @@ parchearCostos :: (CeldaId -> Fijo) -> (CeldaId -> CeldaId -> Fijo) -> [CeldaId]
 
 Por fuera es una función pura, aunque por dentro copie un arreglo con `ST`. Con el mapa completo (unas 900 000 conexiones), parchear las de unas decenas de celdas es lo que mantiene el paso 16 barato.
 
+**Implementado (T37).** `parchearCostos mu cs g` en `Motor.Recorrido` parchea el costo de las conexiones que salen de las celdas de `cs` y las que llegan a ellas (el costo sigue simétrico) y el mapa persistente del grafo (lo lee `propagar`); copia el arreglo de costos una vez. `costoEntre` (`Motor.Mapa`) es la fórmula de la conexión y la comparten `conCostoDeTerreno` y el parche. Ley «parchear es reconstruir»: comparan mapa y recorridos con QuickCheck. `rutaMasCorta tope g a b` calcula las distancias a `b` con `propagar` (su costo es el de las celdas que explora, no el del mapa: `propagarGrafo` recorre las 150 000 celdas aunque tenga tope, y con 1 500 rutas costaba 190 ms por tick más) y baja desde `a` por la vecina que cierra la distancia, con empate por id. En el paso 16 (`derivarCaminos`, `Reglas.Edificios`) el grafo del `Entorno` sigue siendo el de terreno y el derivado parcha una copia: el vecino más cercano de cada altépetl (`dpVecino`, un recorrido de dos grupos desde todos) y la ruta de cada pareja de altépetl con camino. Se hace solo si algún altépetl tiene un edificio con modificador de alcance `ruta` o condición `vecino_con`; si no, no se recorre nada y la traza es la de antes. Medición con `--escala 7500x20`: sin caminos 81 ms por tick; con 1 500 caminos, 144; con 3 750, 201 (por veintena, unos 1,3 s y 2,4 s más, porque el derivado corre una vez por periodo).
+
 **Asignación de celdas: un diagrama de Voronoi en el grafo.**
 
 ```math
