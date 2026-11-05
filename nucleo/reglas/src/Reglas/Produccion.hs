@@ -66,7 +66,7 @@ import qualified Data.Text as T
 import Motor.Base
 import Motor.Estado
 import Motor.Magnitudes
-import Motor.Mapa (Mapa (..), Celda (..), Terreno (..))
+import Motor.Mapa (Mapa (..), Terreno (..), composicionDe)
 import Motor.Azar (uniforme)
 import Motor.Calendario (CalendarioInterno (..), CalendarioVisible, Fecha, InfoPeriodo (..), diaDelAnioDe, diaDelAnioVisible, infoPeriodo)
 import Motor.Carga (CategoriaError (..), ErrorCarga (..), Validacion, falla)
@@ -221,20 +221,39 @@ cargarCosechas archivo producidos v = case A.parseEither leer v of
       [[(m, "")], [(d, "")]] | Just n <- diaDelAnioDe m d -> pure n
       _ -> falla (ErrorCarga ErrorRango archivo ruta ("fecha «" <> t <> "»: se espera MM-DD"))
 
--- | Una celda que se puede trabajar, con lo que pide y lo que da.
-celdaTrabajo :: Int -> DefTerreno -> Maybe CeldaTrabajo
-celdaTrabajo c d
-  | Map.null (dtRendimiento d) || dtTrabajadores d <= Fijo 0 = Nothing
-  | otherwise = Just (CeldaTrabajo c (dtTrabajadores d) (dtRendimiento d) Nothing)
+-- | Un componente de una celda que se puede trabajar, con lo que pide y lo
+-- que da: la celda @c@, el terreno @t@ del componente y su fracción @s@
+-- (V5, *La celda como mezcla de terrenos*; T36). El componente es como una
+-- celda chica de su terreno: pide s veces los trabajadores y da s veces lo
+-- suyo, así que lo que da por trabajador no depende de s. Una celda de un
+-- solo terreno es su único componente, con s = 1, y da lo de siempre.
+celdaTrabajo :: Int -> Text -> Fijo -> DefTerreno -> Maybe CeldaTrabajo
+celdaTrabajo c t s d
+  | Map.null (dtRendimiento d) || l <= Fijo 0 = Nothing
+  | otherwise = Just (CeldaTrabajo c l (Map.map (parteDe s) (dtRendimiento d)) Nothing t)
+  where l = parteDe s (dtTrabajadores d)
 
--- | Las celdas de mejor a peor por y/ℓ, con empate por id. La comparación se
--- hace en enteros, multiplicando en cruz, para no redondear el cociente.
+-- | La parte @s@ de una cantidad; con s = 1, la cantidad misma, sin redondear.
+parteDe :: Fijo -> Fijo -> Fijo
+parteDe s x = if s == uno then x else s .*. x
+
+-- | Los componentes que trabaja cada celda asignada: cada uno con su terreno,
+-- su fracción y su definición. Un terreno sin definición no da nada.
+componentesDe :: Map Terreno DefTerreno -> Mapa -> Int -> [(Text, Fijo, DefTerreno)]
+componentesDe tabla mapa cel = case IntMap.lookup cel (mapaCeldas mapa) of
+  Nothing -> []
+  Just ce -> [ (t, s, d) | (Terreno t, s) <- composicionDe ce, Just d <- [Map.lookup (Terreno t) tabla] ]
+
+-- | Las celdas de mejor a peor por y/ℓ, con empate por id de celda y luego por
+-- terreno del componente. La comparación se hace en enteros, multiplicando en
+-- cruz, para no redondear el cociente.
 ordenarCeldas :: [CeldaTrabajo] -> [CeldaTrabajo]
-ordenarCeldas = sortBy cmp
+ordenarCeldas = map snd . sortBy cmp . map (\c -> ((y c, l c), c))
   where
+    -- y y ℓ se calculan una vez por componente, no en cada comparación.
     y c = sum [ fromIntegral r :: Integer | Fijo r <- Map.elems (ctRendimiento c) ]
     l c = let Fijo x = ctTrabajadores c in fromIntegral x :: Integer
-    cmp a b = compare (y b * l a, ctCelda a) (y a * l b, ctCelda b)
+    cmp ((ya, la), a) ((yb, lb), b) = compare (yb * la, ctCelda a, ctTerreno a) (ya * lb, ctCelda b, ctTerreno b)
 
 -- | Qué celdas trabaja cada altépetl, ya ordenadas (ver 'derivarTerritorio').
 derivarCeldas :: Constantes -> Map Terreno DefTerreno -> Mapa -> Purepecha -> Map AltId [CeldaTrabajo]
@@ -280,15 +299,15 @@ derivarTerritorioCon mcp c tabla mapa gr p
           ws = trabajadoresDe c p
           personas = Map.fromListWith (+) [ (popAltepetl pop, popTamano pop) | pop <- Map.elems (ppPops p) ]
           porAlt = Map.fromListWith (++)
-                     [ (a, [(cel, t, d)]) | (a, cel, t, d) <- asignadas ]
+                     [ (a, [(cel, t, s, d)]) | (a, cel, t, s, d) <- asignadas ]
           deAltepetl a celdas =
             let alt = Map.lookup a (ppAltepetl p)
                 f = maybe (FaccionId 0) altFaccion alt
                 tau = maybe (Fijo 0) (\fa -> cTributoEspecie c .*. fi (tasaTributo (facTasas fa))) (alt >>= \x -> Map.lookup (altFaccion x) (ppFacciones p))
                 need = fi (Map.findWithDefault 0 a personas) .*. cpNecesidad cp
                 objetivo = (need ./. (uno .-. tau)) ./. cTicksPorAnio c
-                opciones = [ opcionesDeCelda (cTicksPorAnio c) (cpDominio cp f) deCelda cel t (celdaTrabajo cel d)
-                           | (cel, Terreno t, d) <- celdas ]
+                opciones = [ opcionesDeCelda (cTicksPorAnio c) (cpDominio cp f) deCelda cel t s (celdaTrabajo cel t s d)
+                           | (cel, t, s, d) <- celdas ]
             in elegirCeldas (cpEnergia cp) (cpValor cp) objetivo (Map.findWithDefault 0 a ws) [ os | os <- opciones, not (null os) ]
       in (Map.mapWithKey deAltepetl porAlt, mats)
   | otherwise = sinProcesos
@@ -296,17 +315,19 @@ derivarTerritorioCon mcp c tabla mapa gr p
     deCelda = [ pr | Just cp <- [mcp], pr <- cpProcesos cp, prLugar pr == EnCelda ]
     fuentes = [ (AsentId i, CeldaId (altCelda a)) | a <- Map.elems (ppAltepetl p), let AltId i = altId a ]
     asig = asignarCeldas (cRadioProduccion c) gr fuentes
-    defDe cel = IntMap.lookup cel (mapaCeldas mapa) >>= \ce -> (,) (celdaTerreno ce) <$> Map.lookup (celdaTerreno ce) tabla
-    asignadas = [ (AltId a, cel, t, d) | (cel, AsentId a) <- IntMap.toList asig, Just (t, d) <- [defDe cel] ]
+    asignadas = [ (AltId a, cel, t, s, d) | (cel, AsentId a) <- IntMap.toList asig, (t, s, d) <- componentesDe tabla mapa cel ]
     sinProcesos = derivarSinProcesos asignadas
 
-derivarSinProcesos :: [(AltId, Int, Terreno, DefTerreno)] -> (Map AltId [CeldaTrabajo], Map AltId (Map Text [CeldaTrabajo]))
+-- | Las celdas y los materiales de cada altépetl sin procesos de celda. Los
+-- materiales de obra salen del componente que los tiene, con su fracción.
+derivarSinProcesos :: [(AltId, Int, Text, Fijo, DefTerreno)] -> (Map AltId [CeldaTrabajo], Map AltId (Map Text [CeldaTrabajo]))
 derivarSinProcesos asignadas =
       let porAlt = Map.fromListWith (++)
-                     [ (a, [ct]) | (a, cel, _, d) <- asignadas, Just ct <- [celdaTrabajo cel d] ]
+                     [ (a, [ct]) | (a, cel, t, s, d) <- asignadas, Just ct <- [celdaTrabajo cel t s d] ]
           mats = Map.fromListWith (Map.unionWith (++))
-                   [ (a, Map.singleton g [CeldaTrabajo cel (mtTrabajadores mt) (Map.singleton g (mtRendimiento mt)) Nothing])
-                   | (a, cel, _, d) <- asignadas, (g, mt) <- Map.toList (dtMateriales d) ]
+                   [ (a, Map.singleton g [CeldaTrabajo cel l (Map.singleton g (parteDe s (mtRendimiento mt))) Nothing t])
+                   | (a, cel, t, s, d) <- asignadas, (g, mt) <- Map.toList (dtMateriales d)
+                   , let l = parteDe s (mtTrabajadores mt), l > Fijo 0 ]
       in (Map.map ordenarCeldas porAlt, Map.map (Map.map ordenarCeldas) mats)
 
 -- | Trabajadores de cada altépetl (sección 12):

@@ -347,6 +347,7 @@ data CeldaTrabajo = CeldaTrabajo
   , ctTrabajadores :: Fijo
   , ctRendimiento  :: Map Text Fijo
   , ctProceso      :: Maybe Text     -- ^ el proceso de la tecnología con que se trabaja; 'Nothing', el del terreno (T28)
+  , ctTerreno      :: Text           -- ^ el terreno del componente de la celda que se trabaja (T36); el de la celda si no está mezclada
   } deriving (Eq, Show)
 
 -- | El derivado del juego (paso 16). Nunca se guarda: se recalcula desde el

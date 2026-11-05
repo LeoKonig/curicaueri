@@ -99,7 +99,7 @@ genCeldas = do
           k  <- choose (1, 3)
           ys <- vectorOf k (choose (0, 500000))
           let bs = take k ["maiz", "pescado", "sal"]
-          pure (CeldaTrabajo i (Fijo (l * 10000)) (Map.fromList (zip bs (map Fijo ys))) Nothing))
+          pure (CeldaTrabajo i (Fijo (l * 10000)) (Map.fromList (zip bs (map Fijo ys))) Nothing ""))
        [1 .. n]
 
 -- | @datos/grupos.json@ cargado, o la lista de errores.
@@ -861,8 +861,8 @@ main = do
         correrDias desde hasta e = foldl' (\st t -> fst (paso j ent (Semilla 1) (Tick t) [] st)) e [desde .. hasta]
         alm st = comunMagnitudes (persistenteComun (estadoPersistente st))
         base m st = maybe (Fijo 0) almacenBase (Map.lookup ((entFac f1), m) (alm st))
-        llano = CeldaTrabajo 1 (fi 500) (Map.fromList [("maiz", fi 40), ("mantas", fi 4)]) Nothing
-        lago  = CeldaTrabajo 2 (fi 400) (Map.fromList [("pescado", fi 20), ("sal", fi 3)]) Nothing
+        llano = CeldaTrabajo 1 (fi 500) (Map.fromList [("maiz", fi 40), ("mantas", fi 4)]) Nothing "llano"
+        lago  = CeldaTrabajo 2 (fi 400) (Map.fromList [("pescado", fi 20), ("sal", fi 3)]) Nothing "lago"
 
     it "los bienes de los terrenos son cinco de los seis de V5 (las mantas se tejen en casa, T28) y están en el catálogo del juego" $ do
       bienesDe terrenosArchivo `shouldBe` ["cobre", "maiz", "obsidiana", "pescado", "sal"]
@@ -950,6 +950,7 @@ main = do
   pruebasSubsistencia terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
   pruebasDieta terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
   pruebasProcesos terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
+  pruebasMezcla terrenosArchivo bienesArchivo (either (const edificiosVacios) id edificiosArchivo)
 
   describe "reglas: tablas de casos del hito 0a (prototipo HTML)" $ do
     tablas <- runIO (fmap (>>= parseEither parseTablas)
@@ -2131,7 +2132,7 @@ pruebasProcesos terrenos eco eds = describe "reglas: procesos de bienes en las t
       conTacito k v st = st { estadoPersistente = (estadoPersistente st)
                                 { persistenteComun = (persistenteComun (estadoPersistente st))
                                     { comunMagnitudes = fijarBase (entFac f1) (magTacito k) v (alm st) } } }
-      cel i l ys = CeldaTrabajo i (fi l) (Map.fromList ys) Nothing
+      cel i l ys = CeldaTrabajo i (fi l) (Map.fromList ys) Nothing ""
       errores v = length (valErrores (cargarEdificios "e.json" catalogoMag v))
       json t = either error id (A.eitherDecode t) :: A.Value
 
@@ -2152,9 +2153,9 @@ pruebasProcesos terrenos eco eds = describe "reglas: procesos de bienes en las t
 
   it "con dominio a medias la milpa rinde a medias; bajo el mínimo no existe" $ do
     let llano = Map.findWithDefault (error "sin llano") (Terreno "llano") terrenos
-        terreno = celdaTrabajo 1 llano
+        terreno = celdaTrabajo 1 "llano" uno llano
         maizDeMilpa d = [ Map.findWithDefault (Fijo 0) "maiz" (ctRendimiento o)
-                        | o <- opcionesDeCelda (cTicksPorAnio c) (const d) (procesosDe eds) 1 "llano" terreno
+                        | o <- opcionesDeCelda (cTicksPorAnio c) (const d) (procesosDe eds) 1 "llano" uno terreno
                         , ctProceso o == Just "milpa_temporal" ]
     case (maizDeMilpa (fi 100), maizDeMilpa (fi 50)) of
       ([pleno], [medio]) -> abs (unFijo (medio .*. fi 2 .-. pleno)) `shouldSatisfy` (< 5)
@@ -2212,6 +2213,83 @@ guionPropios :: A.Value
 guionPropios = case A.decode "{\"tipos\": [\"t\"], \"situaciones\": [ {\"id\": \"frontera\", \"tipo\": \"t\", \"condicion\": {\"tipo\": \"todas\", \"de\": [ {\"tipo\": \"soberano\", \"altepetl\": 12, \"faccion\": 2}, {\"tipo\": \"faccion_activa\", \"faccion\": 2}, {\"tipo\": \"personaje_vivo\", \"personaje\": 1} ]}, \"opciones\": [ {\"id\": \"nada\", \"efectos\": []}, {\"id\": \"tomar_zacapu\", \"efectos\": [ {\"tipo\": \"transferir_altepetl\", \"altepetl\": 12, \"faccion\": 1}, {\"tipo\": \"modificador\", \"entidad\": {\"clase\": \"faccion\", \"id\": 1}, \"magnitud\": \"prestigio\", \"valor\": \"5\", \"dias\": 365} ]}, {\"id\": \"tomar_la_cabecera\", \"efectos\": [ {\"tipo\": \"modificador\", \"entidad\": {\"clase\": \"faccion\", \"id\": 1}, \"magnitud\": \"prestigio\", \"valor\": \"5\", \"dias\": 365}, {\"tipo\": \"transferir_altepetl\", \"altepetl\": 11, \"faccion\": 1} ]}, {\"id\": \"senorio\", \"efectos\": [ {\"tipo\": \"cambiar_condicion\", \"altepetl\": 12, \"condicion\": \"senorio\"} ]}, {\"id\": \"absorber\", \"efectos\": [ {\"tipo\": \"absorber_faccion\", \"faccion\": 2, \"absorbente\": 1} ]}, {\"id\": \"activar\", \"efectos\": [ {\"tipo\": \"activar_faccion\", \"faccion\": 3} ]} ]} ]}" of
   Just v  -> v
   Nothing -> error "guionPropios no es JSON"
+
+-- | T36: la celda como mezcla de terrenos. Cada componente se trabaja con su
+-- fracción; sin mezcla todo es como antes; la ribera pesca y siembra.
+pruebasMezcla :: Map.Map Terreno DefTerreno -> Economia -> Edificios -> Spec
+pruebasMezcla terrenos eco eds = describe "reglas: la celda como mezcla de terrenos (T36)" $ do
+  ventanas <- runIO $ do
+    v <- A.eitherDecodeFileStrict "../../datos/terrenos.json"
+    case v of
+      Left e -> fail e
+      Right jv -> case cargarCosechas "datos/terrenos.json" (bienesConProcesos terrenos (procesosDe eds)) jv of
+        Validacion [] (Just cs) -> pure cs
+        Validacion errs _ -> fail (show (map errMensaje errs))
+  (tut, _) <- runIO (leerEscenarioDe "../../escenarios/tutorial_1475.json")
+  let c    = constantesDefault
+      hex  = either (error . show) id (proveedorHexagonal datosMapa1475)
+      eps  = escMezcla tut
+      conMapa m = let ent = (entornoSimple (conCostoDeTerreno terrenos m)) { entEconomia = eco } in ent
+      entPuro = conMapa hex
+      entMez  = conMapa (conMezcla eps hex)
+      dr   = Reglas.Juego.datosVacios { Reglas.Juego.drTerrenos = terrenos, Reglas.Juego.drEdificios = eds
+                                      , Reglas.Juego.drEconomia = eco, Reglas.Juego.drCosechas = ventanas }
+      j    = Reglas.Juego.juegoDatos c dr
+      sinAzar = j { juegoSistemas = filter ((/= NombreSistema "cosecha") . sisNombre) (juegoSistemas j) }
+      inicial ent = let e = conConocimientos eds estadoInicial1475
+                    in e { estadoDerivado = derivar j (entGrafo ent) (estadoTick e) (estadoPersistente e) }
+      correr ent jj desde hasta e = foldl' (\st t -> fst (paso jj ent (Semilla 1) (Tick t) [] st)) e [desde .. hasta]
+      celdas st = dpCeldas (derivadoJuego (estadoDerivado st))
+      llano = Map.findWithDefault (error "sin llano") (Terreno "llano") terrenos
+      lago  = Map.findWithDefault (error "sin lago") (Terreno "lago") terrenos
+      cerca tol a b = all (\k -> abs (unFijo (Map.findWithDefault (Fijo 0) k a) - unFijo (Map.findWithDefault (Fijo 0) k b)) <= tol)
+                          (Map.keys (Map.union a b))
+
+  it "el tutorial declara una mezcla en el rango de 0 a 0,5" $
+    eps `shouldSatisfy` (\e -> e > Fijo 0 && e <= Fijo 5000)
+
+  it "una mezcla fuera de rango se rechaza al cargar el escenario" $ do
+    let conMezclaDe x = A.object [ "id" A..= ("x" :: Text), "inicio" A..= ("1475-01-01" :: Text), "facciones" A..= ([] :: [Text])
+                                 , "mapa" A..= A.object ["ancho" A..= (2 :: Int), "alto" A..= (2 :: Int), "mezcla" A..= (x :: Text)] ]
+    map errRuta (valErrores (leerEscenario "e.json" (conMezclaDe "0.6"))) `shouldBe` ["mapa.mezcla"]
+    map errRuta (valErrores (leerEscenario "e.json" (conMezclaDe "-0.1"))) `shouldBe` ["mapa.mezcla"]
+    fmap escMezcla (valValor (leerEscenario "e.json" (conMezclaDe "0.25"))) `shouldBe` Just (Fijo 2500)
+
+  it "ley (mezcla neutra): con fracción 1, el componente es la celda de antes, sin redondeo" $
+    celdaTrabajo 7 "llano" uno llano `shouldBe` Just (CeldaTrabajo 7 (dtTrabajadores llano) (dtRendimiento llano) Nothing "llano")
+
+  it "ley (partición de la celda): una celda partida en componentes de su terreno da lo mismo que entera" $
+    property $ forAll (choose (1, 9)) $ \k -> forAll (choose (0, 20000)) $ \w ->
+      let s1 = Fijo (k * 1000); s2 = uno .-. s1
+          entera = maybe [] pure (celdaTrabajo 1 "llano" uno llano)
+          partes = [ ct | s <- [s1, s2], Just ct <- [celdaTrabajo 1 "llano" s llano] ]
+      in cerca 2 (produccionCeldas w (ordenarCeldas partes)) (produccionCeldas w entera)
+
+  it "ley (partición de la celda): una celda mezclada da lo mismo que celdas puras de cada terreno con su fracción" $
+    property $ forAll (choose (1, 9)) $ \k -> forAll (choose (0, 20000)) $ \w ->
+      let s1 = Fijo (k * 1000); s2 = uno .-. s1
+          mezclada = [ ct | (t, s, d) <- [("llano", s1, llano), ("lago", s2, lago)], Just ct <- [celdaTrabajo 1 t s d] ]
+          puras = [ ct | (i, t, s, d) <- [(1, "llano", s1, llano), (2, "lago", s2, lago)], Just ct <- [celdaTrabajo i t s d] ]
+      in produccionCeldas w (ordenarCeldas mezclada) == produccionCeldas w (ordenarCeldas puras)
+
+  it "la ribera pesca y siembra: cubierta la comida, el componente de lago de la misma celda también se trabaja" $ do
+    let energia = Map.fromList [("maiz", uno)]
+        valor = Map.fromList [("maiz", uno), ("pescado", fi 3)]
+        tierra = CeldaTrabajo 1 (fi 60) (Map.fromList [("maiz", fi 60)]) Nothing "llano"
+        orilla = CeldaTrabajo 1 (fi 40) (Map.fromList [("pescado", fi 4)]) Nothing "lago"
+    map ctTerreno (elegirCeldas energia valor (fi 10) 100 [[tierra], [orilla]]) `shouldBe` ["llano", "lago"]
+
+  it "sin mezcla, el tutorial deriva lo de siempre; con la mezcla, algún altépetl trabaja dos terrenos de una misma celda" $ do
+    let puro = celdas (inicial entPuro)
+        mez  = celdas (inicial entMez)
+    all (all (\ct -> ctTrabajadores ct > Fijo 0)) (Map.elems mez) `shouldBe` True
+    concatMap (map ctTerreno) (Map.elems puro) `shouldSatisfy` all (`elem` ["llano", "bosque", "sierra", "lago"])
+    let porCelda = Map.fromListWith (++) [ (ctCelda ct, [ctTerreno ct]) | ct <- concat (Map.elems mez) ]
+    any ((> 1) . length) (Map.elems porCelda) `shouldBe` True
+
+  it "calibración: con la mezcla del tutorial, en un año medio ningún altépetl pasa hambre" $ do
+    let fin = correr entMez sinAzar 0 400 (inicial entMez)
+    [ coberturaEn fin (AltId a) | a <- [1, 2, 3] ] `shouldBe` [uno, uno, uno]
 
 pruebasPropios :: Either [Text] Grupos -> Spec
 pruebasPropios gruposArchivo = describe "reglas: condiciones y efectos propios del guion (T14)" $ do
