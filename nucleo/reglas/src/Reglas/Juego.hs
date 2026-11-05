@@ -29,6 +29,7 @@ import Motor.Terrenos (DefTerreno)
 import Reglas.Estado
 import Reglas.Grupos
 import Reglas.Sistemas
+import Reglas.Subsistencia (subsistencia)
 import Reglas.Facciones (facciones)
 import Reglas.Fusion (fusion)
 import Reglas.Propios (condicionesPropias, efectosPropios)
@@ -59,6 +60,15 @@ catalogoMag = Map.fromList
      DefMagnitud "tasa_agravio" rangoTasaAgravio "m.tasa_agravio" Nothing False)
   , (magReservasAsedio,
      DefMagnitud "reservas_asedio" rangoReservasAsedio "m.reservas_asedio" Nothing False)
+    -- Alimento del altépetl (T25). Lo cosechado lo suma la producción y lo
+    -- vacía la subsistencia; la reserva y la cobertura las escribe la
+    -- subsistencia y también @repartir_bien@.
+  , (magCosechado,
+     DefMagnitud "cosechado" rangoAlimentoAlt "m.cosechado" Nothing True)
+  , (magReserva,
+     DefMagnitud "reserva" rangoAlimentoAlt "m.reserva" Nothing True)
+  , (magCobertura,
+     DefMagnitud "cobertura" rangoCobertura "m.cobertura" Nothing True)
   ]
 
 -- | Los datos de reglas que vienen de archivos: grupos de poder y edificios.
@@ -315,7 +325,9 @@ juegoDatosEn :: CalendarioVisible -> Fecha -> Constantes -> DatosReglas -> Juego
 juegoDatosEn visible inicio c dr = let bienes = bienesDe (drTerrenos dr) in Juego
   { juegoSistemas    = [ facciones (drGrupos dr) (drEconomia dr), construccion c (drEconomia dr) (drEdificios dr)
                        , azarCosecha c (Cosechas (drCosechas dr) visible inicio)
-                       , produccion c (drEconomia dr) (Cosechas (drCosechas dr) visible inicio) bienes, hacienda c (drEconomia dr), evolucionAgravio c, fusion c ]
+                       , produccion c (drEconomia dr) (Cosechas (drCosechas dr) visible inicio) bienes
+                       , subsistencia c (drEconomia dr) (Cosechas (drCosechas dr) visible inicio)
+                       , hacienda c (drEconomia dr), evolucionAgravio c, fusion c ]
   , juegoAplicarCmd  = aplicarComando c dr
   , juegoDerivar     = \g _ p -> derivarPurepecha c dr g (persistenteJuego p)
   , juegoProyectar   = proyectar
@@ -325,7 +337,7 @@ juegoDatosEn visible inicio c dr = let bienes = bienesDe (drTerrenos dr) in Jueg
   , juegoCatalogoMag = Map.unions [ catalogoMag, catalogoGrupos (drGrupos dr), catalogoBienes bienes
                                   , catalogoConocimientos (drEdificios dr), catalogoMoneda (drEconomia dr) ]
   , juegoCondiciones = condicionesPropias
-  , juegoEfectos     = efectosPropios (drGrupos dr) (drEconomia dr)
+  , juegoEfectos     = efectosPropios c (drGrupos dr) (drEconomia dr)
   }
 
 -- | Las tres magnitudes que escribe 'Motor.Moneda.pasoMoneda' en la facción

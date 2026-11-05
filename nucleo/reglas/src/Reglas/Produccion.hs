@@ -35,6 +35,7 @@ module Reglas.Produccion
   , enVentana
   , diasVentana
   , factorCosecha
+  , cierraVentana
   , derivarCeldas
   , derivarTerritorio
   , celdaTrabajo
@@ -181,6 +182,16 @@ factorCosecha cal cs co (Tick t) =
                            , enVentana co (diaDelAnioVisible (csVisible cs) (csInicio cs) (Tick (t + fromIntegral k))) ]
   in desdeEntero (ciPeriodosPorAnio cal * dentro) ./. desdeEntero (diasVentana co)
 
+-- | ¿Se cierra la ventana de cosecha en el periodo que empieza en @t@? Es
+-- cierto en el único periodo de cada año que contiene el último día de la
+-- ventana (@hasta@): ahí termina la cosecha y se cuenta la cobertura del año
+-- (V5, *Comer antes de tributar*).
+cierraVentana :: CalendarioInterno -> Cosechas -> Cosecha -> Tick -> Bool
+cierraVentana cal cs co (Tick t) =
+  let ip = infoPeriodo cal (Tick t)
+      largo = ciDiasPorPeriodo cal + (if ipPeriodo ip == ciPeriodosPorAnio cal then ciDiasFuera cal else 0)
+  in or [ diaDelAnioVisible (csVisible cs) (csInicio cs) (Tick (t + fromIntegral k)) == coHasta co | k <- [0 .. largo - 1] ]
+
 -- | Las ventanas de cosecha de @datos/terrenos.json@ (la clave @cosechas@,
 -- opcional), con fechas «MM-DD» del calendario visible:
 --
@@ -325,7 +336,7 @@ produccion c ec temporadas bienes = Sistema
   { sisNombre   = NombreSistema "produccion"
   , sisCadencia = Periodo
   , sisLee      = Set.singleton magProduccionAlt
-  , sisEscribe  = Set.fromList (concat [ [magExistencias b, magProduccion b, magMerma b, magCosecha b] | b <- bienes ])
+  , sisEscribe  = Set.fromList (magCosechado : concat [ [magExistencias b, magProduccion b, magMerma b, magCosecha b] | b <- bienes ])
   , sisEjecutar = \_ est ->
       if null bienes then (est, []) else
       let p     = persistenteJuego (estadoPersistente est)
@@ -336,10 +347,19 @@ produccion c ec temporadas bienes = Sistema
           factor alt = maybe baseProduccionAlt (valorEn vig (estadoTick est) rangoProduccionAlt)
                          (Map.lookup (entRefAlt alt, magProduccionAlt) (comunMagnitudes com))
           deAlt alt cs = Map.map (.*. factor alt) (produccionCeldas (Map.findWithDefault 0 alt ws) cs)
-          -- Lo producido por cada facción activa: la suma de sus altépetl.
-          porFac = Map.fromListWith (Map.unionWith (.+.))
-                     [ (f, deAlt alt cs) | (alt, cs) <- Map.toList celdas
-                     , let f = facDeAlt p alt, Just fa <- [Map.lookup f (ppFacciones p)], facEstado fa == Activa ]
+          -- Lo producido por cada altépetl de una facción activa, calculado
+          -- una sola vez, y por cada facción: la suma de sus altépetl.
+          porAltepetl = [ (f, alt, deAlt alt cs) | (alt, cs) <- Map.toList celdas
+                        , let f = facDeAlt p alt, Just fa <- [Map.lookup f (ppFacciones p)], facEstado fa == Activa ]
+          porFac = Map.fromListWith (Map.unionWith (.+.)) [ (f, m) | (f, _, m) <- porAltepetl ]
+          -- El maíz de cada altépetl, antes de repartirse (T25).
+          alimentoDe = Map.fromListWith (++)
+                         [ (f, [(alt, Map.findWithDefault (Fijo 0) bienAlimento m)]) | (f, alt, m) <- porAltepetl ]
+          repartirAlimento = Map.member bienAlimento (csVentanas temporadas) && bienAlimento `elem` bienes
+          -- La parte de la cosecha que va a las trojes de la facción: el
+          -- tributo en especie, 5 % por punto de la tasa (V5, *Comer antes de
+          -- tributar*).
+          cuotaTrojes f = maybe (Fijo 0) (\fa -> cTributoEspecie c .*. fi (tasaTributo (facTasas fa))) (Map.lookup f (ppFacciones p))
           total f = Map.unionsWith (.+.) (Map.fromList [ (b, Fijo 0) | b <- bienes ]
                                           : [Map.findWithDefault Map.empty f porFac])
           t     = estadoTick est
@@ -352,16 +372,32 @@ produccion c ec temporadas bienes = Sistema
           escribir f alm00 (b, q0) =
             let ventana = Map.member b (csVentanas temporadas)
                 -- La base del factor de cosecha del año, de un bien con ventana.
-                alm0 = if ventana then fijarBase (entFac f) (magCosecha b) uno alm00 else alm00
-                q = enPeriodo b q0 .*. (if ventana then cosechaEn vig t alm0 (entFac f) b else uno)
+                alm0a = if ventana then fijarBase (entFac f) (magCosecha b) uno alm00 else alm00
+                factorAnio = if ventana then cosechaEn vig t alm0a (entFac f) b else uno
+                q1 = enPeriodo b q0 .*. factorAnio
+                -- El maíz se reparte por altépetl: la cuota de las trojes va a
+                -- las existencias de la facción y el resto se queda en lo
+                -- cosechado del año del altépetl. Lo producido (para el
+                -- precio) es el total, y las trojes son lo que no se queda,
+                -- así que la masa se conserva exacta.
+                repartido = [ (alt, qa, qa .*. (uno .-. cuotaTrojes f))
+                            | repartirAlimento, b == bienAlimento
+                            , (alt, qa0) <- Map.findWithDefault [] f alimentoDe
+                            , let qa = enPeriodo b qa0 .*. factorAnio ]
+                (q, qTrojes, alm0)
+                  | null repartido = (q1, q1, alm0a)
+                  | otherwise =
+                      ( foldl' (\s (_, qa, _) -> s .+. qa) (Fijo 0) repartido
+                      , foldl' (\s (_, qa, h) -> s .+. (qa .-. h)) (Fijo 0) repartido
+                      , foldl' (\a (alt, _, h) -> sumarBase (entRefAlt alt) magCosechado h a) alm0a repartido )
                 -- La base de la merma, del catálogo; la efectiva, con las trojes.
                 (alm, m) = case Map.lookup b (ecoBienes ec) of
                   Nothing -> (alm0, Fijo 0)
                   Just bien -> let a1 = fijarBase (entFac f) (magMerma b) (bnMerma bien) alm0
                                in (a1, mermaEn vig t a1 (entFac f) bien)
             in if m <= Fijo 0
-                 then sumarBase (entFac f) (magExistencias b) q (fijarBase (entFac f) (magProduccion b) q alm)
-                 else fijarBase (entFac f) (magExistencias b) (guardado f b alm .*. (uno .-. m) .+. q)
+                 then sumarBase (entFac f) (magExistencias b) qTrojes (fijarBase (entFac f) (magProduccion b) q alm)
+                 else fijarBase (entFac f) (magExistencias b) (guardado f b alm .*. (uno .-. m) .+. qTrojes)
                         (fijarBase (entFac f) (magProduccion b) q alm)
           alm' = foldl' (\a fa -> foldl' (escribir (facId fa)) a
                                           (Map.toList (Map.filterWithKey (\b _ -> b `elem` bienes) (total (facId fa)))))

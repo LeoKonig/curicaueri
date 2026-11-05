@@ -16,6 +16,7 @@ import Reglas.Constantes
 import Reglas.Estado
 import Reglas.Formulas
 import Reglas.Produccion (lecturasMoneda)
+import Reglas.Subsistencia (coberturaEn)
 
 -- | ¿Es capital el altépetl del poblador? Una capital no está sujeta a otro.
 capitalDe :: Purepecha -> Pop -> Bool
@@ -38,6 +39,14 @@ factoresProduccion est =
   Map.mapWithKey (\k _ -> valorDeAlt est rangoProduccionAlt baseProduccionAlt magProduccionAlt k)
     (ppAltepetl (persistenteJuego (estadoPersistente est)))
 
+-- | La cobertura de alimento de cada altépetl (1 = su gente come lo que
+-- necesita); los que no tienen valor escrito no aparecen y valen 1 (T25).
+coberturas :: Estado Purepecha -> Map.Map AltId Fijo
+coberturas est =
+  let alm = comunMagnitudes (persistenteComun (estadoPersistente est))
+  in Map.mapMaybeWithKey (\k _ -> if Map.member (entRefAlt k, magCobertura) alm then Just (coberturaEn est k) else Nothing)
+       (ppAltepetl (persistenteJuego (estadoPersistente est)))
+
 -- | La hacienda por veintena, igual que `step` del prototipo, para cada
 -- facción activa: el ingreso de la población de sus altépetl, por la
 -- producción de cada uno, menos el gasto de su presupuesto, dividido entre
@@ -56,12 +65,13 @@ hacienda :: Constantes -> Economia -> Sistema Purepecha
 hacienda c ec = Sistema
   { sisNombre   = NombreSistema "hacienda"
   , sisCadencia = Periodo
-  , sisLee      = Set.insert magProduccionAlt (lecturasMoneda ec)
+  , sisLee      = Set.insert magCobertura (Set.insert magProduccionAlt (lecturasMoneda ec))
   , sisEscribe  = Set.singleton magTesoro
   , sisEjecutar = \_ est ->
       let p      = persistenteJuego (estadoPersistente est)
           efs    = eficiencias c p
           fps    = factoresProduccion est
+          cobs   = coberturas est
           -- Una sola pasada por los pops: el ingreso de cada facción es la
           -- suma de los de sus altépetl (los de una facción que no está activa
           -- no cuentan).
@@ -70,7 +80,8 @@ hacienda c ec = Sistema
               Just (facId f, ingresoPoblacion c (facTasas f) (capitalDe p pop)
                                 (Map.findWithDefault (Fijo 0) (popAltepetl pop) efs)
                                 (popTamano pop)
-                              .*. Map.findWithDefault baseProduccionAlt (popAltepetl pop) fps)
+                              .*. Map.findWithDefault baseProduccionAlt (popAltepetl pop) fps
+                              .*. Map.findWithDefault uno (popAltepetl pop) cobs)
             _ -> Nothing
           ingresos = Map.fromListWith (.+.)
             [ i | pop <- Map.elems (ppPops p), popEstrato pop /= estratoSacerdote, Just i <- [ingresoDe pop] ]
@@ -105,19 +116,21 @@ evolucionAgravio :: Constantes -> Sistema Purepecha
 evolucionAgravio c = Sistema
   { sisNombre   = NombreSistema "evolucion_agravio"
   , sisCadencia = Periodo
-  , sisLee      = Set.singleton magTasaAgravio
+  , sisLee      = Set.fromList [magTasaAgravio, magCobertura]
   , sisEscribe  = Set.singleton (Magnitud "agravio")
   , sisEjecutar = \_ est ->
       let p    = persistenteJuego (estadoPersistente est)
           alts = ppAltepetl p
           pops = ppPops p
           tasas = Map.mapWithKey (\k _ -> valorDeAlt est rangoTasaAgravio (Fijo 0) magTasaAgravio k) alts
+          cobs  = coberturas est
           delta pid = case Map.lookup pid pops of
             Just pop -> case Map.lookup (popAltepetl pop) alts of
-              Just a  -> deltaAgravio c (popParts c (tasasDe c p a) (isNothing (altSujetoA a))
+              Just a  -> deltaAgravio c ((popParts c (tasasDe c p a) (isNothing (altSujetoA a))
                                             (popEstrato pop) (popIdentidad pop)
                                             (altDistancia a)
                                             (adminDe p (altGobernador a)))
+                                           { paHambre = agravioHambre c (Map.findWithDefault uno (altId a) cobs) })
                          .+. Map.findWithDefault (Fijo 0) (altId a) tasas ./. cTicksPorAnio c
               Nothing -> Fijo 0
             Nothing  -> Fijo 0

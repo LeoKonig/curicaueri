@@ -13,6 +13,7 @@ library
                     Reglas.Grupos
                     Reglas.Edificios
                     Reglas.Produccion
+                    Reglas.Subsistencia
                     Reglas.Sistemas
                     Reglas.Fusion
                     Reglas.Facciones

@@ -58,6 +58,9 @@ data Constantes = Constantes
   , cCosechaMaxima         :: Fijo   -- COSECHA_MAXIMA: el mejor año
     -- Subsistencia (V5, *Medidas reales y cifras de referencia*). PROVISIONAL.
   , cRacionMaiz            :: Fijo   -- RACION_MAIZ: toneladas de maíz que come una persona en un año
+  , cTributoEspecie        :: Fijo   -- TRIBUTO_ESPECIE: parte de la cosecha que va a las trojes por punto de la tasa de tributo
+  , cAgravioHambre         :: Fijo   -- AGRAVIO_HAMBRE: puntos de agravio por año con cobertura 0
+  , cUmbralHambre          :: Fijo   -- UMBRAL_HAMBRE: la cobertura por debajo de la cual hay hecho «hambre»
   } deriving (Eq, Show)
 
 constantesDefault :: Constantes
@@ -117,4 +120,12 @@ constantesDefault = Constantes
     -- moderno (FAOSTAT 2014), como cabe en una dieta menos variada. Por
     -- verificar: la parte de la energía que venía del maíz (V5).
   , cRacionMaiz            = Fijo 1640       -- 0,164 t por persona y año
+    -- 5 % de la cosecha por punto de la tasa (de 5 % con tasa 1 a 25 % con
+    -- tasa 5; 15 % con la neutra). Por verificar con la *Relación de
+    -- Michoacán* y los estudios del tributo tarasco (V5).
+  , cTributoEspecie        = Fijo 500
+    -- Con cobertura 0 un pop gana 20 puntos de agravio en el año; con 0,5, 10.
+  , cAgravioHambre         = fi 20
+    -- Por debajo de 0,8 de cobertura el año es de hambre y entra en la crónica.
+  , cUmbralHambre          = Fijo 8000
   }
