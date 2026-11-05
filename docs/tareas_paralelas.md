@@ -64,6 +64,16 @@ T4 y T8 tocan `Reglas/Comando.hs`: por eso T8 va en la ronda 2. Si dos PR chocan
 | 7 | T24 Medidas reales y cifras de referencia (hecha en `claude/medidas-reales`) | `datos/terrenos.json`, `datos/bienes_1475.json`, `datos/facciones/tutorial_1475.json`; `reglas`: `Produccion`, `Constantes`; `motor`: `Moneda` (rangos); `cliente/` (unidades) | T17 | 3 |
 | 7 | T25 Subsistencia: cobertura, reserva y tributo en especie (hecha en `claude/subsistencia`) | `reglas`: `Produccion`, `Sistemas`, `Propios`, `Constantes`, sistema nuevo de subsistencia; `datos/guion_1475.json` | T24, T17 | 3 |
 
+**Ronda 8: la dieta y la milpa** (V5, *La dieta: alimentos, gustos y lujos* y *La milpa, la chinampa y los sistemas de producción*). T25 alimenta solo con maíz; esta ronda da a la gente una dieta con grupos y topes (nadie vive de cacao ni de chile), hace de la milpa y la chinampa sistemas de producción, abastece la capital desde las trojes como en las fuentes, y da a los gustos y lujos un papel en el agravio y la lealtad. Va antes de T26 (influencia), que leerá la lealtad y la población que esta ronda mueve. T27 va primero; T28 y T30 pueden ir en paralelo después de ella; T29 después de T28 (recalibra con los sistemas); T31 después de T28.
+
+| Ronda | Tarea | Área (archivos principales) | Depende de | Hito |
+| --- | --- | --- | --- | --- |
+| 8 | T27 La dieta: alimentos por grupo con tope, en toneladas de maíz equivalente | `reglas`: `Subsistencia`, `Produccion`, `Constantes`; `datos/dieta.json`, `datos/bienes_1475.json` | T25 | 3 |
+| 8 | T28 Sistemas de producción: la milpa y los demás | `motor`: `Terrenos`; `reglas`: `Produccion`; `datos/sistemas.json`, `datos/terrenos.json` | T27 | 3 |
+| 8 | T29 Abasto de la capital desde las trojes | `reglas`: `Subsistencia`, `Comando`, `Propios`; `datos/guion_1475.json`; recalibración de `datos/terrenos.json` | T28 | 3 |
+| 8 | T30 Gustos y lujos: necesidades por estrato | `reglas`: `Subsistencia`, `Sistemas`, `Grupos`; `datos/necesidades.json` | T27 | 3 |
+| 8 | T31 La chinampa: tecnología y obra en celda | `datos/sistemas.json`, `datos/edificios.json`, `datos/facciones/`; `reglas`: `Edificios` | T28 | 3 / 5 |
+
 ---
 
 ## Contexto común (pegar antes de cada tarea)
@@ -803,4 +813,127 @@ igual; el arnés del 0a (T11), si existe, cuenta la decisión. Juega el tutorial
 protocolo con varias políticas y anota cuántos años de hambre salen. Mide con
 --escala 7500x20: un cálculo por altépetl y año. La mortalidad y la migración por hambre
 son del hito 6: no las adelantes. Rama: claude/subsistencia.
+```
+
+## T27. La dieta: alimentos por grupo con tope (reglas, hito 3; después de T25)
+
+```
+Tarea: que la gente coma más que maíz. Los alimentos cuentan por su energía, en toneladas
+de maíz equivalente (t ME), y cada grupo de la dieta tiene un tope de la energía que puede
+cubrir, para que una población no viva de un solo alimento.
+
+Lee: V5 *La dieta: alimentos, gustos y lujos* (clases, grupos, topes, la tabla de energía);
+documento funcional, sección 12 (*La dieta por grupos*) y las leyes de la sección 19 (tope
+de la dieta, equivalencia de la dieta, masa conservada, cobertura monótona).
+
+Haz:
+1. `clase` en el catálogo de bienes (alimento, gusto, lujo; sin clase, como hoy) y, para
+   los alimentos, `kcal_por_kg` y `grupo`. Valida al cargar, con todos los errores.
+2. `datos/dieta.json`: los grupos con su tope de energía, su tope de reserva y su merma.
+   Sin el archivo, un solo grupo sin tope: la partida es la de T25.
+3. Subsistencia por grupo: `cosechado` y `reserva` por grupo y en t ME; la necesidad en
+   energía (`NECESIDAD_ENERGIA`, 0,2 t ME por persona y año). Lo que no se guarda (verduras)
+   cuenta el año en que se cosecha y no pasa a la reserva.
+4. El aporte «dieta pobre» al agravio sale solo de la cobertura: no hay otro.
+5. En el tutorial, los alimentos que ya existen (maíz, pescado) con su clase y su energía;
+   los demás entran con T28, que es quien los produce. Un guardado de T25 carga: su maíz
+   va al grupo de los granos.
+
+Pruebas: las leyes de la sección 19; un altépetl con solo maíz llega a 0,85 y no más; con
+maíz y frijol, más; la tabla de energía de V5 en los datos (una prueba por alimento);
+guardar y cargar. Mide con --escala 7500x20: cinco grupos por altépetl. Rama:
+claude/dieta.
+```
+
+## T28. Sistemas de producción: la milpa y los demás (motor y reglas, hito 3; después de T27)
+
+```
+Tarea: que la celda no rinda por su terreno sino por el sistema que se usa en ella: la
+milpa (maíz, frijol, calabaza, chile, quelites), la pesca, el monte, el solar, la huerta de
+tierra caliente, el magueyal y las salinas.
+
+Lee: V5 *La milpa, la chinampa y los sistemas de producción*; documento funcional, sección
+12 (*Sistemas de producción* y *Producción: tierra y brazos*) y la ley «sistema neutro».
+
+Haz:
+1. `datos/sistemas.json`, cargado y validado en `Motor.Terrenos` (terrenos, conocimiento,
+   obra, trabajadores, rendimiento por trabajador y año por bien). Un terreno con
+   `rendimiento_por_trabajador` sigue igual.
+2. Cada celda se trabaja con el sistema posible que más valor da por trabajador; el orden de
+   las celdas compara valor por trabajador, no toneladas. Escribe el desglose: qué sistema
+   y por qué.
+3. El solar: rendimiento por persona del altépetl, sin celdas.
+4. Los bienes nuevos del tutorial, con clase, energía, valor y merma de relleno marcados
+   «por verificar», y su ventana de cosecha.
+5. La milpa como conocimiento con base en el escenario (dominio pleno en las facciones
+   mesoamericanas); un dominio a medias rinde a medias.
+
+Pruebas: la ley «sistema neutro»; la milpa da sus cinco bienes en sus ventanas; con más
+valor, la celda cambia de sistema; el solar crece con la gente; guardar y cargar. Juega el
+tutorial y anota la cobertura media y los años de hambre. Mide con --escala 7500x20. Rama:
+claude/sistemas-produccion.
+```
+
+## T29. Abasto de la capital desde las trojes (reglas, hito 3; después de T28)
+
+```
+Tarea: que la capital coma del tributo, como en las fuentes (Gorenstein y Pollard, 1983:
+Tzintzuntzan importaba un 44 % de su maíz y un 9 % de su frijol).
+
+Lee: V5 *La dieta*, párrafo «El abasto de la capital»; T25 (`repartir_bien`).
+
+Haz:
+1. Una orden permanente de la facción: qué parte del déficit de la capital (y, si se quiere,
+   de otros altépetl) cubren las trojes cada año al cerrarse la cosecha. Comando nuevo o
+   campo de la facción, con su valor por defecto en 0 para que lo existente no cambie; el
+   cliente lo muestra junto a las trojes.
+2. Devuelve el llano a 2 500 trabajadores (o a lo que digan las fuentes) y calibra para que
+   la capital dependa del tributo en una proporción del orden de la histórica.
+3. Una situación del guion cuando las trojes no alcanzan para el abasto.
+
+Pruebas: con la orden en 0, la partida es la de antes; con la orden en 1 y trojes de sobra,
+la capital no pasa hambre en un año medio; la masa se conserva. Rama: claude/abasto-capital.
+```
+
+## T30. Gustos y lujos: necesidades por estrato (reglas, hito 3; después de T27)
+
+```
+Tarea: que la sal y el chile importen a los macehuales, y el cacao a los señores, sin que
+alimenten a nadie.
+
+Lee: V5 *La dieta*, la tabla de clases y el párrafo de necesidades por estrato; documento
+funcional, sección 12 (*Necesidades de gustos y lujos*); V5 *Política interna: grupos, consejo y reformas* (lealtad de los grupos).
+
+Haz:
+1. `datos/necesidades.json`: por estrato, bienes, cantidad por persona y año y peso.
+2. Al cerrar el año, la satisfacción de cada estrato; el aporte «gustos» al agravio y,
+   para la nobleza y el sacerdocio, un modificador de la lealtad de su grupo con fuente
+   «lujos». Sin el archivo, nada cambia.
+3. Lo que se entrega sale de las existencias de la facción (efecto o comando de reparto de
+   lujos; reutiliza lo de T25 si encaja).
+
+Pruebas: sin el archivo, la partida es la de antes; un gusto no cambia la cobertura de
+energía; repartir cacao sube la lealtad de la nobleza con su fuente en el desglose. Rama:
+claude/gustos-y-lujos.
+```
+
+## T31. La chinampa: tecnología y obra en celda (datos y reglas, hito 3; después de T28)
+
+```
+Tarea: la chinampa como obra en celda de lago somero o ciénega, con su oficio, que habilita
+el sistema de producción «chinampa».
+
+Lee: V5 *La milpa, la chinampa y los sistemas de producción*, *Tecnología y educación* y
+*Las obras* (obras en celda, oficio).
+
+Haz:
+1. El edificio «chinampas» en `datos/edificios.json` (ámbito de celda, materiales, trabajo,
+   oficio `chinampa`) y el sistema «chinampa» que pide esa obra.
+2. Bases del conocimiento por facción en los escenarios: alta entre mexicas, xochimilcas y
+   chalcas; baja o nula entre los purépechas (por verificar: la ciénega de Zacapu y la
+   ribera de Pátzcuaro).
+3. Nada de difusión todavía: eso es el paso 15.
+
+Pruebas: sin el oficio no se empieza; con la obra, la celda pasa a la chinampa y rinde más
+por hectárea; bajo control enemigo no rinde. Rama: claude/chinampa.
 ```
