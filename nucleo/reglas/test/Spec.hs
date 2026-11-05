@@ -40,7 +40,7 @@ import Reglas.Facciones
 import Reglas.Produccion
 import Reglas.Procesos
 import Reglas.Sistemas (hacienda)
-import Reglas.Subsistencia (cierreAnio, coberturaEn, necesidadDe)
+import Reglas.Subsistencia (Abasto (..), abEntregadoME, abastoCapital, cierreAnio, coberturaEn, necesidadDe)
 import Reglas.Dieta
 import Reglas.Fusion (fusionarPops, clavePop)
 import Motor.Terrenos (DefTerreno (..), cargarTerrenos, conCostoDeTerreno)
@@ -1168,7 +1168,9 @@ pruebasFacciones gruposArchivo = describe "reglas: varias facciones (T12, hito 4
                        (KM.insert "ppPresupuesto" (A.toJSON (facPresupuesto fac))
                        (KM.delete "ppFacciones" o))))
           v -> v
-    A.fromJSON viejo `shouldBe` A.Success (jue estadoInicial1475)
+        -- Un guardado viejo no trae la orden de abasto (T29): carga con 0.
+        sinAbasto pj = pj { ppFacciones = Map.map (\fa -> fa { facAbasto = 0 }) (ppFacciones pj) }
+    A.fromJSON viejo `shouldBe` A.Success (sinAbasto (jue estadoInicial1475))
 
   it "una facción de más no cambia la hacienda de la primera" $ do
     let solo = correrT 60 estadoInicial1475
@@ -1600,8 +1602,11 @@ pruebasMalaCosecha terrenos eco eds = describe "reglas: mala cosecha y abrir las
       efecto n args st = case Map.lookup n (juegoEfectos j) of
         Nothing -> Left "no existe el efecto"
         Just ef -> epAplicar ef args st
-      -- Un día de después de la cosecha del primer año (la ventana acaba el 30 de noviembre).
-      despues = correr j 1 0 400 e0
+      -- Un día de después de la cosecha del primer año (la ventana acaba el 30 de noviembre),
+      -- sin el abasto de la capital (T29), que con esta semilla vacía las trojes.
+      sinAbasto st = let per = estadoPersistente st; pj = persistenteJuego per
+                     in st { estadoPersistente = per { persistenteJuego = pj { ppFacciones = Map.map (\fa -> fa { facAbasto = 0 }) (ppFacciones pj) } } }
+      despues = correr j 1 0 400 (sinAbasto e0)
 
   it "el azar del año: la misma semilla da el mismo factor; otra semilla, otro" $ do
     let f s = factor (correr j s 0 20 e0)
@@ -1850,6 +1855,91 @@ pruebasSubsistencia terrenos eco eds = describe "reglas: subsistencia, cobertura
     -- Con tasa 5 (25 %) la capital queda justa pero sin hambre grave: cobertura de al menos 0,8.
     [ coberturaEn (fin maxima) (AltId a) | a <- [1, 2, 3] ] `shouldSatisfy` all (>= cUmbralHambre constantesDefault)
 
+  describe "el abasto de la capital desde las trojes (T29)" $ do
+    let conAbasto n st = let per = estadoPersistente st; pj = persistenteJuego per
+                         in st { estadoPersistente = per { persistenteJuego = pj { ppFacciones = Map.map (\fa -> fa { facAbasto = n }) (ppFacciones pj) } } }
+        conTrojes q = ponerFac (magExistencias "maiz") q
+        capital = AltId 1
+        fac0 st = (ppFacciones (p st)) Map.! f1
+        alt0 a st = (ppAltepetl (p st)) Map.! a
+        hechosDe tipo hs = [ h | h <- hs, hechoTipo h == tipo ]
+        dieta = dietaPorDefecto c
+        maizG = maybe (error "sin grupo del maíz") fst (grupoDe dieta "maiz")
+
+    it "el tutorial empieza con la orden en 100 y un guardado viejo la trae en 0" $
+      facAbasto (fac0 e0) `shouldBe` 100
+
+    it "el comando coincide con su archivo dorado, de ida y de vuelta, y está en el catálogo" $ do
+      dor <- BL.readFile "../../pruebas_compartidas/protocolo/comando_fijar_abasto.json"
+      A.decode dor `shouldBe` Just (A.toJSON (FijarAbasto 60))
+      A.decode dor `shouldBe` Just (FijarAbasto 60)
+      [ dcTipo d | d <- catalogoComandos, dcTipo d == "fijar_abasto" ] `shouldBe` ["fijar_abasto"]
+
+    it "la orden es un comando: fija el porcentaje y rechaza sin daño lo que está fuera de 0..100" $ do
+      let aplicar n = aplicarCola j [Sellado (Tick 0) f1 0 (FijarAbasto n)] e0
+          (s40, _, r40) = aplicar 40
+      facAbasto (fac0 s40) `shouldBe` 40
+      r40 `shouldBe` []
+      forM_ [101, -1] $ \n -> do
+        let (s', _, rs) = aplicar n
+        length rs `shouldBe` 1
+        guardar s' `shouldBe` guardar e0
+
+    it "solo abastece a la cabecera, con orden y con déficit; las trojes entregan a lo sumo lo que tienen" $ do
+      let n = fi 1000
+          disp q = [(maizG, q)]
+          ab o a q ex = abastoCapital dieta (fac0 e0) { facAbasto = o } (alt0 a e0) n (disp q) (const ex)
+          entregas = fmap (\x -> [ (b, t) | (_, b, t, _) <- abEntregas x ])
+      ab 0 capital (fi 500) (fi 10000) `shouldBe` Nothing
+      ab 100 (AltId 2) (fi 500) (fi 10000) `shouldBe` Nothing
+      ab 100 capital (fi 1200) (fi 10000) `shouldBe` Nothing
+      fmap abPedido (ab 50 capital (fi 600) (fi 10000)) `shouldBe` Just (fi 200)
+      entregas (ab 100 capital (fi 600) (fi 10000)) `shouldBe` Just [("maiz", fi 400)]
+      -- Con trojes cortas, entregan todo lo que tienen.
+      entregas (ab 100 capital (fi 600) (fi 150)) `shouldBe` Just [("maiz", fi 150)]
+      fmap abEntregadoME (ab 100 capital (fi 600) (fi 150)) `shouldBe` Just (fi 150)
+
+    it "con la dieta, cada grupo recibe hasta su tope: maíz para los granos y frijol para lo demás" $ do
+      let granos = GrupoDieta "granos" (Fijo 8500) uno Nothing (Map.singleton "maiz" uno)
+          legum = GrupoDieta "leguminosas" (Fijo 2500) uno Nothing (Map.singleton "frijol" uno)
+          d2 = Dieta [granos, legum] uno True
+          ab = abastoCapital d2 (fac0 e0) (alt0 capital e0) (fi 100) [(granos, fi 60), (legum, fi 5)] (const (fi 1000))
+      fmap (\x -> [ (b, t) | (_, b, t, _) <- abEntregas x ]) ab `shouldBe` Just [("maiz", fi 25), ("frijol", fi 10)]
+
+    it "con la orden en 0 no hay abasto: ni hechos ni maíz que salga de las trojes por él" $ do
+      let (_, hs) = correrH sinAzar 1 0 400 (conAbasto 0 e0)
+      hechosDe "abasto_capital" hs `shouldBe` []
+
+    it "con la orden en 100 y trojes de sobra, la capital no pasa hambre en un año medio" $ do
+      let fin = correr sinAzar 1 0 400 (conTrojes (fi 100000) (conAbasto 100 e0))
+      coberturaEn fin capital `shouldBe` uno
+
+    it "la masa se conserva: lo que sale de las trojes es lo que llega a la capital" $ do
+      let need = necesidad 1 e0
+          inicio = conTrojes (fi 100000) (ponerAlt magCosechado 1 (need .*. Fijo 5000) e0)
+          (fin, hs) = correrH aparte 1 0 400 inicio
+          entregado = sum [ x | h <- hechosDe "abasto_capital" hs, Just t <- [Map.lookup "maiz" (hechoParams h)], Right (Fijo x) <- [desdeDecimal t] ]
+      coberturaEn fin capital `shouldBe` uno
+      existencias fin `shouldBe` fi 100000 .-. Fijo entregado
+      Fijo entregado `shouldBe` need .*. Fijo 5000
+
+    it "si las trojes no alcanzan, entregan lo que hay y el hecho abasto_insuficiente lo dice" $ do
+      let need = necesidad 1 e0
+          inicio = conTrojes (fi 100) (ponerAlt magCosechado 1 (need .*. Fijo 5000) e0)
+          (fin, hs) = correrH aparte 1 0 400 inicio
+      existencias fin `shouldBe` Fijo 0
+      length (hechosDe "abasto_insuficiente" hs) `shouldBe` 1
+
+    it "calibración: en un año medio la capital come del tributo (una parte de su necesidad) y nadie pasa hambre" $ do
+      let (fin, hs) = correrH sinAzar 1 0 400 e0
+          entregado = sum [ x | h <- hechosDe "abasto_capital" hs, Just t <- [Map.lookup "entregado" (hechoParams h)], Right (Fijo x) <- [desdeDecimal t] ]
+          parte = Fijo entregado ./. necesidad 1 e0
+      [ coberturaEn fin (AltId a) | a <- [1, 2, 3] ] `shouldBe` [uno, uno, uno]
+      -- Del orden del 15 %: menos que el 44 % de las fuentes, que venía sobre todo de
+      -- fuera de la cuenca y del mercado (V5, *La dieta*, «El abasto de la capital»).
+      parte `shouldSatisfy` (\x -> x > Fijo 1000 && x < Fijo 5000)
+      hechosDe "abasto_insuficiente" hs `shouldBe` []
+
   it "ley (cobertura neutra): con cobertura 1 el agravio y el tesoro son los de antes" $ do
     let neutral = foldl' (\st a -> ponerAlt magCobertura a uno st) e0 [1, 2, 3]
         a = correr aparte 1 0 100 e0
@@ -2041,8 +2131,11 @@ pruebasDieta terrenos eco eds = describe "reglas: la dieta por grupos con tope (
   it "sin la milpa, la gente come solo maíz: cobertura 0,85 en un año medio, sin hambre y con la reserva del maíz" $ do
     let sinMilpa = Reglas.Juego.juegoDatos c dr { Reglas.Juego.drEdificios = sinProcesos eds }
         fin = correr (sin ["cosecha"] sinMilpa) 0 400 (conDerivado sinMilpa (conConocimientos eds estadoInicial1475))
-    [ coberturaEn fin (AltId a) | a <- [1, 2, 3] ] `shouldBe` replicate 3 (Fijo 8500)
-    [ baseAlt (magReservaDe "granos") a fin | a <- [1, 2, 3] ] `shouldSatisfy` all (> Fijo 0)
+    -- La capital recibe además pescado de las trojes (T29) y pasa de 0,85.
+    [ coberturaEn fin (AltId a) | a <- [2, 3] ] `shouldBe` replicate 2 (Fijo 8500)
+    coberturaEn fin (AltId 1) `shouldSatisfy` (> Fijo 8500)
+    -- La capital no tiene maíz de sobra que guardar: come del tributo.
+    [ baseAlt (magReservaDe "granos") a fin | a <- [2, 3] ] `shouldSatisfy` all (> Fijo 0)
     [ baseAlt (magCubiertoDe "granos") a fin | a <- [1, 2, 3] ] `shouldBe` [ necesidad a e0 .*. Fijo 8500 | a <- [1, 2, 3] ]
 
   it "ley (masa conservada): lo que se queda del maíz entra a lo cosechado de los granos, tonelada por tonelada" $ do

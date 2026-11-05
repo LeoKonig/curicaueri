@@ -147,6 +147,9 @@ aplicarComando c dr est sell = do
     -- la moneda, y retirar cuando no hay ninguna.
     DesignarMoneda mb -> either (Left . Rechazo) Right
                            (designarMoneda (drEconomia dr) (entFac fid) mb (sellTick sell) est)
+    FijarAbasto n
+      | n < 0 || n > 100 -> Left (Rechazo "abasto fuera de rango (0..100)")
+      | otherwise -> conFac fac { facAbasto = n }
   where
     gs = drGrupos dr
     p  = persistenteJuego (estadoPersistente est)
@@ -287,6 +290,7 @@ proyectarFaccion est f = EntidadJuego (entFac f) Nothing (Map.fromList
   , ("legitimidad", VFijo (baseFaccion f magLegitimidad est))
   , ("moneda",      maybe VNulo (VTexto . emMoneda)
                       (Map.lookup (entFac f) (comunMonedas (persistenteComun (estadoPersistente est)))))
+  , ("abasto",      VEntero (maybe 0 facAbasto (Map.lookup f (ppFacciones (persistenteJuego (estadoPersistente est))))))
   ])
 
 textoFijo :: Fijo -> Text

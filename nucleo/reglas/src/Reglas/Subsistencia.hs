@@ -36,6 +36,9 @@ module Reglas.Subsistencia
   , reservaEn
   , cubiertoEn
   , mostrarFijo
+  , Abasto (..)
+  , abEntregadoME
+  , abastoCapital
   ) where
 
 import qualified Data.Aeson as A
@@ -50,7 +53,7 @@ import Motor.Base
 import Motor.Estado
 import Motor.Hechos
 import Motor.Magnitudes
-import Motor.Moneda (Economia (..), magMerma, mermaEn)
+import Motor.Moneda (Economia (..), magExistencias, magMerma, mermaEn)
 import Motor.Sistema
 import Reglas.Base
 import Reglas.Constantes
@@ -104,6 +107,70 @@ mostrarFijo x = case A.toJSON x of
   A.String t -> t
   otro       -> T.pack (show otro)
 
+-- | Lo que las trojes entregan a la capital al cerrarse la cosecha (V5, *La
+-- dieta*, «El abasto de la capital»; T29).
+data Abasto = Abasto
+  { abPedido   :: Fijo                        -- ^ la parte ordenada del déficit, en t ME
+  , abEntregas :: [(Text, Text, Fijo, Fijo)]  -- ^ grupo, alimento, toneladas que salen de las trojes y su t ME
+  , abFaltaron :: Bool                        -- ^ algún alimento se acabó en las trojes y su grupo pedía más
+  } deriving (Eq, Show)
+
+-- | Lo entregado en total, en t ME.
+abEntregadoME :: Abasto -> Fijo
+abEntregadoME ab = foldl' (.+.) (Fijo 0) [ me | (_, _, _, me) <- abEntregas ab ]
+
+-- | El abasto de un altépetl en el cierre del año. Solo abastece a la
+-- cabecera de su facción, y solo si la facción tiene una orden mayor que 0.
+-- Con @n@ la necesidad y @disponibles@ lo que tiene cada grupo (lo cosechado
+-- y la reserva), como en 'cierreDieta':
+--
+-- > pedido = (1 − cobertura) · n · orden / 100
+--
+-- y las trojes lo cubren grupo por grupo, en el orden de la dieta, sin pasar
+-- el tope de ninguno (tope_g · n − disponible_g), con los alimentos de cada
+-- grupo en orden de nombre y a lo sumo lo que hay de cada uno. Así la capital
+-- recibe maíz hasta el tope de los granos y frijol para lo demás, como
+-- Tzintzuntzan, que importaba maíz y frijol. Lo entregado sale de las
+-- existencias de la facción, en toneladas, y entra a lo disponible de su
+-- grupo, en t ME: la masa se conserva. Sin orden o sin déficit, nada.
+abastoCapital :: Dieta -> Faccion -> Altepetl -> Fijo -> [(GrupoDieta, Fijo)] -> (Text -> Fijo) -> Maybe Abasto
+abastoCapital _ fa alt n disponibles existencias
+  | facAbasto fa <= 0 || altCondicion alt /= Cabecera (facId fa) || n <= Fijo 0 = Nothing
+  | pedido <= Fijo 0 = Nothing
+  | otherwise = Just (Abasto pedido (reverse entregas) faltaron)
+  where
+    (cob0, _) = cierreDieta n [ (gdTope g, gdTopeReserva g, d) | (g, d) <- disponibles ]
+    huecos = [ (g, max (Fijo 0) (gdTope g .*. n .-. d)) | (g, d) <- disponibles ]
+    -- El déficit, sin pasar lo que cabe en los grupos (la cobertura viene
+    -- redondeada; los huecos, no).
+    deficit = min ((uno .-. cob0) .*. n) (foldl' (.+.) (Fijo 0) (map snd huecos))
+    pedido = deficit .*. fi (facAbasto fa) ./. fi 100
+    (_, entregas, faltaron) = foldl' grupo (pedido, [], False) huecos
+    grupo (falta, acc, f) (g, cabe0) =
+      let (falta', cabe', acc', agotado) = foldl' (alimento g) (falta, min falta cabe0, acc, False) (Map.toList (gdAlimentos g))
+      in (falta', acc', f || (agotado && cabe' > Fijo 0))
+    alimento g (falta, cabe, acc, f) (b, e)
+      | cabe <= Fijo 0 || e <= Fijo 0 = (falta, cabe, acc, f)
+      | otherwise =
+          let hay = existencias b
+              hayME = hay .*. e
+              (t, me) | hayME <= cabe = (hay, hayME)
+                      | otherwise     = let q = cabe ./. e in (q, q .*. e)
+              -- Se acabó este alimento y el grupo seguía pidiendo.
+              agotado = hayME < cabe
+          in if t <= Fijo 0 then (falta, cabe, acc, f || agotado)
+             else (falta .-. me, cabe .-. me, (gdId g, b, t, me) : acc, f || agotado)
+
+-- | Los hechos del abasto: lo entregado de cada alimento y, si las trojes no
+-- alcanzaron para lo pedido, @abasto_insuficiente@ (lo lee el guion).
+hechosAbasto :: Tick -> Altepetl -> Abasto -> [Hecho]
+hechosAbasto t alt ab =
+  [ Hecho "abasto_capital" t ents (Map.fromList (resumen ++ [ (b, mostrarFijo q) | (_, b, q, _) <- abEntregas ab ]))
+  | not (null (abEntregas ab)) ]
+  ++ [ Hecho "abasto_insuficiente" t ents (Map.fromList resumen) | abFaltaron ab ]
+  where ents = [entRefAlt (altId alt), entFac (altFaccion alt)]
+        resumen = [("pedido", mostrarFijo (abPedido ab)), ("entregado", mostrarFijo (abEntregadoME ab))]
+
 -- | El sistema de subsistencia (paso 7, cada periodo). Lee lo cosechado de
 -- cada grupo (lo escribe la producción, que corre antes) y la merma del maíz;
 -- escribe la reserva de cada grupo cada periodo y, en el periodo que cierra la
@@ -115,9 +182,11 @@ subsistencia :: Constantes -> Economia -> Dieta -> Cosechas -> Sistema Purepecha
 subsistencia c ec dieta temporadas = Sistema
   { sisNombre   = NombreSistema "subsistencia"
   , sisCadencia = Periodo
-  , sisLee      = Set.fromList (magMerma bienAlimento : map (magCosechadoDe . gdId) grupos)
-  , sisEscribe  = Set.fromList (magCobertura : magCosechado : magReserva
-                                : concat [ [magCosechadoDe g, magReservaDe g, magCubiertoDe g] | g <- map gdId grupos ])
+  , sisLee      = Set.fromList (magMerma bienAlimento : alimentos ++ map (magCosechadoDe . gdId) grupos)
+    -- Las existencias de los alimentos de la facción: las trojes que
+    -- abastecen a la capital (T29). Tienen varios escritores declarados.
+  , sisEscribe  = Set.fromList (magCobertura : magCosechado : magReserva : alimentos
+                                ++ concat [ [magCosechadoDe g, magReservaDe g, magCubiertoDe g] | g <- map gdId grupos ])
   , sisEjecutar = \_ est -> case Map.lookup bienAlimento (csVentanas temporadas) of
       Nothing -> (est, [])
       Just co ->
@@ -145,19 +214,30 @@ subsistencia c ec dieta temporadas = Sistema
                             , hs )
                        else
                          let n = Map.findWithDefault (Fijo 0) a need
-                             disponibles = [ (g, base alm (magCosechadoDe (gdId g)) a .+. r1) | (g, _, r1) <- reservas ]
+                             disponibles0 = [ (g, base alm (magCosechadoDe (gdId g)) a .+. r1) | (g, _, r1) <- reservas ]
+                             -- El abasto de la capital (T29): las trojes cubren la parte
+                             -- ordenada de su déficit antes de contar la cobertura.
+                             fac = entFac (altFaccion alt)
+                             abasto = abastoCapital dieta fa alt n disponibles0
+                                        (\b -> maybe (Fijo 0) almacenBase (Map.lookup (fac, magExistencias b) alm))
+                             (disponibles, almA, hsA) = case abasto of
+                               Nothing -> (disponibles0, alm, [])
+                               Just ab ->
+                                 ( [ (g, d .+. foldl' (.+.) (Fijo 0) [ me | (gi, _, _, me) <- abEntregas ab, gi == gdId g ]) | (g, d) <- disponibles0 ]
+                                 , foldl' (\x (_, b, q, _) -> sumarBase fac (magExistencias b) (negF q) x) alm (abEntregas ab)
+                                 , hechosAbasto t alt ab )
                              (cob, porGrupo) = cierreDieta n [ (gdTope g, gdTopeReserva g, d) | (g, d) <- disponibles ]
                              escribir x ((g, _), (comido, r', _)) =
                                fijarBase (entRefAlt a) (magCosechadoDe (gdId g)) (Fijo 0)
                                  (fijarBase (entRefAlt a) (magReservaDe (gdId g)) r'
                                    (fijarBase (entRefAlt a) (magCubiertoDe (gdId g)) comido x))
-                             alm1 = foldl' escribir (fijarBase (entRefAlt a) magCobertura cob alm) (zip disponibles porGrupo)
+                             alm1 = foldl' escribir (fijarBase (entRefAlt a) magCobertura cob almA) (zip disponibles porGrupo)
                              total = foldl' (.+.) (Fijo 0) (map snd disponibles)
                              detalle = [ ("disponible." <> gdId g, mostrarFijo d) | dtDeArchivo dieta, (g, d) <- disponibles ]
                              hecho = Hecho "hambre" t [entRefAlt a, entFac (altFaccion alt)]
                                        (Map.fromList ([ ("cobertura", mostrarFijo cob), ("necesidad", mostrarFijo n)
                                                       , ("disponible", mostrarFijo total) ] ++ detalle))
-                         in (alm1, if cob < cUmbralHambre c then hecho : hs else hs)
+                         in (alm1, (if cob < cUmbralHambre c then (hecho :) else id) (reverse hsA ++ hs))
                 _ -> (alm00, hs)
             (alm', hechos) = foldl' paso (alm0, []) (Map.elems (ppAltepetl p))
         in ( est { estadoPersistente = (estadoPersistente est) { persistenteComun = com { comunMagnitudes = alm' } } }
@@ -165,6 +245,7 @@ subsistencia c ec dieta temporadas = Sistema
   }
   where
     grupos = dtGrupos dieta
+    alimentos = [ magExistencias b | g <- grupos, b <- Map.keys (gdAlimentos g) ]
     -- Lo cosechado y la reserva de un guardado de T25 (sin sufijo de grupo)
     -- pasan al grupo del maíz cuando la dieta viene de un archivo. Se busca
     -- por altépetl: dos consultas, sin recorrer el almacén.

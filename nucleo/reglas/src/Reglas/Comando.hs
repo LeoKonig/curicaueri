@@ -29,6 +29,7 @@ data Comando
   | ConstruirEdificio Text AltId Int  -- ^ el edificio (id de @datos/edificios.json@), el altépetl y la cuadrilla (0 si no lleva)
   | PedirTributoObra AltId Text AltId Int  -- ^ la obra (su altépetl), el material, quien lo envía y cuántos trabajadores pone
   | DesignarMoneda (Maybe Text)  -- ^ el bien que pasa a ser la moneda (id de @datos/bienes_1475.json@), o Nothing para retirarla
+  | FijarAbasto Int  -- ^ qué porcentaje del déficit de la capital cubren las trojes cada año (T29)
   deriving (Eq, Show)
 
 partes :: [(Text, PartePresupuesto)]
@@ -59,6 +60,7 @@ instance FromJSON Comando where
                                                    <*> (AltId <$> o .: "fuente") <*> o .: "cuadrilla"
       -- "bien": null (o sin "bien") retira la moneda.
       "designar_moneda"        -> DesignarMoneda <$> o .:? "bien"
+      "fijar_abasto"           -> FijarAbasto <$> o .: "valor"
       _                        -> fail ("comando desconocido: " <> T.unpack t)
 
 instance ToJSON Comando where
@@ -77,6 +79,7 @@ instance ToJSON Comando where
       object ["tipo" .= ("pedir_tributo_obra" :: Text), "altepetl" .= a, "material" .= g, "fuente" .= f, "cuadrilla" .= n]
     DesignarMoneda b ->
       object ["tipo" .= ("designar_moneda" :: Text), "bien" .= b]
+    FijarAbasto n -> object ["tipo" .= ("fijar_abasto" :: Text), "valor" .= n]
 
 -- | El catálogo sin edificios cargados: @construir_edificio@ se declara con
 -- una lista de opciones vacía.
@@ -116,4 +119,5 @@ catalogoComandosConMonedas edificios materiales monedas =
       , DeclParametro "fuente" (PEntero 1 1000000), DeclParametro "cuadrilla" (PEntero 1 100000) ] True requisitoPorOmision
   , DeclComando "designar_moneda" "c.designar_moneda"
       [ DeclParametro "bien" (POpcion monedas) ] True requisitoPorOmision
+  , DeclComando "fijar_abasto" "c.fijar_abasto" [DeclParametro "valor" (PEntero 0 100)] True requisitoPorOmision
   ]
