@@ -26,7 +26,7 @@ import qualified Data.IntMap.Strict as IntMap
 
 import Motor.Base
 import Motor.Carga (CategoriaError (..), ErrorCarga (..), Validacion (..), falla)
-import Motor.Mapa (Mapa (..), Celda (..), Conexion (..), Recurso (..), Terreno (..))
+import Motor.Mapa (Mapa (..), Celda (..), Conexion (..), Recurso (..), Terreno (..), costoEntre)
 
 data DefTerreno = DefTerreno
   { dtTerreno   :: Terreno
@@ -137,7 +137,7 @@ conCostoDeTerreno tabla m = m { mapaVecinos = IntMap.mapWithKey conexiones (mapa
   where
     mu (CeldaId c) = maybe uno dtCostoMovimiento
                        (IntMap.lookup c (mapaCeldas m) >>= \ce -> Map.lookup (celdaTerreno ce) tabla)
-    conexiones a = map (\(b, k) -> (b, k { connCosto = connLongitud k .*. ((mu (CeldaId a) .+. mu b) ./. desdeEntero 2) }))
+    conexiones a = map (\(b, k) -> (b, k { connCosto = costoEntre (connLongitud k) (mu (CeldaId a)) (mu b) }))
 
 -- | Todo terreno que el mapa usa tiene que estar en la tabla: se rechaza al
 -- cargar, no en el tick 47. Un error por terreno, no por celda.

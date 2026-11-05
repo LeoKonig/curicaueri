@@ -73,6 +73,13 @@ validarMapa m = concat
     celdas  = mapaCeldas m
     vecinos = mapaVecinos m
 
+-- | El costo de una conexión (documento funcional, sección 8): su longitud
+-- por el promedio del costo de movimiento de sus dos celdas. Es simétrico
+-- por construcción, y lo usan quien arma el mapa con la tabla de terrenos y
+-- quien parchea el grafo cuando una obra cambia el costo de una celda.
+costoEntre :: Fijo -> Fijo -> Fijo -> Fijo
+costoEntre longitud ma mb = longitud .*. ((ma .+. mb) ./. desdeEntero 2)
+
 -- | Datos para generar un mapa hexagonal.
 data DatosHex = DatosHex
   { hexAncho   :: Int

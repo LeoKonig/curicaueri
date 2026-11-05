@@ -559,6 +559,57 @@ main = hspec $ do
       let m = mapaPrueba { mapaVecinos = IntMap.adjust (map (\(b, con) -> (b, con { connCosto = Fijo (-1) }))) 0 (mapaVecinos mapaPrueba) }
       any (\e -> case e of CostoNegativo _ _ -> True; _ -> False) (validarMapa m) `shouldBe` True
 
+  describe "caminos: parchear el costo del grafo y la ruta de menor costo (T37)" $ do
+    let grande = either (error . show) id (proveedorHexagonal (DatosHex 12 9 (Fijo 10000) 7))
+        -- El costo de cada conexión con el costo de movimiento mu de sus dos celdas.
+        conCosto mu m = m { mapaVecinos = IntMap.mapWithKey (\a -> map (\(b, k) -> (b, k { connCosto = costoEntre (connLongitud k) (mu (CeldaId a)) (mu b) })))
+                                                            (mapaVecinos m) }
+        mu0 _ = uno
+        distancias g c = IntMap.map (etDistancia . primera) (propagarGrafo UnGrupo Nothing g [(CeldaId c, Etiqueta (Fijo 0) 0 0)])
+        celdasGrande = IntMap.keys (mapaCeldas grande)
+        genCambios = do
+          k <- choose (0, 12)
+          cs <- vectorOf k (elements celdasGrande)
+          vs <- vectorOf k (choose (1000, 30000))
+          pure (Map.toList (Map.fromList (zip cs vs)))
+    it "ley: parchear es reconstruir (los costos, el mapa y todos los recorridos)" $
+      property $ forAll genCambios $ \cambios ->
+        let tabla = Map.fromList [ (c, Fijo v) | (c, v) <- cambios ]
+            mu (CeldaId c) = Map.findWithDefault uno c tabla
+            cs = map CeldaId (Map.keys tabla)
+            parcheado = parchearCostos mu cs (grafoDe (conCosto mu0 grande))
+            nuevo = grafoDe (conCosto mu grande)
+        in grafoMapa parcheado === grafoMapa nuevo
+           .&&. and [ distancias parcheado c == distancias nuevo c | c <- [0, 17, 55, 107] ]
+    it "sin celdas que cambiar, el grafo es el mismo" $
+      grafoMapa (parchearCostos (const (Fijo 5000)) [] (grafoDe grande)) `shouldBe` grafoMapa (grafoDe grande)
+    it "una celda más cara encarece igual las conexiones que salen de ella y las que llegan" $ do
+      let mu (CeldaId c) = if c == 30 then fi 3 else uno
+          g = parchearCostos mu [CeldaId 30] (grafoDe (conCosto mu0 grande))
+          costo a b = [ connCosto k | (CeldaId v, k) <- mapaVecinos (grafoMapa g) IntMap.! a, v == b ]
+          vecinas = [ v | (CeldaId v, _) <- mapaVecinos grande IntMap.! 30 ]
+      forM_ vecinas $ \v -> costo 30 v `shouldBe` costo v 30
+      costo 30 (head vecinas) `shouldBe` [Fijo 20000]
+    it "ley: la ruta empieza en a, acaba en b, avanza por vecinas y suma la distancia" $
+      property $ forAll (elements celdasGrande) $ \a -> forAll (elements celdasGrande) $ \b ->
+        let g = grafoDe grande
+            d = IntMap.findWithDefault (Fijo (-1)) b (distancias g a)
+        in case rutaMasCorta Nothing g (CeldaId a) (CeldaId b) of
+             Nothing -> counterexample "sin ruta" False
+             Just ruta ->
+               let ids = [ c | CeldaId c <- ruta ]
+                   pares = zip ids (drop 1 ids)
+                   costoPar (x, y) = head ([ connCosto k | (CeldaId v, k) <- mapaVecinos grande IntMap.! x, v == y ] ++ [Fijo (-1)])
+               in head ids === a .&&. last ids === b
+                  .&&. all (\p -> costoPar p >= Fijo 0) pares
+                  .&&. foldl' (.+.) (Fijo 0) (map costoPar pares) === d
+    it "la ruta respeta el tope: sin alcance no hay ruta" $
+      rutaMasCorta (Just (Fijo 10000)) (grafoDe grande) (CeldaId 0) (CeldaId 107) `shouldBe` Nothing
+    it "un camino barato atrae la ruta: la ruta pasa por las celdas más baratas" $ do
+      let mu (CeldaId c) = if c `elem` [13, 14, 15, 16] then Fijo 1000 else fi 5
+          g = grafoDe (conCosto mu grande)
+      fmap (map (\(CeldaId c) -> c)) (rutaMasCorta Nothing g (CeldaId 12) (CeldaId 17)) `shouldBe` Just [12, 13, 14, 15, 16, 17]
+
   describe "asignación de celdas" $ do
     -- mapaPrueba es hexagonal de 5 × 4 con 1,0 km por celda: dos celdas vecinas están a 1 km.
     let km n = Fijo (n * 10000)

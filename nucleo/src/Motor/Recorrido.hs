@@ -27,17 +27,20 @@ module Motor.Recorrido
   , grafoDe
   , grafoMapa
   , numCeldas
+  , parchearCostos
     -- * Recorridos
   , propagarGrafo
   , propagar
   , semillasDeVecinas
   , asignarCeldas
+  , rutaMasCorta
   ) where
 
 import Control.Monad (forM, forM_, when)
 import Control.Monad.ST (ST, runST)
-import Data.Array.Base (unsafeAt, unsafeRead, unsafeWrite)
+import Data.Array.Base (thaw, unsafeAt, unsafeRead, unsafeWrite)
 import Data.Array.ST (STArray, STUArray, newArray, runSTUArray, writeArray)
+import qualified Data.IntSet as IntSet
 import Data.Bits (countLeadingZeros, finiteBitSize, xor)
 import Data.Array.Unboxed (UArray, listArray)
 import Data.IntMap.Strict (IntMap)
@@ -141,6 +144,44 @@ grafoDe mapa = Grafo mapa ids indice inicio vecino costo
 
 numCeldas :: Grafo -> Int
 numCeldas = IntMap.size . grIndice
+
+-- | Rehace el costo de las conexiones de las celdas de @cs@ con el costo de
+-- movimiento @mu@ (V5, *Costo del grafo*; documento funcional, sección 8), y
+-- comparte todo lo demás. Cambian las conexiones que salen de cada celda de
+-- @cs@ y las que llegan a ella, para que el costo siga siendo simétrico:
+--
+-- > parchearCostos mu cs (grafoDe (conCosto mu0 m)) == grafoDe (conCosto mu m)
+--
+-- si @mu@ y @mu0@ solo difieren en @cs@ (ley «parchear es reconstruir»). Por
+-- fuera es una función pura: por dentro copia el arreglo de costos una vez y
+-- escribe las celdas tocadas, y actualiza el mapa persistente solo en ellas.
+-- El mapa del grafo se parchea igual, porque 'propagar' lee el costo de ahí.
+parchearCostos :: (CeldaId -> Fijo) -> [CeldaId] -> Grafo -> Grafo
+parchearCostos mu cs gr
+  | IntSet.null cambiadas = gr
+  | otherwise = gr { grafoMapa = mapa', grCosto = costo' }
+  where
+    mapa = grafoMapa gr
+    cambiadas = IntSet.fromList [ c | CeldaId c <- cs, IntMap.member c (grIndice gr) ]
+    vecinosDe c = [ v | (CeldaId v, _) <- IntMap.findWithDefault [] c (mapaVecinos mapa) ]
+    -- Las celdas con alguna conexión que cambia: las de @cs@ y sus vecinas.
+    tocadas = IntSet.toAscList (IntSet.union cambiadas (IntSet.fromList (concatMap vecinosDe (IntSet.toList cambiadas))))
+    nueva a (CeldaId b, con)
+      | IntSet.member a cambiadas || IntSet.member b cambiadas =
+          (CeldaId b, con { connCosto = costoEntre (connLongitud con) (mu (CeldaId a)) (mu (CeldaId b)) })
+      | otherwise = (CeldaId b, con)
+    mapa' = mapa { mapaVecinos = foldl' (\m a -> IntMap.adjust (map (nueva a)) a m) (mapaVecinos mapa) tocadas }
+    costo' = runSTUArray $ do
+      arr <- thaw (grCosto gr)
+      forM_ tocadas $ \a -> case IntMap.lookup a (grIndice gr) of
+        Nothing -> pure ()
+        Just i -> do
+          -- Las mismas conexiones, en el mismo orden, que 'grafoDe'.
+          let conexiones = [ con | (CeldaId v, con) <- IntMap.findWithDefault [] a (mapaVecinos mapa')
+                                 , IntMap.member v (grIndice gr) ]
+          forM_ (zip [grInicio gr `unsafeAt` i ..] conexiones) $ \(k, con) ->
+            unsafeWrite arr k (max 0 (let Fijo w = connCosto con in fromIntegral w))
+      pure arr
 
 -- | Suma saturada en el máximo, como '.+.'. Los costos no son negativos.
 sumaSat :: Int -> Int -> Int
@@ -442,3 +483,37 @@ asignarCeldas radio gr fuentes =
   IntMap.map (AsentId . etGrupo . primera)
     (propagarGrafo UnGrupo (Just radio) gr
        [ (c, Etiqueta (Fijo 0) a a) | (AsentId a, c) <- fuentes ])
+
+-- | La ruta de menor costo de @a@ a @b@, con las dos puntas, sin pasar de
+-- @tope@ (V5, *Caminos*; T37). Calcula las distancias a @b@ con 'propagarGrafo'
+-- y baja desde @a@: en cada celda sigue a la vecina que cierra la distancia
+-- (costo de la conexión más distancia de la vecina), y entre varias, a la de id
+-- menor. Es la misma ruta venga de donde venga, así que la ruta de @a@ a @b@
+-- y la de @b@ a @a@ son las mismas celdas salvo empates. 'Nothing' si @b@ no
+-- se alcanza dentro del tope.
+rutaMasCorta :: Maybe Fijo -> Grafo -> CeldaId -> CeldaId -> Maybe [CeldaId]
+rutaMasCorta tope gr a@(CeldaId ia) b@(CeldaId ib) = do
+  _ <- IntMap.lookup ia (grIndice gr)
+  _ <- IntMap.lookup ib (grIndice gr)
+  da <- distancia ia
+  bajar (numCeldas gr) a da
+  where
+    dist = propagarGrafo UnGrupo tope gr [(b, Etiqueta (Fijo 0) 0 0)]
+    distancia c = etDistancia . primera <$> IntMap.lookup c dist
+    bajar fuel x@(CeldaId ix) dx
+      | ix == ib = Just [b]
+      | fuel <= 0 = Nothing
+      | otherwise =
+          let i = grIndice gr IntMap.! ix
+              k0 = grInicio gr `unsafeAt` i
+              k1 = grInicio gr `unsafeAt` (i + 1)
+              siguientes = [ (CeldaId v, dv)
+                           | k <- [k0 .. k1 - 1]
+                           , let v = grIds gr `unsafeAt` (grVecino gr `unsafeAt` k)
+                           , Just dv <- [distancia v]
+                           , dv .+. Fijo (fromIntegral (grCosto gr `unsafeAt` k)) == dx ]
+          in case siguientes of
+               [] -> Nothing
+               _  -> let (y, dy) = minimumById siguientes in (x :) <$> bajar (fuel - 1) y dy
+    minimumById = foldr1 (\p q -> if cid p <= cid q then p else q)
+    cid (CeldaId v, _) = v
