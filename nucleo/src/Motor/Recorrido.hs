@@ -485,8 +485,9 @@ asignarCeldas radio gr fuentes =
        [ (c, Etiqueta (Fijo 0) a a) | (AsentId a, c) <- fuentes ])
 
 -- | La ruta de menor costo de @a@ a @b@, con las dos puntas, sin pasar de
--- @tope@ (V5, *Caminos*; T37). Calcula las distancias a @b@ con 'propagarGrafo'
--- y baja desde @a@: en cada celda sigue a la vecina que cierra la distancia
+-- @tope@ (V5, *Caminos*; T37). Calcula las distancias a @b@ con 'propagar'
+-- (sobre mapas persistentes: su costo es el de las celdas que explora, no el
+-- del mapa entero) y baja desde @a@: en cada celda sigue a la vecina que cierra la distancia
 -- (costo de la conexión más distancia de la vecina), y entre varias, a la de id
 -- menor. Es la misma ruta venga de donde venga, así que la ruta de @a@ a @b@
 -- y la de @b@ a @a@ son las mismas celdas salvo empates. 'Nothing' si @b@ no
@@ -498,7 +499,7 @@ rutaMasCorta tope gr a@(CeldaId ia) b@(CeldaId ib) = do
   da <- distancia ia
   bajar (numCeldas gr) a da
   where
-    dist = propagarGrafo UnGrupo tope gr [(b, Etiqueta (Fijo 0) 0 0)]
+    dist = propagar UnGrupo tope (grafoMapa gr) [(b, Etiqueta (Fijo 0) 0 0)] IntMap.empty
     distancia c = etDistancia . primera <$> IntMap.lookup c dist
     bajar fuel x@(CeldaId ix) dx
       | ix == ib = Just [b]
